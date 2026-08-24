@@ -1,0 +1,12 @@
+# Workspace metadata used by Docker builds and GitHub Actions. Local project
+# operations are executed through Docker Compose; no host virtual environment
+# is required.
+
+[project]
+name = "fastapi-boilerplate-workspace"
+version = "0"
+description = "Workspace root for the backend package."
+requires-python = ">=3.11"
+
+[tool.uv.workspace]
+members = ["backend"]

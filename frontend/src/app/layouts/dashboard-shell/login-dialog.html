@@ -1,0 +1,70 @@
+@let t = copy();
+<section class="login-dialog" aria-labelledby="login-dialog-title">
+  <header class="login-dialog-header">
+    <button type="button" [attr.aria-label]="t.cancel" (click)="close()">
+      <ui-icon name="arrow-left" />
+    </button>
+    <h2 id="login-dialog-title">{{ t.title }}</h2>
+    <button type="button" [attr.aria-label]="t.cancel" (click)="close()">
+      <ui-icon name="x" />
+    </button>
+  </header>
+
+  <form id="login-dialog-form" [formGroup]="form" novalidate (ngSubmit)="submit()">
+    <div class="login-dialog-body">
+      <label for="dialog-username">{{ t.username }}</label>
+      <input
+        id="dialog-username"
+        type="text"
+        formControlName="username"
+        autocomplete="username"
+        autocapitalize="none"
+        spellcheck="false"
+        enterkeyhint="next"
+        [placeholder]="t.usernamePlaceholder"
+        [attr.aria-invalid]="form.controls.username.invalid && form.controls.username.touched"
+      />
+
+      <label for="dialog-password">{{ t.password }}</label>
+      <div class="dialog-password-input">
+        <input
+          id="dialog-password"
+          [type]="passwordVisible() ? 'text' : 'password'"
+          formControlName="password"
+          autocomplete="current-password"
+          enterkeyhint="go"
+          [placeholder]="t.passwordPlaceholder"
+          [attr.aria-invalid]="form.controls.password.invalid && form.controls.password.touched"
+          (keydown)="updateCapsLock($event)"
+          (keyup)="updateCapsLock($event)"
+          (blur)="clearCapsLockWarning()"
+        />
+        <button
+          class="dialog-password-toggle"
+          type="button"
+          [attr.aria-label]="passwordVisible() ? t.hidePassword : t.showPassword"
+          [attr.aria-pressed]="passwordVisible()"
+          (click)="togglePasswordVisibility()"
+        >
+          <ui-icon [name]="passwordVisible() ? 'eye-off' : 'eye'" />
+        </button>
+      </div>
+
+      <div class="login-dialog-feedback" aria-live="polite" aria-atomic="true">
+        @if (capsLockActive()) {
+          <p class="login-dialog-warning">{{ t.capsLock }}</p>
+        }
+        @if (errorMessage(); as message) {
+          <p class="login-dialog-error" role="alert">{{ message }}</p>
+        }
+      </div>
+    </div>
+
+    <footer class="login-dialog-footer">
+      <button class="login-dialog-cancel" type="button" (click)="close()">{{ t.cancel }}</button>
+      <button class="login-dialog-submit" type="submit" [disabled]="submitting()">
+        {{ submitting() ? t.submitting : t.submit }}
+      </button>
+    </footer>
+  </form>
+</section>

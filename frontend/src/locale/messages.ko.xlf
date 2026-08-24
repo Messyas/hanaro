@@ -1,0 +1,275 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<xliff version="1.2" xmlns="urn:oasis:names:tc:xliff:document:1.2">
+  <file source-language="pt" target-language="ko" datatype="plaintext" original="ng2.template">
+    <body>
+      <trans-unit id="sidebar.closeMobile" datatype="html">
+        <source>Fechar menu lateral</source>
+        <target>사이드 메뉴 닫기</target>
+      </trans-unit>
+      <trans-unit id="sidebar.navigationLabel" datatype="html">
+        <source>Navegação principal</source>
+        <target>주요 탐색</target>
+      </trans-unit>
+      <trans-unit id="workspace.selectLabel" datatype="html">
+        <source>Selecionar operação</source>
+        <target>작업 선택</target>
+      </trans-unit>
+      <trans-unit id="sidebar.helpSupport" datatype="html">
+        <source>Ajuda e suporte</source>
+        <target>도움말 및 지원</target>
+      </trans-unit>
+      <trans-unit id="profile.administrator" datatype="html">
+        <source>Administrador</source>
+        <target>관리자</target>
+      </trans-unit>
+      <trans-unit id="profile.userRole" datatype="html">
+        <source>Usuário</source>
+        <target>사용자</target>
+      </trans-unit>
+      <trans-unit id="breadcrumbs.root" datatype="html">
+        <source>Painel</source>
+        <target>대시보드</target>
+      </trans-unit>
+      <trans-unit id="welcome.kicker" datatype="html">
+        <source>Resumo de hoje</source>
+        <target>오늘의 요약</target>
+      </trans-unit>
+      <trans-unit id="welcome.title" datatype="html">
+        <source>Visão geral</source>
+        <target>개요</target>
+      </trans-unit>
+      <trans-unit id="welcome.greeting" datatype="html">
+        <source>Bom dia, João. Acompanhe os principais números e atividades do seu negócio.</source>
+        <target>좋은 아침입니다, João님. 비즈니스의 주요 지표와 활동을 확인하세요.</target>
+      </trans-unit>
+      <trans-unit id="action.newReport" datatype="html">
+        <source>Novo relatório</source>
+        <target>새 보고서</target>
+      </trans-unit>
+      <trans-unit id="performance.title" datatype="html">
+        <source>Desempenho geral</source>
+        <target>전체 실적</target>
+      </trans-unit>
+      <trans-unit id="performance.subtitle" datatype="html">
+        <source>Receita dos últimos 7 meses</source>
+        <target>최근 7개월 매출</target>
+      </trans-unit>
+      <trans-unit id="performance.period" datatype="html">
+        <source>Últimos 7 meses</source>
+        <target>최근 7개월</target>
+      </trans-unit>
+      <trans-unit id="activity.title" datatype="html">
+        <source>Atividades recentes</source>
+        <target>최근 활동</target>
+      </trans-unit>
+      <trans-unit id="activity.subtitle" datatype="html">
+        <source>Últimas movimentações da equipe</source>
+        <target>팀의 최근 업데이트</target>
+      </trans-unit>
+      <trans-unit id="activity.viewAll" datatype="html">
+        <source>Ver todas</source>
+        <target>모두 보기</target>
+      </trans-unit>
+      <trans-unit id="settings.kicker" datatype="html">
+        <source>Preferências do sistema</source>
+        <target>시스템 환경설정</target>
+      </trans-unit>
+      <trans-unit id="settings.title" datatype="html">
+        <source>Aparência e marca</source>
+        <target>화면 및 브랜드</target>
+      </trans-unit>
+      <trans-unit id="settings.subtitle" datatype="html">
+        <source>Personalize a experiência visual deste dispositivo.</source>
+        <target>이 기기의 시각적 설정을 지정하세요.</target>
+      </trans-unit>
+      <trans-unit id="settings.autoSaved" datatype="html">
+        <source>Salvo automaticamente</source>
+        <target>자동 저장됨</target>
+      </trans-unit>
+      <trans-unit id="settings.themeTitle" datatype="html">
+        <source>Tema da interface</source>
+        <target>인터페이스 테마</target>
+      </trans-unit>
+      <trans-unit id="settings.themeSubtitle" datatype="html">
+        <source>Escolha como o painel deve ser exibido.</source>
+        <target>대시보드 표시 방식을 선택하세요.</target>
+      </trans-unit>
+      <trans-unit id="theme.light" datatype="html">
+        <source>Claro</source>
+        <target>라이트</target>
+      </trans-unit>
+      <trans-unit id="theme.lightDescription" datatype="html">
+        <source>Visual limpo para ambientes iluminados</source>
+        <target>밝은 환경에 적합한 깔끔한 화면</target>
+      </trans-unit>
+      <trans-unit id="theme.dark" datatype="html">
+        <source>Escuro</source>
+        <target>다크</target>
+      </trans-unit>
+      <trans-unit id="theme.darkDescription" datatype="html">
+        <source>Mais confortável em ambientes com pouca luz</source>
+        <target>어두운 환경에서 눈이 편안한 화면</target>
+      </trans-unit>
+      <trans-unit id="theme.darkToggle" datatype="html">
+        <source>Tema escuro</source>
+        <target>다크 모드</target>
+      </trans-unit>
+      <trans-unit id="theme.darkToggleSubtitle" datatype="html">
+        <source>Alterne diretamente entre a aparência clara e escura.</source>
+        <target>라이트 모드와 다크 모드를 직접 전환합니다.</target>
+      </trans-unit>
+      <trans-unit id="theme.systemToggle" datatype="html">
+        <source>Usar configuração do sistema</source>
+        <target>시스템 설정 사용</target>
+      </trans-unit>
+      <trans-unit id="theme.systemToggleSubtitle" datatype="html">
+        <source>Acompanha automaticamente o tema do sistema operacional.</source>
+        <target>운영체제 테마에 맞춰 자동으로 설정됩니다.</target>
+      </trans-unit>
+      <trans-unit id="language.title" datatype="html">
+        <source>Idioma do sistema</source>
+        <target>시스템 언어</target>
+      </trans-unit>
+      <trans-unit id="language.subtitle" datatype="html">
+        <source>Selecione o idioma de preferência para a interface.</source>
+        <target>인터페이스의 기본 선호 언어를 선택하세요.</target>
+      </trans-unit>
+      <trans-unit id="brandCard.title" datatype="html">
+        <source>Identidade atual</source>
+        <target>현재 브랜드</target>
+      </trans-unit>
+      <trans-unit id="brandCard.subtitle" datatype="html">
+        <source>Configuração white label ativa</source>
+        <target>화이트 라벨 설정 활성화됨</target>
+      </trans-unit>
+      <trans-unit id="brandCard.brandLabel" datatype="html">
+        <source>Marca</source>
+        <target>브랜드</target>
+      </trans-unit>
+      <trans-unit id="brandCard.productLabel" datatype="html">
+        <source>Produto</source>
+        <target>제품</target>
+      </trans-unit>
+      <trans-unit id="brandCard.preferenceLabel" datatype="html">
+        <source>Preferência</source>
+        <target>기본 설정</target>
+      </trans-unit>
+      <trans-unit id="brandCard.languageLabel" datatype="html">
+        <source>Idioma</source>
+        <target>언어</target>
+      </trans-unit>
+      <trans-unit id="brandCard.note" datatype="html">
+        <source>Cores, nome e armazenamento estão isolados em arquivos de configuração para facilitar novas marcas.</source>
+        <target>색상, 브랜드 이름 및 설정은 쉽게 리브랜딩할 수 있도록 설정 파일에 분리되어 있습니다.</target>
+      </trans-unit>
+      <trans-unit id="emptyState.description" datatype="html">
+        <source>Esta seção já faz parte da navegação e está pronta para receber seu conteúdo administrativo.</source>
+        <target>이 섹션은 탐색에 포함되어 있으며 관리 콘텐츠를 입력받을 준비가 되었습니다.</target>
+      </trans-unit>
+      <trans-unit id="emptyState.backOverview" datatype="html">
+        <source>Voltar para a visão geral</source>
+        <target>개요로 돌아가기</target>
+      </trans-unit>
+      <trans-unit id="nav.main" datatype="html">
+        <source>Principal</source>
+        <target>메인</target>
+      </trans-unit>
+      <trans-unit id="nav.overview" datatype="html">
+        <source>Visão geral</source>
+        <target>개요</target>
+      </trans-unit>
+      <trans-unit id="nav.notifications" datatype="html">
+        <source>Notificações</source>
+        <target>알림</target>
+      </trans-unit>
+      <trans-unit id="nav.management" datatype="html">
+        <source>Gestão</source>
+        <target>관리</target>
+      </trans-unit>
+      <trans-unit id="nav.reports" datatype="html">
+        <source>Relatórios</source>
+        <target>보고서</target>
+      </trans-unit>
+      <trans-unit id="nav.indicators" datatype="html">
+        <source>Indicadores</source>
+        <target>지표</target>
+      </trans-unit>
+      <trans-unit id="nav.managementReports" datatype="html">
+        <source>Relatórios gerenciais</source>
+        <target>경영 보고서</target>
+      </trans-unit>
+      <trans-unit id="nav.users" datatype="html">
+        <source>Usuários</source>
+        <target>사용자</target>
+      </trans-unit>
+      <trans-unit id="nav.calendar" datatype="html">
+        <source>Agenda</source>
+        <target>일정</target>
+      </trans-unit>
+      <trans-unit id="nav.documents" datatype="html">
+        <source>Documentos</source>
+        <target>문서</target>
+      </trans-unit>
+      <trans-unit id="nav.shared" datatype="html">
+        <source>Compartilhados</source>
+        <target>공유 문서</target>
+      </trans-unit>
+      <trans-unit id="nav.archive" datatype="html">
+        <source>Arquivo</source>
+        <target>보관함</target>
+      </trans-unit>
+      <trans-unit id="nav.administration" datatype="html">
+        <source>Administração</source>
+        <target>행정/설정</target>
+      </trans-unit>
+      <trans-unit id="nav.plansBilling" datatype="html">
+        <source>Planos e cobrança</source>
+        <target>요금제 및 결제</target>
+      </trans-unit>
+      <trans-unit id="nav.profile" datatype="html">
+        <source>Perfil</source>
+        <target>프로필</target>
+      </trans-unit>
+      <trans-unit id="summary.activeUsers" datatype="html">
+        <source>Usuários ativos</source>
+        <target>활성 사용자</target>
+      </trans-unit>
+      <trans-unit id="summary.newRegistrations" datatype="html">
+        <source>Novos cadastros</source>
+        <target>신규 가입자</target>
+      </trans-unit>
+      <trans-unit id="summary.monthlyRevenue" datatype="html">
+        <source>Receita mensal</source>
+        <target>월 매출</target>
+      </trans-unit>
+      <trans-unit id="summary.pendingTasks" datatype="html">
+        <source>Pendências</source>
+        <target>대기 중인 항목</target>
+      </trans-unit>
+      <trans-unit id="activity.addUser" datatype="html">
+        <source>adicionou um novo usuário</source>
+        <target>새 사용자를 추가했습니다</target>
+      </trans-unit>
+      <trans-unit id="activity.generateReport" datatype="html">
+        <source>gerou o relatório mensal</source>
+        <target>월간 보고서를 생성했습니다</target>
+      </trans-unit>
+      <trans-unit id="activity.updateSettings" datatype="html">
+        <source>atualizou as configurações</source>
+        <target>설정을 업데이트했습니다</target>
+      </trans-unit>
+      <trans-unit id="activity.time8m" datatype="html">
+        <source>há 8 min</source>
+        <target>8분 전</target>
+      </trans-unit>
+      <trans-unit id="activity.time32m" datatype="html">
+        <source>há 32 min</source>
+        <target>32분 전</target>
+      </trans-unit>
+      <trans-unit id="activity.time1h" datatype="html">
+        <source>há 1 h</source>
+        <target>1시간 전</target>
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

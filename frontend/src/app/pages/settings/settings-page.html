@@ -1,0 +1,94 @@
+@let t = language.translations();
+<section class="settings-page page-stack" aria-labelledby="settings-title">
+  <header class="settings-heading">
+    <h1 class="page-title" id="settings-title">{{ t.settingsTitle }}</h1>
+  </header>
+
+  <div class="settings-grid">
+    <article class="settings-card">
+      <header class="settings-card-header">
+        <h2>{{ t.themeTitle }}</h2>
+        <p>{{ t.themeSubtitle }}</p>
+      </header>
+
+      <div class="theme-options" role="group" [attr.aria-label]="t.themeGroupLabel">
+        <button
+          class="theme-preview light-preview"
+          type="button"
+          [class.selected]="theme.preference() === 'light'"
+          [attr.aria-pressed]="theme.preference() === 'light'"
+          (click)="theme.setPreference('light')"
+        >
+          <span class="preview-window" aria-hidden="true"
+            ><span class="preview-sidebar"></span
+            ><span class="preview-content"><i></i><i></i><i></i></span></span
+          ><strong>{{ t.themeLight }}</strong
+          ><small>{{ t.themeLightDesc }}</small>
+        </button>
+        <button
+          class="theme-preview dark-preview"
+          type="button"
+          [class.selected]="theme.preference() === 'dark'"
+          [attr.aria-pressed]="theme.preference() === 'dark'"
+          (click)="theme.setPreference('dark')"
+        >
+          <span class="preview-window" aria-hidden="true"
+            ><span class="preview-sidebar"></span
+            ><span class="preview-content"><i></i><i></i><i></i></span></span
+          ><strong>{{ t.themeDark }}</strong
+          ><small>{{ t.themeDarkDesc }}</small>
+        </button>
+      </div>
+
+      <div class="setting-row">
+        <div>
+          <strong>{{ t.darkToggle }}</strong>
+          <p>{{ t.darkToggleDesc }}</p>
+        </div>
+        <mat-slide-toggle
+          class="theme-toggle"
+          [checked]="theme.isDark()"
+          [disabled]="theme.followsSystem()"
+          [hideIcon]="true"
+          [attr.aria-label]="t.darkToggleAria"
+          (change)="theme.setDarkMode($event.checked)"
+        />
+      </div>
+      <div class="setting-row">
+        <div>
+          <strong>{{ t.systemToggle }}</strong>
+          <p>{{ t.systemToggleDesc }}</p>
+        </div>
+        <mat-slide-toggle
+          class="theme-toggle"
+          [checked]="theme.followsSystem()"
+          [hideIcon]="true"
+          [attr.aria-label]="t.systemToggleAria"
+          (change)="theme.followSystem($event.checked)"
+        />
+      </div>
+    </article>
+
+    <article class="settings-card language-card">
+      <header class="settings-card-header">
+        <h2>{{ t.languageTitle }}</h2>
+        <p>{{ t.languageSubtitle }}</p>
+      </header>
+
+      <div class="language-options" role="group" [attr.aria-label]="t.languageGroupLabel">
+        @for (opt of language.availableLanguages(); track opt.code) {
+          <button
+            class="language-button"
+            type="button"
+            [class.selected]="language.currentLanguage() === opt.code"
+            [attr.aria-pressed]="language.currentLanguage() === opt.code"
+            (click)="language.setLanguage(opt.code)"
+          >
+            <strong>{{ opt.nativeName }}</strong>
+            <small>{{ opt.label }}</small>
+          </button>
+        }
+      </div>
+    </article>
+  </div>
+</section>

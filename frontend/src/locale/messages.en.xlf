@@ -1,0 +1,275 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<xliff version="1.2" xmlns="urn:oasis:names:tc:xliff:document:1.2">
+  <file source-language="pt" target-language="en" datatype="plaintext" original="ng2.template">
+    <body>
+      <trans-unit id="sidebar.closeMobile" datatype="html">
+        <source>Fechar menu lateral</source>
+        <target>Close sidebar</target>
+      </trans-unit>
+      <trans-unit id="sidebar.navigationLabel" datatype="html">
+        <source>Navegação principal</source>
+        <target>Main Navigation</target>
+      </trans-unit>
+      <trans-unit id="workspace.selectLabel" datatype="html">
+        <source>Selecionar operação</source>
+        <target>Select Operation</target>
+      </trans-unit>
+      <trans-unit id="sidebar.helpSupport" datatype="html">
+        <source>Ajuda e suporte</source>
+        <target>Help &amp; Support</target>
+      </trans-unit>
+      <trans-unit id="profile.administrator" datatype="html">
+        <source>Administrador</source>
+        <target>Administrator</target>
+      </trans-unit>
+      <trans-unit id="profile.userRole" datatype="html">
+        <source>Usuário</source>
+        <target>User</target>
+      </trans-unit>
+      <trans-unit id="breadcrumbs.root" datatype="html">
+        <source>Painel</source>
+        <target>Dashboard</target>
+      </trans-unit>
+      <trans-unit id="welcome.kicker" datatype="html">
+        <source>Resumo de hoje</source>
+        <target>Today's Summary</target>
+      </trans-unit>
+      <trans-unit id="welcome.title" datatype="html">
+        <source>Visão geral</source>
+        <target>Overview</target>
+      </trans-unit>
+      <trans-unit id="welcome.greeting" datatype="html">
+        <source>Bom dia, João. Acompanhe os principais números e atividades do seu negócio.</source>
+        <target>Good morning, João. Track key metrics and activity across your business.</target>
+      </trans-unit>
+      <trans-unit id="action.newReport" datatype="html">
+        <source>Novo relatório</source>
+        <target>New Report</target>
+      </trans-unit>
+      <trans-unit id="performance.title" datatype="html">
+        <source>Desempenho geral</source>
+        <target>Overall Performance</target>
+      </trans-unit>
+      <trans-unit id="performance.subtitle" datatype="html">
+        <source>Receita dos últimos 7 meses</source>
+        <target>Revenue over the past 7 months</target>
+      </trans-unit>
+      <trans-unit id="performance.period" datatype="html">
+        <source>Últimos 7 meses</source>
+        <target>Last 7 months</target>
+      </trans-unit>
+      <trans-unit id="activity.title" datatype="html">
+        <source>Atividades recentes</source>
+        <target>Recent Activity</target>
+      </trans-unit>
+      <trans-unit id="activity.subtitle" datatype="html">
+        <source>Últimas movimentações da equipe</source>
+        <target>Latest updates from the team</target>
+      </trans-unit>
+      <trans-unit id="activity.viewAll" datatype="html">
+        <source>Ver todas</source>
+        <target>View all</target>
+      </trans-unit>
+      <trans-unit id="settings.kicker" datatype="html">
+        <source>Preferências do sistema</source>
+        <target>System Preferences</target>
+      </trans-unit>
+      <trans-unit id="settings.title" datatype="html">
+        <source>Aparência e marca</source>
+        <target>Appearance &amp; Brand</target>
+      </trans-unit>
+      <trans-unit id="settings.subtitle" datatype="html">
+        <source>Personalize a experiência visual deste dispositivo.</source>
+        <target>Customize the visual experience for this device.</target>
+      </trans-unit>
+      <trans-unit id="settings.autoSaved" datatype="html">
+        <source>Salvo automaticamente</source>
+        <target>Saved automatically</target>
+      </trans-unit>
+      <trans-unit id="settings.themeTitle" datatype="html">
+        <source>Tema da interface</source>
+        <target>Interface Theme</target>
+      </trans-unit>
+      <trans-unit id="settings.themeSubtitle" datatype="html">
+        <source>Escolha como o painel deve ser exibido.</source>
+        <target>Choose how the dashboard should be displayed.</target>
+      </trans-unit>
+      <trans-unit id="theme.light" datatype="html">
+        <source>Claro</source>
+        <target>Light</target>
+      </trans-unit>
+      <trans-unit id="theme.lightDescription" datatype="html">
+        <source>Visual limpo para ambientes iluminados</source>
+        <target>Clean look for well-lit environments</target>
+      </trans-unit>
+      <trans-unit id="theme.dark" datatype="html">
+        <source>Escuro</source>
+        <target>Dark</target>
+      </trans-unit>
+      <trans-unit id="theme.darkDescription" datatype="html">
+        <source>Mais confortável em ambientes com pouca luz</source>
+        <target>Easier on the eyes in low-light environments</target>
+      </trans-unit>
+      <trans-unit id="theme.darkToggle" datatype="html">
+        <source>Tema escuro</source>
+        <target>Dark Mode</target>
+      </trans-unit>
+      <trans-unit id="theme.darkToggleSubtitle" datatype="html">
+        <source>Alterne diretamente entre a aparência clara e escura.</source>
+        <target>Toggle directly between light and dark appearance.</target>
+      </trans-unit>
+      <trans-unit id="theme.systemToggle" datatype="html">
+        <source>Usar configuração do sistema</source>
+        <target>Use System Preference</target>
+      </trans-unit>
+      <trans-unit id="theme.systemToggleSubtitle" datatype="html">
+        <source>Acompanha automaticamente o tema do sistema operacional.</source>
+        <target>Automatically match your operating system theme.</target>
+      </trans-unit>
+      <trans-unit id="language.title" datatype="html">
+        <source>Idioma do sistema</source>
+        <target>System Language</target>
+      </trans-unit>
+      <trans-unit id="language.subtitle" datatype="html">
+        <source>Selecione o idioma de preferência para a interface.</source>
+        <target>Select your preferred interface language.</target>
+      </trans-unit>
+      <trans-unit id="brandCard.title" datatype="html">
+        <source>Identidade atual</source>
+        <target>Current Branding</target>
+      </trans-unit>
+      <trans-unit id="brandCard.subtitle" datatype="html">
+        <source>Configuração white label ativa</source>
+        <target>Active white label configuration</target>
+      </trans-unit>
+      <trans-unit id="brandCard.brandLabel" datatype="html">
+        <source>Marca</source>
+        <target>Brand</target>
+      </trans-unit>
+      <trans-unit id="brandCard.productLabel" datatype="html">
+        <source>Produto</source>
+        <target>Product</target>
+      </trans-unit>
+      <trans-unit id="brandCard.preferenceLabel" datatype="html">
+        <source>Preferência</source>
+        <target>Preference</target>
+      </trans-unit>
+      <trans-unit id="brandCard.languageLabel" datatype="html">
+        <source>Idioma</source>
+        <target>Language</target>
+      </trans-unit>
+      <trans-unit id="brandCard.note" datatype="html">
+        <source>Cores, nome e armazenamento estão isolados em arquivos de configuração para facilitar novas marcas.</source>
+        <target>Colors, brand name, and settings are isolated in configuration files for easy re-branding.</target>
+      </trans-unit>
+      <trans-unit id="emptyState.description" datatype="html">
+        <source>Esta seção já faz parte da navegação e está pronta para receber seu conteúdo administrativo.</source>
+        <target>This section is configured in navigation and ready for administrative content.</target>
+      </trans-unit>
+      <trans-unit id="emptyState.backOverview" datatype="html">
+        <source>Voltar para a visão geral</source>
+        <target>Back to Overview</target>
+      </trans-unit>
+      <trans-unit id="nav.main" datatype="html">
+        <source>Principal</source>
+        <target>Main</target>
+      </trans-unit>
+      <trans-unit id="nav.overview" datatype="html">
+        <source>Visão geral</source>
+        <target>Overview</target>
+      </trans-unit>
+      <trans-unit id="nav.notifications" datatype="html">
+        <source>Notificações</source>
+        <target>Notifications</target>
+      </trans-unit>
+      <trans-unit id="nav.management" datatype="html">
+        <source>Gestão</source>
+        <target>Management</target>
+      </trans-unit>
+      <trans-unit id="nav.reports" datatype="html">
+        <source>Relatórios</source>
+        <target>Reports</target>
+      </trans-unit>
+      <trans-unit id="nav.indicators" datatype="html">
+        <source>Indicadores</source>
+        <target>Indicators</target>
+      </trans-unit>
+      <trans-unit id="nav.managementReports" datatype="html">
+        <source>Relatórios gerenciais</source>
+        <target>Management Reports</target>
+      </trans-unit>
+      <trans-unit id="nav.users" datatype="html">
+        <source>Usuários</source>
+        <target>Users</target>
+      </trans-unit>
+      <trans-unit id="nav.calendar" datatype="html">
+        <source>Agenda</source>
+        <target>Calendar</target>
+      </trans-unit>
+      <trans-unit id="nav.documents" datatype="html">
+        <source>Documentos</source>
+        <target>Documents</target>
+      </trans-unit>
+      <trans-unit id="nav.shared" datatype="html">
+        <source>Compartilhados</source>
+        <target>Shared</target>
+      </trans-unit>
+      <trans-unit id="nav.archive" datatype="html">
+        <source>Arquivo</source>
+        <target>Archive</target>
+      </trans-unit>
+      <trans-unit id="nav.administration" datatype="html">
+        <source>Administração</source>
+        <target>Administration</target>
+      </trans-unit>
+      <trans-unit id="nav.plansBilling" datatype="html">
+        <source>Planos e cobrança</source>
+        <target>Plans &amp; Billing</target>
+      </trans-unit>
+      <trans-unit id="nav.profile" datatype="html">
+        <source>Perfil</source>
+        <target>Profile</target>
+      </trans-unit>
+      <trans-unit id="summary.activeUsers" datatype="html">
+        <source>Usuários ativos</source>
+        <target>Active Users</target>
+      </trans-unit>
+      <trans-unit id="summary.newRegistrations" datatype="html">
+        <source>Novos cadastros</source>
+        <target>New Registrations</target>
+      </trans-unit>
+      <trans-unit id="summary.monthlyRevenue" datatype="html">
+        <source>Receita mensal</source>
+        <target>Monthly Revenue</target>
+      </trans-unit>
+      <trans-unit id="summary.pendingTasks" datatype="html">
+        <source>Pendências</source>
+        <target>Pending Tasks</target>
+      </trans-unit>
+      <trans-unit id="activity.addUser" datatype="html">
+        <source>adicionou um novo usuário</source>
+        <target>added a new user</target>
+      </trans-unit>
+      <trans-unit id="activity.generateReport" datatype="html">
+        <source>gerou o relatório mensal</source>
+        <target>generated monthly report</target>
+      </trans-unit>
+      <trans-unit id="activity.updateSettings" datatype="html">
+        <source>atualizou as configurações</source>
+        <target>updated settings</target>
+      </trans-unit>
+      <trans-unit id="activity.time8m" datatype="html">
+        <source>há 8 min</source>
+        <target>8 min ago</target>
+      </trans-unit>
+      <trans-unit id="activity.time32m" datatype="html">
+        <source>há 32 min</source>
+        <target>32 min ago</target>
+      </trans-unit>
+      <trans-unit id="activity.time1h" datatype="html">
+        <source>há 1 h</source>
+        <target>1 hour ago</target>
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

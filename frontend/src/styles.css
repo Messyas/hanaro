@@ -1,0 +1,61 @@
+@import '@fontsource-variable/fustat';
+@import '@angular/material/prebuilt-themes/azure-blue.css';
+@import '@angular/cdk/overlay-prebuilt.css';
+@import 'tailwindcss';
+@import './app/theme/hanaro.theme.css';
+@import './app/app.css';
+
+:root {
+  font-family:
+    'Fustat Variable',
+    Fustat,
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  background: var(--app-page);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-width: 320px;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: var(--app-page);
+  color: var(--app-text);
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+app-root {
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+/* O tema muda como uma operação atômica: nenhuma superfície deve animar entre tokens. */
+:root.theme-changing *,
+:root.theme-changing *::before,
+:root.theme-changing *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}

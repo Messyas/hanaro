@@ -1,0 +1,41 @@
+# syntax=docker/dockerfile:1.7
+
+ARG NODE_VERSION=24-alpine
+
+FROM node:${NODE_VERSION} AS dependencies
+WORKDIR /app
+
+# package-lock.json is copied before source code to preserve the npm ci layer.
+COPY frontend/package.json frontend/package-lock.json ./
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci
+
+FROM dependencies AS dev
+
+ENV NODE_ENV=development
+COPY --chown=node:node frontend/ ./
+RUN mkdir -p .angular coverage dist && chown node:node .angular coverage dist
+
+USER node
+EXPOSE 4200
+
+# Polling is reliable with Docker Desktop bind mounts on Windows/macOS.
+CMD ["npm", "start", "--", "--host", "0.0.0.0", "--port", "4200", "--poll", "1000", "--proxy-config", "proxy.docker.conf.json"]
+
+FROM dependencies AS build
+
+COPY frontend/ ./
+RUN npm run build
+
+# The Angular SSR build is self-contained and runs on a small Node runtime.
+FROM node:${NODE_VERSION} AS prod
+
+ENV NODE_ENV=production \
+    PORT=4000
+WORKDIR /app
+
+COPY --from=build --chown=node:node /app/dist/frontend ./dist/frontend
+
+USER node
+EXPOSE 4000
+CMD ["node", "dist/frontend/server/server.mjs"]

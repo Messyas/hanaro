@@ -1,0 +1,258 @@
+name: hanaro-production
+
+x-service-defaults: &service-defaults
+  init: true
+  security_opt:
+    - no-new-privileges:true
+  logging:
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: "5"
+
+x-backend-environment: &backend-environment
+  ENVIRONMENT: production
+  DEBUG: "false"
+  CREATE_TABLES_ON_STARTUP: "false"
+  ENABLE_DOCS_IN_PRODUCTION: "false"
+  PRODUCTION_SECURITY_VALIDATION_ENABLED: "true"
+  SECURITY_HEADERS_ENABLED: "true"
+  TRUSTED_HOSTS: ${PUBLIC_HOST:?Set PUBLIC_HOST},backend,localhost,127.0.0.1
+  CORS_ENABLED: "false"
+  SESSION_BACKEND: redis
+  SESSION_SECURE_COOKIES: "true"
+  CSRF_ENABLED: "true"
+  TRUSTED_PROXY_HOPS: "1"
+  SESSION_TIMEOUT_MINUTES: ${SESSION_TIMEOUT_MINUTES:-120}
+  MAX_SESSIONS_PER_USER: ${MAX_SESSIONS_PER_USER:-5}
+  SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY}
+  OAUTH_REDIRECT_BASE_URL: https://${PUBLIC_HOST:?Set PUBLIC_HOST}
+  POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+  POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB}
+  POSTGRES_SERVER: postgres
+  POSTGRES_PORT: "5432"
+  POSTGRES_SYNC_PREFIX: postgresql://
+  POSTGRES_ASYNC_PREFIX: postgresql+asyncpg://
+  CACHE_ENABLED: "true"
+  CACHE_BACKEND: redis
+  CACHE_REDIS_HOST: redis
+  CACHE_REDIS_PORT: "6379"
+  CACHE_REDIS_DB: "0"
+  CACHE_REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD}
+  RATE_LIMITER_ENABLED: "true"
+  RATE_LIMITER_BACKEND: redis
+  RATE_LIMITER_FAIL_OPEN: "false"
+  RATE_LIMITER_REDIS_HOST: redis
+  RATE_LIMITER_REDIS_PORT: "6379"
+  RATE_LIMITER_REDIS_DB: "1"
+  RATE_LIMITER_REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD}
+  TASKIQ_ENABLED: "true"
+  TASKIQ_BROKER_TYPE: redis
+  TASKIQ_REDIS_HOST: redis
+  TASKIQ_REDIS_PORT: "6379"
+  TASKIQ_REDIS_DB: "3"
+  TASKIQ_REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD}
+  LOG_FORMAT: json
+  LOG_LEVEL: INFO
+  ADMIN_ENABLED: "false"
+  PROFILE_IMAGE_DIR: /app/backend/data/profile-images
+  PROFILE_IMAGE_MAX_BYTES: ${PROFILE_IMAGE_MAX_BYTES:-5242880}
+  PROFILE_IMAGE_MAX_DIMENSION: ${PROFILE_IMAGE_MAX_DIMENSION:-4096}
+
+services:
+  nginx:
+    <<: *service-defaults
+    image: nginx:1.29-alpine
+    environment:
+      PUBLIC_HOST: ${PUBLIC_HOST:?Set PUBLIC_HOST}
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    volumes:
+      - type: bind
+        source: ./nginx/default.conf.template
+        target: /etc/nginx/templates/default.conf.template
+        read_only: true
+      - type: bind
+        source: ./nginx/certs
+        target: /etc/nginx/certs
+        read_only: true
+    read_only: true
+    tmpfs:
+      - /etc/nginx/conf.d
+      - /var/cache/nginx
+      - /var/run
+      - /tmp
+    depends_on:
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-check-certificate", "--quiet", "--spider", "https://127.0.0.1/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - frontend_proxy
+      - backend_proxy
+    restart: unless-stopped
+
+  frontend:
+    <<: *service-defaults
+    build:
+      context: ..
+      dockerfile: frontend/dockerfile
+      target: prod
+    expose:
+      - "4000"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4000').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - frontend_proxy
+    restart: unless-stopped
+
+  migrate:
+    <<: *service-defaults
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+      target: migrate
+    environment:
+      <<: *backend-environment
+      CONFIRM_PRODUCTION_MIGRATION: "yes"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - data
+    restart: "no"
+
+  backend:
+    <<: *service-defaults
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+      target: prod
+    environment: *backend-environment
+    volumes:
+      - profile_images:/app/backend/data/profile-images
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    expose:
+      - "8000"
+    command:
+      - fastapi
+      - run
+      - src/interfaces/main.py
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+      - --forwarded-allow-ips
+      - "*"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - backend_proxy
+      - data
+    restart: unless-stopped
+
+  worker:
+    <<: *service-defaults
+    profiles: ["worker"]
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+      target: base
+    environment: *backend-environment
+    working_dir: /app/backend/src
+    command: ["taskiq", "worker", "infrastructure.taskiq.worker:default_broker", "--workers", "2"]
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    networks:
+      - data
+    restart: unless-stopped
+
+  postgres:
+    <<: *service-defaults
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - data
+    restart: unless-stopped
+
+  redis:
+    <<: *service-defaults
+    image: redis:8-alpine
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD}
+    command: ["sh", "-c", "exec redis-server --appendonly yes --requirepass \"$${REDIS_PASSWORD}\""]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$${REDIS_PASSWORD}\" ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - data
+    restart: unless-stopped
+
+networks:
+  frontend_proxy:
+  backend_proxy:
+  data:
+    internal: true
+
+volumes:
+  postgres_data:
+  redis_data:
+  profile_images:

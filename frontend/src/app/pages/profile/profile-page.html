@@ -1,0 +1,232 @@
+@let t = language.translations();
+<section class="profile-page" aria-labelledby="profile-title">
+  @if (loading()) {
+    <div class="profile-shell profile-loading" aria-busy="true" aria-live="polite">
+      <span class="profile-loading-title"></span>
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+  } @else {
+    <form class="profile-shell" (ngSubmit)="save()">
+      <header class="profile-page-header">
+        <h1 class="page-title" id="profile-title">{{ t.profileTitle }}</h1>
+      </header>
+
+      @if (feedback()?.message; as message) {
+        <p
+          class="profile-status"
+          [class.profile-status-success]="feedback()?.kind === 'success'"
+          role="status"
+          aria-live="polite"
+        >
+          {{ message }}
+        </p>
+      }
+
+      <section class="profile-section" aria-labelledby="personal-data-title">
+        <header class="profile-section-header">
+          <h2 id="personal-data-title">{{ t.profilePersonalTitle }}</h2>
+          @if (!editing()) {
+            <button class="profile-outline-button" type="button" (click)="startEditing()">
+              {{ t.profileEdit }}
+            </button>
+          }
+        </header>
+
+        @if (editing()) {
+          <div class="profile-field-grid">
+            <label class="profile-field">
+              <span>{{ t.profileNameLabel }}</span>
+              <input type="text" autocomplete="name" maxlength="30" [formControl]="form.name" />
+              @if (form.name.touched && form.name.invalid) {
+                <small class="profile-field-error">{{ t.profileRequiredError }}</small>
+              }
+            </label>
+
+            <label class="profile-field">
+              <span>{{ t.profileUsernameLabel }}</span>
+              <input class="profile-readonly" type="text" readonly [formControl]="form.username" />
+              <small>{{ t.profileUsernameHint }}</small>
+            </label>
+
+            <label class="profile-field">
+              <span>{{ t.profileEmailLabel }}</span>
+              <input type="email" autocomplete="email" maxlength="50" [formControl]="form.email" />
+              @if (form.email.touched && form.email.invalid) {
+                <small class="profile-field-error">{{ t.profileEmailError }}</small>
+              }
+            </label>
+
+            <label class="profile-field">
+              <span>{{ t.profilePhoneLabel }}</span>
+              <input
+                type="tel"
+                inputmode="tel"
+                autocomplete="tel"
+                maxlength="24"
+                [placeholder]="t.profilePhonePlaceholder"
+                [formControl]="form.phone"
+              />
+            </label>
+          </div>
+        } @else {
+          <dl class="profile-data-grid">
+            <div class="profile-data-item">
+              <dt>{{ t.profileNameLabel }}</dt>
+              <dd>{{ displayValue(form.name.value) }}</dd>
+            </div>
+            <div class="profile-data-item">
+              <dt>{{ t.profileUsernameLabel }}</dt>
+              <dd>&#64;{{ displayValue(form.username.value) }}</dd>
+            </div>
+            <div class="profile-data-item">
+              <dt>{{ t.profileEmailLabel }}</dt>
+              <dd>{{ displayValue(form.email.value) }}</dd>
+            </div>
+            <div class="profile-data-item">
+              <dt>{{ t.profilePhoneLabel }}</dt>
+              <dd>{{ displayValue(form.phone.value) }}</dd>
+            </div>
+          </dl>
+        }
+      </section>
+
+      <section class="profile-section" aria-labelledby="contact-data-title">
+        <header class="profile-section-header">
+          <h2 id="contact-data-title">{{ t.profileContactTitle }}</h2>
+        </header>
+
+        @if (editing()) {
+          <div class="profile-field-grid">
+            <label class="profile-field">
+              <span>{{ t.profileNotificationEmailLabel }}</span>
+              <input
+                type="email"
+                autocomplete="email"
+                maxlength="50"
+                [formControl]="form.notificationEmail"
+              />
+              @if (form.notificationEmail.touched && form.notificationEmail.invalid) {
+                <small class="profile-field-error">{{ t.profileEmailError }}</small>
+              } @else {
+                <small>{{ t.profileNotificationEmailHint }}</small>
+              }
+            </label>
+
+            <label class="profile-field">
+              <span>{{ t.profileJobTitleLabel }}</span>
+              <input
+                type="text"
+                autocomplete="organization-title"
+                maxlength="80"
+                [placeholder]="t.profileJobTitlePlaceholder"
+                [formControl]="form.jobTitle"
+              />
+            </label>
+          </div>
+        } @else {
+          <dl class="profile-data-grid">
+            <div class="profile-data-item">
+              <dt>{{ t.profileNotificationEmailLabel }}</dt>
+              <dd>{{ displayValue(form.notificationEmail.value) }}</dd>
+            </div>
+            <div class="profile-data-item">
+              <dt>{{ t.profileJobTitleLabel }}</dt>
+              <dd>{{ displayValue(form.jobTitle.value) }}</dd>
+            </div>
+          </dl>
+        }
+      </section>
+
+      <section class="profile-photo-section" [attr.aria-label]="t.profilePhotoTitle">
+        <div class="profile-photo-identity">
+          <span class="profile-photo-preview">
+            @if (displayedProfileImageUrl(); as imageUrl) {
+              @if (!profileImageFailed()) {
+                <img
+                  [src]="imageUrl"
+                  [alt]="t.profilePhotoAlt"
+                  referrerpolicy="no-referrer"
+                  (error)="profileImageFailed.set(true)"
+                />
+              } @else {
+                <span>{{ userInitials() }}</span>
+              }
+            } @else {
+              <span>{{ userInitials() }}</span>
+            }
+          </span>
+          <span class="profile-photo-copy">
+            <strong>{{ displayValue(form.name.value) }}</strong>
+            <small>{{ displayValue(form.email.value) }}</small>
+          </span>
+        </div>
+
+        <div class="profile-photo-controls">
+          <input
+            #profileImageInput
+            class="profile-photo-input"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            [disabled]="imageOperation() !== null"
+            (change)="onProfileImageSelected($event)"
+          />
+          <span class="profile-photo-help">{{ t.profilePhotoDescription }}</span>
+          <div class="profile-photo-actions">
+            <button
+              class="profile-outline-button"
+              type="button"
+              [disabled]="imageOperation() !== null"
+              (click)="profileImageInput.click()"
+            >
+              @if (imageOperation() === 'uploading') {
+                {{ t.profilePhotoUploading }}
+              } @else {
+                {{ displayedProfileImageUrl() ? t.profilePhotoChange : t.profilePhotoAdd }}
+              }
+            </button>
+            @if (displayedProfileImageUrl()) {
+              <button
+                class="profile-outline-button profile-photo-remove"
+                type="button"
+                [disabled]="imageOperation() !== null"
+                (click)="removeProfileImage()"
+              >
+                {{
+                  imageOperation() === 'removing' ? t.profilePhotoRemoving : t.profilePhotoRemove
+                }}
+              </button>
+            }
+          </div>
+          @if (imageFeedback()?.message; as imageMessage) {
+            <p
+              class="profile-image-feedback"
+              [class.profile-status-success]="imageFeedback()?.kind === 'success'"
+              role="status"
+              aria-live="polite"
+            >
+              {{ imageMessage }}
+            </p>
+          }
+        </div>
+      </section>
+
+      @if (editing()) {
+        <footer class="profile-form-footer">
+          <button
+            class="profile-outline-button"
+            type="button"
+            [disabled]="saving()"
+            (click)="cancelEditing()"
+          >
+            {{ t.cancel }}
+          </button>
+          <button class="profile-save-button" type="submit" [disabled]="saving()">
+            {{ saving() ? t.profileSaving : t.profileSave }}
+          </button>
+        </footer>
+      }
+    </form>
+  }
+</section>

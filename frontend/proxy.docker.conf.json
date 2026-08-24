@@ -1,0 +1,12 @@
+{
+  "/api": {
+    "target": "http://backend:8000",
+    "secure": false,
+    "changeOrigin": false
+  },
+  "/health": {
+    "target": "http://backend:8000",
+    "secure": false,
+    "changeOrigin": false
+  }
+}

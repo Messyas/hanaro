@@ -1,0 +1,249 @@
+@let t = language.translations();
+<div
+  class="dashboard-shell"
+  [class.sidebar-collapsed]="!sidebarOpen() && !isMobile()"
+  [class.mobile-layout]="isMobile()"
+  [class.sidebar-open]="sidebarOpen()"
+>
+  @if (isMobile() && sidebarOpen()) {
+    <button
+      class="sidebar-backdrop"
+      type="button"
+      [attr.aria-label]="t.closeSidebar"
+      (click)="sidebarOpen.set(false)"
+    ></button>
+  }
+
+  <aside
+    class="dashboard-sidebar"
+    [attr.aria-label]="t.mainNavigationLabel"
+    [attr.aria-hidden]="isMobile() && !sidebarOpen() ? 'true' : null"
+    [attr.inert]="isMobile() && !sidebarOpen() ? '' : null"
+  >
+    <div class="sidebar-panel">
+      <header class="sidebar-header">
+        <div class="sidebar-toolbar">
+          <span
+            class="brand-logo"
+            aria-label="Hanaro"
+            [class.brand-logo-dark]="theme.isDark()"
+            [class.brand-logo-korean]="language.isKorean()"
+            [class.brand-logo-is-collapsed]="!sidebarOpen() && !isMobile()"
+          >
+            <img
+              class="brand-logo-img brand-logo-visible"
+              [class.brand-logo-collapsed]="!sidebarOpen() && !isMobile()"
+              [ngSrc]="brandLogoSrc()"
+              alt=""
+              fill
+              priority
+            />
+          </span>
+          <button
+            class="sidebar-toggle"
+            type="button"
+            [attr.aria-label]="sidebarOpen() ? t.collapseSidebar : t.expandSidebar"
+            [attr.aria-expanded]="sidebarOpen()"
+            (click)="toggleSidebar()"
+          >
+            <ui-icon name="sidebar" />
+          </button>
+        </div>
+      </header>
+
+      <nav class="sidebar-content">
+        <ul class="nav-menu">
+          @for (item of navigation(); track item.path) {
+            @if (
+              item.visibleInSidebar !== false &&
+              (!item.requiresAuthentication || auth.isAuthenticated())
+            ) {
+              <li class="nav-menu-item">
+                <a
+                  class="nav-button"
+                  [routerLink]="item.path"
+                  routerLinkActive="active"
+                  [routerLinkActiveOptions]="{ exact: !item.children?.length }"
+                  [attr.aria-expanded]="item.children?.length ? 'true' : null"
+                  [attr.aria-label]="sidebarOpen() ? null : item.label"
+                  [attr.title]="sidebarOpen() ? null : item.label"
+                  (click)="closeSidebarOnMobile()"
+                >
+                  <ui-icon class="nav-page-icon" [name]="item.icon" />
+                  <span class="nav-label sidebar-copy">{{ item.label }}</span>
+                  @if (item.children?.length) {
+                    <ui-icon name="chevron-down" class="submenu-chevron open sidebar-copy" />
+                  }
+                </a>
+                @if (item.children?.length) {
+                  <ul class="submenu" [attr.aria-label]="item.label">
+                    @for (child of item.children; track child.path) {
+                      <li>
+                        <a
+                          class="submenu-button"
+                          [routerLink]="child.path"
+                          routerLinkActive="active"
+                          [routerLinkActiveOptions]="{ exact: true }"
+                          ariaCurrentWhenActive="page"
+                          (click)="closeSidebarOnMobile()"
+                        >
+                          {{ child.label }}
+                        </a>
+                      </li>
+                    }
+                  </ul>
+                }
+              </li>
+            }
+          }
+        </ul>
+      </nav>
+
+      <div class="sidebar-utilities">
+        <button class="utility-button" type="button">
+          <ui-icon name="mail" />
+          <span class="sidebar-copy">{{ t.helpSupport }}</span>
+        </button>
+      </div>
+
+      <footer class="sidebar-footer">
+        @if (auth.isAuthenticated()) {
+          @if (!sidebarOpen() && !isMobile()) {
+            <button
+              class="profile-compact-trigger"
+              type="button"
+              [cdkMenuTriggerFor]="profileMenu"
+              [cdkMenuPosition]="profileMenuPosition"
+              [attr.aria-label]="t.openProfileMenu + ': ' + userDisplayName()"
+              [attr.title]="userDisplayName()"
+            >
+              @if (profileImageUrl(); as imageUrl) {
+                @if (!avatarFailed()) {
+                  <img
+                    class="avatar avatar-image"
+                    [src]="imageUrl"
+                    alt=""
+                    referrerpolicy="no-referrer"
+                    (error)="avatarFailed.set(true)"
+                  />
+                } @else {
+                  <span class="avatar">{{ userInitials() }}</span>
+                }
+              } @else {
+                <span class="avatar">{{ userInitials() }}</span>
+              }
+            </button>
+          } @else {
+            <div class="profile-summary">
+              @if (profileImageUrl(); as imageUrl) {
+                @if (!avatarFailed()) {
+                  <img
+                    class="avatar avatar-image"
+                    [src]="imageUrl"
+                    alt=""
+                    referrerpolicy="no-referrer"
+                    (error)="avatarFailed.set(true)"
+                  />
+                } @else {
+                  <span class="avatar">{{ userInitials() }}</span>
+                }
+              } @else {
+                <span class="avatar">{{ userInitials() }}</span>
+              }
+              <span class="profile-copy sidebar-copy">
+                <strong>{{ userDisplayName() }}</strong>
+                <small>{{ userRole() }}</small>
+              </span>
+              <button
+                class="profile-menu-trigger"
+                type="button"
+                [cdkMenuTriggerFor]="profileMenu"
+                [cdkMenuPosition]="profileMenuPosition"
+                [attr.aria-label]="t.openProfileMenu"
+              >
+                <ui-icon name="ellipsis-v" />
+              </button>
+            </div>
+          }
+        } @else {
+          <button
+            class="sidebar-login-button"
+            type="button"
+            [disabled]="auth.status() === 'checking'"
+            [attr.aria-label]="loginButtonLabel()"
+            [attr.title]="sidebarOpen() ? null : loginButtonLabel()"
+            (click)="openLoginDialog()"
+          >
+            <span class="sidebar-login-icon"><ui-icon name="log-in" /></span>
+            <span class="profile-copy sidebar-copy">
+              <strong>{{ loginButtonLabel() }}</strong>
+              <small>{{ loginButtonHint() }}</small>
+            </span>
+          </button>
+        }
+      </footer>
+    </div>
+  </aside>
+
+  <ng-template #profileMenu>
+    <div class="profile-menu" cdkMenu [attr.aria-label]="t.profileMenuLabel">
+      <a
+        class="profile-menu-item"
+        cdkMenuItem
+        routerLink="/perfil"
+        (click)="closeSidebarOnMobile()"
+      >
+        {{ t.navProfile }}
+      </a>
+      <button
+        class="profile-menu-item profile-menu-item-danger"
+        cdkMenuItem
+        type="button"
+        [disabled]="signingOut()"
+        (click)="openSignOutDialog()"
+      >
+        {{ t.signOut }}
+      </button>
+    </div>
+  </ng-template>
+
+  <div class="dashboard-main">
+    <header class="topbar">
+      <div class="topbar-left">
+        @if (isMobile()) {
+          <button
+            class="icon-button menu-trigger"
+            type="button"
+            [attr.aria-label]="t.openSidebar"
+            [attr.aria-expanded]="sidebarOpen()"
+            (click)="toggleSidebar()"
+          >
+            <ui-icon name="sidebar" />
+          </button>
+        }
+        <nav class="breadcrumbs" [attr.aria-label]="t.breadcrumbNavigationLabel">
+          @for (item of currentBreadcrumbs(); track item.path; let isCurrent = $last) {
+            <span class="breadcrumb-item" [class.breadcrumb-item-current]="isCurrent">
+              <span class="breadcrumb-icon"><ui-icon [name]="breadcrumbIcon(item)" /></span>
+              <a
+                class="breadcrumb-link"
+                [routerLink]="item.path"
+                routerLinkActive="active"
+                [routerLinkActiveOptions]="{ exact: true }"
+                ariaCurrentWhenActive="page"
+              >
+                <span class="breadcrumb-label">{{ item.label }}</span>
+              </a>
+            </span>
+            @if (!isCurrent) {
+              <span class="breadcrumb-separator" aria-hidden="true">/</span>
+            }
+          }
+        </nav>
+      </div>
+    </header>
+    <main class="app-canvas" tabindex="-1">
+      <div class="dashboard-content"><router-outlet /></div>
+    </main>
+  </div>
+</div>

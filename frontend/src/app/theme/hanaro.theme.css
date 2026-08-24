@@ -1,0 +1,172 @@
+/*
+ * Tema white label Hanaro — Paleta LG.
+ * Os componentes consomem apenas estes tokens semânticos. Para criar outra
+ * marca, duplique este arquivo e altere somente os valores abaixo.
+ */
+
+/* ─── ☀️ LG Light Theme ────────────────────────────────────────────── */
+:root {
+  /* Brand — vermelho LG (#a50034 no Light) */
+  --brand-primary: #a50034;
+  --brand-primary-hover: #850029;
+  --brand-primary-strong: #1a1a1a;
+  --brand-primary-soft: #fce4ec;
+  --brand-primary-softer: #fef0f3;
+  --brand-primary-border: #f8bbd0;
+  --brand-primary-contrast: #ffffff;
+  --brand-gradient-start: #a50034;
+  --brand-gradient-end: #c4003d;
+
+  /* Layout (preservados) */
+  --app-canvas-radius: 1.5rem;
+  --app-layout-gap: 0;
+  --app-sidebar-width: 16.5rem;
+  --app-sidebar-collapsed-width: 4.5rem;
+  --app-topbar-height: 2.5rem;
+
+  /* Superfícies — creme LG */
+  --app-page: #f4f2ee;
+  --app-canvas: #ffffff;
+  --app-canvas-border: rgb(229 224 219 / 45%);
+  --app-canvas-shadow: none;
+  --app-surface: #ffffff;
+  --app-surface-translucent: rgb(255 255 255 / 92%);
+  --app-surface-raised: #ffffff;
+  --app-surface-muted: #f4f2ee;
+
+  /* Texto */
+  --app-text: #1a1a1a;
+  --app-text-strong: #1a1a1a;
+  --app-text-secondary: #666666;
+  --app-text-muted: #888888;
+  --app-text-subtle: #a3a3a3;
+  --app-page-title: #121217;
+  --app-text-description: #6b7280;
+  --app-text-muted-detail: #83899f;
+  --app-dropdown-border: #e2e7f1;
+  --app-dropdown-text: #0a1b39;
+  --app-breadcrumb-text: oklch(0.21 0.006 285.885);
+
+  /* Bordas */
+  --app-border: #e5e0db;
+  --app-border-soft: #eeebe7;
+  --app-divider: #eeebe7;
+  --app-border-strong: #d5d0cb;
+  --app-card-border: #e5e0db;
+
+  /* Utilitários */
+  --app-overlay: rgb(26 26 26 / 42%);
+  --app-scrollbar: #d5d0cb;
+  --app-chart-grid: #e5e0db;
+  --app-success: #059669;
+  --app-success-soft: #e7f8f2;
+  --app-danger: #ef4444;
+  --app-blue: #2563eb;
+  --app-blue-soft: #eaf2ff;
+  --app-green: #059669;
+  --app-green-soft: #e7f8f2;
+  --app-orange: #ff9d5c;
+  --app-orange-soft: #fff0e7;
+  --app-violet: #b26ee6;
+  --app-violet-soft: #f5eaff;
+  --app-shadow-card: 0 1px 3px rgb(26 26 26 / 4%);
+  --app-shadow-brand: 0 5px 14px rgb(165 0 52 / 16%);
+  --app-shadow-action: 0 5px 14px rgb(165 0 52 / 18%);
+  --app-focus-ring: rgb(165 0 52 / 24%);
+
+  /* Gráficos — Light */
+  --chart-bar-main: #a50034;
+  --chart-bar-sec: #f06584;
+  --chart-donut-1: #a50034;
+  --chart-donut-2: #d11442;
+  --chart-donut-3: #f06584;
+  --chart-donut-4: #f8bbd0;
+
+  /* Faz os componentes Material acompanharem os mesmos tokens da marca. */
+  --mat-sys-primary: var(--brand-primary);
+  --mat-sys-on-primary: var(--brand-primary-contrast);
+  --mat-sys-primary-container: var(--brand-primary-soft);
+  --mat-sys-on-primary-container: var(--brand-primary-strong);
+  --mat-sys-surface: var(--app-surface);
+  --mat-sys-surface-container: var(--app-surface-muted);
+  --mat-sys-surface-container-high: var(--app-surface-muted);
+  --mat-sys-on-surface: var(--app-text);
+  --mat-sys-on-surface-variant: var(--app-text-secondary);
+  --mat-sys-outline: var(--app-text-subtle);
+  --mat-sys-outline-variant: var(--app-border);
+}
+
+/* ─── 🌙 LG Dark Theme (OLED Black) ───────────────────────────────── */
+:root[data-theme='dark'] {
+  /* Brand — carmim vibrante para brilhar no escuro */
+  --brand-primary: #e7194a;
+  --brand-primary-hover: #d11442;
+  --brand-primary-strong: #f5f5f5;
+  --brand-primary-soft: #2a1119;
+  --brand-primary-softer: #1f0d12;
+  --brand-primary-border: #5c1a2a;
+  --brand-primary-contrast: #ffffff;
+  --brand-gradient-start: #e7194a;
+  --brand-gradient-end: #d11442;
+
+  /* Superfícies — OLED Black + Carvão */
+  --app-page: #000000;
+  --app-canvas: #141414;
+  --app-canvas-border: rgb(255 255 255 / 5%);
+  --app-canvas-shadow: none;
+  --app-surface: #141414;
+  --app-surface-translucent: rgb(20 20 20 / 92%);
+  --app-surface-raised: #141414;
+  --app-surface-muted: #1e1e1e;
+
+  /* Texto */
+  --app-text: #f5f5f5;
+  --app-text-strong: #ffffff;
+  --app-text-secondary: #a3a3a3;
+  --app-text-muted: #8a8a8a;
+  --app-text-subtle: #616161;
+  --app-page-title: var(--app-text-strong);
+  --app-text-description: var(--app-text-secondary);
+  --app-text-muted-detail: var(--app-text-muted);
+  --app-dropdown-border: var(--app-border);
+  --app-dropdown-text: var(--app-text-strong);
+  --app-breadcrumb-text: var(--app-text);
+
+  /* Bordas — discretas para o layout geral; cards internos usam --app-card-border */
+  --app-border: #2c2c2c;
+  --app-border-soft: #222222;
+  --app-divider: #3a3a3a;
+  --app-border-strong: #364257;
+  --app-card-border: #404040;
+
+  /* Utilitários */
+  --app-overlay: rgb(0 0 0 / 72%);
+  --app-scrollbar: #404040;
+  --app-chart-grid: #404040;
+  --app-success: #059669;
+  --app-success-soft: #e7f8f2;
+  --app-danger: #ef4444;
+  --app-danger-soft: #fef2f2;
+  --app-warning: #f59e0b;
+  --app-warning-soft: #fffbeb;
+  --app-blue: #2563eb;
+  --app-blue-soft: #eaf2ff;
+  --app-green: #059669;
+  --app-green-soft: #e7f8f2;
+  --app-orange: #ff9d5c;
+  --app-orange-soft: #fff0e7;
+  --app-violet: #b26ee6;
+  --app-violet-soft: #f5eaff;
+  --app-shadow-card: 0 1px 4px rgb(0 0 0 / 32%);
+  --app-shadow-brand: 0 5px 14px rgb(231 25 74 / 20%);
+  --app-shadow-action: 0 8px 20px rgb(0 0 0 / 36%);
+  --app-focus-ring: rgb(231 25 74 / 30%);
+
+  /* Gráficos — Dark */
+  --chart-bar-main: #e7194a;
+  --chart-bar-sec: #f06584;
+  --chart-donut-1: #e7194a;
+  --chart-donut-2: #f06584;
+  --chart-donut-3: #f48fb1;
+  --chart-donut-4: #fce4ec;
+}

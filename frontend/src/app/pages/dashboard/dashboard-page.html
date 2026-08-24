@@ -1,0 +1,52 @@
+<section class="summary-grid" aria-label="Resumo do negócio">
+  @for (card of summaryCards(); track card.label) {
+    <article class="summary-card">
+      <div class="card-heading">
+        <span [class]="'summary-icon ' + card.tone"><ui-icon [name]="card.icon" /></span
+        ><span class="trend" [class.negative]="card.trend.startsWith('-')">{{ card.trend }}</span>
+      </div>
+      <strong>{{ card.value }}</strong
+      ><span>{{ card.label }}</span>
+    </article>
+  }
+</section>
+<section class="dashboard-grid">
+  <article class="panel performance-panel">
+    <div class="panel-header">
+      <div>
+        <h3>Desempenho geral</h3>
+        <p>Receita dos últimos 7 meses</p>
+      </div>
+      <button class="period-button" type="button">
+        Últimos 7 meses <ui-icon name="chevron-down" />
+      </button>
+    </div>
+    @defer (on viewport) {
+      <app-dashboard-performance-chart />
+    } @placeholder {
+      <div class="chart-defer-placeholder" aria-hidden="true"></div>
+    }
+  </article>
+  <article class="panel activity-panel">
+    <div class="panel-header">
+      <div>
+        <h3>Atividades recentes</h3>
+        <p>Últimas movimentações da equipe</p>
+      </div>
+      <button class="text-button" type="button">Ver todas</button>
+    </div>
+    <div class="activity-list">
+      @for (activity of recentActivity(); track activity.name) {
+        <div class="activity-item">
+          <span class="activity-avatar">{{ activity.initials }}</span>
+          <div>
+            <p>
+              <strong>{{ activity.name }}</strong> {{ activity.action }}
+            </p>
+            <time>{{ activity.time }}</time>
+          </div>
+        </div>
+      }
+    </div>
+  </article>
+</section>

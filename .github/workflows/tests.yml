@@ -1,0 +1,88 @@
+name: Tests
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Sync workspace
+        run: uv sync --all-packages --all-extras
+
+      - name: Pytest (backend)
+        # --no-sync prevents uv run's implicit re-sync from dropping member
+        # extras (it defaults to no extras and would remove pytest).
+        run: |
+          cd backend
+          uv run --no-sync pytest --cov=src --cov-report=xml:/tmp/backend-coverage.xml
+          uv run --no-sync python scripts/prepare_sonar_coverage.py /tmp/backend-coverage.xml ../reports/sonar/backend-coverage.xml
+        env:
+          ENVIRONMENT: local
+          SECRET_KEY: test-secret-key-for-testing-only
+          DEBUG: "false"
+
+      - name: Lint and type-check backend
+        working-directory: backend
+        run: |
+          uv run --no-sync ruff check src tests
+          uv run --no-sync mypy src
+
+      - name: Audit backend production dependencies
+        run: |
+          uv export --quiet --frozen --package fastapi-boilerplate --no-dev --no-editable --no-emit-project --output-file /tmp/backend-requirements.txt
+          uvx --from pip-audit==2.10.1 pip-audit --requirement /tmp/backend-requirements.txt
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Frontend tests and SonarQube coverage report
+        working-directory: frontend
+        run: npm run test:sonar
+        env:
+          SONAR_LCOV_OUTPUT: ../reports/sonar/frontend-lcov.info
+
+      - name: Check frontend formatting and production build
+        working-directory: frontend
+        run: |
+          npm run format:check
+          npm run build
+
+      - name: Audit frontend production dependencies
+        working-directory: frontend
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: SonarQube analysis
+        env:
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          if [ -z "$SONAR_HOST_URL" ] || [ -z "$SONAR_TOKEN" ]; then
+            echo "::notice::SonarQube analysis skipped: configure SONAR_HOST_URL and SONAR_TOKEN secrets to enable it."
+            exit 0
+          fi
+          docker run --rm \
+            -e SONAR_HOST_URL \
+            -e SONAR_TOKEN \
+            -v "$GITHUB_WORKSPACE:/usr/src" \
+            sonarsource/sonar-scanner-cli:12.1.0.3233_8.0.1

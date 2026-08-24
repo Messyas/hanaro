@@ -1,0 +1,415 @@
+import { DOCUMENT, isPlatformBrowser } from '@angular/common';
+import { Injectable, PLATFORM_ID, computed, effect, inject, signal } from '@angular/core';
+
+export type LanguageCode = 'pt' | 'en' | 'ko';
+
+export interface LanguageOption {
+  code: LanguageCode;
+  label: string;
+  nativeName: string;
+}
+
+export interface AppTranslations {
+  navDashboard: string;
+  navReports: string;
+  navSettings: string;
+  navProfile: string;
+  helpSupport: string;
+  mainNavigationLabel: string;
+  breadcrumbNavigationLabel: string;
+  closeSidebar: string;
+  openSidebar: string;
+  collapseSidebar: string;
+  expandSidebar: string;
+  profileMenuLabel: string;
+  openProfileMenu: string;
+  administratorRole: string;
+  userRole: string;
+  signOut: string;
+  loginButton: string;
+  loginHint: string;
+  settingsTitle: string;
+  themeTitle: string;
+  themeSubtitle: string;
+  themeGroupLabel: string;
+  themeLight: string;
+  themeLightDesc: string;
+  themeDark: string;
+  themeDarkDesc: string;
+  darkToggle: string;
+  darkToggleDesc: string;
+  darkToggleAria: string;
+  systemToggle: string;
+  systemToggleDesc: string;
+  systemToggleAria: string;
+  languageTitle: string;
+  languageSubtitle: string;
+  languageGroupLabel: string;
+  portugueseLanguage: string;
+  englishLanguage: string;
+  koreanLanguage: string;
+  profileTitle: string;
+  profileEdit: string;
+  profilePhotoTitle: string;
+  profilePhotoDescription: string;
+  profilePhotoAlt: string;
+  profilePhotoAdd: string;
+  profilePhotoChange: string;
+  profilePhotoRemove: string;
+  profilePhotoUploading: string;
+  profilePhotoRemoving: string;
+  profilePhotoUploadSuccess: string;
+  profilePhotoRemoveSuccess: string;
+  profilePhotoTypeError: string;
+  profilePhotoSizeError: string;
+  profilePhotoUploadError: string;
+  profilePhotoRemoveError: string;
+  profilePersonalTitle: string;
+  profilePersonalDescription: string;
+  profileContactTitle: string;
+  profileContactDescription: string;
+  profileNameLabel: string;
+  profileUsernameLabel: string;
+  profileUsernameHint: string;
+  profileEmailLabel: string;
+  profileNotificationEmailLabel: string;
+  profileNotificationEmailHint: string;
+  profilePhoneLabel: string;
+  profilePhonePlaceholder: string;
+  profileJobTitleLabel: string;
+  profileJobTitlePlaceholder: string;
+  profileRequiredError: string;
+  profileEmailError: string;
+  profileLoadError: string;
+  profileSaveError: string;
+  profileEmailConflict: string;
+  profileSaveSuccess: string;
+  profileSave: string;
+  profileSaving: string;
+  logoutTitle: string;
+  logoutDescription: string;
+  back: string;
+  close: string;
+  cancel: string;
+  confirmSignOut: string;
+}
+
+const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
+  pt: {
+    navDashboard: 'Dashboard',
+    navReports: 'Relatórios',
+    navSettings: 'Configurações',
+    navProfile: 'Perfil',
+    helpSupport: 'Ajuda e suporte',
+    mainNavigationLabel: 'Navegação principal',
+    breadcrumbNavigationLabel: 'Navegação estrutural',
+    closeSidebar: 'Fechar menu lateral',
+    openSidebar: 'Abrir menu lateral',
+    collapseSidebar: 'Recolher menu lateral',
+    expandSidebar: 'Expandir menu lateral',
+    profileMenuLabel: 'Menu do perfil',
+    openProfileMenu: 'Abrir menu do perfil',
+    administratorRole: 'Administrador',
+    userRole: 'Usuário',
+    signOut: 'Sair',
+    loginButton: 'Entrar',
+    loginHint: 'Acessar sua conta',
+    settingsTitle: 'Configurações',
+    themeTitle: 'Tema da interface',
+    themeSubtitle: 'Escolha como o painel deve ser exibido.',
+    themeGroupLabel: 'Escolha de tema',
+    themeLight: 'Claro',
+    themeLightDesc: 'Visual limpo para ambientes iluminados',
+    themeDark: 'Escuro',
+    themeDarkDesc: 'Mais confortável em ambientes com pouca luz',
+    darkToggle: 'Tema escuro',
+    darkToggleDesc: 'Alterne diretamente entre a aparência clara e escura.',
+    darkToggleAria: 'Ativar tema escuro',
+    systemToggle: 'Usar configuração do sistema',
+    systemToggleDesc: 'Acompanha automaticamente o tema do sistema operacional.',
+    systemToggleAria: 'Usar tema do sistema operacional',
+    languageTitle: 'Idioma do sistema',
+    languageSubtitle: 'Selecione o idioma de preferência para a interface.',
+    languageGroupLabel: 'Escolha de idioma',
+    portugueseLanguage: 'Português',
+    englishLanguage: 'Inglês',
+    koreanLanguage: 'Coreano',
+    profileTitle: 'Configurações do perfil',
+    profileEdit: 'Editar perfil',
+    profilePhotoTitle: 'Foto do perfil',
+    profilePhotoDescription: 'Use uma imagem JPEG, PNG ou WebP de até 5 MB.',
+    profilePhotoAlt: 'Foto do perfil',
+    profilePhotoAdd: 'Adicionar foto',
+    profilePhotoChange: 'Alterar foto',
+    profilePhotoRemove: 'Remover foto',
+    profilePhotoUploading: 'Enviando…',
+    profilePhotoRemoving: 'Removendo…',
+    profilePhotoUploadSuccess: 'Foto atualizada com sucesso.',
+    profilePhotoRemoveSuccess: 'Foto removida com sucesso.',
+    profilePhotoTypeError: 'Escolha uma imagem JPEG, PNG ou WebP.',
+    profilePhotoSizeError: 'A imagem deve ter no máximo 5 MB.',
+    profilePhotoUploadError: 'Não foi possível atualizar a foto. Tente novamente.',
+    profilePhotoRemoveError: 'Não foi possível remover a foto. Tente novamente.',
+    profilePersonalTitle: 'Dados pessoais',
+    profilePersonalDescription: 'Informações usadas para identificar você no sistema.',
+    profileContactTitle: 'Contato e trabalho',
+    profileContactDescription: 'Defina os canais de contato e sua função na operação.',
+    profileNameLabel: 'Nome completo',
+    profileUsernameLabel: 'Usuário',
+    profileUsernameHint: 'O nome de usuário é usado no login e não pode ser alterado aqui.',
+    profileEmailLabel: 'E-mail da conta',
+    profileNotificationEmailLabel: 'E-mail para notificações',
+    profileNotificationEmailHint:
+      'Se ficar vazio, as notificações serão enviadas ao e-mail da conta.',
+    profilePhoneLabel: 'Telefone',
+    profilePhonePlaceholder: '(00) 00000-0000',
+    profileJobTitleLabel: 'Cargo',
+    profileJobTitlePlaceholder: 'Ex.: Operador de produção',
+    profileRequiredError: 'Preencha este campo.',
+    profileEmailError: 'Informe um e-mail válido.',
+    profileLoadError: 'Não foi possível carregar os dados do perfil.',
+    profileSaveError: 'Não foi possível salvar as alterações. Tente novamente.',
+    profileEmailConflict: 'Este e-mail já está em uso por outra conta.',
+    profileSaveSuccess: 'Perfil atualizado com sucesso.',
+    profileSave: 'Salvar alterações',
+    profileSaving: 'Salvando…',
+    logoutTitle: 'Confirmar logoff',
+    logoutDescription: 'Tem certeza que deseja sair da conta?',
+    back: 'Voltar',
+    close: 'Fechar',
+    cancel: 'Cancelar',
+    confirmSignOut: 'Sim, sair.',
+  },
+  en: {
+    navDashboard: 'Dashboard',
+    navReports: 'Reports',
+    navSettings: 'Settings',
+    navProfile: 'Profile',
+    helpSupport: 'Help and support',
+    mainNavigationLabel: 'Main navigation',
+    breadcrumbNavigationLabel: 'Breadcrumb navigation',
+    closeSidebar: 'Close sidebar',
+    openSidebar: 'Open sidebar',
+    collapseSidebar: 'Collapse sidebar',
+    expandSidebar: 'Expand sidebar',
+    profileMenuLabel: 'Profile menu',
+    openProfileMenu: 'Open profile menu',
+    administratorRole: 'Administrator',
+    userRole: 'User',
+    signOut: 'Sign out',
+    loginButton: 'Sign in',
+    loginHint: 'Access your account',
+    settingsTitle: 'Settings',
+    themeTitle: 'Interface theme',
+    themeSubtitle: 'Choose how the dashboard should be displayed.',
+    themeGroupLabel: 'Theme selection',
+    themeLight: 'Light',
+    themeLightDesc: 'Clean look for well-lit environments',
+    themeDark: 'Dark',
+    themeDarkDesc: 'Easier on the eyes in low-light environments',
+    darkToggle: 'Dark theme',
+    darkToggleDesc: 'Switch directly between the light and dark appearance.',
+    darkToggleAria: 'Enable dark theme',
+    systemToggle: 'Use system setting',
+    systemToggleDesc: 'Automatically follows your operating system theme.',
+    systemToggleAria: 'Use operating system theme',
+    languageTitle: 'System language',
+    languageSubtitle: 'Select your preferred language for the interface.',
+    languageGroupLabel: 'Language selection',
+    portugueseLanguage: 'Portuguese',
+    englishLanguage: 'English',
+    koreanLanguage: 'Korean',
+    profileTitle: 'Profile settings',
+    profileEdit: 'Edit profile',
+    profilePhotoTitle: 'Profile photo',
+    profilePhotoDescription: 'Use a JPEG, PNG or WebP image up to 5 MB.',
+    profilePhotoAlt: 'Profile photo',
+    profilePhotoAdd: 'Add photo',
+    profilePhotoChange: 'Change photo',
+    profilePhotoRemove: 'Remove photo',
+    profilePhotoUploading: 'Uploading…',
+    profilePhotoRemoving: 'Removing…',
+    profilePhotoUploadSuccess: 'Photo updated successfully.',
+    profilePhotoRemoveSuccess: 'Photo removed successfully.',
+    profilePhotoTypeError: 'Choose a JPEG, PNG or WebP image.',
+    profilePhotoSizeError: 'The image must be no larger than 5 MB.',
+    profilePhotoUploadError: 'We could not update the photo. Please try again.',
+    profilePhotoRemoveError: 'We could not remove the photo. Please try again.',
+    profilePersonalTitle: 'Personal information',
+    profilePersonalDescription: 'Information used to identify you in the system.',
+    profileContactTitle: 'Contact and work',
+    profileContactDescription: 'Set your contact channels and role in the operation.',
+    profileNameLabel: 'Full name',
+    profileUsernameLabel: 'Username',
+    profileUsernameHint: 'The username is used to sign in and cannot be changed here.',
+    profileEmailLabel: 'Account email',
+    profileNotificationEmailLabel: 'Notification email',
+    profileNotificationEmailHint: 'When empty, notifications are sent to the account email.',
+    profilePhoneLabel: 'Phone number',
+    profilePhonePlaceholder: '+1 555 000 0000',
+    profileJobTitleLabel: 'Job title',
+    profileJobTitlePlaceholder: 'E.g. Production operator',
+    profileRequiredError: 'This field is required.',
+    profileEmailError: 'Enter a valid email address.',
+    profileLoadError: 'We could not load your profile information.',
+    profileSaveError: 'We could not save your changes. Please try again.',
+    profileEmailConflict: 'This email is already used by another account.',
+    profileSaveSuccess: 'Profile updated successfully.',
+    profileSave: 'Save changes',
+    profileSaving: 'Saving…',
+    logoutTitle: 'Confirm sign out',
+    logoutDescription: 'Are you sure you want to sign out of your account?',
+    back: 'Back',
+    close: 'Close',
+    cancel: 'Cancel',
+    confirmSignOut: 'Yes, sign out.',
+  },
+  ko: {
+    navDashboard: '대시보드',
+    navReports: '보고서',
+    navSettings: '설정',
+    navProfile: '프로필',
+    helpSupport: '도움말 및 지원',
+    mainNavigationLabel: '기본 탐색',
+    breadcrumbNavigationLabel: '현재 위치 탐색',
+    closeSidebar: '사이드바 닫기',
+    openSidebar: '사이드바 열기',
+    collapseSidebar: '사이드바 접기',
+    expandSidebar: '사이드바 펼치기',
+    profileMenuLabel: '프로필 메뉴',
+    openProfileMenu: '프로필 메뉴 열기',
+    administratorRole: '관리자',
+    userRole: '사용자',
+    signOut: '로그아웃',
+    loginButton: '로그인',
+    loginHint: '계정에 접속',
+    settingsTitle: '설정',
+    themeTitle: '인터페이스 테마',
+    themeSubtitle: '대시보드 표시 방식을 선택하세요.',
+    themeGroupLabel: '테마 선택',
+    themeLight: '라이트',
+    themeLightDesc: '밝은 환경에 적합한 깔끔한 화면',
+    themeDark: '다크',
+    themeDarkDesc: '어두운 환경에서 눈이 편안한 화면',
+    darkToggle: '다크 테마',
+    darkToggleDesc: '라이트와 다크 화면을 직접 전환합니다.',
+    darkToggleAria: '다크 테마 사용',
+    systemToggle: '시스템 설정 사용',
+    systemToggleDesc: '운영체제 테마를 자동으로 따릅니다.',
+    systemToggleAria: '운영체제 테마 사용',
+    languageTitle: '시스템 언어',
+    languageSubtitle: '인터페이스에서 사용할 언어를 선택하세요.',
+    languageGroupLabel: '언어 선택',
+    portugueseLanguage: '포르투갈어',
+    englishLanguage: '영어',
+    koreanLanguage: '한국어',
+    profileTitle: '프로필 설정',
+    profileEdit: '프로필 편집',
+    profilePhotoTitle: '프로필 사진',
+    profilePhotoDescription: '5MB 이하의 JPEG, PNG 또는 WebP 이미지를 사용하세요.',
+    profilePhotoAlt: '프로필 사진',
+    profilePhotoAdd: '사진 추가',
+    profilePhotoChange: '사진 변경',
+    profilePhotoRemove: '사진 삭제',
+    profilePhotoUploading: '업로드 중…',
+    profilePhotoRemoving: '삭제 중…',
+    profilePhotoUploadSuccess: '사진이 업데이트되었습니다.',
+    profilePhotoRemoveSuccess: '사진이 삭제되었습니다.',
+    profilePhotoTypeError: 'JPEG, PNG 또는 WebP 이미지를 선택하세요.',
+    profilePhotoSizeError: '이미지는 5MB 이하여야 합니다.',
+    profilePhotoUploadError: '사진을 업데이트할 수 없습니다. 다시 시도하세요.',
+    profilePhotoRemoveError: '사진을 삭제할 수 없습니다. 다시 시도하세요.',
+    profilePersonalTitle: '개인 정보',
+    profilePersonalDescription: '시스템에서 본인을 식별하는 데 사용되는 정보입니다.',
+    profileContactTitle: '연락처 및 업무',
+    profileContactDescription: '연락 수단과 현장 업무 역할을 설정하세요.',
+    profileNameLabel: '이름',
+    profileUsernameLabel: '사용자 이름',
+    profileUsernameHint: '사용자 이름은 로그인에 사용되며 여기에서 변경할 수 없습니다.',
+    profileEmailLabel: '계정 이메일',
+    profileNotificationEmailLabel: '알림 이메일',
+    profileNotificationEmailHint: '비워 두면 계정 이메일로 알림이 전송됩니다.',
+    profilePhoneLabel: '전화번호',
+    profilePhonePlaceholder: '010-0000-0000',
+    profileJobTitleLabel: '직책',
+    profileJobTitlePlaceholder: '예: 생산 작업자',
+    profileRequiredError: '필수 입력 항목입니다.',
+    profileEmailError: '올바른 이메일 주소를 입력하세요.',
+    profileLoadError: '프로필 정보를 불러올 수 없습니다.',
+    profileSaveError: '변경 사항을 저장할 수 없습니다. 다시 시도하세요.',
+    profileEmailConflict: '다른 계정에서 이미 사용 중인 이메일입니다.',
+    profileSaveSuccess: '프로필이 업데이트되었습니다.',
+    profileSave: '변경 사항 저장',
+    profileSaving: '저장 중…',
+    logoutTitle: '로그아웃 확인',
+    logoutDescription: '계정에서 로그아웃하시겠습니까?',
+    back: '뒤로',
+    close: '닫기',
+    cancel: '취소',
+    confirmSignOut: '로그아웃',
+  },
+};
+
+@Injectable({ providedIn: 'root' })
+export class LanguageService {
+  private readonly document = inject(DOCUMENT);
+  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
+  private readonly storageKey = 'hanaro-language-preference';
+
+  readonly currentLanguage = signal<LanguageCode>(this.readInitialLanguage());
+  readonly isKorean = computed(() => this.currentLanguage() === 'ko');
+  readonly translations = computed<AppTranslations>(() => TRANSLATIONS[this.currentLanguage()]);
+  readonly availableLanguages = computed<readonly LanguageOption[]>(() => {
+    const t = this.translations();
+    return [
+      { code: 'pt', label: t.portugueseLanguage, nativeName: 'Português (BR)' },
+      { code: 'en', label: t.englishLanguage, nativeName: 'English' },
+      { code: 'ko', label: t.koreanLanguage, nativeName: '한국어' },
+    ];
+  });
+
+  constructor() {
+    effect(() => {
+      const language = this.currentLanguage();
+
+      if (this.isBrowser) {
+        this.document.documentElement.setAttribute('lang', language === 'pt' ? 'pt-BR' : language);
+
+        try {
+          localStorage.setItem(this.storageKey, language);
+        } catch {
+          // The language remains active for this session when storage is unavailable.
+        }
+      }
+    });
+  }
+
+  setLanguage(code: LanguageCode): void {
+    if (this.isValidLanguage(code)) this.currentLanguage.set(code);
+  }
+
+  private readInitialLanguage(): LanguageCode {
+    if (!this.isBrowser) return 'pt';
+
+    try {
+      const stored = localStorage.getItem(this.storageKey);
+      if (this.isValidLanguage(stored)) return stored;
+    } catch {
+      // Fall back to the document or browser locale when storage is unavailable.
+    }
+
+    const documentLang = this.document.documentElement.getAttribute('lang')?.toLowerCase();
+    if (documentLang?.startsWith('ko')) return 'ko';
+    if (documentLang?.startsWith('en')) return 'en';
+    if (documentLang?.startsWith('pt')) return 'pt';
+
+    const browserLang = navigator.language?.toLowerCase().slice(0, 2);
+    if (browserLang === 'ko') return 'ko';
+    if (browserLang === 'en') return 'en';
+    return 'pt';
+  }
+
+  private isValidLanguage(value: string | null | undefined): value is LanguageCode {
+    return value === 'pt' || value === 'en' || value === 'ko';
+  }
+}

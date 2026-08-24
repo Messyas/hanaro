@@ -1,0 +1,333 @@
+name: hanaro
+
+x-backend-environment: &backend-environment
+  # Project-prefixed interpolation avoids collisions with generic host
+  # variables such as DEBUG (commonly set to values like "release").
+  ENVIRONMENT: ${BACKEND_ENVIRONMENT:-development}
+  DEBUG: ${BACKEND_DEBUG:-true}
+  POSTGRES_USER: ${POSTGRES_USER:-postgres}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+  POSTGRES_DB: ${POSTGRES_DB:-postgres}
+  POSTGRES_SERVER: postgres
+  POSTGRES_PORT: 5432
+  POSTGRES_SYNC_PREFIX: postgresql://
+  POSTGRES_ASYNC_PREFIX: postgresql+asyncpg://
+  CREATE_TABLES_ON_STARTUP: ${CREATE_TABLES_ON_STARTUP:-true}
+  CACHE_ENABLED: ${CACHE_ENABLED:-true}
+  CACHE_BACKEND: redis
+  CACHE_REDIS_HOST: redis
+  CACHE_REDIS_PORT: 6379
+  CACHE_REDIS_DB: 0
+  RATE_LIMITER_ENABLED: ${RATE_LIMITER_ENABLED:-true}
+  RATE_LIMITER_BACKEND: redis
+  RATE_LIMITER_REDIS_HOST: redis
+  RATE_LIMITER_REDIS_PORT: 6379
+  RATE_LIMITER_REDIS_DB: 1
+  SESSION_BACKEND: redis
+  SESSION_SECURE_COOKIES: "false"
+  CSRF_ENABLED: "true"
+  TRUSTED_PROXY_HOPS: "0"
+  TRUSTED_HOSTS: localhost,127.0.0.1,testserver,backend
+  TASKIQ_ENABLED: ${TASKIQ_ENABLED:-true}
+  TASKIQ_BROKER_TYPE: redis
+  TASKIQ_REDIS_HOST: redis
+  TASKIQ_REDIS_PORT: 6379
+  TASKIQ_REDIS_DB: 3
+  # Angular proxies /api to the backend, so browser traffic remains same-origin.
+  CORS_ENABLED: "false"
+  SECRET_KEY: ${SECRET_KEY:-local-development-only-change-me}
+  # Used only by the explicit setup_initial_data command. Empty values keep the
+  # regular public stack bootable; the setup script validates all four fields.
+  ADMIN_NAME: ${ADMIN_NAME:-}
+  ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+  ADMIN_USERNAME: ${ADMIN_USERNAME:-}
+  ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+  PROFILE_IMAGE_DIR: /app/backend/data/profile-images
+  PROFILE_IMAGE_MAX_BYTES: ${PROFILE_IMAGE_MAX_BYTES:-5242880}
+  PROFILE_IMAGE_MAX_DIMENSION: ${PROFILE_IMAGE_MAX_DIMENSION:-4096}
+
+services:
+  frontend:
+    image: hanaro-frontend:dev
+    build:
+      context: .
+      dockerfile: frontend/dockerfile
+      target: dev
+    init: true
+    ports:
+      - "${FRONTEND_PORT:-4200}:4200"
+    volumes:
+      # Mount source/config only. The image's node_modules remains untouched.
+      - type: bind
+        source: ./frontend/src
+        target: /app/src
+      - type: bind
+        source: ./frontend/public
+        target: /app/public
+      - type: bind
+        source: ./frontend/angular.json
+        target: /app/angular.json
+        read_only: true
+      - type: bind
+        source: ./frontend/tsconfig.json
+        target: /app/tsconfig.json
+        read_only: true
+      - type: bind
+        source: ./frontend/tsconfig.app.json
+        target: /app/tsconfig.app.json
+        read_only: true
+      - type: bind
+        source: ./frontend/.postcssrc.json
+        target: /app/.postcssrc.json
+        read_only: true
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:4200').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+    develop:
+      watch:
+        - action: rebuild
+          path: ./frontend/package-lock.json
+        - action: rebuild
+          path: ./frontend/package.json
+
+  backend:
+    image: hanaro-backend:dev
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      target: dev
+    init: true
+    environment: *backend-environment
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      # Python packages live in the image; only editable project files are bound.
+      - type: bind
+        source: ./backend/src
+        target: /app/backend/src
+      - type: bind
+        source: ./backend/tests
+        target: /app/backend/tests
+      - type: bind
+        source: ./backend/migrations
+        target: /app/backend/migrations
+      - type: bind
+        source: ./backend/scripts
+        target: /app/backend/scripts
+      - type: volume
+        source: profile_images
+        target: /app/backend/data/profile-images
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)"
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+    develop:
+      watch:
+        - action: rebuild
+          path: ./uv.lock
+        - action: rebuild
+          path: ./backend/pyproject.toml
+        - action: rebuild
+          path: ./pyproject.toml
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+    ports:
+      - "${POSTGRES_PORT_FORWARD:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  redis:
+    image: redis:8-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT_FORWARD:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  sonarqube-db:
+    profiles: ["sonar"]
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${SONAR_DB_USER:-sonar}
+      POSTGRES_PASSWORD: ${SONAR_DB_PASSWORD:-sonar}
+      POSTGRES_DB: ${SONAR_DB_NAME:-sonarqube}
+    volumes:
+      - sonarqube_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  sonarqube:
+    profiles: ["sonar"]
+    image: sonarqube:26.7.0.124771-community
+    environment:
+      SONAR_JDBC_URL: jdbc:postgresql://sonarqube-db:5432/${SONAR_DB_NAME:-sonarqube}
+      SONAR_JDBC_USERNAME: ${SONAR_DB_USER:-sonar}
+      SONAR_JDBC_PASSWORD: ${SONAR_DB_PASSWORD:-sonar}
+      # Appropriate for this local-only profile; production hosts must satisfy
+      # the Elasticsearch bootstrap requirements instead.
+      SONAR_ES_BOOTSTRAP_CHECKS_DISABLE: "true"
+    ports:
+      - "${SONAR_PORT:-9000}:9000"
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_logs:/opt/sonarqube/logs
+    depends_on:
+      sonarqube-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9000"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    ulimits:
+      nofile:
+        soft: 131072
+        hard: 131072
+      nproc: 8192
+    stop_grace_period: 1h
+    restart: unless-stopped
+
+  # Disposable services that generate the reports imported by SonarQube. They
+  # keep Python, uv and Node entirely inside Docker for host OS portability.
+  sonar-backend-coverage:
+    profiles: ["sonar"]
+    image: hanaro-backend:sonar
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      target: dev
+    init: true
+    environment:
+      ENVIRONMENT: local
+      DEBUG: "false"
+      SECRET_KEY: test-secret-key-for-testing-only
+      COVERAGE_FILE: /tmp/.coverage
+    command:
+      - sh
+      - -c
+      - pytest --cov=src --cov-report=xml:/tmp/backend-coverage.xml && python scripts/prepare_sonar_coverage.py /tmp/backend-coverage.xml /reports/backend-coverage.xml
+    volumes:
+      - type: bind
+        source: ./reports/sonar
+        target: /reports
+
+  sonar-frontend-coverage:
+    profiles: ["sonar"]
+    image: hanaro-frontend:sonar
+    build:
+      context: .
+      dockerfile: frontend/dockerfile
+      target: dev
+    init: true
+    environment:
+      SONAR_LCOV_OUTPUT: /reports/frontend-lcov.info
+    command: ["npm", "run", "test:sonar"]
+    volumes:
+      - type: bind
+        source: ./reports/sonar
+        target: /reports
+
+  sonar-scanner:
+    profiles: ["sonar"]
+    image: sonarsource/sonar-scanner-cli:12.1.0.3233_8.0.1
+    environment:
+      SONAR_HOST_URL: http://sonarqube:9000
+      SONAR_TOKEN: ${SONAR_TOKEN:-}
+      SONAR_USER_HOME: /opt/sonar-scanner/.sonar
+    working_dir: /usr/src
+    # The project source is read-only. Keep scanner scratch files outside it.
+    command: ["-Dsonar.working.directory=/tmp/.scannerwork"]
+    volumes:
+      - type: bind
+        source: .
+        target: /usr/src
+        read_only: true
+      - sonar_scanner_cache:/opt/sonar-scanner/.sonar/cache
+    depends_on:
+      sonarqube:
+        condition: service_healthy
+
+  worker:
+    image: hanaro-backend:dev
+    profiles: ["worker"]
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      target: dev
+    init: true
+    environment: *backend-environment
+    working_dir: /app/backend/src
+    command: ["taskiq", "worker", "infrastructure.taskiq.worker:default_broker", "--reload"]
+    volumes:
+      - type: bind
+        source: ./backend/src
+        target: /app/backend/src
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    develop:
+      watch:
+        - action: rebuild
+          path: ./uv.lock
+        - action: rebuild
+          path: ./backend/pyproject.toml
+
+volumes:
+  postgres_data:
+  redis_data:
+  sonarqube_postgres_data:
+  sonarqube_data:
+  sonarqube_extensions:
+  sonarqube_logs:
+  sonar_scanner_cache:
+  profile_images:

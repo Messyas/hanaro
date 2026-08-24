@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<xliff version="1.2" xmlns="urn:oasis:names:tc:xliff:document:1.2">
+  <file source-language="pt" datatype="plaintext" original="ng2.template">
+    <body>
+      <trans-unit id="sidebar.closeMobile" datatype="html">
+        <source>Fechar menu lateral</source>
+      </trans-unit>
+      <trans-unit id="sidebar.navigationLabel" datatype="html">
+        <source>Navegação principal</source>
+      </trans-unit>
+      <trans-unit id="workspace.selectLabel" datatype="html">
+        <source>Selecionar operação</source>
+      </trans-unit>
+      <trans-unit id="sidebar.helpSupport" datatype="html">
+        <source>Ajuda e suporte</source>
+      </trans-unit>
+      <trans-unit id="profile.administrator" datatype="html">
+        <source>Administrador</source>
+      </trans-unit>
+      <trans-unit id="profile.userRole" datatype="html">
+        <source>Usuário</source>
+      </trans-unit>
+      <trans-unit id="breadcrumbs.root" datatype="html">
+        <source>Painel</source>
+      </trans-unit>
+      <trans-unit id="welcome.kicker" datatype="html">
+        <source>Resumo de hoje</source>
+      </trans-unit>
+      <trans-unit id="welcome.title" datatype="html">
+        <source>Visão geral</source>
+      </trans-unit>
+      <trans-unit id="welcome.greeting" datatype="html">
+        <source>Bom dia, João. Acompanhe os principais números e atividades do seu negócio.</source>
+      </trans-unit>
+      <trans-unit id="action.newReport" datatype="html">
+        <source>Novo relatório</source>
+      </trans-unit>
+      <trans-unit id="performance.title" datatype="html">
+        <source>Desempenho geral</source>
+      </trans-unit>
+      <trans-unit id="performance.subtitle" datatype="html">
+        <source>Receita dos últimos 7 meses</source>
+      </trans-unit>
+      <trans-unit id="performance.period" datatype="html">
+        <source>Últimos 7 meses</source>
+      </trans-unit>
+      <trans-unit id="activity.title" datatype="html">
+        <source>Atividades recentes</source>
+      </trans-unit>
+      <trans-unit id="activity.subtitle" datatype="html">
+        <source>Últimas movimentações da equipe</source>
+      </trans-unit>
+      <trans-unit id="activity.viewAll" datatype="html">
+        <source>Ver todas</source>
+      </trans-unit>
+      <trans-unit id="settings.kicker" datatype="html">
+        <source>Preferências do sistema</source>
+      </trans-unit>
+      <trans-unit id="settings.title" datatype="html">
+        <source>Aparência e marca</source>
+      </trans-unit>
+      <trans-unit id="settings.subtitle" datatype="html">
+        <source>Personalize a experiência visual deste dispositivo.</source>
+      </trans-unit>
+      <trans-unit id="settings.autoSaved" datatype="html">
+        <source>Salvo automaticamente</source>
+      </trans-unit>
+      <trans-unit id="settings.themeTitle" datatype="html">
+        <source>Tema da interface</source>
+      </trans-unit>
+      <trans-unit id="settings.themeSubtitle" datatype="html">
+        <source>Escolha como o painel deve ser exibido.</source>
+      </trans-unit>
+      <trans-unit id="theme.light" datatype="html">
+        <source>Claro</source>
+      </trans-unit>
+      <trans-unit id="theme.lightDescription" datatype="html">
+        <source>Visual limpo para ambientes iluminados</source>
+      </trans-unit>
+      <trans-unit id="theme.dark" datatype="html">
+        <source>Escuro</source>
+      </trans-unit>
+      <trans-unit id="theme.darkDescription" datatype="html">
+        <source>Mais confortável em ambientes com pouca luz</source>
+      </trans-unit>
+      <trans-unit id="theme.darkToggle" datatype="html">
+        <source>Tema escuro</source>
+      </trans-unit>
+      <trans-unit id="theme.darkToggleSubtitle" datatype="html">
+        <source>Alterne diretamente entre a aparência clara e escura.</source>
+      </trans-unit>
+      <trans-unit id="theme.systemToggle" datatype="html">
+        <source>Usar configuração do sistema</source>
+      </trans-unit>
+      <trans-unit id="theme.systemToggleSubtitle" datatype="html">
+        <source>Acompanha automaticamente o tema do sistema operacional.</source>
+      </trans-unit>
+      <trans-unit id="language.title" datatype="html">
+        <source>Idioma do sistema</source>
+      </trans-unit>
+      <trans-unit id="language.subtitle" datatype="html">
+        <source>Selecione o idioma de preferência para a interface.</source>
+      </trans-unit>
+      <trans-unit id="brandCard.title" datatype="html">
+        <source>Identidade atual</source>
+      </trans-unit>
+      <trans-unit id="brandCard.subtitle" datatype="html">
+        <source>Configuração white label ativa</source>
+      </trans-unit>
+      <trans-unit id="brandCard.brandLabel" datatype="html">
+        <source>Marca</source>
+      </trans-unit>
+      <trans-unit id="brandCard.productLabel" datatype="html">
+        <source>Produto</source>
+      </trans-unit>
+      <trans-unit id="brandCard.preferenceLabel" datatype="html">
+        <source>Preferência</source>
+      </trans-unit>
+      <trans-unit id="brandCard.languageLabel" datatype="html">
+        <source>Idioma</source>
+      </trans-unit>
+      <trans-unit id="brandCard.note" datatype="html">
+        <source>Cores, nome e armazenamento estão isolados em arquivos de configuração para facilitar novas marcas.</source>
+      </trans-unit>
+      <trans-unit id="emptyState.description" datatype="html">
+        <source>Esta seção já faz parte da navegação e está pronta para receber seu conteúdo administrativo.</source>
+      </trans-unit>
+      <trans-unit id="emptyState.backOverview" datatype="html">
+        <source>Voltar para a visão geral</source>
+      </trans-unit>
+      <trans-unit id="nav.main" datatype="html">
+        <source>Principal</source>
+      </trans-unit>
+      <trans-unit id="nav.overview" datatype="html">
+        <source>Visão geral</source>
+      </trans-unit>
+      <trans-unit id="nav.notifications" datatype="html">
+        <source>Notificações</source>
+      </trans-unit>
+      <trans-unit id="nav.management" datatype="html">
+        <source>Gestão</source>
+      </trans-unit>
+      <trans-unit id="nav.reports" datatype="html">
+        <source>Relatórios</source>
+      </trans-unit>
+      <trans-unit id="nav.indicators" datatype="html">
+        <source>Indicadores</source>
+      </trans-unit>
+      <trans-unit id="nav.managementReports" datatype="html">
+        <source>Relatórios gerenciais</source>
+      </trans-unit>
+      <trans-unit id="nav.users" datatype="html">
+        <source>Usuários</source>
+      </trans-unit>
+      <trans-unit id="nav.calendar" datatype="html">
+        <source>Agenda</source>
+      </trans-unit>
+      <trans-unit id="nav.documents" datatype="html">
+        <source>Documentos</source>
+      </trans-unit>
+      <trans-unit id="nav.shared" datatype="html">
+        <source>Compartilhados</source>
+      </trans-unit>
+      <trans-unit id="nav.archive" datatype="html">
+        <source>Arquivo</source>
+      </trans-unit>
+      <trans-unit id="nav.administration" datatype="html">
+        <source>Administração</source>
+      </trans-unit>
+      <trans-unit id="nav.plansBilling" datatype="html">
+        <source>Planos e cobrança</source>
+      </trans-unit>
+      <trans-unit id="nav.profile" datatype="html">
+        <source>Perfil</source>
+      </trans-unit>
+      <trans-unit id="summary.activeUsers" datatype="html">
+        <source>Usuários ativos</source>
+      </trans-unit>
+      <trans-unit id="summary.newRegistrations" datatype="html">
+        <source>Novos cadastros</source>
+      </trans-unit>
+      <trans-unit id="summary.monthlyRevenue" datatype="html">
+        <source>Receita mensal</source>
+      </trans-unit>
+      <trans-unit id="summary.pendingTasks" datatype="html">
+        <source>Pendências</source>
+      </trans-unit>
+      <trans-unit id="activity.addUser" datatype="html">
+        <source>adicionou um novo usuário</source>
+      </trans-unit>
+      <trans-unit id="activity.generateReport" datatype="html">
+        <source>gerou o relatório mensal</source>
+      </trans-unit>
+      <trans-unit id="activity.updateSettings" datatype="html">
+        <source>atualizou as configurações</source>
+      </trans-unit>
+    </body>
+  </file>
+</xliff>
