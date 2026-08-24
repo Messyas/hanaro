@@ -74,15 +74,12 @@ async def test_update_user_profile_unauthorized(client: AsyncClient, db_session:
 
 async def test_update_user_profile_wrong_user(
     auth_client: AsyncClient,
-    superuser_auth_client: AsyncClient,
     db_session: AsyncSession,
     test_user: dict,
+    test_user_2: dict,
 ):
     """Test that users cannot update other users' profiles."""
-    other_user_data = generate_unique_user_data("other")
-    create_response = await superuser_auth_client.post("/api/v1/users/", json=other_user_data)
-    assert create_response.status_code == 201
-    other_username = other_user_data["username"]
+    other_username = test_user_2["username"]
 
     update_data = {"name": "Unauthorized Update"}
     response = await auth_client.patch(f"/api/v1/users/{other_username}", json=update_data)

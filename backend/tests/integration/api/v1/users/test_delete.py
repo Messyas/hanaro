@@ -4,8 +4,6 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .test_create import generate_unique_user_data
-
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -48,15 +46,12 @@ async def test_soft_delete_unauthorized(
 
 async def test_soft_delete_wrong_user(
     auth_client: AsyncClient,
-    superuser_auth_client: AsyncClient,
     db_session: AsyncSession,
     test_user: dict,
+    test_user_2: dict,
 ):
     """Test that users cannot delete other users' accounts."""
-    other_user_data = generate_unique_user_data("other")
-    create_response = await superuser_auth_client.post("/api/v1/users/", json=other_user_data)
-    assert create_response.status_code == 201
-    other_username = other_user_data["username"]
+    other_username = test_user_2["username"]
 
     response = await auth_client.delete(f"/api/v1/users/{other_username}")
 
