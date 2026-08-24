@@ -6,13 +6,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
-from ..logging import get_logger
 from ...modules.rate_limit.crud import crud_rate_limits
 from ...modules.rate_limit.schemas import RateLimitSelect
 from ...modules.tier.crud import crud_tiers
 from ...modules.tier.schemas import TierSelect
 from ..config import get_settings
 from ..database import async_session
+from ..logging import get_logger
 from .exceptions import RateLimitException
 from .provider import increment_and_check
 from .utils import sanitize_path
@@ -57,15 +57,12 @@ async def _find_tier_rate_limit(
         schema_to_select=RateLimitSelect,
     )
     if rate_limit:
-        return cast(dict[str, Any], rate_limit)
-    return cast(
-        dict[str, Any] | None,
-        await crud_rate_limits.get(
-            db=db,
-            tier_id=tier_id,
-            path=original_path,
-            schema_to_select=RateLimitSelect,
-        ),
+        return rate_limit
+    return await crud_rate_limits.get(
+        db=db,
+        tier_id=tier_id,
+        path=original_path,
+        schema_to_select=RateLimitSelect,
     )
 
 

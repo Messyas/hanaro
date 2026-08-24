@@ -1,6 +1,6 @@
 """Unit tests for API keys utility functions."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from src.modules.api_keys.utils import (
     _add_usage_record,
@@ -102,7 +102,7 @@ def test_calculate_error_breakdown_counts():
 
 
 def test_usage_datetime_datetime_obj():
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     assert _usage_datetime({"created_at": now}) == now
 
 

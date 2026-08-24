@@ -1,7 +1,8 @@
 """Utility functions for API key analytics and data processing."""
 
+from collections.abc import Iterable
 from datetime import datetime
-from typing import Any
+from typing import Any, TypeGuard
 
 
 def calculate_basic_metrics(usage_records: list[dict[str, Any]]) -> dict[str, Any]:
@@ -116,6 +117,11 @@ def _usage_datetime(record: dict[str, Any]) -> datetime | None:
         return None
 
 
+def _is_usage_record(value: object) -> TypeGuard[dict[str, Any]]:
+    """Return whether a value has the shape expected for a usage record."""
+    return isinstance(value, dict) and all(isinstance(key, str) for key in value)
+
+
 def _empty_daily_usage(day_key: str) -> dict[str, Any]:
     """Create an empty aggregate for one day."""
     return {
@@ -138,7 +144,7 @@ def _add_usage_record(day: dict[str, Any], record: dict[str, Any]) -> None:
     day["cost_microcents"] += record.get("cost_microcents", 0) or 0
 
 
-def calculate_daily_usage(usage_records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def calculate_daily_usage(usage_records: Iterable[object]) -> list[dict[str, Any]]:
     """Calculate daily usage breakdown from usage records.
 
     Args:
@@ -150,7 +156,7 @@ def calculate_daily_usage(usage_records: list[dict[str, Any]]) -> list[dict[str,
     daily_usage: dict[str, dict[str, Any]] = {}
 
     for record in usage_records:
-        if not isinstance(record, dict):
+        if not _is_usage_record(record):
             continue
         created_at = _usage_datetime(record)
         if created_at is None:

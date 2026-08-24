@@ -3,7 +3,7 @@ import logging
 from asyncio import Event
 from collections.abc import AsyncGenerator, Callable
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
-from typing import Any
+from typing import Any, cast
 
 import anyio
 import fastapi
@@ -153,9 +153,17 @@ def _configured_openapi_tags(settings: Settings) -> list[dict[str, Any]] | None:
     if not raw_tags:
         return None
     try:
-        return json.loads(raw_tags)
+        parsed_tags = json.loads(raw_tags)
     except json.JSONDecodeError:
         return None
+
+    if not isinstance(parsed_tags, list) or not all(
+        isinstance(tag, dict) and all(isinstance(key, str) for key in tag)
+        for tag in parsed_tags
+    ):
+        return None
+
+    return cast(list[dict[str, Any]], parsed_tags)
 
 
 def _build_application_metadata(
@@ -292,8 +300,6 @@ def _documentation_dependency(
     docs_production_dependency: Callable[..., Any] | None,
 ) -> Callable[..., Any] | None:
     """Resolve authentication required by custom documentation routes."""
-    if not isinstance(settings, EnvironmentSettings):
-        return None
     if settings.ENVIRONMENT == EnvironmentOption.LOCAL:
         return None
     if settings.ENVIRONMENT == EnvironmentOption.PRODUCTION:

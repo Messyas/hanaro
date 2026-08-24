@@ -1,6 +1,6 @@
 """Unit tests for API key routes."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 
 import pytest
@@ -30,7 +30,7 @@ def mock_current_user_dict():
 
 @pytest.fixture
 def valid_key_read():
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return {
         "id": 1,
         "name": "Key 1",

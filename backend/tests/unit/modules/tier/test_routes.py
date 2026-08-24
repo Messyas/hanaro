@@ -1,6 +1,6 @@
 """Unit tests for Tier routes."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 
 import pytest
@@ -20,7 +20,7 @@ def mock_tier_service():
 
 @pytest.fixture
 def valid_tier_read():
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return {
         "id": 1,
         "name": "free",
