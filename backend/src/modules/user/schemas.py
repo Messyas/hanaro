@@ -97,12 +97,7 @@ class UserCreate(UserBase):
             str(self.email).split("@", 1)[0],
         ]
         normalized_password = self.password.casefold()
-        personal_terms = {
-            term
-            for value in user_inputs
-            for term in re.split(r"[^a-z0-9]+", value.casefold())
-            if len(term) >= 4
-        }
+        personal_terms = {term for value in user_inputs for term in re.split(r"[^a-z0-9]+", value.casefold()) if len(term) >= 4}
         if any(term in normalized_password for term in personal_terms):
             raise ValueError("Password must not contain your name, username, or email.")
 
@@ -132,36 +127,48 @@ class UserUpdate(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    name: Annotated[
-        str,
-        Field(min_length=2, max_length=30, examples=["User Userberg"]),
-    ] | None = None
-    username: Annotated[
-        str,
-        Field(
-            min_length=2,
-            max_length=20,
-            pattern=r"^[a-z0-9]+$",
-            examples=["userberg"],
-        ),
-    ] | None = None
+    name: (
+        Annotated[
+            str,
+            Field(min_length=2, max_length=30, examples=["User Userberg"]),
+        ]
+        | None
+    ) = None
+    username: (
+        Annotated[
+            str,
+            Field(
+                min_length=2,
+                max_length=20,
+                pattern=r"^[a-z0-9]+$",
+                examples=["userberg"],
+            ),
+        ]
+        | None
+    ) = None
     email: Annotated[EmailStr, Field(examples=["user.userberg@example.com"])] | None = None
-    notification_email: Annotated[
-        EmailStr,
-        Field(max_length=50, examples=["notifications@example.com"]),
-    ] | None = None
+    notification_email: (
+        Annotated[
+            EmailStr,
+            Field(max_length=50, examples=["notifications@example.com"]),
+        ]
+        | None
+    ) = None
     phone: Annotated[str, Field(max_length=24)] | None = None
     job_title: Annotated[str, Field(max_length=80)] | None = None
-    profile_image_url: Annotated[
-        str,
-        Field(
-            pattern=(
-                r"^(?:(?:https?|ftp)://[^\s/$.?#].[^\s]*|"
-                r"/api/v1/users/me/profile-image\?v=[a-f0-9]{32})$"
+    profile_image_url: (
+        Annotated[
+            str,
+            Field(
+                pattern=(
+                    r"^(?:(?:https?|ftp)://[^\s/$.?#].[^\s]*|"
+                    r"/api/v1/users/me/profile-image\?v=[a-f0-9]{32})$"
+                ),
+                examples=["/api/v1/users/me/profile-image?v=0123456789abcdef0123456789abcdef"],
             ),
-            examples=["/api/v1/users/me/profile-image?v=0123456789abcdef0123456789abcdef"],
-        ),
-    ] | None = None
+        ]
+        | None
+    ) = None
     google_id: str | None = None
     github_id: str | None = None
     oauth_provider: str | None = None

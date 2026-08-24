@@ -39,17 +39,13 @@ class TestSettings:
 
     @patch.dict(
         os.environ,
-        {
-            "DATABASE_URL": "postgresql+asyncpg://prod_user:prod_pass@prod.example.com:5432/prod_db"
-        },
+        {"DATABASE_URL": "postgresql+asyncpg://prod_user:prod_pass@prod.example.com:5432/prod_db"},
         clear=False,
     )
     def test_database_url_env_var_override(self):
         """Test that DATABASE_URL environment variable takes precedence."""
         settings = Settings()
-        expected_url = (
-            "postgresql+asyncpg://prod_user:prod_pass@prod.example.com:5432/prod_db"
-        )
+        expected_url = "postgresql+asyncpg://prod_user:prod_pass@prod.example.com:5432/prod_db"
         assert settings.DATABASE_URL == expected_url
 
     @patch.dict(os.environ, {"POSTGRES_SERVER": "localhost"}, clear=True)

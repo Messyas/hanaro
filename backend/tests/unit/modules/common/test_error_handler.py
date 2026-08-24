@@ -59,9 +59,7 @@ def test_app():
 
 @pytest.mark.asyncio
 async def test_domain_error_returns_generic_message(test_app):
-    async with AsyncClient(
-        transport=ASGITransport(app=test_app), base_url="http://test"
-    ) as client:
+    async with AsyncClient(transport=ASGITransport(app=test_app), base_url="http://test") as client:
         response = await client.get("/not-found")
 
     assert response.status_code == 404
@@ -75,9 +73,7 @@ async def test_domain_error_returns_generic_message(test_app):
 
 @pytest.mark.asyncio
 async def test_insufficient_credits_preserves_message(test_app):
-    async with AsyncClient(
-        transport=ASGITransport(app=test_app), base_url="http://test"
-    ) as client:
+    async with AsyncClient(transport=ASGITransport(app=test_app), base_url="http://test") as client:
         response = await client.get("/credits")
 
     assert response.status_code == 402
@@ -89,9 +85,7 @@ async def test_insufficient_credits_preserves_message(test_app):
 
 @pytest.mark.asyncio
 async def test_unhandled_error_returns_generic_500(test_app):
-    async with AsyncClient(
-        transport=ASGITransport(app=test_app), base_url="http://test"
-    ) as client:
+    async with AsyncClient(transport=ASGITransport(app=test_app), base_url="http://test") as client:
         response = await client.get("/unhandled")
 
     assert response.status_code == 500

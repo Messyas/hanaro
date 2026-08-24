@@ -25,9 +25,7 @@ async def test_update_user_profile_success(
         "profile_image_url": "https://example.com/new-image.jpg",
     }
 
-    logger.info(
-        f"Testing successful profile update for user: {username}, user_id: {test_user['id']}"
-    )
+    logger.info(f"Testing successful profile update for user: {username}, user_id: {test_user['id']}")
     response = await auth_client.patch(f"/api/v1/users/{username}", json=update_data)
 
     if response.status_code != 200:
@@ -61,9 +59,7 @@ async def test_update_user_profile_invalid_email(
     assert "detail" in data
 
 
-async def test_update_user_profile_unauthorized(
-    client: AsyncClient, db_session: AsyncSession, test_user: dict
-):
+async def test_update_user_profile_unauthorized(client: AsyncClient, db_session: AsyncSession, test_user: dict):
     """Test update without authentication."""
     username = test_user["username"]
     update_data = {"name": "Unauthorized Update"}
@@ -78,19 +74,18 @@ async def test_update_user_profile_unauthorized(
 
 async def test_update_user_profile_wrong_user(
     auth_client: AsyncClient,
+    superuser_auth_client: AsyncClient,
     db_session: AsyncSession,
     test_user: dict,
 ):
     """Test that users cannot update other users' profiles."""
     other_user_data = generate_unique_user_data("other")
-    create_response = await auth_client.post("/api/v1/users/", json=other_user_data)
+    create_response = await superuser_auth_client.post("/api/v1/users/", json=other_user_data)
     assert create_response.status_code == 201
     other_username = other_user_data["username"]
 
     update_data = {"name": "Unauthorized Update"}
-    response = await auth_client.patch(
-        f"/api/v1/users/{other_username}", json=update_data
-    )
+    response = await auth_client.patch(f"/api/v1/users/{other_username}", json=update_data)
 
     assert response.status_code == 403
     data = response.json()
@@ -99,12 +94,13 @@ async def test_update_user_profile_wrong_user(
 
 async def test_update_user_profile_duplicate_email(
     auth_client: AsyncClient,
+    superuser_auth_client: AsyncClient,
     db_session: AsyncSession,
     test_user: dict,
 ):
     """Test update with duplicate email fails."""
     other_user_data = generate_unique_user_data("other")
-    create_response = await auth_client.post("/api/v1/users/", json=other_user_data)
+    create_response = await superuser_auth_client.post("/api/v1/users/", json=other_user_data)
     assert create_response.status_code == 201
 
     username = test_user["username"]
@@ -120,12 +116,13 @@ async def test_update_user_profile_duplicate_email(
 
 async def test_update_user_profile_duplicate_username(
     auth_client: AsyncClient,
+    superuser_auth_client: AsyncClient,
     db_session: AsyncSession,
     test_user: dict,
 ):
     """Test update with duplicate username fails."""
     other_user_data = generate_unique_user_data("other")
-    create_response = await auth_client.post("/api/v1/users/", json=other_user_data)
+    create_response = await superuser_auth_client.post("/api/v1/users/", json=other_user_data)
     assert create_response.status_code == 201
 
     username = test_user["username"]
@@ -150,9 +147,7 @@ async def test_update_user_tier_superuser(
     update_data = {"tier_id": second_test_tier["id"]}
 
     logger.info(f"Testing tier update by superuser for user: {username}")
-    response = await superuser_auth_client.patch(
-        f"/api/v1/users/{username}/tier", json=update_data
-    )
+    response = await superuser_auth_client.patch(f"/api/v1/users/{username}/tier", json=update_data)
 
     assert response.status_code == 200
     data = response.json()
@@ -176,13 +171,8 @@ async def test_update_user_tier_regular_user(
     update_data = {"tier_id": second_test_tier["id"]}
 
     logger.info(f"Testing tier update by regular user: {username}")
-    response = await auth_client.patch(
-        f"/api/v1/users/{username}/tier", json=update_data
-    )
+    response = await auth_client.patch(f"/api/v1/users/{username}/tier", json=update_data)
 
     assert response.status_code == 403
     data = response.json()
-    assert any(
-        word in data["detail"].lower()
-        for word in ["permission", "privileges", "authorized"]
-    )
+    assert any(word in data["detail"].lower() for word in ["permission", "privileges", "authorized"])

@@ -57,9 +57,7 @@ class RateLimiterBackend(ABC):
         self.fail_open = fail_open
 
     @abstractmethod
-    async def increment_and_check(
-        self, key: str, limit: int, period: int
-    ) -> tuple[int, bool]:
+    async def increment_and_check(self, key: str, limit: int, period: int) -> tuple[int, bool]:
         """Increment the counter for a key and check if rate limit is exceeded.
 
         Performs an atomic increment-and-check operation to determine if a

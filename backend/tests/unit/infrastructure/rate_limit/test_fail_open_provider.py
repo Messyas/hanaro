@@ -26,10 +26,7 @@ class MockBackend(RateLimiterBackend):
 
     async def increment_and_check(self, key, limit, period):
         """Mock implementation with side effect based on fail_open value."""
-        if (
-            hasattr(self.increment_and_check_mock, "side_effect")
-            and self.increment_and_check_mock.side_effect
-        ):
+        if hasattr(self.increment_and_check_mock, "side_effect") and self.increment_and_check_mock.side_effect:
             if isinstance(self.increment_and_check_mock.side_effect, Exception):
                 return 0, not self.fail_open
             if callable(self.increment_and_check_mock.side_effect):
@@ -72,54 +69,34 @@ def mock_backend_fail_closed():
 
 
 @pytest.mark.asyncio
-async def test_increment_and_check_with_fail_open_override(
-    provider, mock_backend_fail_closed
-):
+async def test_increment_and_check_with_fail_open_override(provider, mock_backend_fail_closed):
     """Test overriding fail_closed with fail_open in increment_and_check."""
     provider.register_backend("test", mock_backend_fail_closed, default=True)
 
-    mock_backend_fail_closed.increment_and_check_mock.side_effect = Exception(
-        "Test error"
-    )
+    mock_backend_fail_closed.increment_and_check_mock.side_effect = Exception("Test error")
 
-    with patch(
-        "src.infrastructure.rate_limit.provider.rate_limiter_provider", provider
-    ):
-        count, is_limited = await increment_and_check(
-            key="test:key", limit=5, period=60, backend_name="test"
-        )
+    with patch("src.infrastructure.rate_limit.provider.rate_limiter_provider", provider):
+        count, is_limited = await increment_and_check(key="test:key", limit=5, period=60, backend_name="test")
         assert is_limited is True
 
-        count, is_limited = await increment_and_check(
-            key="test:key", limit=5, period=60, backend_name="test", fail_open=True
-        )
+        count, is_limited = await increment_and_check(key="test:key", limit=5, period=60, backend_name="test", fail_open=True)
         assert is_limited is False
 
         assert mock_backend_fail_closed.fail_open is False
 
 
 @pytest.mark.asyncio
-async def test_increment_and_check_with_fail_closed_override(
-    provider, mock_backend_fail_open
-):
+async def test_increment_and_check_with_fail_closed_override(provider, mock_backend_fail_open):
     """Test overriding fail-open with fail-closed in increment_and_check."""
     provider.register_backend("test", mock_backend_fail_open, default=True)
 
-    mock_backend_fail_open.increment_and_check_mock.side_effect = Exception(
-        "Test error"
-    )
+    mock_backend_fail_open.increment_and_check_mock.side_effect = Exception("Test error")
 
-    with patch(
-        "src.infrastructure.rate_limit.provider.rate_limiter_provider", provider
-    ):
-        count, is_limited = await increment_and_check(
-            key="test:key", limit=5, period=60, backend_name="test"
-        )
+    with patch("src.infrastructure.rate_limit.provider.rate_limiter_provider", provider):
+        count, is_limited = await increment_and_check(key="test:key", limit=5, period=60, backend_name="test")
         assert is_limited is False
 
-        count, is_limited = await increment_and_check(
-            key="test:key", limit=5, period=60, backend_name="test", fail_open=False
-        )
+        count, is_limited = await increment_and_check(key="test:key", limit=5, period=60, backend_name="test", fail_open=False)
         assert is_limited is True
 
         assert mock_backend_fail_open.fail_open is True
@@ -139,12 +116,8 @@ async def test_provider_temp_override_behavior(provider, mock_backend_fail_open)
 
     mock_backend_fail_open.increment_and_check_mock.side_effect = side_effect
 
-    with patch(
-        "src.infrastructure.rate_limit.provider.rate_limiter_provider", provider
-    ):
-        await increment_and_check(
-            key="test:key", limit=5, period=60, backend_name="test", fail_open=False
-        )
+    with patch("src.infrastructure.rate_limit.provider.rate_limiter_provider", provider):
+        await increment_and_check(key="test:key", limit=5, period=60, backend_name="test", fail_open=False)
         assert fail_open_during_call is False
 
         assert mock_backend_fail_open.fail_open is True
@@ -158,11 +131,7 @@ async def test_provider_no_override_needed(provider, mock_backend_fail_open):
     original_fail_open = mock_backend_fail_open.fail_open
     assert original_fail_open is True
 
-    with patch(
-        "src.infrastructure.rate_limit.provider.rate_limiter_provider", provider
-    ):
-        await increment_and_check(
-            key="test:key", limit=5, period=60, backend_name="test", fail_open=True
-        )
+    with patch("src.infrastructure.rate_limit.provider.rate_limiter_provider", provider):
+        await increment_and_check(key="test:key", limit=5, period=60, backend_name="test", fail_open=True)
 
         assert mock_backend_fail_open.fail_open is original_fail_open

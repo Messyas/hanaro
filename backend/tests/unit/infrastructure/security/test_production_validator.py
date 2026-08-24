@@ -107,9 +107,7 @@ class TestProductionSecurityValidator:
 
     def test_admin_disabled_does_not_check_credentials(self):
         """Test that disabled admin doesn't trigger credential checks."""
-        settings = self.create_mock_settings(
-            ADMIN_ENABLED=False, ADMIN_USERNAME="admin", ADMIN_PASSWORD="weak"
-        )
+        settings = self.create_mock_settings(ADMIN_ENABLED=False, ADMIN_USERNAME="admin", ADMIN_PASSWORD="weak")
         validator = ProductionSecurityValidator(settings)
 
         # Should not raise any exceptions for admin credentials
@@ -138,9 +136,7 @@ class TestProductionSecurityValidator:
 
     def test_multiple_critical_errors_combined(self):
         """Test that multiple critical errors are combined in one message."""
-        settings = self.create_mock_settings(
-            SECRET_KEY="insecure", POSTGRES_PASSWORD="postgres"
-        )
+        settings = self.create_mock_settings(SECRET_KEY="insecure", POSTGRES_PASSWORD="postgres")
         validator = ProductionSecurityValidator(settings)
 
         with pytest.raises(ProductionSecurityError) as exc_info:
@@ -152,25 +148,17 @@ class TestProductionSecurityValidator:
 
     def test_redis_without_password_logs_warning(self, caplog):
         """Test that Redis without password logs warning."""
-        settings = self.create_mock_settings(
-            CACHE_BACKEND="redis", CACHE_REDIS_PASSWORD=None
-        )
+        settings = self.create_mock_settings(CACHE_BACKEND="redis", CACHE_REDIS_PASSWORD=None)
         validator = ProductionSecurityValidator(settings)
 
         validator.validate_production_security()
 
         # Check that warnings were logged
-        warning_logs = [
-            record for record in caplog.records if record.levelname == "WARNING"
-        ]
+        warning_logs = [record for record in caplog.records if record.levelname == "WARNING"]
         assert len(warning_logs) > 0
 
         # Check that Redis password warnings are present
-        redis_warnings = [
-            log
-            for log in warning_logs
-            if "Redis instance" in log.message and "no password" in log.message
-        ]
+        redis_warnings = [log for log in warning_logs if "Redis instance" in log.message and "no password" in log.message]
         assert len(redis_warnings) > 0
 
     def test_shared_redis_instance_logs_warning(self, caplog):
@@ -191,14 +179,8 @@ class TestProductionSecurityValidator:
         validator.validate_production_security()
 
         # Check for shared instance warning
-        warning_logs = [
-            record for record in caplog.records if record.levelname == "WARNING"
-        ]
-        shared_warnings = [
-            log
-            for log in warning_logs
-            if "sharing the same Redis instance" in log.message
-        ]
+        warning_logs = [record for record in caplog.records if record.levelname == "WARNING"]
+        shared_warnings = [log for log in warning_logs if "sharing the same Redis instance" in log.message]
         assert len(shared_warnings) > 0
 
     def test_permissive_cors_logs_warning(self, caplog):
@@ -209,14 +191,8 @@ class TestProductionSecurityValidator:
         validator.validate_production_security()
 
         # Check for CORS warning
-        warning_logs = [
-            record for record in caplog.records if record.levelname == "WARNING"
-        ]
-        cors_warnings = [
-            log
-            for log in warning_logs
-            if "CORS_ORIGINS" in log.message and "allow all origins" in log.message
-        ]
+        warning_logs = [record for record in caplog.records if record.levelname == "WARNING"]
+        cors_warnings = [log for log in warning_logs if "CORS_ORIGINS" in log.message and "allow all origins" in log.message]
         assert len(cors_warnings) > 0
 
     def test_debug_enabled_logs_warning(self, caplog):
@@ -227,9 +203,7 @@ class TestProductionSecurityValidator:
         validator.validate_production_security()
 
         # Check for debug warning
-        warning_logs = [
-            record for record in caplog.records if record.levelname == "WARNING"
-        ]
+        warning_logs = [record for record in caplog.records if record.levelname == "WARNING"]
         debug_warnings = [log for log in warning_logs if "DEBUG mode" in log.message]
         assert len(debug_warnings) > 0
 
@@ -241,12 +215,8 @@ class TestProductionSecurityValidator:
         validator.validate_production_security()
 
         # Check for docs warning
-        warning_logs = [
-            record for record in caplog.records if record.levelname == "WARNING"
-        ]
-        docs_warnings = [
-            log for log in warning_logs if "API documentation" in log.message
-        ]
+        warning_logs = [record for record in caplog.records if record.levelname == "WARNING"]
+        docs_warnings = [log for log in warning_logs if "API documentation" in log.message]
         assert len(docs_warnings) > 0
 
     def test_insecure_session_config_logs_warning(self, caplog):
@@ -261,19 +231,11 @@ class TestProductionSecurityValidator:
         validator.validate_production_security()
 
         # Check for session warnings
-        warning_logs = [
-            record for record in caplog.records if record.levelname == "WARNING"
-        ]
+        warning_logs = [record for record in caplog.records if record.levelname == "WARNING"]
 
-        cookie_warnings = [
-            log for log in warning_logs if "SESSION_SECURE_COOKIES" in log.message
-        ]
-        timeout_warnings = [
-            log for log in warning_logs if "Session timeout" in log.message
-        ]
-        csrf_warnings = [
-            log for log in warning_logs if "CSRF protection" in log.message
-        ]
+        cookie_warnings = [log for log in warning_logs if "SESSION_SECURE_COOKIES" in log.message]
+        timeout_warnings = [log for log in warning_logs if "Session timeout" in log.message]
+        csrf_warnings = [log for log in warning_logs if "CSRF protection" in log.message]
 
         assert len(cookie_warnings) > 0
         assert len(timeout_warnings) > 0
@@ -281,26 +243,16 @@ class TestProductionSecurityValidator:
 
     def test_weak_admin_credentials_logs_warning(self, caplog):
         """Test that weak admin credentials log warnings."""
-        settings = self.create_mock_settings(
-            ADMIN_USERNAME="admin", ADMIN_PASSWORD="123456"
-        )
+        settings = self.create_mock_settings(ADMIN_USERNAME="admin", ADMIN_PASSWORD="123456")
         validator = ProductionSecurityValidator(settings)
 
         validator.validate_production_security()
 
         # Check for admin credential warnings
-        warning_logs = [
-            record for record in caplog.records if record.levelname == "WARNING"
-        ]
+        warning_logs = [record for record in caplog.records if record.levelname == "WARNING"]
 
-        username_warnings = [
-            log
-            for log in warning_logs
-            if "Admin username" in log.message and "predictable" in log.message
-        ]
-        password_warnings = [
-            log for log in warning_logs if "Admin password" in log.message
-        ]
+        username_warnings = [log for log in warning_logs if "Admin username" in log.message and "predictable" in log.message]
+        password_warnings = [log for log in warning_logs if "Admin password" in log.message]
 
         assert len(username_warnings) > 0
         assert len(password_warnings) > 0
@@ -320,14 +272,8 @@ class TestProductionSecurityValidator:
         validator.validate_production_security()
 
         # Should not have admin credential warnings
-        warning_logs = [
-            record for record in caplog.records if record.levelname == "WARNING"
-        ]
-        admin_warnings = [
-            log
-            for log in warning_logs
-            if "Admin username" in log.message or "Admin password" in log.message
-        ]
+        warning_logs = [record for record in caplog.records if record.levelname == "WARNING"]
+        admin_warnings = [log for log in warning_logs if "Admin username" in log.message or "Admin password" in log.message]
         assert len(admin_warnings) == 0
 
     def test_redis_ssl_with_external_host(self, caplog):
@@ -341,28 +287,18 @@ class TestProductionSecurityValidator:
         validator.validate_production_security()
 
         # Check for SSL warnings
-        warning_logs = [
-            record for record in caplog.records if record.levelname == "WARNING"
-        ]
-        ssl_warnings = [
-            log for log in warning_logs if "not using SSL/TLS" in log.message
-        ]
+        warning_logs = [record for record in caplog.records if record.levelname == "WARNING"]
+        ssl_warnings = [log for log in warning_logs if "not using SSL/TLS" in log.message]
         assert len(ssl_warnings) > 0
 
     def test_localhost_redis_no_ssl_warning(self, caplog):
         """Test that localhost Redis without SSL doesn't log SSL warning."""
-        settings = self.create_mock_settings(
-            CACHE_BACKEND="redis", CACHE_REDIS_HOST="localhost"
-        )
+        settings = self.create_mock_settings(CACHE_BACKEND="redis", CACHE_REDIS_HOST="localhost")
         validator = ProductionSecurityValidator(settings)
 
         validator.validate_production_security()
 
         # Should not have SSL warnings for localhost
-        warning_logs = [
-            record for record in caplog.records if record.levelname == "WARNING"
-        ]
-        ssl_warnings = [
-            log for log in warning_logs if "not using SSL/TLS" in log.message
-        ]
+        warning_logs = [record for record in caplog.records if record.levelname == "WARNING"]
+        ssl_warnings = [log for log in warning_logs if "not using SSL/TLS" in log.message]
         assert len(ssl_warnings) == 0

@@ -72,14 +72,8 @@ def _configure_development_logging(settings) -> None:
     handlers = []
 
     if settings.LOG_CONSOLE_ENABLED:
-        console_level = (
-            logging.DEBUG
-            if settings.LOG_DEVELOPMENT_VERBOSE
-            else settings.LOG_LEVEL_INT
-        )
-        console_handler = create_console_handler(
-            format_type=LogFormat.DETAILED.value, level=console_level, use_colors=True
-        )
+        console_level = logging.DEBUG if settings.LOG_DEVELOPMENT_VERBOSE else settings.LOG_LEVEL_INT
+        console_handler = create_console_handler(format_type=LogFormat.DETAILED.value, level=console_level, use_colors=True)
         handlers.append(console_handler)
 
     if settings.LOG_FILE_ENABLED:
@@ -143,14 +137,8 @@ def _configure_production_logging(settings) -> None:
     handlers = []
 
     if settings.LOG_CONSOLE_ENABLED:
-        console_level = (
-            logging.WARNING
-            if settings.LOG_PRODUCTION_OPTIMIZE
-            else settings.LOG_LEVEL_INT
-        )
-        console_handler = create_console_handler(
-            format_type=LogFormat.JSON.value, level=console_level, use_colors=False
-        )
+        console_level = logging.WARNING if settings.LOG_PRODUCTION_OPTIMIZE else settings.LOG_LEVEL_INT
+        console_handler = create_console_handler(format_type=LogFormat.JSON.value, level=console_level, use_colors=False)
         handlers.append(console_handler)
 
     if settings.LOG_FILE_ENABLED:
@@ -278,9 +266,7 @@ def _stack_correlation_id() -> str | None:
         frame = inspect.currentframe()
         while frame:
             request = frame.f_locals.get("request")
-            correlation_id = (
-                _request_correlation_id(request) if request is not None else None
-            )
+            correlation_id = _request_correlation_id(request) if request is not None else None
             if correlation_id:
                 return correlation_id
             frame = frame.f_back
@@ -340,9 +326,7 @@ class CorrelationIdFilter(logging.Filter):
         return None
 
 
-correlation_id_var: contextvars.ContextVar[str] = contextvars.ContextVar(
-    "correlation_id"
-)
+correlation_id_var: contextvars.ContextVar[str] = contextvars.ContextVar("correlation_id")
 
 
 def set_correlation_id(correlation_id: str) -> None:
@@ -388,6 +372,4 @@ def reconfigure_logger_level(logger_name: str, level: int) -> None:
     logger = logging.getLogger(logger_name)
     logger.setLevel(level)
 
-    logging.getLogger(__name__).info(
-        f"Logger level changed: {logger_name} -> {logging.getLevelName(level)}"
-    )
+    logging.getLogger(__name__).info(f"Logger level changed: {logger_name} -> {logging.getLevelName(level)}")

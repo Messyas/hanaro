@@ -25,9 +25,7 @@ async def initialize_cache() -> None:
 
     if settings.CACHE_BACKEND == CacheBackend.MEMCACHED.value:
         if not MEMCACHED_INSTALLED:
-            raise ImportError(
-                "The aiomcache package is not installed. Please install it with 'pip install aiomcache'."
-            )
+            raise ImportError("The aiomcache package is not installed. Please install it with 'pip install aiomcache'.")
 
         memcached_settings = MemcachedSettings(
             host=settings.CACHE_MEMCACHED_HOST,
@@ -36,15 +34,11 @@ async def initialize_cache() -> None:
             connect_timeout=settings.CACHE_MEMCACHED_CONNECT_TIMEOUT,
         )
         memcached_backend = MemcachedBackend(settings=memcached_settings)
-        cache_provider.register_backend(
-            CacheBackend.MEMCACHED.value, memcached_backend, default=True
-        )
+        cache_provider.register_backend(CacheBackend.MEMCACHED.value, memcached_backend, default=True)
 
     elif settings.CACHE_BACKEND == CacheBackend.REDIS.value:
         if not REDIS_INSTALLED:
-            raise ImportError(
-                "The redis package is not installed. Please install it with 'pip install redis'."
-            )
+            raise ImportError("The redis package is not installed. Please install it with 'pip install redis'.")
 
         redis_settings = RedisSettings(
             host=settings.CACHE_REDIS_HOST,
@@ -55,9 +49,7 @@ async def initialize_cache() -> None:
             pool_size=settings.CACHE_REDIS_POOL_SIZE,
         )
         redis_backend = RedisBackend(settings=redis_settings)
-        cache_provider.register_backend(
-            CacheBackend.REDIS.value, redis_backend, default=True
-        )
+        cache_provider.register_backend(CacheBackend.REDIS.value, redis_backend, default=True)
 
 
 async def close_cache() -> None:

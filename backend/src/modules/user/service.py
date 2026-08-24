@@ -85,22 +85,16 @@ class UserService:
             raise UserExistsError("Username already taken")
 
         user_internal_dict = user.model_dump()
-        user_internal_dict["hashed_password"] = get_password_hash(
-            password=user_internal_dict["password"]
-        )
+        user_internal_dict["hashed_password"] = get_password_hash(password=user_internal_dict["password"])
         del user_internal_dict["password"]
 
         user_internal = UserCreateInternal(**user_internal_dict)
-        created_user = await crud_users.create(
-            db=db, object=user_internal, schema_to_select=UserRead
-        )
+        created_user = await crud_users.create(db=db, object=user_internal, schema_to_select=UserRead)
         if not created_user:
             raise UserExistsError("Failed to create user")
         return created_user
 
-    async def get_paginated(
-        self, db: AsyncSession, skip: int = 0, limit: int = 100
-    ) -> GetMultiResponseDict:
+    async def get_paginated(self, db: AsyncSession, skip: int = 0, limit: int = 100) -> GetMultiResponseDict:
         """Retrieve a paginated list of users.
 
         Gets users with pagination support, excluding soft-deleted accounts.
@@ -174,9 +168,7 @@ class UserService:
             raise UserNotFoundError(f"User with username '{username}' not found")
         return user
 
-    async def get_active_and_inactive_by_username(
-        self, username: str, db: AsyncSession
-    ) -> dict[str, Any]:
+    async def get_active_and_inactive_by_username(self, username: str, db: AsyncSession) -> dict[str, Any]:
         """Retrieve a user by username.
 
         Finds a user by their username, including soft-deleted accounts.
@@ -238,9 +230,7 @@ class UserService:
             raise UserNotFoundError(f"User with email '{email}' not found")
         return user
 
-    async def update(
-        self, user_id: int, user_update: UserUpdate, db: AsyncSession
-    ) -> dict[str, Any]:
+    async def update(self, user_id: int, user_update: UserUpdate, db: AsyncSession) -> dict[str, Any]:
         """Update user information.
 
         Updates user fields with validation for unique constraints on email
@@ -285,13 +275,8 @@ class UserService:
             # the service so every caller receives the same security behavior.
             user_update = user_update.model_copy(update={"email_verified": False})
 
-        if (
-            "username" in update_data
-            and update_data["username"] != existing_user["username"]
-        ):
-            username_exists = await crud_users.exists(
-                db=db, username=update_data["username"]
-            )
+        if "username" in update_data and update_data["username"] != existing_user["username"]:
+            username_exists = await crud_users.exists(db=db, username=update_data["username"])
             if username_exists:
                 raise UserExistsError("Username already taken")
 
@@ -305,9 +290,7 @@ class UserService:
             raise UserNotFoundError(f"User with ID {user_id} not found")
         return updated_user
 
-    async def check_update_permission(
-        self, requester_user: dict[str, Any], target_username: str
-    ) -> bool:
+    async def check_update_permission(self, requester_user: dict[str, Any], target_username: str) -> bool:
         """Check if user has permission to update another user.
 
         Determines if the requesting user has permission to update the target user.
@@ -360,13 +343,9 @@ class UserService:
             )
             ```
         """
-        has_permission = await self.check_update_permission(
-            requester_user, target_username
-        )
+        has_permission = await self.check_update_permission(requester_user, target_username)
         if not has_permission:
-            raise PermissionDeniedError(
-                f"You don't have permission to {action_description} on this user"
-            )
+            raise PermissionDeniedError(f"You don't have permission to {action_description} on this user")
 
     async def delete(self, user_id: int, db: AsyncSession) -> None:
         """Soft delete a user.
@@ -453,9 +432,7 @@ class UserService:
             ```
         """
         try:
-            existing_user = await crud_users.get(
-                db=db, schema_to_select=UserRead, id=user_id
-            )
+            existing_user = await crud_users.get(db=db, schema_to_select=UserRead, id=user_id)
             if not existing_user:
                 raise UserNotFoundError(f"User with ID {user_id} not found")
 
@@ -485,14 +462,10 @@ class UserService:
                 oauth_updated_at=None,
             )
 
-            await crud_users.update(
-                db=db, object=anonymize_data, commit=False, id=user_id
-            )
+            await crud_users.update(db=db, object=anonymize_data, commit=False, id=user_id)
             await crud_users.delete(db=db, id=user_id)
 
-            anonymized_fields = list(
-                anonymize_data.model_dump(exclude_unset=True).keys()
-            )
+            anonymized_fields = list(anonymize_data.model_dump(exclude_unset=True).keys())
             logger.info(
                 "User anonymization completed",
                 extra={
@@ -515,9 +488,7 @@ class UserService:
             )
             raise UserNotFoundError(f"User with ID {user_id} not found")
 
-    async def update_tier(
-        self, user_id: int, tier_update: UserTierUpdate, db: AsyncSession
-    ) -> dict[str, Any]:
+    async def update_tier(self, user_id: int, tier_update: UserTierUpdate, db: AsyncSession) -> dict[str, Any]:
         """Update a user's tier assignment.
 
         Changes the tier assignment for a user, which affects their access
@@ -591,9 +562,7 @@ class UserService:
                 print(f"Rate limit: {limit['resource']} - {limit['limit']}")
             ```
         """
-        user = await crud_users.get(
-            db=db, id=user_id, is_deleted=False, schema_to_select=UserRead
-        )
+        user = await crud_users.get(db=db, id=user_id, is_deleted=False, schema_to_select=UserRead)
         if not user:
             raise UserNotFoundError(f"User with ID {user_id} not found")
 
@@ -632,9 +601,7 @@ class UserService:
 
         return result
 
-    async def get_user_with_tier(
-        self, user_id: int, db: AsyncSession
-    ) -> dict[str, Any]:
+    async def get_user_with_tier(self, user_id: int, db: AsyncSession) -> dict[str, Any]:
         """Get user with detailed tier information.
 
         Retrieves a user along with their complete tier information
@@ -661,9 +628,7 @@ class UserService:
                 print(f"User tier: {user_data['tier']['name']}")
             ```
         """
-        user_dict = await crud_users.get(
-            db=db, id=user_id, is_deleted=False, schema_to_select=UserRead
-        )
+        user_dict = await crud_users.get(db=db, id=user_id, is_deleted=False, schema_to_select=UserRead)
         if not user_dict:
             raise UserNotFoundError(f"User with ID {user_id} not found")
 

@@ -114,9 +114,7 @@ class RedisBackend(CacheBackend):
         """
         cursor = 0
         while True:
-            cursor, keys = await self.client.scan(
-                cursor=cursor, match=pattern + "*", count=100
-            )
+            cursor, keys = await self.client.scan(cursor=cursor, match=pattern + "*", count=100)
             if keys:
                 await self.client.delete(*keys)
             if cursor == 0:

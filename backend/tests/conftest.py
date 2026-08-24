@@ -103,9 +103,7 @@ async def test_db_engine(test_db_url):
 @pytest_asyncio.fixture(scope="function")
 async def test_db(test_db_engine):
     """Create a test database session."""
-    test_session = sessionmaker(
-        test_db_engine, class_=AsyncSession, expire_on_commit=False
-    )
+    test_session = sessionmaker(test_db_engine, class_=AsyncSession, expire_on_commit=False)
     async with test_session() as session:  # type: ignore
         yield session
 
@@ -128,9 +126,7 @@ async def client(test_db):
 
     os.environ["POSTGRES_SERVER"] = "localhost"
 
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://testserver"
-    ) as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://testserver") as ac:
         yield ac
 
     app.dependency_overrides = {}

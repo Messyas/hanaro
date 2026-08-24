@@ -54,9 +54,7 @@ class DataclassModelMixin:
         """Normalize SQLAdmin form data for a dataclass model constructor."""
         clean_data: dict[str, Any] = {}
         for key, value in data.items():
-            is_relationship, foreign_key, relationship_value = self._relationship_value(
-                key, value
-            )
+            is_relationship, foreign_key, relationship_value = self._relationship_value(key, value)
             if is_relationship:
                 if foreign_key is not None:
                     clean_data[foreign_key] = relationship_value

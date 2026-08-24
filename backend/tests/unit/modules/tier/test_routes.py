@@ -37,9 +37,7 @@ async def async_client(mock_tier_service):
     app.dependency_overrides[async_session] = lambda: mock_db
     app.dependency_overrides[get_tier_service] = lambda: mock_tier_service
 
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://testserver"
-    ) as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://testserver") as client:
         yield client
 
     app.dependency_overrides.clear()

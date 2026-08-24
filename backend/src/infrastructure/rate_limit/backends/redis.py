@@ -68,9 +68,7 @@ class RedisBackend(RateLimiterBackend):
             logger.error(f"Failed to initialize Redis client: {e}")
             raise RateLimiterBackendException(f"Failed to initialize Redis client: {e}")
 
-    async def increment_and_check(
-        self, key: str, limit: int, period: int
-    ) -> tuple[int, bool]:
+    async def increment_and_check(self, key: str, limit: int, period: int) -> tuple[int, bool]:
         """Increment the counter for a key and check if rate limit is exceeded.
 
         Args:
@@ -154,18 +152,12 @@ class RedisBackend(RateLimiterBackend):
             result: list[int] = await pipe.execute()
             return result[0]
         except RedisError as e:
-            logger.error(
-                f"Redis error incrementing count for key {key}: {type(e).__name__}: {str(e)}"
-            )
+            logger.error(f"Redis error incrementing count for key {key}: {type(e).__name__}: {str(e)}")
             if not self.fail_open:
-                raise RateLimiterBackendException(
-                    f"Redis pipeline failed for key {key}"
-                )
+                raise RateLimiterBackendException(f"Redis pipeline failed for key {key}")
             return 0
         except Exception as e:
-            logger.error(
-                f"Error incrementing count for key {key}: {type(e).__name__}: {str(e)}"
-            )
+            logger.error(f"Error incrementing count for key {key}: {type(e).__name__}: {str(e)}")
             if not self.fail_open:
                 raise RateLimiterBackendException(f"Unexpected error for key {key}")
             return 0

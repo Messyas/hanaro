@@ -25,19 +25,13 @@ class ColoredConsoleHandler(logging.StreamHandler):
         self.use_colors = self._should_use_colors()
 
     def _should_use_colors(self) -> bool:
-        return (
-            hasattr(self.stream, "isatty")
-            and self.stream.isatty()
-            and sys.platform != "win32"
-        )
+        return hasattr(self.stream, "isatty") and self.stream.isatty() and sys.platform != "win32"
 
     def format(self, record: logging.LogRecord) -> str:
         formatted = super().format(record)
         if self.use_colors and record.levelname in self.COLORS:
             color = self.COLORS[record.levelname]
-            formatted = formatted.replace(
-                f"[{record.levelname}]", f"[{color}{record.levelname}{self.RESET}]"
-            )
+            formatted = formatted.replace(f"[{record.levelname}]", f"[{color}{record.levelname}{self.RESET}]")
         return formatted
 
 
@@ -83,9 +77,7 @@ def create_file_handler(
     backup_count: int = 5,
 ) -> logging.Handler:
     """Create a configured rotating file handler."""
-    handler = RotatingFileHandler(
-        filename=filepath, max_bytes=max_bytes, backup_count=backup_count
-    )
+    handler = RotatingFileHandler(filename=filepath, max_bytes=max_bytes, backup_count=backup_count)
     handler.setLevel(level)
     handler.setFormatter(get_formatter(format_type))
     return handler

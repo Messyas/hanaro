@@ -126,9 +126,7 @@ class CacheIdentificationInferenceError(CacheException):
         ```
     """
 
-    def __init__(
-        self, message: str = "Could not infer resource ID from function arguments."
-    ):
+    def __init__(self, message: str = "Could not infer resource ID from function arguments."):
         self.message = message
         super().__init__(self.message)
 

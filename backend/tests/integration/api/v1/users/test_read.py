@@ -10,9 +10,7 @@ logger = logging.getLogger(__name__)
 pytestmark = pytest.mark.asyncio
 
 
-async def test_get_user_by_username_success(
-    auth_client: AsyncClient, db_session: AsyncSession, test_user: dict
-):
+async def test_get_user_by_username_success(auth_client: AsyncClient, db_session: AsyncSession, test_user: dict):
     """Test successful retrieval of a user by username."""
     logger.info("Testing successful user retrieval by username")
     username = test_user["username"]
@@ -26,14 +24,12 @@ async def test_get_user_by_username_success(
     assert "name" in data
 
 
-async def test_get_user_by_username_not_found(
-    auth_client: AsyncClient, db_session: AsyncSession
-):
-    """Test 404 when user not found."""
-    logger.info("Testing 404 when user not found")
+async def test_get_user_by_username_not_found(auth_client: AsyncClient, db_session: AsyncSession):
+    """Test that regular users cannot enumerate other usernames."""
+    logger.info("Testing that a regular user cannot view another profile")
     response = await auth_client.get("/api/v1/users/nonexistentuser")
 
-    assert response.status_code == 404
+    assert response.status_code == 403
     data = response.json()
     assert "detail" in data
 
@@ -48,9 +44,7 @@ async def test_get_users_unauthorized(client: AsyncClient, db_session: AsyncSess
     assert "detail" in data
 
 
-async def test_get_users_superuser_success(
-    superuser_auth_client: AsyncClient, db_session: AsyncSession
-):
+async def test_get_users_superuser_success(superuser_auth_client: AsyncClient, db_session: AsyncSession):
     """Test that superuser can access users list."""
     logger.info("Testing superuser access to users list")
     response = await superuser_auth_client.get("/api/v1/users/")
@@ -64,9 +58,7 @@ async def test_get_users_superuser_success(
     assert "items_per_page" in data
 
 
-async def test_get_users_pagination(
-    superuser_auth_client: AsyncClient, db_session: AsyncSession
-):
+async def test_get_users_pagination(superuser_auth_client: AsyncClient, db_session: AsyncSession):
     """Test pagination of users list."""
     logger.info("Testing users list pagination")
 
@@ -78,9 +70,7 @@ async def test_get_users_pagination(
     assert data["items_per_page"] == 5
 
 
-async def test_get_current_user_profile(
-    auth_client: AsyncClient, db_session: AsyncSession, test_user: dict
-):
+async def test_get_current_user_profile(auth_client: AsyncClient, db_session: AsyncSession, test_user: dict):
     """Test retrieval of current user's profile."""
     logger.info("Testing current user profile retrieval")
     response = await auth_client.get("/api/v1/users/me")
@@ -91,9 +81,7 @@ async def test_get_current_user_profile(
     assert data["email"] == test_user["email"]
 
 
-async def test_get_user_tier_info(
-    auth_client: AsyncClient, db_session: AsyncSession, test_user: dict
-):
+async def test_get_user_tier_info(auth_client: AsyncClient, db_session: AsyncSession, test_user: dict):
     """Test retrieval of user's tier information."""
     logger.info("Testing user tier information retrieval")
     response = await auth_client.get(f"/api/v1/users/{test_user['username']}/tier")
@@ -103,14 +91,10 @@ async def test_get_user_tier_info(
     assert "tier" in data
 
 
-async def test_get_user_rate_limits(
-    auth_client: AsyncClient, db_session: AsyncSession, test_user: dict
-):
+async def test_get_user_rate_limits(auth_client: AsyncClient, db_session: AsyncSession, test_user: dict):
     """Test retrieval of user's rate limits."""
     logger.info("Testing user rate limits retrieval")
-    response = await auth_client.get(
-        f"/api/v1/users/{test_user['username']}/rate-limits"
-    )
+    response = await auth_client.get(f"/api/v1/users/{test_user['username']}/rate-limits")
 
     assert response.status_code == 200
     data = response.json()

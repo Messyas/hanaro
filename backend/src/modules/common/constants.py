@@ -31,27 +31,15 @@ MAX_ENTITLEMENTS_PER_USER = 100
 DEFAULT_BATCH_SIZE = 100
 
 EXCEPTION_MAPPING: dict[type[DomainError], Callable[[str], HTTPException]] = {
-    InsufficientCreditsError: lambda message: HTTPException(
-        status_code=402, detail=message or "Insufficient credits."
-    ),
-    ResourceNotFoundError: lambda message: NotFoundException(
-        detail="The requested resource was not found."
-    ),
-    ResourceExistsError: lambda message: DuplicateValueException(
-        detail="This resource already exists."
-    ),
+    InsufficientCreditsError: lambda message: HTTPException(status_code=402, detail=message or "Insufficient credits."),
+    ResourceNotFoundError: lambda message: NotFoundException(detail="The requested resource was not found."),
+    ResourceExistsError: lambda message: DuplicateValueException(detail="This resource already exists."),
     ValidationError: lambda message: UnprocessableEntityException(detail=message),
-    PermissionDeniedError: lambda message: ForbiddenException(
-        detail="You don't have permission for this action."
-    ),
+    PermissionDeniedError: lambda message: ForbiddenException(detail="You don't have permission for this action."),
     UserNotFoundError: lambda message: NotFoundException(detail="User not found."),
     UserExistsError: lambda message: DuplicateValueException(
         detail=message or "A user with this email or username already exists."
     ),
-    TierNotFoundError: lambda message: NotFoundException(
-        detail="The requested tier was not found."
-    ),
-    RateLimitNotFoundError: lambda message: NotFoundException(
-        detail="Rate limit configuration not found."
-    ),
+    TierNotFoundError: lambda message: NotFoundException(detail="The requested tier was not found."),
+    RateLimitNotFoundError: lambda message: NotFoundException(detail="Rate limit configuration not found."),
 }

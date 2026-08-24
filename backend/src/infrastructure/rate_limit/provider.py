@@ -48,9 +48,7 @@ class RateLimiterProvider:
         self._backends: dict[str, RateLimiterBackend] = {}
         self._default_backend: str | None = None
 
-    def register_backend(
-        self, name: str, backend: RateLimiterBackend, default: bool = False
-    ) -> None:
+    def register_backend(self, name: str, backend: RateLimiterBackend, default: bool = False) -> None:
         """Register a rate limiter backend with the provider.
 
         Adds a backend to the provider's registry, making it available for

@@ -29,9 +29,7 @@ def _build_provider(name: str, client_id: str, client_secret: str):
 
 # Only Google has a wired route; add a "github" entry here (and its routes) to enable it.
 oauth_providers = {
-    "google": _build_provider(
-        "google", settings.OAUTH_GOOGLE_CLIENT_ID, settings.OAUTH_GOOGLE_CLIENT_SECRET
-    ),
+    "google": _build_provider("google", settings.OAUTH_GOOGLE_CLIENT_ID, settings.OAUTH_GOOGLE_CLIENT_SECRET),
 }
 
 oauth_state_storage = get_session_storage(

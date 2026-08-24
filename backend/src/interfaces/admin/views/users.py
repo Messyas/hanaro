@@ -14,9 +14,7 @@ from ....modules.user.schemas import UserUpdate
 from ....modules.user.service import UserService
 from ..mixins import DataclassModelMixin
 
-OAUTH_PROVIDER_CHOICES = [("", "None")] + [
-    (p.value, p.value.title()) for p in OAuthProvider
-]
+OAUTH_PROVIDER_CHOICES = [("", "None")] + [(p.value, p.value.title()) for p in OAuthProvider]
 
 
 class UserAdmin(DataclassModelMixin, ModelView, model=User):
@@ -61,9 +59,7 @@ class UserAdmin(DataclassModelMixin, ModelView, model=User):
     form_overrides = {"oauth_provider": SelectField}
     form_args = {"oauth_provider": {"choices": OAUTH_PROVIDER_CHOICES}}
 
-    async def on_model_change(
-        self, data: dict[str, Any], model: Any, is_created: bool, request: Request
-    ) -> None:
+    async def on_model_change(self, data: dict[str, Any], model: Any, is_created: bool, request: Request) -> None:
         """Hash the password before saving."""
         if is_created and "hashed_password" in data and data["hashed_password"]:
             data["hashed_password"] = get_password_hash(data["hashed_password"])

@@ -172,7 +172,5 @@ async def test_insert_model():
     mock_session.add.assert_called_once_with(created_obj)
     mock_session.commit.assert_awaited_once()
     mock_session.refresh.assert_awaited_once_with(created_obj)
-    mixin.after_model_change.assert_awaited_once_with(
-        data, created_obj, True, mock_request
-    )
+    mixin.after_model_change.assert_awaited_once_with(data, created_obj, True, mock_request)
     assert result == created_obj

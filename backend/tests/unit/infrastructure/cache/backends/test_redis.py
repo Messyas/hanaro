@@ -19,9 +19,7 @@ def mock_redis():
 
 @pytest.fixture
 def redis_backend(mock_redis):
-    with patch(
-        "src.infrastructure.cache.backends.redis.Redis", return_value=mock_redis
-    ):
+    with patch("src.infrastructure.cache.backends.redis.Redis", return_value=mock_redis):
         settings = RedisSettings(host="localhost", port=6379, password=None, db=0)
         backend = RedisBackend(settings=settings)
         backend.client = mock_redis
@@ -56,9 +54,7 @@ async def test_set_key(redis_backend, mock_redis):
 
     await redis_backend.set("test_key", test_data, 3600)
 
-    mock_redis.set.assert_called_once_with(
-        "test_key", json.dumps(test_data).encode(), ex=3600
-    )
+    mock_redis.set.assert_called_once_with("test_key", json.dumps(test_data).encode(), ex=3600)
 
 
 @pytest.mark.asyncio

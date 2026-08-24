@@ -59,9 +59,7 @@ async def get_rate_limits(
             limit=items_per_page,
         )
 
-        return paginated_response(
-            crud_data=rate_limits_data, page=page, items_per_page=items_per_page
-        )
+        return paginated_response(crud_data=rate_limits_data, page=page, items_per_page=items_per_page)
     except Exception as e:
         http_exception = handle_exception(e)
         if http_exception:

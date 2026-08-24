@@ -54,9 +54,7 @@ async def async_client(mock_api_key_service, mock_current_user_dict):
     app.dependency_overrides[get_api_key_service] = lambda: mock_api_key_service
     app.dependency_overrides[get_current_user] = lambda: mock_current_user_dict
 
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://testserver"
-    ) as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://testserver") as client:
         yield client
 
     app.dependency_overrides.clear()
@@ -90,9 +88,7 @@ async def test_create_api_key_route_object_user(mock_api_key_service, valid_key_
     resp_key["api_key"] = "fai_secret_key_12345"
     mock_api_key_service.create_api_key.return_value = resp_key
 
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://testserver"
-    ) as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://testserver") as client:
         resp = await client.post("/api/v1/api-keys/", json={"name": "Key 1"})
         assert resp.status_code == 201
 

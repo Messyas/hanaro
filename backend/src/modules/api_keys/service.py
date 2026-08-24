@@ -90,9 +90,7 @@ class APIKeyService:
     def _verify_api_key(self, api_key: str, stored_hash: str) -> bool:
         """Verify a candidate ``api_key`` against a stored scrypt hash."""
         try:
-            scheme, n_str, r_str, p_str, salt_b64, derived_b64 = stored_hash.split(
-                "$", 5
-            )
+            scheme, n_str, r_str, p_str, salt_b64, derived_b64 = stored_hash.split("$", 5)
         except ValueError:
             return False
         if scheme != "scrypt":
@@ -143,9 +141,7 @@ class APIKeyService:
         )
 
         key_internal = APIKeyCreateInternal(**key_dict)
-        created_key = await crud_api_keys.create(
-            db=db, object=key_internal, schema_to_select=APIKeyRead
-        )
+        created_key = await crud_api_keys.create(db=db, object=key_internal, schema_to_select=APIKeyRead)
 
         if not created_key:
             raise ValueError("Failed to create API key")
@@ -258,9 +254,7 @@ class APIKeyService:
         logger.info(f"Updated API key {key_id} for user {user_id}")
 
         if updated_key is None:
-            updated_key = await crud_api_keys.get(
-                db=db, id=key_id, schema_to_select=APIKeyRead
-            )
+            updated_key = await crud_api_keys.get(db=db, id=key_id, schema_to_select=APIKeyRead)
 
         if updated_key is None:
             raise ResourceNotFoundError("API key not found after update")
@@ -310,22 +304,14 @@ class APIKeyService:
         """
         prefix_start = len("fai_")
         prefix_end = prefix_start + self.key_prefix_length
-        if (
-            not api_key.startswith("fai_")
-            or len(api_key) <= prefix_end
-            or api_key[prefix_end] != "_"
-        ):
+        if not api_key.startswith("fai_") or len(api_key) <= prefix_end or api_key[prefix_end] != "_":
             return APIKeyValidationResponse(
                 is_valid=False,
                 error_message="Invalid API key",
             )
         prefix = api_key[prefix_start:prefix_end]
 
-        result = await db.execute(
-            select(APIKey)
-            .where(APIKey.key_prefix == prefix)
-            .execution_options(populate_existing=True)
-        )
+        result = await db.execute(select(APIKey).where(APIKey.key_prefix == prefix).execution_options(populate_existing=True))
         candidates = result.scalars().all()
 
         matched: APIKey | None = None
@@ -411,9 +397,7 @@ class APIKeyService:
             )
             usage_data = KeyUsageCreate(**usage_dict)
 
-        usage_record = await crud_key_usage.create(
-            db=db, object=usage_data, schema_to_select=KeyUsageRead
-        )
+        usage_record = await crud_key_usage.create(db=db, object=usage_data, schema_to_select=KeyUsageRead)
 
         if not usage_record:
             raise ValueError("Failed to create usage record")
@@ -515,19 +499,13 @@ class APIKeyService:
         Returns:
             User API key summary
         """
-        keys_result = await self.get_user_api_keys(
-            user_id=user_id, db=db, active_only=False
-        )
+        keys_result = await self.get_user_api_keys(user_id=user_id, db=db, active_only=False)
         keys_data = keys_result.get("data", []) if isinstance(keys_result, dict) else []
 
         total_requests_result = await crud_key_usage.count(db=db, user_id=user_id)
-        total_requests = (
-            total_requests_result if isinstance(total_requests_result, int) else 0
-        )
+        total_requests = total_requests_result if isinstance(total_requests_result, int) else 0
 
-        usage_result = await crud_key_usage.get_multi(
-            db=db, user_id=user_id, schema_to_select=KeyUsageRead
-        )
+        usage_result = await crud_key_usage.get_multi(db=db, user_id=user_id, schema_to_select=KeyUsageRead)
         total_cost = 0
         if isinstance(usage_result, dict) and usage_result.get("data"):
             usage_data = usage_result["data"]
@@ -539,9 +517,7 @@ class APIKeyService:
         return {
             "user_id": user_id,
             "total_keys": len(keys_data),
-            "active_keys": len(
-                [k for k in keys_data if isinstance(k, dict) and k.get("is_active")]
-            ),
+            "active_keys": len([k for k in keys_data if isinstance(k, dict) and k.get("is_active")]),
             "total_requests": total_requests,
             "total_cost_microcents": total_cost,
             "keys": keys_data,

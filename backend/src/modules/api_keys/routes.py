@@ -60,9 +60,7 @@ async def create_api_key(
     """Create a new API key for the authenticated user."""
     try:
         return await api_key_service.create_api_key(
-            user_id=current_user["id"]
-            if isinstance(current_user, dict)
-            else current_user.id,
+            user_id=current_user["id"] if isinstance(current_user, dict) else current_user.id,
             key_data=key_data,
             db=db,
         )
@@ -105,9 +103,7 @@ async def get_user_api_keys(
     """Get all API keys for the authenticated user."""
     try:
         result = await api_key_service.get_user_api_keys(
-            user_id=current_user["id"]
-            if isinstance(current_user, dict)
-            else current_user.id,
+            user_id=current_user["id"] if isinstance(current_user, dict) else current_user.id,
             active_only=active_only,
             limit=items_per_page,
             offset=compute_offset(page, items_per_page),
@@ -156,9 +152,7 @@ async def get_api_key(
     try:
         return await api_key_service.get_api_key(
             key_id=key_id,
-            user_id=current_user["id"]
-            if isinstance(current_user, dict)
-            else current_user.id,
+            user_id=current_user["id"] if isinstance(current_user, dict) else current_user.id,
             db=db,
         )
     except ResourceNotFoundError as e:
@@ -204,9 +198,7 @@ async def update_api_key(
     try:
         return await api_key_service.update_api_key(
             key_id=key_id,
-            user_id=current_user["id"]
-            if isinstance(current_user, dict)
-            else current_user.id,
+            user_id=current_user["id"] if isinstance(current_user, dict) else current_user.id,
             update_data=update_data,
             db=db,
         )
@@ -253,9 +245,7 @@ async def delete_api_key(
     try:
         await api_key_service.delete_api_key(
             key_id=key_id,
-            user_id=current_user["id"]
-            if isinstance(current_user, dict)
-            else current_user.id,
+            user_id=current_user["id"] if isinstance(current_user, dict) else current_user.id,
             db=db,
         )
     except ResourceNotFoundError as e:
@@ -304,9 +294,7 @@ async def get_key_usage(
     try:
         result = await api_key_service.get_key_usage(
             key_id=key_id,
-            user_id=current_user["id"]
-            if isinstance(current_user, dict)
-            else current_user.id,
+            user_id=current_user["id"] if isinstance(current_user, dict) else current_user.id,
             limit=items_per_page,
             offset=compute_offset(page, items_per_page),
             db=db,
@@ -364,9 +352,7 @@ async def get_key_analytics(
     try:
         return await api_key_service.get_usage_analytics(
             key_id=key_id,
-            user_id=current_user["id"]
-            if isinstance(current_user, dict)
-            else current_user.id,
+            user_id=current_user["id"] if isinstance(current_user, dict) else current_user.id,
             days=days,
             db=db,
         )
@@ -410,9 +396,7 @@ async def get_user_summary(
     """Get comprehensive API key summary for the authenticated user."""
     try:
         return await api_key_service.get_user_summary(
-            user_id=current_user["id"]
-            if isinstance(current_user, dict)
-            else current_user.id,
+            user_id=current_user["id"] if isinstance(current_user, dict) else current_user.id,
             db=db,
         )
     except Exception as e:

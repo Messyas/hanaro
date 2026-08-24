@@ -182,9 +182,7 @@ async def test_get_user_by_username_route(async_client, mock_user_service, valid
     mock_user_service.get_by_username.return_value = valid_user_dict
     resp = await async_client.get("/api/v1/users/johndoe")
     assert resp.status_code == 200
-    mock_user_service.verify_user_permission.assert_awaited_with(
-        valid_user_dict, "johndoe", "view this profile"
-    )
+    mock_user_service.verify_user_permission.assert_awaited_with(valid_user_dict, "johndoe", "view this profile")
 
     # 2. Return None -> 404
     mock_user_service.get_by_username.return_value = None

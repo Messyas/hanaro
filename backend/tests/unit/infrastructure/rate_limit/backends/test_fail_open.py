@@ -91,9 +91,7 @@ async def test_redis_error_handling_fail_open(redis_backend_fail_open):
 
     pipeline_mock.execute.side_effect = RedisError("Test Redis error")
 
-    count, is_limited = await backend.increment_and_check(
-        key="test:123", limit=5, period=60
-    )
+    count, is_limited = await backend.increment_and_check(key="test:123", limit=5, period=60)
 
     assert count == 0
     assert is_limited is False
@@ -106,9 +104,7 @@ async def test_redis_error_handling_fail_closed(redis_backend_fail_closed):
 
     pipeline_mock.execute.side_effect = RedisError("Test Redis error")
 
-    count, is_limited = await backend.increment_and_check(
-        key="test:123", limit=5, period=60
-    )
+    count, is_limited = await backend.increment_and_check(key="test:123", limit=5, period=60)
 
     assert count == 0
     assert is_limited is True
@@ -121,9 +117,7 @@ async def test_redis_general_error_fail_open(redis_backend_fail_open):
 
     pipeline_mock.execute.side_effect = Exception("General error")
 
-    count, is_limited = await backend.increment_and_check(
-        key="test:123", limit=5, period=60
-    )
+    count, is_limited = await backend.increment_and_check(key="test:123", limit=5, period=60)
 
     assert count == 0
     assert is_limited is False
@@ -136,9 +130,7 @@ async def test_redis_general_error_fail_closed(redis_backend_fail_closed):
 
     pipeline_mock.execute.side_effect = Exception("General error")
 
-    count, is_limited = await backend.increment_and_check(
-        key="test:123", limit=5, period=60
-    )
+    count, is_limited = await backend.increment_and_check(key="test:123", limit=5, period=60)
 
     assert count == 0
     assert is_limited is True
@@ -151,9 +143,7 @@ async def test_memcached_error_fail_open(memcached_backend_fail_open):
 
     client_mock.get.side_effect = Exception("Memcached error")
 
-    count, is_limited = await backend.increment_and_check(
-        key="test:123", limit=5, period=60
-    )
+    count, is_limited = await backend.increment_and_check(key="test:123", limit=5, period=60)
 
     assert count == 0
     assert is_limited is False
@@ -166,9 +156,7 @@ async def test_memcached_error_fail_closed(memcached_backend_fail_closed):
 
     client_mock.get.side_effect = Exception("Memcached error")
 
-    count, is_limited = await backend.increment_and_check(
-        key="test:123", limit=5, period=60
-    )
+    count, is_limited = await backend.increment_and_check(key="test:123", limit=5, period=60)
 
     assert count == 0
     assert is_limited is True

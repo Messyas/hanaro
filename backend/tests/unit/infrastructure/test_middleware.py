@@ -60,9 +60,7 @@ def test_credentialed_cors_accepts_explicit_allowlists() -> None:
         (["https://dashboard.factory.example"], ["GET"], ["*"]),
     ],
 )
-def test_credentialed_cors_rejects_every_wildcard(
-    origins: list[str], methods: list[str], headers: list[str]
-) -> None:
+def test_credentialed_cors_rejects_every_wildcard(origins: list[str], methods: list[str], headers: list[str]) -> None:
     with pytest.raises(ValueError, match="Credentialed CORS requires explicit"):
         _validate_cors_configuration(origins, methods, headers, allow_credentials=True)
 
@@ -82,23 +80,17 @@ def test_cors_is_the_outermost_application_middleware() -> None:
 @pytest.mark.asyncio
 async def test_api_paths_get_no_cache():
     app = _create_app_with_middleware(cache=True, max_age=120)
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         resp = await client.get("/api/v1/users")
 
     assert resp.status_code == 200
-    assert (
-        resp.headers["cache-control"] == "private, no-cache, no-store, must-revalidate"
-    )
+    assert resp.headers["cache-control"] == "private, no-cache, no-store, must-revalidate"
 
 
 @pytest.mark.asyncio
 async def test_static_paths_get_public_cache():
     app = _create_app_with_middleware(cache=True, max_age=120)
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         resp = await client.get("/static/logo.png")
 
     assert resp.status_code == 200
@@ -111,9 +103,7 @@ async def test_static_paths_get_public_cache():
 @pytest.mark.asyncio
 async def test_security_headers_present_in_dev():
     app = _create_app_with_middleware(security=True, environment="development")
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         resp = await client.get("/api/v1/users")
 
     assert resp.headers["x-content-type-options"] == "nosniff"
@@ -128,9 +118,7 @@ async def test_security_headers_present_in_dev():
 @pytest.mark.asyncio
 async def test_hsts_set_in_production():
     app = _create_app_with_middleware(security=True, environment="production")
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         resp = await client.get("/api/v1/users")
 
     assert "strict-transport-security" in resp.headers
@@ -141,9 +129,7 @@ async def test_hsts_set_in_production():
 @pytest.mark.asyncio
 async def test_hsts_set_in_staging():
     app = _create_app_with_middleware(security=True, environment="staging")
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         resp = await client.get("/api/v1/users")
 
     assert "strict-transport-security" in resp.headers

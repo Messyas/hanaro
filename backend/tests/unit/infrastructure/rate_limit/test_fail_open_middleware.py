@@ -32,15 +32,11 @@ def mock_db():
 
 
 @pytest.mark.asyncio
-async def test_middleware_fail_open_behavior(
-    mock_request, mock_db, mock_rate_limit_settings_fail_open
-):
+async def test_middleware_fail_open_behavior(mock_request, mock_db, mock_rate_limit_settings_fail_open):
     """Test middleware with fail_open=True when a backend error occurs."""
 
     with (
-        patch(
-            "src.infrastructure.rate_limit.middleware.increment_and_check"
-        ) as mock_inc,
+        patch("src.infrastructure.rate_limit.middleware.increment_and_check") as mock_inc,
         patch("src.infrastructure.rate_limit.middleware.DEFAULT_LIMIT", 100),
         patch(
             "src.infrastructure.rate_limit.middleware.settings",
@@ -56,15 +52,11 @@ async def test_middleware_fail_open_behavior(
 
 
 @pytest.mark.asyncio
-async def test_middleware_fail_closed_behavior(
-    mock_request, mock_db, mock_rate_limit_settings_fail_closed
-):
+async def test_middleware_fail_closed_behavior(mock_request, mock_db, mock_rate_limit_settings_fail_closed):
     """Test middleware with fail_open=False when a backend error occurs."""
 
     with (
-        patch(
-            "src.infrastructure.rate_limit.middleware.increment_and_check"
-        ) as mock_inc,
+        patch("src.infrastructure.rate_limit.middleware.increment_and_check") as mock_inc,
         patch("src.infrastructure.rate_limit.middleware.DEFAULT_LIMIT", 100),
         patch(
             "src.infrastructure.rate_limit.middleware.settings",
@@ -81,15 +73,11 @@ async def test_middleware_fail_closed_behavior(
 
 
 @pytest.mark.asyncio
-async def test_middleware_respects_rate_limit_exception(
-    mock_request, mock_db, mock_rate_limit_settings_fail_open
-):
+async def test_middleware_respects_rate_limit_exception(mock_request, mock_db, mock_rate_limit_settings_fail_open):
     """Test that middleware re-raises RateLimitException even with fail_open=True."""
 
     with (
-        patch(
-            "src.infrastructure.rate_limit.middleware.increment_and_check"
-        ) as mock_inc,
+        patch("src.infrastructure.rate_limit.middleware.increment_and_check") as mock_inc,
         patch("src.infrastructure.rate_limit.middleware.DEFAULT_LIMIT", 100),
         patch(
             "src.infrastructure.rate_limit.middleware.settings",
@@ -103,15 +91,11 @@ async def test_middleware_respects_rate_limit_exception(
 
 
 @pytest.mark.asyncio
-async def test_middleware_sets_correct_headers(
-    mock_request, mock_db, mock_rate_limit_settings_fail_open
-):
+async def test_middleware_sets_correct_headers(mock_request, mock_db, mock_rate_limit_settings_fail_open):
     """Test that middleware sets correct rate limit headers on success."""
 
     with (
-        patch(
-            "src.infrastructure.rate_limit.middleware.increment_and_check"
-        ) as mock_inc,
+        patch("src.infrastructure.rate_limit.middleware.increment_and_check") as mock_inc,
         patch("src.infrastructure.rate_limit.middleware.DEFAULT_LIMIT", 100),
         patch(
             "src.infrastructure.rate_limit.middleware.settings",

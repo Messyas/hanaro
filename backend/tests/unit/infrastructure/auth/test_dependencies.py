@@ -34,9 +34,7 @@ async def test_get_current_user_returns_dict_and_filters_soft_deleted():
     user = {"id": 1, "username": "x", "is_superuser": False}
     mock_get = AsyncMock(return_value=user)
     with patch.object(deps.crud_users, "get", new=mock_get):
-        result = await deps.get_current_user(
-            principal=Principal(user_id=1), db=MagicMock()
-        )
+        result = await deps.get_current_user(principal=Principal(user_id=1), db=MagicMock())
 
     assert result == user
     assert mock_get.call_args.kwargs.get("is_deleted") is False
@@ -51,9 +49,7 @@ async def test_get_optional_user_none_principal_returns_none():
 async def test_get_optional_user_returns_dict():
     user = {"id": 2}
     with patch.object(deps.crud_users, "get", new=AsyncMock(return_value=user)):
-        result = await deps.get_optional_user(
-            principal=Principal(user_id=2), db=MagicMock()
-        )
+        result = await deps.get_optional_user(principal=Principal(user_id=2), db=MagicMock())
     assert result == user
 
 

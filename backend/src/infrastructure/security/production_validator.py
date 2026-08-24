@@ -119,18 +119,15 @@ class ProductionSecurityValidator:
             ```
         """
         if not self._is_production():
-            self.logger.debug(
-                "Not in production environment, skipping security validation"
-            )
+            self.logger.debug("Not in production environment, skipping security validation")
             return
 
         self.logger.info("Running production security validation...")
 
         critical_errors = self._validate_critical_security()
         if critical_errors:
-            error_msg = (
-                "Critical security issues detected in production:\n"
-                + "\n".join(f"  • {error}" for error in critical_errors)
+            error_msg = "Critical security issues detected in production:\n" + "\n".join(
+                f"  • {error}" for error in critical_errors
             )
             self.logger.error(error_msg)
             raise ProductionSecurityError(error_msg)
@@ -384,10 +381,7 @@ class ProductionSecurityValidator:
             Empty database passwords leave the database completely
             unprotected and accessible to anyone who can reach it.
         """
-        return (
-            not self.settings.POSTGRES_PASSWORD
-            or self.settings.POSTGRES_PASSWORD.strip() == ""
-        )
+        return not self.settings.POSTGRES_PASSWORD or self.settings.POSTGRES_PASSWORD.strip() == ""
 
     def _check_redis_security(self) -> list[str]:
         """Check Redis security configuration for all Redis instances.

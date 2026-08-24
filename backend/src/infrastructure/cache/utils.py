@@ -4,9 +4,7 @@ from typing import Any
 from .exceptions import CacheIdentificationInferenceError
 
 
-def infer_resource_id(
-    kwargs: dict[str, Any], resource_id_type: type | tuple[type, ...]
-) -> int | str:
+def infer_resource_id(kwargs: dict[str, Any], resource_id_type: type | tuple[type, ...]) -> int | str:
     """Infer the resource ID from a dictionary of keyword arguments.
 
     Args:
@@ -23,9 +21,7 @@ def infer_resource_id(
         resource_id_type = (resource_id_type,)
 
     for arg_name, arg_value in kwargs.items():
-        if "id" in arg_name.lower() and any(
-            isinstance(arg_value, t) for t in resource_id_type
-        ):
+        if "id" in arg_name.lower() and any(isinstance(arg_value, t) for t in resource_id_type):
             if isinstance(arg_value, int | str):
                 return arg_value
             return str(arg_value)
@@ -52,9 +48,7 @@ def extract_data_inside_brackets(input_string: str) -> list[str]:
     return data_inside_brackets
 
 
-def construct_data_dict(
-    data_inside_brackets: list[str], kwargs: dict[str, Any]
-) -> dict[str, Any]:
+def construct_data_dict(data_inside_brackets: list[str], kwargs: dict[str, Any]) -> dict[str, Any]:
     """Construct a dictionary based on data inside brackets and keyword arguments.
 
     Args:
@@ -88,9 +82,7 @@ def format_prefix(prefix: str, kwargs: dict[str, Any]) -> str:
     return formatted_prefix
 
 
-def format_extra_data(
-    to_invalidate_extra: dict[str, str], kwargs: dict[str, Any]
-) -> dict[str, Any]:
+def format_extra_data(to_invalidate_extra: dict[str, str], kwargs: dict[str, Any]) -> dict[str, Any]:
     """Format extra data for cache invalidation.
 
     Args:

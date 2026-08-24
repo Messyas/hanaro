@@ -32,9 +32,7 @@ async def get_tiers(
             skip=compute_offset(page, items_per_page),
             limit=items_per_page,
         )
-        return paginated_response(
-            crud_data=tiers_data, page=page, items_per_page=items_per_page
-        )
+        return paginated_response(crud_data=tiers_data, page=page, items_per_page=items_per_page)
     except Exception as e:
         http_exception = handle_exception(e)
         if http_exception:

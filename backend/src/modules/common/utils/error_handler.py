@@ -39,16 +39,12 @@ def map_exception(error: DomainError) -> HTTPException:
 class CatchAllErrorMiddleware(BaseHTTPMiddleware):
     """Catch unhandled exceptions and return generic 500 with support ID."""
 
-    async def dispatch(
-        self, request: Request, call_next: RequestResponseEndpoint
-    ) -> Response:
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         try:
             return await call_next(request)
         except Exception as exc:
             support_id = _generate_support_id()
-            logger.exception(
-                f"Unhandled error [{support_id}] on {request.method} {request.url.path}: {exc}"
-            )
+            logger.exception(f"Unhandled error [{support_id}] on {request.method} {request.url.path}: {exc}")
             return JSONResponse(
                 status_code=500,
                 content={"detail": GENERIC_ERROR_MESSAGE, "support_id": support_id},
@@ -65,13 +61,9 @@ def register_exception_handlers(app: FastAPI) -> None:
     app.add_middleware(CatchAllErrorMiddleware)
 
     @app.exception_handler(RequestValidationError)
-    async def validation_exception_handler(
-        request: Request, exc: RequestValidationError
-    ) -> JSONResponse:
+    async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
         support_id = _generate_support_id()
-        logger.warning(
-            f"Validation error [{support_id}] on {request.method} {request.url.path}: {exc.errors()}"
-        )
+        logger.warning(f"Validation error [{support_id}] on {request.method} {request.url.path}: {exc.errors()}")
         return JSONResponse(
             status_code=422,
             content={
@@ -81,24 +73,18 @@ def register_exception_handlers(app: FastAPI) -> None:
         )
 
     @app.exception_handler(DomainError)
-    async def domain_exception_handler(
-        request: Request, exc: DomainError
-    ) -> JSONResponse:
+    async def domain_exception_handler(request: Request, exc: DomainError) -> JSONResponse:
         support_id = _generate_support_id()
         http_exception = map_exception(exc)
 
         if isinstance(exc, InsufficientCreditsError):
-            logger.info(
-                f"Insufficient credits [{support_id}] on {request.method} {request.url.path}: {exc}"
-            )
+            logger.info(f"Insufficient credits [{support_id}] on {request.method} {request.url.path}: {exc}")
             return JSONResponse(
                 status_code=http_exception.status_code,
                 content={"detail": http_exception.detail, "support_id": support_id},
             )
 
-        logger.warning(
-            f"Domain error [{support_id}] on {request.method} {request.url.path}: {type(exc).__name__}: {exc}"
-        )
+        logger.warning(f"Domain error [{support_id}] on {request.method} {request.url.path}: {type(exc).__name__}: {exc}")
         return JSONResponse(
             status_code=http_exception.status_code,
             content={"detail": GENERIC_ERROR_MESSAGE, "support_id": support_id},

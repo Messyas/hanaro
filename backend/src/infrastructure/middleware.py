@@ -19,14 +19,10 @@ class ClientCacheMiddleware(BaseHTTPMiddleware):
         super().__init__(app)
         self.max_age: int = max_age
 
-    async def dispatch(
-        self, request: Request, call_next: RequestResponseEndpoint
-    ) -> Response:
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         response: Response = await call_next(request)
         if request.url.path.startswith("/api/"):
-            response.headers["Cache-Control"] = (
-                "private, no-cache, no-store, must-revalidate"
-            )
+            response.headers["Cache-Control"] = "private, no-cache, no-store, must-revalidate"
         else:
             response.headers["Cache-Control"] = f"public, max-age={self.max_age}"
         return response
@@ -43,21 +39,15 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         super().__init__(app)
         self.environment = environment
 
-    async def dispatch(
-        self, request: Request, call_next: RequestResponseEndpoint
-    ) -> Response:
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         response: Response = await call_next(request)
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["X-XSS-Protection"] = "0"
-        response.headers["Permissions-Policy"] = (
-            "camera=(), microphone=(), geolocation=()"
-        )
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
 
         if self.environment in ("production", "staging"):
-            response.headers["Strict-Transport-Security"] = (
-                f"max-age={HSTS_MAX_AGE_SECONDS}; includeSubDomains"
-            )
+            response.headers["Strict-Transport-Security"] = f"max-age={HSTS_MAX_AGE_SECONDS}; includeSubDomains"
 
         return response

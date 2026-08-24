@@ -22,18 +22,10 @@ class APIKeyBase(BaseModel):
             description="Human-readable name for the API key",
         ),
     ]
-    permissions: dict[str, Any] = Field(
-        default_factory=dict, description="Permission settings"
-    )
-    usage_limits: dict[str, Any] = Field(
-        default_factory=dict, description="Usage limits per key"
-    )
-    expires_at: datetime | None = Field(
-        default=None, description="Key expiration timestamp"
-    )
-    key_metadata: dict[str, Any] | None = Field(
-        default=None, description="Additional key metadata"
-    )
+    permissions: dict[str, Any] = Field(default_factory=dict, description="Permission settings")
+    usage_limits: dict[str, Any] = Field(default_factory=dict, description="Usage limits per key")
+    expires_at: datetime | None = Field(default=None, description="Key expiration timestamp")
+    key_metadata: dict[str, Any] | None = Field(default=None, description="Additional key metadata")
 
 
 class APIKeyCreate(APIKeyBase):
@@ -85,27 +77,15 @@ class KeyUsageBase(BaseModel):
 
     endpoint: Annotated[str, Field(max_length=255, description="API endpoint used")]
     method: Annotated[str, Field(max_length=10, description="HTTP method")]
-    status_code: Annotated[
-        int, Field(ge=100, le=599, description="Response status code")
-    ]
-    tokens_used: int | None = Field(
-        default=None, ge=0, description="AI tokens consumed"
-    )
+    status_code: Annotated[int, Field(ge=100, le=599, description="Response status code")]
+    tokens_used: int | None = Field(default=None, ge=0, description="AI tokens consumed")
 
-    cost_microcents: int | None = Field(
-        default=None, ge=0, description="Cost in microcents"
-    )
-    response_time_ms: int | None = Field(
-        default=None, ge=0, description="Response time in milliseconds"
-    )
-    ip_address: str | None = Field(
-        default=None, max_length=45, description="Client IP address"
-    )
+    cost_microcents: int | None = Field(default=None, ge=0, description="Cost in microcents")
+    response_time_ms: int | None = Field(default=None, ge=0, description="Response time in milliseconds")
+    ip_address: str | None = Field(default=None, max_length=45, description="Client IP address")
     user_agent: str | None = Field(default=None, description="Client user agent")
     error_message: str | None = Field(default=None, description="Error details if any")
-    usage_metadata: dict[str, Any] | None = Field(
-        default=None, description="Additional usage metadata"
-    )
+    usage_metadata: dict[str, Any] | None = Field(default=None, description="Additional usage metadata")
 
     @field_validator("method")
     @classmethod
@@ -139,9 +119,7 @@ class KeyPermissionBase(BaseModel):
 
     resource: Annotated[KeyPermissionResource, Field(description="Resource type")]
     action: Annotated[KeyPermissionAction, Field(description="Action type")]
-    conditions: dict[str, Any] | None = Field(
-        default=None, description="Additional conditions"
-    )
+    conditions: dict[str, Any] | None = Field(default=None, description="Additional conditions")
     is_allowed: bool = Field(default=True, description="Whether permission is granted")
 
 
@@ -170,9 +148,7 @@ class KeyPermissionRead(TimestampSchema, KeyPermissionBase):
 class APIKeyWithPermissions(APIKeyRead):
     """Schema for API key with its permissions."""
 
-    permissions_list: list[KeyPermissionRead] = Field(
-        default_factory=list, description="Detailed permissions"
-    )
+    permissions_list: list[KeyPermissionRead] = Field(default_factory=list, description="Detailed permissions")
 
 
 class KeyUsageAnalytics(BaseModel):

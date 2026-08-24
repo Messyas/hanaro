@@ -263,9 +263,7 @@ def test_add_correlation_id_filter():
 
     # Root logger should have the filter
     root_logger = logging.getLogger()
-    correlation_filters = [
-        f for f in root_logger.filters if isinstance(f, CorrelationIdFilter)
-    ]
+    correlation_filters = [f for f in root_logger.filters if isinstance(f, CorrelationIdFilter)]
     assert len(correlation_filters) >= 1
 
 

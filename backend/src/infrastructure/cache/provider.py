@@ -17,9 +17,7 @@ class CacheProvider:
         self._backends: dict[str, CacheBackend] = {}
         self._default_backend: str | None = None
 
-    def register_backend(
-        self, name: str, backend: CacheBackend, default: bool = False
-    ) -> None:
+    def register_backend(self, name: str, backend: CacheBackend, default: bool = False) -> None:
         """Register a cache backend.
 
         Args:
@@ -59,9 +57,7 @@ class CacheProvider:
             BackendNotFoundError: If the backend does not exist.
         """
         if name not in self._backends:
-            raise BackendNotFoundError(
-                f"Backend '{name}' not found. Cannot set as default."
-            )
+            raise BackendNotFoundError(f"Backend '{name}' not found. Cannot set as default.")
 
         self._default_backend = name
 
@@ -111,9 +107,7 @@ async def get(key: str, backend_name: str | None = None) -> Any:
     return await backend.get(key)
 
 
-async def set(
-    key: str, value: Any, expiration: int = 3600, backend_name: str | None = None
-) -> None:
+async def set(key: str, value: Any, expiration: int = 3600, backend_name: str | None = None) -> None:
     """Set a value in the cache.
 
     Args:

@@ -28,9 +28,7 @@ auth = CRUDAuth(
     session=async_session,
     user_model=User,
     SECRET_KEY=settings.SECRET_KEY,
-    cookies=CookieConfig(
-        secure=settings.SESSION_SECURE_COOKIES, samesite="lax", path="/"
-    ),
+    cookies=CookieConfig(secure=settings.SESSION_SECURE_COOKIES, samesite="lax", path="/"),
     transports=[
         SessionTransport(
             backend="redis" if _use_redis else "memory",
@@ -41,8 +39,6 @@ auth = CRUDAuth(
             cleanup_interval_minutes=settings.SESSION_CLEANUP_INTERVAL_MINUTES,
         )
     ],
-    rate_limiter=redis_rate_limiter(redis_url=_session_redis_url)
-    if _use_redis
-    else None,
+    rate_limiter=redis_rate_limiter(redis_url=_session_redis_url) if _use_redis else None,
     trusted_proxy_hops=settings.TRUSTED_PROXY_HOPS,
 )

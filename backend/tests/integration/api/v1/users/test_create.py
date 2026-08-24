@@ -22,16 +22,25 @@ def generate_unique_user_data(prefix="user"):
         "name": f"Test {prefix.capitalize()} {unique_id}",
         "username": f"{prefix}{unique_id}",
         "email": f"{prefix}.user.{unique_id}@example.com",
-        "password": "Password123!",
+        "password": "violet-bamboo-lantern-forest-2026!",
     }
 
 
-async def test_create_user_success(client: AsyncClient, db_session: AsyncSession):
-    """Test successful user creation."""
+async def test_create_user_requires_administrator(client: AsyncClient, db_session: AsyncSession):
+    """Test that unauthenticated callers cannot provision accounts."""
     user_data = generate_unique_user_data()
 
     logger.info(f"Testing user creation with username: {user_data['username']}")
     response = await client.post("/api/v1/users/", json=user_data)
+
+    assert response.status_code == 401
+
+
+async def test_create_user_success(superuser_auth_client: AsyncClient, db_session: AsyncSession):
+    """Test successful user creation by an administrator."""
+    user_data = generate_unique_user_data()
+
+    response = await superuser_auth_client.post("/api/v1/users/", json=user_data)
 
     assert response.status_code == 201
     data = response.json()
@@ -42,55 +51,47 @@ async def test_create_user_success(client: AsyncClient, db_session: AsyncSession
     assert "hashed_password" not in data
 
 
-async def test_create_user_invalid_email(client: AsyncClient, db_session: AsyncSession):
+async def test_create_user_invalid_email(superuser_auth_client: AsyncClient, db_session: AsyncSession):
     """Test user creation with invalid email format."""
     user_data = generate_unique_user_data()
     user_data["email"] = "invalid-email"
 
     logger.info("Testing user creation with invalid email")
-    response = await client.post("/api/v1/users/", json=user_data)
+    response = await superuser_auth_client.post("/api/v1/users/", json=user_data)
 
     assert response.status_code == 422
     data = response.json()
     assert "detail" in data
 
 
-async def test_create_user_duplicate_username(
-    client: AsyncClient, db_session: AsyncSession, test_user: dict
-):
+async def test_create_user_duplicate_username(superuser_auth_client: AsyncClient, db_session: AsyncSession, test_user: dict):
     """Test user creation with duplicate username."""
     user_data = generate_unique_user_data()
     user_data["username"] = test_user["username"]
 
-    logger.info(
-        f"Testing user creation with duplicate username: {user_data['username']}"
-    )
-    response = await client.post("/api/v1/users/", json=user_data)
+    logger.info(f"Testing user creation with duplicate username: {user_data['username']}")
+    response = await superuser_auth_client.post("/api/v1/users/", json=user_data)
 
     assert response.status_code == 422
     data = response.json()
     assert "detail" in data
 
 
-async def test_create_user_duplicate_email(
-    client: AsyncClient, db_session: AsyncSession, test_user: dict
-):
+async def test_create_user_duplicate_email(superuser_auth_client: AsyncClient, db_session: AsyncSession, test_user: dict):
     """Test user creation with duplicate email."""
     user_data = generate_unique_user_data()
     user_data["email"] = test_user["email"]
 
     logger.info(f"Testing user creation with duplicate email: {user_data['email']}")
-    response = await client.post("/api/v1/users/", json=user_data)
+    response = await superuser_auth_client.post("/api/v1/users/", json=user_data)
 
     assert response.status_code == 422
     data = response.json()
     assert "detail" in data
 
 
-async def test_create_superuser(
-    superuser_auth_client: AsyncClient, db_session: AsyncSession
-):
-    """Test superuser creating another superuser via API and database."""
+async def test_administrator_can_create_user(superuser_auth_client: AsyncClient, db_session: AsyncSession):
+    """Test that an administrator can provision a regular user."""
     user_data = generate_unique_user_data("admin")
 
     logger.info(f"Testing user creation with username: {user_data['username']}")
@@ -101,8 +102,4 @@ async def test_create_superuser(
 
     user_in_db = await db_session.get(User, created_user["id"])
     assert user_in_db is not None, "User not found in database"
-    user_in_db.is_superuser = True
-    await db_session.commit()
-    await db_session.refresh(user_in_db)
-
-    assert user_in_db.is_superuser is True
+    assert user_in_db.is_superuser is False

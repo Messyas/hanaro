@@ -152,7 +152,5 @@ class BackendInitializationError(RateLimiterBackendException):
     """
 
     def __init__(self, backend_name: str, reason: str):
-        self.message = (
-            f"Failed to initialize rate limiter backend '{backend_name}': {reason}"
-        )
+        self.message = f"Failed to initialize rate limiter backend '{backend_name}': {reason}"
         super().__init__(self.message)

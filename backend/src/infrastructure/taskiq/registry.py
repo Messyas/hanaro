@@ -26,9 +26,7 @@ class TaskRegistry:
         """
         self._tasks[task_name] = {
             "broker": broker_name,
-            "function": task_func.__name__
-            if hasattr(task_func, "__name__")
-            else str(task_func),
+            "function": task_func.__name__ if hasattr(task_func, "__name__") else str(task_func),
             "module": getattr(task_func, "__module__", None),
             "registered_at": datetime.now(),
         }
@@ -45,11 +43,7 @@ class TaskRegistry:
 
     def get_tasks_by_broker(self, broker_name: str) -> list[str]:
         """Get tasks registered with a specific broker."""
-        return [
-            task_name
-            for task_name, task_info in self._tasks.items()
-            if task_info["broker"] == broker_name
-        ]
+        return [task_name for task_name, task_info in self._tasks.items() if task_info["broker"] == broker_name]
 
     def get_stats(self) -> dict[str, Any]:
         """Get registry statistics."""

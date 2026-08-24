@@ -130,9 +130,7 @@ async def test_cache_pattern_invalidation(mock_backend, mock_cache_provider):
 
 
 @pytest.mark.asyncio
-async def test_cache_get_with_invalidation_raises_error(
-    mock_backend, mock_cache_provider
-):
+async def test_cache_get_with_invalidation_raises_error(mock_backend, mock_cache_provider):
     mock_cache_provider.get_backend.return_value = mock_backend
 
     @cache(

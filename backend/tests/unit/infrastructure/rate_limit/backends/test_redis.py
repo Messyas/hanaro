@@ -44,9 +44,7 @@ async def test_increment_and_check_new_key(redis_backend):
 
     pipeline_mock.execute.return_value = [1]
 
-    count, is_limited = await backend.increment_and_check(
-        key="test:123", limit=5, period=60
-    )
+    count, is_limited = await backend.increment_and_check(key="test:123", limit=5, period=60)
 
     assert count == 1
     assert is_limited is False
@@ -64,9 +62,7 @@ async def test_increment_and_check_existing_key(redis_backend):
 
     pipeline_mock.execute.return_value = [5]
 
-    count, is_limited = await backend.increment_and_check(
-        key="test:123", limit=5, period=60
-    )
+    count, is_limited = await backend.increment_and_check(key="test:123", limit=5, period=60)
 
     assert count == 5
     assert is_limited is False
@@ -79,9 +75,7 @@ async def test_rate_limited(redis_backend):
 
     pipeline_mock.execute.return_value = [6]
 
-    count, is_limited = await backend.increment_and_check(
-        key="test:123", limit=5, period=60
-    )
+    count, is_limited = await backend.increment_and_check(key="test:123", limit=5, period=60)
 
     assert count == 6
     assert is_limited is True
@@ -137,9 +131,7 @@ async def test_redis_error_handling(redis_backend):
 
     pipeline_mock.execute.side_effect = RedisError("Redis error")
 
-    count, is_limited = await backend.increment_and_check(
-        key="test:123", limit=5, period=60
-    )
+    count, is_limited = await backend.increment_and_check(key="test:123", limit=5, period=60)
 
     assert count == 0
     assert is_limited is False

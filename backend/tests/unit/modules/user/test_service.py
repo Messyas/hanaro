@@ -29,9 +29,7 @@ def mock_db():
 @pytest.mark.asyncio
 async def test_create_email_exists(user_service, mock_db, monkeypatch):
     mock_crud = AsyncMock()
-    mock_crud.exists.side_effect = lambda db, **kwargs: (
-        True if "email" in kwargs else False
-    )
+    mock_crud.exists.side_effect = lambda db, **kwargs: True if "email" in kwargs else False
     monkeypatch.setattr("src.modules.user.service.crud_users", mock_crud)
 
     user_data = UserCreate(
@@ -47,9 +45,7 @@ async def test_create_email_exists(user_service, mock_db, monkeypatch):
 @pytest.mark.asyncio
 async def test_create_username_exists(user_service, mock_db, monkeypatch):
     mock_crud = AsyncMock()
-    mock_crud.exists.side_effect = lambda db, **kwargs: (
-        True if "username" in kwargs else False
-    )
+    mock_crud.exists.side_effect = lambda db, **kwargs: True if "username" in kwargs else False
     monkeypatch.setattr("src.modules.user.service.crud_users", mock_crud)
 
     user_data = UserCreate(
@@ -123,9 +119,7 @@ async def test_get_by_username_not_found(user_service, mock_db, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_get_active_and_inactive_by_username_not_found(
-    user_service, mock_db, monkeypatch
-):
+async def test_get_active_and_inactive_by_username_not_found(user_service, mock_db, monkeypatch):
     mock_crud = AsyncMock()
     mock_crud.get.return_value = None
     monkeypatch.setattr("src.modules.user.service.crud_users", mock_crud)
@@ -158,24 +152,18 @@ async def test_update_user_not_found(user_service, mock_db, monkeypatch):
 async def test_update_email_conflict(user_service, mock_db, monkeypatch):
     mock_crud = AsyncMock()
     mock_crud.get.return_value = {"id": 1, "email": "old@example.com", "username": "u1"}
-    mock_crud.exists.side_effect = lambda db, **kwargs: (
-        True if "email" in kwargs else False
-    )
+    mock_crud.exists.side_effect = lambda db, **kwargs: True if "email" in kwargs else False
     monkeypatch.setattr("src.modules.user.service.crud_users", mock_crud)
 
     with pytest.raises(UserExistsError, match="Email already registered"):
-        await user_service.update(
-            1, UserUpdate(email="taken@example.com"), mock_db
-        )
+        await user_service.update(1, UserUpdate(email="taken@example.com"), mock_db)
 
 
 @pytest.mark.asyncio
 async def test_update_username_conflict(user_service, mock_db, monkeypatch):
     mock_crud = AsyncMock()
     mock_crud.get.return_value = {"id": 1, "email": "u@example.com", "username": "old"}
-    mock_crud.exists.side_effect = lambda db, **kwargs: (
-        True if "username" in kwargs else False
-    )
+    mock_crud.exists.side_effect = lambda db, **kwargs: True if "username" in kwargs else False
     monkeypatch.setattr("src.modules.user.service.crud_users", mock_crud)
 
     with pytest.raises(UserExistsError, match="Username already taken"):
@@ -194,9 +182,7 @@ async def test_update_returns_none(user_service, mock_db, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_update_profile_contact_fields_and_reverify_changed_email(
-    user_service, mock_db, monkeypatch
-):
+async def test_update_profile_contact_fields_and_reverify_changed_email(user_service, mock_db, monkeypatch):
     mock_crud = AsyncMock()
     mock_crud.get.return_value = {
         "id": 1,
@@ -277,9 +263,7 @@ async def test_anonymize_user_not_found(user_service, mock_db, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_anonymize_user_no_result_found_exception(
-    user_service, mock_db, monkeypatch
-):
+async def test_anonymize_user_no_result_found_exception(user_service, mock_db, monkeypatch):
     mock_crud = AsyncMock()
     mock_crud.get.return_value = {"id": 1, "email": "test@example.com"}
     mock_crud.update.side_effect = NoResultFound

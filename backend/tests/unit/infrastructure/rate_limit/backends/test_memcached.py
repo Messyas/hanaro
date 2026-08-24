@@ -46,9 +46,7 @@ async def test_increment_and_check_new_key(memcached_backend, mock_aiomcache):
     """Test incrementing a counter for a new key."""
     mock_aiomcache.get.return_value = None
 
-    count, is_limited = await memcached_backend.increment_and_check(
-        key="test:123", limit=5, period=60
-    )
+    count, is_limited = await memcached_backend.increment_and_check(key="test:123", limit=5, period=60)
 
     assert count == 1
     assert is_limited is False
@@ -66,9 +64,7 @@ async def test_increment_and_check_existing_key(memcached_backend, mock_aiomcach
     """Test incrementing a counter for an existing key."""
     mock_aiomcache.get.return_value = b"4"
 
-    count, is_limited = await memcached_backend.increment_and_check(
-        key="test:123", limit=5, period=60
-    )
+    count, is_limited = await memcached_backend.increment_and_check(key="test:123", limit=5, period=60)
 
     assert count == 5
     assert is_limited is False
@@ -85,9 +81,7 @@ async def test_rate_limited(memcached_backend, mock_aiomcache):
     """Test that requests are rate limited once limit is exceeded."""
     mock_aiomcache.get.return_value = b"5"
 
-    count, is_limited = await memcached_backend.increment_and_check(
-        key="test:123", limit=5, period=60
-    )
+    count, is_limited = await memcached_backend.increment_and_check(key="test:123", limit=5, period=60)
 
     assert count == 6
     assert is_limited is True
@@ -136,9 +130,7 @@ async def test_increment_error_handling(memcached_backend, mock_aiomcache):
     """Test error handling during increment operation."""
     mock_aiomcache.get.side_effect = Exception("Connection error")
 
-    count, is_limited = await memcached_backend.increment_and_check(
-        key="test:123", limit=5, period=60
-    )
+    count, is_limited = await memcached_backend.increment_and_check(key="test:123", limit=5, period=60)
 
     assert count == 0
     assert is_limited is False

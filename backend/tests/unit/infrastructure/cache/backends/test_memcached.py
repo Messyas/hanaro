@@ -59,9 +59,7 @@ async def test_set_key(memcached_backend, mock_memcached):
 
     await memcached_backend.set("test_key", test_data, 3600)
 
-    mock_memcached.set.assert_called_once_with(
-        b"test_key", json.dumps(test_data).encode(), exptime=3600
-    )
+    mock_memcached.set.assert_called_once_with(b"test_key", json.dumps(test_data).encode(), exptime=3600)
 
 
 @pytest.mark.asyncio

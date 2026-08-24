@@ -15,9 +15,7 @@ engine = create_async_engine(
     pool_recycle=settings.POSTGRES_POOL_RECYCLE_SECONDS,
 )
 
-local_session = async_sessionmaker(
-    bind=engine, class_=AsyncSession, expire_on_commit=False
-)
+local_session = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
 
 
 class Base(DeclarativeBase, MappedAsDataclass):

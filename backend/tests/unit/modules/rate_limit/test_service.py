@@ -31,9 +31,7 @@ async def test_create_rate_limit_tier_not_found(rate_limit_service, mock_db, mon
     monkeypatch.setattr("src.modules.rate_limit.service.crud_tiers", mock_tiers)
 
     with pytest.raises(TierNotFoundError):
-        await rate_limit_service.create(
-            RateLimitCreate(path="/api/v1/test", limit=10, period=60), 1, mock_db
-        )
+        await rate_limit_service.create(RateLimitCreate(path="/api/v1/test", limit=10, period=60), 1, mock_db)
 
 
 @pytest.mark.asyncio
@@ -55,9 +53,7 @@ async def test_create_rate_limit_name_exists(rate_limit_service, mock_db, monkey
 
 
 @pytest.mark.asyncio
-async def test_create_rate_limit_auto_name_and_creation_failure(
-    rate_limit_service, mock_db, monkeypatch
-):
+async def test_create_rate_limit_auto_name_and_creation_failure(rate_limit_service, mock_db, monkeypatch):
     mock_tiers = AsyncMock()
     mock_tiers.exists.return_value = True
     monkeypatch.setattr("src.modules.rate_limit.service.crud_tiers", mock_tiers)
@@ -68,9 +64,7 @@ async def test_create_rate_limit_auto_name_and_creation_failure(
     monkeypatch.setattr("src.modules.rate_limit.service.crud_rate_limits", mock_crud)
 
     with pytest.raises(ResourceExistsError, match="Failed to create"):
-        await rate_limit_service.create(
-            RateLimitCreate(path="/api/v1/test", limit=10, period=60), 1, mock_db
-        )
+        await rate_limit_service.create(RateLimitCreate(path="/api/v1/test", limit=10, period=60), 1, mock_db)
 
 
 @pytest.mark.asyncio

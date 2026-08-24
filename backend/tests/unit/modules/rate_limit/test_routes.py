@@ -48,9 +48,7 @@ async def async_client(mock_rate_limit_service, mock_superuser):
     app.dependency_overrides[get_rate_limit_service] = lambda: mock_rate_limit_service
     app.dependency_overrides[get_current_superuser] = lambda: mock_superuser
 
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://testserver"
-    ) as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://testserver") as client:
         yield client
 
     app.dependency_overrides.clear()
@@ -74,9 +72,7 @@ async def test_get_rate_limits_route(async_client, mock_rate_limit_service, vali
 
 
 @pytest.mark.asyncio
-async def test_get_rate_limit_by_name_route(
-    async_client, mock_rate_limit_service, valid_rate_limit_read
-):
+async def test_get_rate_limit_by_name_route(async_client, mock_rate_limit_service, valid_rate_limit_read):
     # 1. Success
     mock_rate_limit_service.get_by_name.return_value = valid_rate_limit_read
     resp = await async_client.get("/api/v1/rate-limits/users_limit")
@@ -97,31 +93,23 @@ async def test_get_rate_limit_by_name_route(
 async def test_update_rate_limit_route(async_client, mock_rate_limit_service):
     # 1. Success
     mock_rate_limit_service.update.return_value = {"id": 1}
-    resp = await async_client.patch(
-        "/api/v1/rate-limits/users_limit", json={"limit": 200}
-    )
+    resp = await async_client.patch("/api/v1/rate-limits/users_limit", json={"limit": 200})
     assert resp.status_code == 200
     assert resp.json() == {"message": "Rate limit updated"}
 
     # 2. ResourceNotFoundError -> 404
     mock_rate_limit_service.update.side_effect = ResourceNotFoundError("Not found")
-    resp_404 = await async_client.patch(
-        "/api/v1/rate-limits/ghost", json={"limit": 200}
-    )
+    resp_404 = await async_client.patch("/api/v1/rate-limits/ghost", json={"limit": 200})
     assert resp_404.status_code == 404
 
     # 3. ResourceExistsError -> 422 (DuplicateValueException)
     mock_rate_limit_service.update.side_effect = ResourceExistsError("Exists")
-    resp_409 = await async_client.patch(
-        "/api/v1/rate-limits/users_limit", json={"limit": 200}
-    )
+    resp_409 = await async_client.patch("/api/v1/rate-limits/users_limit", json={"limit": 200})
     assert resp_409.status_code == 422
 
     # 4. Unexpected error -> 500
     mock_rate_limit_service.update.side_effect = RuntimeError("Crash")
-    resp_500 = await async_client.patch(
-        "/api/v1/rate-limits/users_limit", json={"limit": 200}
-    )
+    resp_500 = await async_client.patch("/api/v1/rate-limits/users_limit", json={"limit": 200})
     assert resp_500.status_code == 500
 
 

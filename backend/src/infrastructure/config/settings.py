@@ -58,9 +58,7 @@ class DatabaseSettings(BaseSettings):
 
     POSTGRES_POOL_SIZE: int = config("POSTGRES_POOL_SIZE", default=20, cast=int)
     POSTGRES_MAX_OVERFLOW: int = config("POSTGRES_MAX_OVERFLOW", default=0, cast=int)
-    POSTGRES_POOL_RECYCLE_SECONDS: int = config(
-        "POSTGRES_POOL_RECYCLE_SECONDS", default=1800, cast=int
-    )
+    POSTGRES_POOL_RECYCLE_SECONDS: int = config("POSTGRES_POOL_RECYCLE_SECONDS", default=1800, cast=int)
 
     @property
     def DATABASE_URL(self) -> str:

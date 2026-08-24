@@ -76,14 +76,10 @@ async def _authenticated_rate_policy(
     user_id = user["id"]
     tier = await crud_tiers.get(db=db, id=user["tier_id"], schema_to_select=TierSelect)
     if not tier:
-        logger.warning(
-            f"User {user_id} has no assigned tier. Applying default rate limit."
-        )
+        logger.warning(f"User {user_id} has no assigned tier. Applying default rate limit.")
         return user_id, DEFAULT_LIMIT, DEFAULT_PERIOD
 
-    rate_limit = await _find_tier_rate_limit(
-        db, tier["id"], sanitized_path, original_path
-    )
+    rate_limit = await _find_tier_rate_limit(db, tier["id"], sanitized_path, original_path)
     if rate_limit:
         return user_id, rate_limit["limit"], rate_limit["period"]
 
@@ -107,9 +103,7 @@ async def _resolve_rate_policy(
     return _client_identifier(request), DEFAULT_LIMIT, DEFAULT_PERIOD
 
 
-def _set_rate_limit_headers(
-    request: Request, *, limit: int, period: int, count: int
-) -> None:
+def _set_rate_limit_headers(request: Request, *, limit: int, period: int, count: int) -> None:
     """Store rate-limit response headers on the request state."""
     request.state.rate_limit_headers = {
         "X-RateLimit-Limit": str(limit),
@@ -137,29 +131,18 @@ async def _enforce_rate_limit(
         )
         _set_rate_limit_headers(request, limit=limit, period=period, count=count)
         if is_limited:
-            logger.warning(
-                f"Rate limit exceeded for {user_id} on path {sanitized_path}. "
-                f"Count: {count}, Limit: {limit}"
-            )
-            raise RateLimitException(
-                f"Rate limit exceeded. Try again in {period} seconds."
-            )
+            logger.warning(f"Rate limit exceeded for {user_id} on path {sanitized_path}. Count: {count}, Limit: {limit}")
+            raise RateLimitException(f"Rate limit exceeded. Try again in {period} seconds.")
     except RateLimitException:
         raise
     except Exception as error:
-        logger.error(
-            f"Error checking rate limit for {user_id} on path {sanitized_path}: {error}"
-        )
+        logger.error(f"Error checking rate limit for {user_id} on path {sanitized_path}: {error}")
         if not settings.RATE_LIMITER_FAIL_OPEN:
             logger.warning("Blocking request due to fail-closed policy")
-            raise RateLimitException(
-                "Error checking rate limit. Access denied as a precaution."
-            ) from error
+            raise RateLimitException("Error checking rate limit. Access denied as a precaution.") from error
 
 
-async def _check_rate_limit(
-    request: Request, db: AsyncSession, user: dict[str, Any] | None = None
-) -> None:
+async def _check_rate_limit(request: Request, db: AsyncSession, user: dict[str, Any] | None = None) -> None:
     """Apply the configured rate limit to a request."""
     if not settings.RATE_LIMITER_ENABLED:
         return
@@ -169,9 +152,7 @@ async def _check_rate_limit(
 
     original_path = request.url.path
     sanitized_path = sanitize_path(original_path)
-    user_id, limit, period = await _resolve_rate_policy(
-        request, db, user, original_path, sanitized_path
-    )
+    user_id, limit, period = await _resolve_rate_policy(request, db, user, original_path, sanitized_path)
     await _enforce_rate_limit(
         request,
         user_id=user_id,

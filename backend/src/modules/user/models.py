@@ -35,9 +35,7 @@ class User(Base, TimestampMixin, SoftDeleteMixin):
     phone: Mapped[str | None] = mapped_column(String(24), default=None)
     job_title: Mapped[str | None] = mapped_column(String(80), default=None)
 
-    profile_image_url: Mapped[str] = mapped_column(
-        String, default="https://profileimageurl.com"
-    )
+    profile_image_url: Mapped[str] = mapped_column(String, default="https://profileimageurl.com")
 
     tier_id: Mapped[int | None] = mapped_column(
         Integer,
@@ -48,24 +46,14 @@ class User(Base, TimestampMixin, SoftDeleteMixin):
 
     is_superuser: Mapped[bool] = mapped_column(default=False)
 
-    google_id: Mapped[str | None] = mapped_column(
-        String(50), unique=True, index=True, default=None
-    )
-    github_id: Mapped[str | None] = mapped_column(
-        String(50), unique=True, index=True, default=None
-    )
+    google_id: Mapped[str | None] = mapped_column(String(50), unique=True, index=True, default=None)
+    github_id: Mapped[str | None] = mapped_column(String(50), unique=True, index=True, default=None)
     oauth_provider: Mapped[str | None] = mapped_column(String(20), default=None)
     email_verified: Mapped[bool] = mapped_column(default=False)
-    oauth_created_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), default=None
-    )
-    oauth_updated_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), default=None
-    )
+    oauth_created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    oauth_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
 
-    tier: Mapped["Tier | None"] = relationship(
-        "Tier", back_populates="users", lazy="selectin", init=False
-    )
+    tier: Mapped["Tier | None"] = relationship("Tier", back_populates="users", lazy="selectin", init=False)
 
     @property
     def is_active(self) -> bool:

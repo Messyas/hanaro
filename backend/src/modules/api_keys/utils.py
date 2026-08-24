@@ -15,22 +15,12 @@ def calculate_basic_metrics(usage_records: list[dict[str, Any]]) -> dict[str, An
         Dictionary containing basic metrics
     """
     total_requests = len(usage_records)
-    successful_requests = len(
-        [
-            u
-            for u in usage_records
-            if isinstance(u, dict) and 200 <= u.get("status_code", 0) < 300
-        ]
-    )
+    successful_requests = len([u for u in usage_records if isinstance(u, dict) and 200 <= u.get("status_code", 0) < 300])
     failed_requests = total_requests - successful_requests
 
-    total_tokens = sum(
-        u.get("tokens_used", 0) or 0 for u in usage_records if isinstance(u, dict)
-    )
+    total_tokens = sum(u.get("tokens_used", 0) or 0 for u in usage_records if isinstance(u, dict))
 
-    total_cost = sum(
-        u.get("cost_microcents", 0) or 0 for u in usage_records if isinstance(u, dict)
-    )
+    total_cost = sum(u.get("cost_microcents", 0) or 0 for u in usage_records if isinstance(u, dict))
 
     return {
         "total_requests": total_requests,
@@ -60,9 +50,7 @@ def calculate_response_time_metrics(
     return sum(response_times) / len(response_times) if response_times else None
 
 
-def calculate_endpoint_usage(
-    usage_records: list[dict[str, Any]], limit: int = 10
-) -> list[dict[str, Any]]:
+def calculate_endpoint_usage(usage_records: list[dict[str, Any]], limit: int = 10) -> list[dict[str, Any]]:
     """Calculate most used endpoints from usage records.
 
     Args:
@@ -80,9 +68,7 @@ def calculate_endpoint_usage(
 
     return [
         {"endpoint": endpoint, "count": count}
-        for endpoint, count in sorted(
-            endpoint_counts.items(), key=lambda x: x[1], reverse=True
-        )[:limit]
+        for endpoint, count in sorted(endpoint_counts.items(), key=lambda x: x[1], reverse=True)[:limit]
     ]
 
 

@@ -34,17 +34,13 @@ async def test_api_key(api_key_service, db_session: AsyncSession, test_user: dic
         usage_limits={"requests_per_day": 1000},
     )
 
-    response = await api_key_service.create_api_key(
-        user_id=test_user["id"], key_data=key_data, db=db_session
-    )
+    response = await api_key_service.create_api_key(user_id=test_user["id"], key_data=key_data, db=db_session)
 
     return response
 
 
 @pytest.mark.asyncio
-async def test_create_api_key(
-    api_key_service, db_session: AsyncSession, test_user: dict
-):
+async def test_create_api_key(api_key_service, db_session: AsyncSession, test_user: dict):
     """Test creating a new API key."""
     key_data = APIKeyCreate(
         name="Test Key",
@@ -52,9 +48,7 @@ async def test_create_api_key(
         usage_limits={"requests_per_day": 1000},
     )
 
-    response = await api_key_service.create_api_key(
-        user_id=test_user["id"], key_data=key_data, db=db_session
-    )
+    response = await api_key_service.create_api_key(user_id=test_user["id"], key_data=key_data, db=db_session)
 
     assert response["name"] == "Test Key"
     assert response["user_id"] == test_user["id"]
@@ -79,13 +73,9 @@ async def test_api_key_generation_unique(api_key_service):
 
 
 @pytest.mark.asyncio
-async def test_get_user_api_keys(
-    api_key_service, db_session: AsyncSession, test_user: dict, test_api_key
-):
+async def test_get_user_api_keys(api_key_service, db_session: AsyncSession, test_user: dict, test_api_key):
     """Test getting user's API keys."""
-    result = await api_key_service.get_user_api_keys(
-        user_id=test_user["id"], db=db_session
-    )
+    result = await api_key_service.get_user_api_keys(user_id=test_user["id"], db=db_session)
     keys = result.get("data", []) if isinstance(result, dict) else []
 
     assert len(keys) >= 1
@@ -98,27 +88,17 @@ async def test_get_user_api_keys(
 
 
 @pytest.mark.asyncio
-async def test_get_user_api_keys_active_only(
-    api_key_service, db_session: AsyncSession, test_user: dict, test_api_key
-):
+async def test_get_user_api_keys_active_only(api_key_service, db_session: AsyncSession, test_user: dict, test_api_key):
     """Test getting only active API keys."""
     # Deactivate the test key
-    await api_key_service.delete_api_key(
-        key_id=test_api_key["id"], user_id=test_user["id"], db=db_session
-    )
+    await api_key_service.delete_api_key(key_id=test_api_key["id"], user_id=test_user["id"], db=db_session)
 
     # Should return no active keys
-    active_result = await api_key_service.get_user_api_keys(
-        user_id=test_user["id"], db=db_session, active_only=True
-    )
-    active_keys = (
-        active_result.get("data", []) if isinstance(active_result, dict) else []
-    )
+    active_result = await api_key_service.get_user_api_keys(user_id=test_user["id"], db=db_session, active_only=True)
+    active_keys = active_result.get("data", []) if isinstance(active_result, dict) else []
 
     # Should return all keys including inactive
-    all_result = await api_key_service.get_user_api_keys(
-        user_id=test_user["id"], db=db_session, active_only=False
-    )
+    all_result = await api_key_service.get_user_api_keys(user_id=test_user["id"], db=db_session, active_only=False)
     all_keys = all_result.get("data", []) if isinstance(all_result, dict) else []
 
     assert len(active_keys) == 0
@@ -126,13 +106,9 @@ async def test_get_user_api_keys_active_only(
 
 
 @pytest.mark.asyncio
-async def test_get_api_key_success(
-    api_key_service, db_session: AsyncSession, test_user: dict, test_api_key
-):
+async def test_get_api_key_success(api_key_service, db_session: AsyncSession, test_user: dict, test_api_key):
     """Test getting a specific API key."""
-    key = await api_key_service.get_api_key(
-        key_id=test_api_key["id"], user_id=test_user["id"], db=db_session
-    )
+    key = await api_key_service.get_api_key(key_id=test_api_key["id"], user_id=test_user["id"], db=db_session)
 
     assert key["id"] == test_api_key["id"]
     assert key["name"] == "Test API Key"
@@ -140,14 +116,10 @@ async def test_get_api_key_success(
 
 
 @pytest.mark.asyncio
-async def test_get_api_key_not_found(
-    api_key_service, db_session: AsyncSession, test_user: dict
-):
+async def test_get_api_key_not_found(api_key_service, db_session: AsyncSession, test_user: dict):
     """Test getting non-existent API key."""
     with pytest.raises(ResourceNotFoundError):
-        await api_key_service.get_api_key(
-            key_id=99999, user_id=test_user["id"], db=db_session
-        )
+        await api_key_service.get_api_key(key_id=99999, user_id=test_user["id"], db=db_session)
 
 
 @pytest.mark.asyncio
@@ -160,15 +132,11 @@ async def test_get_api_key_permission_denied(
 ):
     """Test getting API key owned by different user."""
     with pytest.raises(PermissionDeniedError):
-        await api_key_service.get_api_key(
-            key_id=test_api_key["id"], user_id=test_user_2["id"], db=db_session
-        )
+        await api_key_service.get_api_key(key_id=test_api_key["id"], user_id=test_user_2["id"], db=db_session)
 
 
 @pytest.mark.asyncio
-async def test_update_api_key(
-    api_key_service, db_session: AsyncSession, test_user: dict, test_api_key
-):
+async def test_update_api_key(api_key_service, db_session: AsyncSession, test_user: dict, test_api_key):
     """Test updating an API key."""
     update_data = APIKeyUpdate(name="Updated Key Name")
 
@@ -184,26 +152,18 @@ async def test_update_api_key(
 
 
 @pytest.mark.asyncio
-async def test_delete_api_key(
-    api_key_service, db_session: AsyncSession, test_user: dict, test_api_key
-):
+async def test_delete_api_key(api_key_service, db_session: AsyncSession, test_user: dict, test_api_key):
     """Test deleting (deactivating) an API key."""
-    await api_key_service.delete_api_key(
-        key_id=test_api_key["id"], user_id=test_user["id"], db=db_session
-    )
+    await api_key_service.delete_api_key(key_id=test_api_key["id"], user_id=test_user["id"], db=db_session)
 
     # Key should still exist but be inactive
-    key = await api_key_service.get_api_key(
-        key_id=test_api_key["id"], user_id=test_user["id"], db=db_session
-    )
+    key = await api_key_service.get_api_key(key_id=test_api_key["id"], user_id=test_user["id"], db=db_session)
 
     assert key["is_active"] is False
 
 
 @pytest.mark.asyncio
-async def test_validate_api_key_success(
-    api_key_service, db_session: AsyncSession, test_user: dict, test_api_key
-):
+async def test_validate_api_key_success(api_key_service, db_session: AsyncSession, test_user: dict, test_api_key):
     """Test successful API key validation."""
     # Add permission for the key
     permission_data = KeyPermissionCreate(
@@ -242,14 +202,10 @@ async def test_validate_api_key_invalid(api_key_service, db_session: AsyncSessio
 
 
 @pytest.mark.asyncio
-async def test_validate_api_key_inactive(
-    api_key_service, db_session: AsyncSession, test_user: dict, test_api_key
-):
+async def test_validate_api_key_inactive(api_key_service, db_session: AsyncSession, test_user: dict, test_api_key):
     """Test validation with inactive API key."""
     # Deactivate the key
-    await api_key_service.delete_api_key(
-        key_id=test_api_key["id"], user_id=test_user["id"], db=db_session
-    )
+    await api_key_service.delete_api_key(key_id=test_api_key["id"], user_id=test_user["id"], db=db_session)
 
     validation = await api_key_service.validate_api_key(
         api_key=test_api_key["api_key"],
@@ -263,9 +219,7 @@ async def test_validate_api_key_inactive(
 
 
 @pytest.mark.asyncio
-async def test_validate_api_key_expired(
-    api_key_service, db_session: AsyncSession, test_user: dict
-):
+async def test_validate_api_key_expired(api_key_service, db_session: AsyncSession, test_user: dict):
     """Test validation with expired API key."""
     # Create key with past expiration
 
@@ -274,9 +228,7 @@ async def test_validate_api_key_expired(
         expires_at=datetime.now(UTC) - timedelta(days=1),  # Already expired
     )
 
-    expired_key = await api_key_service.create_api_key(
-        user_id=test_user["id"], key_data=key_data, db=db_session
-    )
+    expired_key = await api_key_service.create_api_key(user_id=test_user["id"], key_data=key_data, db=db_session)
 
     validation = await api_key_service.validate_api_key(
         api_key=expired_key["api_key"],
@@ -290,9 +242,7 @@ async def test_validate_api_key_expired(
 
 
 @pytest.mark.asyncio
-async def test_validate_api_key_no_permission(
-    api_key_service, db_session: AsyncSession, test_user: dict, test_api_key
-):
+async def test_validate_api_key_no_permission(api_key_service, db_session: AsyncSession, test_user: dict, test_api_key):
     """Test validation with no permissions."""
     validation = await api_key_service.validate_api_key(
         api_key=test_api_key["api_key"],
@@ -306,9 +256,7 @@ async def test_validate_api_key_no_permission(
 
 
 @pytest.mark.asyncio
-async def test_wildcard_permissions(
-    api_key_service, db_session: AsyncSession, test_user: dict, test_api_key
-):
+async def test_wildcard_permissions(api_key_service, db_session: AsyncSession, test_user: dict, test_api_key):
     """Test wildcard permission validation."""
     # Add wildcard permission
     permission_data = KeyPermissionCreate(
@@ -330,9 +278,7 @@ async def test_wildcard_permissions(
 
 
 @pytest.mark.asyncio
-async def test_record_usage(
-    api_key_service, db_session: AsyncSession, test_user: dict, test_api_key
-):
+async def test_record_usage(api_key_service, db_session: AsyncSession, test_user: dict, test_api_key):
     """Test recording API key usage."""
     usage_data = KeyUsageCreate(
         api_key_id=test_api_key["id"],
@@ -362,9 +308,7 @@ async def test_record_usage(
 
 
 @pytest.mark.asyncio
-async def test_get_key_usage(
-    api_key_service, db_session: AsyncSession, test_user: dict, test_api_key
-):
+async def test_get_key_usage(api_key_service, db_session: AsyncSession, test_user: dict, test_api_key):
     """Test getting API key usage history."""
     # Record some usage
     usage_data = KeyUsageCreate(
@@ -383,9 +327,7 @@ async def test_get_key_usage(
         db=db_session,
     )
 
-    result = await api_key_service.get_key_usage(
-        key_id=test_api_key["id"], user_id=test_user["id"], db=db_session
-    )
+    result = await api_key_service.get_key_usage(key_id=test_api_key["id"], user_id=test_user["id"], db=db_session)
     usage_history = result.get("data", []) if isinstance(result, dict) else []
 
     assert len(usage_history) >= 1
@@ -395,9 +337,7 @@ async def test_get_key_usage(
 
 
 @pytest.mark.asyncio
-async def test_get_usage_analytics(
-    api_key_service, db_session: AsyncSession, test_user: dict, test_api_key
-):
+async def test_get_usage_analytics(api_key_service, db_session: AsyncSession, test_user: dict, test_api_key):
     """Test getting usage analytics for API key."""
     # Record multiple usage entries
     endpoints = ["/api/v1/test1", "/api/v1/test2", "/api/v1/test1"]
@@ -422,9 +362,7 @@ async def test_get_usage_analytics(
             db=db_session,
         )
 
-    analytics = await api_key_service.get_usage_analytics(
-        key_id=test_api_key["id"], user_id=test_user["id"], db=db_session
-    )
+    analytics = await api_key_service.get_usage_analytics(key_id=test_api_key["id"], user_id=test_user["id"], db=db_session)
 
     assert analytics["api_key_id"] == test_api_key["id"]
     assert analytics["total_requests"] == 3
@@ -446,9 +384,7 @@ async def test_get_usage_analytics(
 
 
 @pytest.mark.asyncio
-async def test_get_user_summary(
-    api_key_service, db_session: AsyncSession, test_user: dict, test_api_key
-):
+async def test_get_user_summary(api_key_service, db_session: AsyncSession, test_user: dict, test_api_key):
     """Test getting comprehensive user API key summary."""
     # Record some usage
     usage_data = KeyUsageCreate(
@@ -467,9 +403,7 @@ async def test_get_user_summary(
         db=db_session,
     )
 
-    summary = await api_key_service.get_user_summary(
-        user_id=test_user["id"], db=db_session
-    )
+    summary = await api_key_service.get_user_summary(user_id=test_user["id"], db=db_session)
 
     assert summary["user_id"] == test_user["id"]
     assert summary["total_keys"] >= 1
@@ -496,9 +430,7 @@ async def test_api_key_hash_roundtrip(api_key_service):
 
 
 @pytest.mark.asyncio
-async def test_validate_api_key_with_underscore_in_prefix(
-    api_key_service, db_session: AsyncSession, test_user: dict
-):
+async def test_validate_api_key_with_underscore_in_prefix(api_key_service, db_session: AsyncSession, test_user: dict):
     """Regression: secrets.token_urlsafe alphabet includes `_`; prefix extraction must not split on it.
 
     When the random 8-char prefix happens to contain `_`, a naive `split("_", 2)` returns the wrong
@@ -521,26 +453,20 @@ async def test_validate_api_key_with_underscore_in_prefix(
     await crud_api_keys.create(db=db_session, object=APIKeyCreateInternal(**key_dict))
 
     permission_data = KeyPermissionCreate(
-        api_key_id=(await crud_api_keys.get(db=db_session, key_prefix=forced_prefix))[
-            "id"
-        ],
+        api_key_id=(await crud_api_keys.get(db=db_session, key_prefix=forced_prefix))["id"],
         resource=KeyPermissionResource.WILDCARD,
         action=KeyPermissionAction.WILDCARD,
         is_allowed=True,
     )
     await crud_key_permissions.create(db=db_session, object=permission_data)
 
-    validation = await api_key_service.validate_api_key(
-        api_key=api_key, resource="anything", action="anything", db=db_session
-    )
+    validation = await api_key_service.validate_api_key(api_key=api_key, resource="anything", action="anything", db=db_session)
 
     assert validation.is_valid is True
 
 
 @pytest.mark.asyncio
-async def test_usage_pagination(
-    api_key_service, db_session: AsyncSession, test_user: dict, test_api_key
-):
+async def test_usage_pagination(api_key_service, db_session: AsyncSession, test_user: dict, test_api_key):
     """Test usage history pagination."""
     # Create multiple usage records
     for i in range(5):

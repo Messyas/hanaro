@@ -48,13 +48,13 @@ async def test_soft_delete_unauthorized(
 
 async def test_soft_delete_wrong_user(
     auth_client: AsyncClient,
-    client: AsyncClient,
+    superuser_auth_client: AsyncClient,
     db_session: AsyncSession,
     test_user: dict,
 ):
     """Test that users cannot delete other users' accounts."""
     other_user_data = generate_unique_user_data("other")
-    create_response = await client.post("/api/v1/users/", json=other_user_data)
+    create_response = await superuser_auth_client.post("/api/v1/users/", json=other_user_data)
     assert create_response.status_code == 201
     other_username = other_user_data["username"]
 
@@ -121,9 +121,7 @@ async def test_permanent_delete_inactive_user(
 
     logger.info(f"Testing soft deletion for user: {username}")
 
-    response_soft_delete = await superuser_auth_client.delete(
-        f"/api/v1/users/{username}"
-    )
+    response_soft_delete = await superuser_auth_client.delete(f"/api/v1/users/{username}")
 
     assert response_soft_delete.status_code == 200
     data_soft = response_soft_delete.json()
@@ -131,16 +129,12 @@ async def test_permanent_delete_inactive_user(
 
     logger.info(f"Testing permanent deletion for user: {username}")
 
-    response_perma_delete = await superuser_auth_client.delete(
-        f"/api/v1/users/db/{username}"
-    )
+    response_perma_delete = await superuser_auth_client.delete(f"/api/v1/users/db/{username}")
     assert response_perma_delete.status_code == 200
     data_perma = response_perma_delete.json()
     assert data_perma["message"] == "User data anonymized in compliance with GDPR"
 
-    get_response = await superuser_auth_client.get(
-        f"/api/v1/users/active-and-inactive/{username}"
-    )
+    get_response = await superuser_auth_client.get(f"/api/v1/users/active-and-inactive/{username}")
     assert get_response.status_code == 404
 
 
@@ -168,9 +162,7 @@ async def test_delete_cascade_effects(
     tier_response = await auth_client.get(f"/api/v1/users/{username}/tier")
     assert tier_response.status_code == 200
 
-    rate_limits_response = await auth_client.get(
-        f"/api/v1/users/{username}/rate-limits"
-    )
+    rate_limits_response = await auth_client.get(f"/api/v1/users/{username}/rate-limits")
     assert rate_limits_response.status_code == 200
 
     delete_response = await auth_client.delete(f"/api/v1/users/{username}")
@@ -179,7 +171,5 @@ async def test_delete_cascade_effects(
     tier_response = await superuser_auth_client.get(f"/api/v1/users/{username}/tier")
     assert tier_response.status_code == 404
 
-    rate_limits_response = await superuser_auth_client.get(
-        f"/api/v1/users/{username}/rate-limits"
-    )
+    rate_limits_response = await superuser_auth_client.get(f"/api/v1/users/{username}/rate-limits")
     assert rate_limits_response.status_code == 404

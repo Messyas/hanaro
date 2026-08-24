@@ -75,9 +75,7 @@ async def test_check_rate_limit_no_user(mock_request, mock_db):
     with (
         patch("src.infrastructure.rate_limit.middleware.settings") as mock_settings,
         patch("src.infrastructure.rate_limit.middleware.DEFAULT_LIMIT", 100),
-        patch(
-            "src.infrastructure.rate_limit.middleware.increment_and_check"
-        ) as mock_increment,
+        patch("src.infrastructure.rate_limit.middleware.increment_and_check") as mock_increment,
     ):
         mock_settings.RATE_LIMITER_ENABLED = True
         mock_settings.DEFAULT_RATE_LIMIT_LIMIT = 100
@@ -100,15 +98,9 @@ async def test_check_rate_limit_with_user(mock_request, mock_db, mock_user):
     with (
         patch("src.infrastructure.rate_limit.middleware.settings") as mock_settings,
         patch("src.infrastructure.rate_limit.middleware.DEFAULT_LIMIT", 100),
-        patch(
-            "src.infrastructure.rate_limit.middleware.increment_and_check"
-        ) as mock_increment,
-        patch(
-            "src.infrastructure.rate_limit.middleware.crud_tiers.get"
-        ) as mock_get_tier,
-        patch(
-            "src.infrastructure.rate_limit.middleware.crud_rate_limits.get"
-        ) as mock_get_rate_limit,
+        patch("src.infrastructure.rate_limit.middleware.increment_and_check") as mock_increment,
+        patch("src.infrastructure.rate_limit.middleware.crud_tiers.get") as mock_get_tier,
+        patch("src.infrastructure.rate_limit.middleware.crud_rate_limits.get") as mock_get_rate_limit,
     ):
         mock_settings.RATE_LIMITER_ENABLED = True
         mock_settings.DEFAULT_RATE_LIMIT_LIMIT = 100
@@ -121,9 +113,7 @@ async def test_check_rate_limit_with_user(mock_request, mock_db, mock_user):
 
         await _check_rate_limit(mock_request, mock_db, mock_user)
 
-        mock_get_tier.assert_called_once_with(
-            db=mock_db, id=1, schema_to_select=TierSelect
-        )
+        mock_get_tier.assert_called_once_with(db=mock_db, id=1, schema_to_select=TierSelect)
         mock_get_rate_limit.assert_called_once()
 
         mock_increment.assert_called_once()
@@ -139,15 +129,9 @@ async def test_check_rate_limit_no_specific_limits(mock_request, mock_db, mock_u
     with (
         patch("src.infrastructure.rate_limit.middleware.settings") as mock_settings,
         patch("src.infrastructure.rate_limit.middleware.DEFAULT_LIMIT", 100),
-        patch(
-            "src.infrastructure.rate_limit.middleware.increment_and_check"
-        ) as mock_increment,
-        patch(
-            "src.infrastructure.rate_limit.middleware.crud_tiers.get"
-        ) as mock_get_tier,
-        patch(
-            "src.infrastructure.rate_limit.middleware.crud_rate_limits.get"
-        ) as mock_get_rate_limit,
+        patch("src.infrastructure.rate_limit.middleware.increment_and_check") as mock_increment,
+        patch("src.infrastructure.rate_limit.middleware.crud_tiers.get") as mock_get_tier,
+        patch("src.infrastructure.rate_limit.middleware.crud_rate_limits.get") as mock_get_rate_limit,
         patch("src.infrastructure.rate_limit.middleware.logger") as mock_logger,
     ):
         mock_settings.RATE_LIMITER_ENABLED = True
@@ -173,9 +157,7 @@ async def test_check_rate_limit_exceeded(mock_request, mock_db):
     with (
         patch("src.infrastructure.rate_limit.middleware.settings") as mock_settings,
         patch("src.infrastructure.rate_limit.middleware.DEFAULT_LIMIT", 100),
-        patch(
-            "src.infrastructure.rate_limit.middleware.increment_and_check"
-        ) as mock_increment,
+        patch("src.infrastructure.rate_limit.middleware.increment_and_check") as mock_increment,
         patch("src.infrastructure.rate_limit.middleware.logger") as mock_logger,
     ):
         mock_settings.RATE_LIMITER_ENABLED = True
@@ -213,9 +195,7 @@ async def test_rate_limiter_middleware(mock_request, mock_response, mock_app):
 
 
 @pytest.mark.asyncio
-async def test_rate_limiter_middleware_no_headers(
-    mock_request, mock_response, mock_app
-):
+async def test_rate_limiter_middleware_no_headers(mock_request, mock_response, mock_app):
     """Test the RateLimiterMiddleware with no rate limit headers."""
     middleware = RateLimiterMiddleware(app=mock_app)
 

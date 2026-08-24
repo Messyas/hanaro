@@ -28,9 +28,7 @@ class SimpleFormatter(logging.Formatter):
     """
 
     def __init__(self):
-        super().__init__(
-            fmt="[%(levelname)s] %(name)s: %(message)s", datefmt="%H:%M:%S"
-        )
+        super().__init__(fmt="[%(levelname)s] %(name)s: %(message)s", datefmt="%H:%M:%S")
 
 
 class DetailedFormatter(logging.Formatter):
@@ -189,8 +187,6 @@ def get_formatter(format_type: str) -> logging.Formatter:
 
     formatter_class = formatters.get(format_type.lower())
     if formatter_class is None:
-        raise ValueError(
-            f"Unknown format type: {format_type}. Available: {', '.join(formatters.keys())}"
-        )
+        raise ValueError(f"Unknown format type: {format_type}. Available: {', '.join(formatters.keys())}")
 
     return formatter_class()

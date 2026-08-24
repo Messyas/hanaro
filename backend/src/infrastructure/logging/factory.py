@@ -23,9 +23,7 @@ _logging_configured = False
 _configuration_lock = Lock()
 
 
-def get_logger(
-    name: str | None = None, **extra_context
-) -> logging.Logger | logging.LoggerAdapter:
+def get_logger(name: str | None = None, **extra_context) -> logging.Logger | logging.LoggerAdapter:
     """Get a properly configured logger with automatic module detection.
 
     This is the main interface for obtaining loggers throughout the application.
@@ -62,9 +60,7 @@ def get_logger(
     base_logger = get_configured_logger(name)
 
     if extra_context:
-        logger: logging.Logger | logging.LoggerAdapter = logging.LoggerAdapter(
-            base_logger, extra_context
-        )
+        logger: logging.Logger | logging.LoggerAdapter = logging.LoggerAdapter(base_logger, extra_context)
     else:
         logger = base_logger
 
@@ -155,9 +151,7 @@ class LoggerAdapter(logging.LoggerAdapter):
         """
         super().__init__(logger, extra)
 
-    def process(
-        self, msg: str, kwargs: MutableMapping[str, Any]
-    ) -> tuple[str, MutableMapping[str, Any]]:
+    def process(self, msg: str, kwargs: MutableMapping[str, Any]) -> tuple[str, MutableMapping[str, Any]]:
         """Process the log record to merge context.
 
         Merges the adapter's extra context with any context
@@ -211,18 +205,14 @@ def create_child_logger(
     base_child_logger = get_configured_logger(child_logger_name)
 
     if extra_context:
-        child_logger: logging.Logger | LoggerAdapter = LoggerAdapter(
-            base_child_logger, extra_context
-        )
+        child_logger: logging.Logger | LoggerAdapter = LoggerAdapter(base_child_logger, extra_context)
     else:
         child_logger = base_child_logger
 
     return child_logger
 
 
-def get_logger_with_correlation_id(
-    correlation_id: str, name: str | None = None
-) -> LoggerAdapter:
+def get_logger_with_correlation_id(correlation_id: str, name: str | None = None) -> LoggerAdapter:
     """Get a logger with automatic correlation ID inclusion.
 
     Creates a logger that automatically includes the provided

@@ -41,9 +41,7 @@ class MemcachedSettings(BaseModel):
 class MemcachedBackend(RateLimiterBackend):
     """Memcached implementation of the rate limiter backend."""
 
-    def __init__(
-        self, settings: MemcachedSettings | None = None, fail_open: bool = True
-    ):
+    def __init__(self, settings: MemcachedSettings | None = None, fail_open: bool = True):
         """Initialize the Memcached backend.
 
         Args:
@@ -61,13 +59,9 @@ class MemcachedBackend(RateLimiterBackend):
             )
         except Exception as e:
             logger.error(f"Failed to initialize Memcached client: {e}")
-            raise RateLimiterBackendException(
-                f"Failed to initialize Memcached client: {e}"
-            )
+            raise RateLimiterBackendException(f"Failed to initialize Memcached client: {e}")
 
-    async def increment_and_check(
-        self, key: str, limit: int, period: int
-    ) -> tuple[int, bool]:
+    async def increment_and_check(self, key: str, limit: int, period: int) -> tuple[int, bool]:
         """Increment the counter for a key and check if rate limit is exceeded.
 
         Args:
@@ -90,9 +84,7 @@ class MemcachedBackend(RateLimiterBackend):
             current_count = int(value.decode()) if value else 0
 
             current_count += 1
-            await self.client.set(
-                rate_limit_key, str(current_count).encode(), exptime=period
-            )
+            await self.client.set(rate_limit_key, str(current_count).encode(), exptime=period)
 
             is_rate_limited = current_count > limit
             return current_count, is_rate_limited

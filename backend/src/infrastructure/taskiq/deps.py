@@ -18,9 +18,7 @@ taskiq_engine = create_async_engine(
     poolclass=NullPool,
 )
 
-taskiq_session_factory = async_sessionmaker(
-    bind=taskiq_engine, class_=AsyncSession, expire_on_commit=False
-)
+taskiq_session_factory = async_sessionmaker(bind=taskiq_engine, class_=AsyncSession, expire_on_commit=False)
 
 
 async def get_db_session() -> AsyncGenerator[AsyncSession, None]:

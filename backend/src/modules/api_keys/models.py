@@ -30,23 +30,17 @@ class APIKey(Base, TimestampMixin):
 
     __tablename__ = "api_keys"
 
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True, init=False
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, init=False)
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("user.id"), index=True)
     name: Mapped[str] = mapped_column(String(100))
     key_hash: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     key_prefix: Mapped[str] = mapped_column(String(20), index=True)
     permissions: Mapped[dict[str, Any]] = mapped_column(JSON, insert_default=dict)
     usage_limits: Mapped[dict[str, Any]] = mapped_column(JSON, insert_default=dict)
-    last_used_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), default=None
-    )
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
     last_used_ip: Mapped[str | None] = mapped_column(String(45), default=None)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    expires_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), default=None
-    )
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
     key_metadata: Mapped[dict[str, Any] | None] = mapped_column(JSON, default=None)
 
     __table_args__ = (
@@ -61,12 +55,8 @@ class KeyUsage(Base, TimestampMixin):
 
     __tablename__ = "key_usage"
 
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True, init=False
-    )
-    api_key_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("api_keys.id", ondelete="CASCADE"), index=True
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, init=False)
+    api_key_id: Mapped[int] = mapped_column(Integer, ForeignKey("api_keys.id", ondelete="CASCADE"), index=True)
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("user.id"), index=True)
     endpoint: Mapped[str] = mapped_column(String(255), index=True)
     method: Mapped[str] = mapped_column(String(10))
@@ -92,18 +82,10 @@ class KeyPermission(Base, TimestampMixin):
 
     __tablename__ = "key_permissions"
 
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True, init=False
-    )
-    api_key_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("api_keys.id", ondelete="CASCADE"), index=True
-    )
-    resource: Mapped[KeyPermissionResource] = mapped_column(
-        index=True
-    )  # KeyPermissionResource enum values
-    action: Mapped[KeyPermissionAction] = mapped_column(
-        index=True
-    )  # KeyPermissionAction enum values
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, init=False)
+    api_key_id: Mapped[int] = mapped_column(Integer, ForeignKey("api_keys.id", ondelete="CASCADE"), index=True)
+    resource: Mapped[KeyPermissionResource] = mapped_column(index=True)  # KeyPermissionResource enum values
+    action: Mapped[KeyPermissionAction] = mapped_column(index=True)  # KeyPermissionAction enum values
     conditions: Mapped[dict[str, Any] | None] = mapped_column(JSON, default=None)
     is_allowed: Mapped[bool] = mapped_column(Boolean, default=True)
 

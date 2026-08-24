@@ -129,9 +129,7 @@ async def _execute_cached_endpoint(
     if backend is None:
         return cast(Response, await func(request, *args, **kwargs))
 
-    resource_found, resource_id = _resolve_resource_id(
-        kwargs, resource_id_name, resource_id_type
-    )
+    resource_found, resource_id = _resolve_resource_id(kwargs, resource_id_name, resource_id_type)
     if not resource_found:
         return cast(Response, await func(request, *args, **kwargs))
 
