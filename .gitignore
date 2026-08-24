@@ -51,6 +51,9 @@ coverage.xml
 .pytest_cache/
 cover/
 reports/
+# Keep the Angular reports page source tracked; this is application code, not output.
+!frontend/src/app/pages/reports/
+!frontend/src/app/pages/reports/**
 test-results/
 playwright-report/
 blob-report/
