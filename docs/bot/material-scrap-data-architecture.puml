@@ -1,0 +1,94 @@
+@startuml
+title Hanaro - fluxo de dados e entidades do Material Scrap
+
+top to bottom direction
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam componentStyle rectangle
+skinparam rectangle {
+  BackgroundColor #F7FAFC
+  BorderColor #2D3748
+}
+skinparam database {
+  BackgroundColor #FFF7E6
+  BorderColor #B7791F
+}
+skinparam queue {
+  BackgroundColor #E6FFFA
+  BorderColor #2C7A7B
+}
+
+package "BOT / Smart Office Runner" as Bot {
+  component "Coleta futura GERP\n(GerpSource)" as Gerp
+  component "Processador de arquivo\n(parser + normalizador)" as Processor
+  artifact "TSV bruto" as Tsv
+  artifact "JSON canônico\n1.0.0 + SHA + Decimal" as Json
+  folder "automation/artifacts" as Artifacts
+
+  Gerp --> Tsv : download concluído
+  Tsv --> Processor : caminho do arquivo
+  Processor --> Json : lote validado
+  Json --> Artifacts : backup local
+}
+
+package "BACKEND / FastAPI" as Backend {
+  component "POST /scrap/ingestions\nX-API-Key" as IngestApi
+  component "IngestionService\nvalidação + reconciliação" as Service
+  component "Repository\nsnapshot + idempotência" as Repository
+  component "GET /scrap\nGET /dashboard/scrap/*" as ReadApi
+  component "Taskiq Worker\nprocessamento do lote" as Worker
+
+  Worker --> Service : lote canônico
+  Service --> Repository : persistir somente\napós validar
+  ReadApi --> Repository : consultas/agregações
+}
+
+database "PostgreSQL" as Postgres
+database "scrap_ingestion_runs\nexecucao, janela, status, totais\nmapping_version, modo" as Runs
+database "scrap_ingestion_source_files\nrun_id, sha256, encoding, size" as Files
+database "daily_exchange_rates\nrate_date, brl_per_usd, source\neffective_date, fallback_used" as Rates
+database "scrap_transactions\nrun_id, source_line\ncampos GERP + dimensoes\nBRL/USD, quality_flags, content_hash" as Transactions
+
+Postgres .. Runs : armazena
+Postgres .. Files : armazena
+Postgres .. Rates : armazena
+Postgres .. Transactions : armazena
+Runs --> Files : 1 arquivo
+Runs --> Rates : 1 cotacao
+Runs --> Transactions : snapshot
+
+package "Redis" as Redis {
+  component "Cache\nDB 0" as Cache
+  component "Rate limit\nDB 1" as RateLimit
+  component "Taskiq broker\nDB 3" as TaskQueue
+}
+
+node "Frontend Server" as Frontend {
+  component "Angular app\nlista + filtros + dashboard" as Angular
+}
+
+Json --> IngestApi : HTTP JSON
+IngestApi --> TaskQueue : enfileira lote canonico
+TaskQueue --> Worker : entrega lote ao worker
+IngestApi --> Redis : rate limit
+Backend --> Cache : cache de leitura
+Backend --> RateLimit : contadores
+Backend --> TaskQueue : tarefas assíncronas
+Repository --> Postgres : SQL transacional
+ReadApi --> Angular : JSON de consulta
+
+note right of Json
+  Os valores financeiros são strings
+  Decimal no contrato.
+  Mantém o sinal matemático do valor original.
+end note
+
+legend bottom
+  === Responsabilidades ===
+  Bot: coleta futura, pré-processamento e geração do JSON.
+  Backend: autenticação, validação, persistência e read model.
+  PostgreSQL: fonte persistida dos snapshots publicados.
+  Redis: cache, rate limit e broker Taskiq já configurados no Compose.
+  Frontend: apresentação dos dados por HTTP.
+endlegend
+@enduml

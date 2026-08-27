@@ -1,0 +1,73 @@
+@startuml
+title Hanaro - estado atual do bot de Material Scrap
+
+top to bottom direction
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam state {
+  BackgroundColor #F7FAFC
+  BorderColor #2D3748
+  ArrowColor #4A5568
+}
+
+state "Docker Compose\ninicia simulation" as Compose
+state "LocalFileSource\nentrega caminho do TSV" as Source
+state "Validar arquivo\ne encoding" as Validate
+state "Ler TSV posicional\nTAB + coluna vazia final" as Parse
+state "Reconstruir REQ Comment\nquando houver tabs extras" as Rebuild
+state "Normalizar textos,\ndatas e codigos" as Texts
+state "Converter Decimal\nROUND_HALF_UP" as Decimals
+state "Aplicar mapeamentos\ne quality_flags" as Mapping
+state "Calcular amount_usd\nBRL / cotacao diaria" as Usd
+state "Reconciliar contagens,\ntotais, janela e hashes" as Reconcile
+state "Gerar JSON canonico\n(schema 1.0.0)" as Json
+state "Salvar artefato em\nautomation/artifacts" as Artifact
+state "POST /api/v1/scrap/ingestions\nX-API-Key" as Send
+state "API valida contrato\ne enfileira tarefa" as Queued
+state "Redis / Taskiq\naguarda processamento" as Queue
+state "Worker executa\ningest_material_scrap" as Worker
+state "Backend valida apenas\no JSON canonico" as BackendValidate
+state "Persistir snapshot\ne disponibilizar dashboard" as Persist
+state "Artefato preservado\npara nova tentativa" as Retry
+state "Falha estrutural\nsem descartar linhas" as Failed
+state "Fim" as End
+
+[*] --> Compose
+Compose --> Source
+Source --> Validate
+Validate --> Failed : arquivo invalido
+Validate --> Parse : valido
+Parse --> Failed : header/linha invalida
+Parse --> Rebuild : tabs extras
+Parse --> Texts : sem tabs extras
+Rebuild --> Texts
+Texts --> Decimals
+Decimals --> Mapping
+Mapping --> Usd
+Usd --> Reconcile
+Reconcile --> Failed : divergencia
+Reconcile --> Json : reconciliado
+Json --> Artifact
+Artifact --> Send : HANARO_SIMULATION_SEND=true
+Artifact --> End : HANARO_SIMULATION_SEND=false
+Send --> Retry : HTTP/API rejeita
+Send --> Queued : aceito (202)
+Queued --> Queue
+Queue --> Worker
+Worker --> BackendValidate
+Retry --> End
+BackendValidate --> Persist
+Persist --> End
+Failed --> End
+End --> [*]
+
+note right of Source
+  O RPA visual do GERP ainda e futuro.
+  GerpSource implementara a mesma interface.
+end note
+
+note right of Usd
+  Mantém o sinal matemático do valor original.
+  ABS so aparece nas consultas de dashboard.
+end note
+@enduml
