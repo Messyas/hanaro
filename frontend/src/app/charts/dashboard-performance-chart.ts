@@ -1,21 +1,37 @@
-import { Component, afterNextRender, computed, inject, signal } from '@angular/core';
+import { Component, afterNextRender, computed, inject, input, signal } from '@angular/core';
 import { LineChart } from 'echarts/charts';
-import { AriaComponent, GridComponent, LegendComponent, TooltipComponent } from 'echarts/components';
+import {
+  AriaComponent,
+  GridComponent,
+  LegendComponent,
+  TooltipComponent,
+} from 'echarts/components';
 import * as echarts from 'echarts/core';
 import type { EChartsCoreOption } from 'echarts/core';
 import { SVGRenderer } from 'echarts/renderers';
 import { NgxEchartsDirective, provideEchartsCore } from 'ngx-echarts';
 import { ThemeService } from '../theme/theme.service';
+import { LanguageCode } from '../i18n/language.service';
 import { CHART_DESIGN } from './chart-design.tokens';
+import {
+  DashboardAnalysis,
+  DashboardMetric,
+  DashboardMonthlyPoint,
+} from '../pages/dashboard/dashboard.models';
+import {
+  DASHBOARD_LOCALES,
+  DASHBOARD_MONTHS,
+  DASHBOARD_TRANSLATIONS,
+} from '../pages/dashboard/dashboard.translations';
 
-interface MonthlyScrapPerformance {
-  month: string;
-  actual: number | null;
-  reference: number | null;
-  target: number;
-}
-
-echarts.use([LineChart, LegendComponent, GridComponent, TooltipComponent, AriaComponent, SVGRenderer]);
+echarts.use([
+  LineChart,
+  LegendComponent,
+  GridComponent,
+  TooltipComponent,
+  AriaComponent,
+  SVGRenderer,
+]);
 
 @Component({
   selector: 'app-dashboard-performance-chart',
@@ -27,38 +43,48 @@ echarts.use([LineChart, LegendComponent, GridComponent, TooltipComponent, AriaCo
         echarts
         class="performance-chart"
         role="img"
-        aria-label="IF Cost mensal comparando realizado, referência e target"
+        [attr.aria-label]="
+          analysis() === 'relative'
+            ? copy().performanceRelativeAria
+            : copy().performanceAbsoluteAria
+        "
         [options]="options()"
         [initOpts]="initOptions"
         [autoResize]="true"
       ></div>
     } @else {
       <div class="chart-placeholder" aria-hidden="true">
-        @for (item of data; track item.month) {
-          <span [style.height.%]="(item.actual ?? 0) * 2"></span>
+        @for (item of data(); track item.month) {
+          <span [style.height.%]="placeholderHeight(item)"></span>
         }
       </div>
     }
 
     <table class="sr-only">
       <caption>
-        IF Cost mensal
+        {{
+          analysis() === 'relative' ? 'Scrap Rate' : 'IF Cost'
+        }}
       </caption>
       <thead>
         <tr>
-          <th>Mês</th>
-          <th>Realizado 2026</th>
-          <th>Referência 2025</th>
-          <th>Target</th>
+          <th>{{ copy().month }}</th>
+          <th>{{ copy().actual }} {{ year() }}</th>
+          <th>{{ copy().reference }} {{ previousYear() }}</th>
+          @if (analysis() === 'absolute') {
+            <th>{{ metric() === 'usd' ? 'Target IF Cost' : 'Target QTY' }}</th>
+          }
         </tr>
       </thead>
       <tbody>
-        @for (item of data; track item.month) {
+        @for (item of data(); track item.month) {
           <tr>
-            <td>{{ item.month }}</td>
-            <td>{{ item.actual ?? '-' }}k</td>
-            <td>{{ item.reference ?? '-' }}k</td>
-            <td>{{ item.target }}k</td>
+            <td>{{ monthLabel($index) }}</td>
+            <td>{{ accessibleValue(actualValue(item)) }}</td>
+            <td>{{ accessibleValue(previousValue(item)) }}</td>
+            @if (analysis() === 'absolute') {
+              <td>{{ accessibleValue(targetValue(item)) }}</td>
+            }
           </tr>
         }
       </tbody>
@@ -107,32 +133,33 @@ echarts.use([LineChart, LegendComponent, GridComponent, TooltipComponent, AriaCo
 export class DashboardPerformanceChart {
   private readonly theme = inject(ThemeService);
 
+  readonly data = input.required<readonly DashboardMonthlyPoint[]>();
+  readonly metric = input.required<DashboardMetric>();
+  readonly analysis = input.required<DashboardAnalysis>();
+  readonly year = input.required<string>();
+  readonly language = input.required<LanguageCode>();
+  readonly monetaryValuesHidden = input(false);
+  readonly copy = computed(() => DASHBOARD_TRANSLATIONS[this.language()]);
   readonly chartReady = signal(false);
   readonly initOptions = { renderer: 'svg' as const };
-  readonly data: readonly MonthlyScrapPerformance[] = [
-    { month: 'Jan', actual: 27, reference: 26, target: 27 },
-    { month: 'Fev', actual: 25, reference: 25, target: 26.5 },
-    { month: 'Mar', actual: 26, reference: 24, target: 26 },
-    { month: 'Abr', actual: 23, reference: 31, target: 25.5 },
-    { month: 'Mai', actual: 34, reference: 28, target: 25 },
-    { month: 'Jun', actual: 25, reference: 36, target: 24.5 },
-    { month: 'Jul', actual: 14, reference: 39, target: 24 },
-    { month: 'Ago', actual: 12.5, reference: 38, target: 23.5 },
-    { month: 'Set', actual: null, reference: null, target: 23 },
-    { month: 'Out', actual: null, reference: null, target: 22.5 },
-    { month: 'Nov', actual: null, reference: null, target: 22 },
-    { month: 'Dez', actual: null, reference: null, target: 21.5 },
-  ];
 
   readonly options = computed<EChartsCoreOption>(() => {
     this.theme.isDark();
+    const metric = this.metric();
+    const analysis = this.analysis();
+    const data = this.data();
+    const hidden = analysis === 'absolute' && metric === 'usd' && this.monetaryValuesHidden();
+    const currentYear = this.year();
+    const previousYear = String(Number(currentYear) - 1);
+    const copy = this.copy();
 
     return {
       animationDuration: 450,
       textStyle: { fontFamily: CHART_DESIGN.fontFamily },
       aria: {
         show: true,
-        description: 'Gráfico de linhas com IF Cost mensal, referência do ano anterior e target.',
+        description:
+          analysis === 'relative' ? copy.performanceRelativeAria : copy.performanceAbsoluteAria,
       },
       legend: {
         top: 0,
@@ -147,6 +174,7 @@ export class DashboardPerformanceChart {
       },
       grid: { top: 42, right: 8, bottom: 8, left: 8, containLabel: true },
       tooltip: {
+        show: !hidden,
         trigger: 'axis',
         backgroundColor: CHART_DESIGN.surface,
         borderColor: CHART_DESIGN.grid,
@@ -161,7 +189,7 @@ export class DashboardPerformanceChart {
       },
       xAxis: {
         type: 'category',
-        data: this.data.map((item) => item.month),
+        data: DASHBOARD_MONTHS[this.language()].slice(0, data.length),
         axisLine: { show: false },
         axisTick: { show: false },
         axisLabel: {
@@ -180,42 +208,54 @@ export class DashboardPerformanceChart {
           color: CHART_DESIGN.mutedText,
           fontFamily: CHART_DESIGN.fontFamily,
           fontSize: 11,
-          formatter: (value: number) => `${value}k`,
+          formatter: hidden
+            ? () => '•••'
+            : (value: number) =>
+                analysis === 'relative'
+                  ? `${value.toLocaleString(DASHBOARD_LOCALES[this.language()], { maximumFractionDigits: 3 })}%`
+                  : metric === 'usd'
+                    ? this.compactCurrency(value)
+                    : `${value}`,
         },
         splitLine: { lineStyle: { color: CHART_DESIGN.grid } },
       },
       series: [
         {
-          name: 'Realizado 2026',
+          name:
+            analysis === 'relative'
+              ? `${metric === 'usd' ? copy.ifCostRate : copy.qtyRate} ${currentYear}`
+              : metric === 'usd'
+                ? `${copy.actual} ${currentYear}`
+                : `QTY ${currentYear}`,
           type: 'line',
-          data: this.data.map((item) => item.actual),
+          data: data.map((item) => this.actualValue(item)),
           smooth: true,
           symbol: 'circle',
           lineStyle: { width: 3, color: CHART_DESIGN.primary },
           itemStyle: { color: CHART_DESIGN.primary },
         },
         {
-          name: 'Referência 2025',
+          name: `${copy.reference} ${previousYear}`,
           type: 'line',
-          data: this.data.map((item) => item.reference),
+          data: data.map((item) => this.previousValue(item)),
           smooth: true,
           symbol: 'circle',
           lineStyle: { width: 2, color: '#66728d' },
           itemStyle: { color: '#66728d' },
         },
-        {
-          name: 'Target',
-          type: 'line',
-          data: this.data.map((item) => item.target),
-          smooth: true,
-          symbol: 'circle',
-          lineStyle: {
-            width: 2,
-            type: 'dashed',
-            color: '#5ad6b3',
-          },
-          itemStyle: { color: '#5ad6b3' },
-        },
+        ...(analysis === 'absolute'
+          ? [
+              {
+                name: metric === 'usd' ? 'Target IF Cost' : 'Target QTY',
+                type: 'line',
+                data: data.map((item) => this.targetValue(item)),
+                smooth: true,
+                symbol: 'circle',
+                lineStyle: { width: 2, type: 'dashed', color: '#5ad6b3' },
+                itemStyle: { color: '#5ad6b3' },
+              },
+            ]
+          : []),
       ],
     };
   });
@@ -224,5 +264,64 @@ export class DashboardPerformanceChart {
     afterNextRender(() => {
       this.chartReady.set(typeof ResizeObserver !== 'undefined');
     });
+  }
+
+  actualValue(item: DashboardMonthlyPoint): number | null {
+    const numerator = this.metric() === 'usd' ? item.actualUsd : item.actualQty;
+    if (this.analysis() === 'absolute' || numerator === null) return numerator;
+    const denominator = this.metric() === 'usd' ? item.materialAmountUsd : item.productionQty;
+    return denominator > 0 ? (numerator / denominator) * 100 : null;
+  }
+
+  previousValue(item: DashboardMonthlyPoint): number | null {
+    const numerator = this.metric() === 'usd' ? item.previousUsd : item.previousQty;
+    if (this.analysis() === 'absolute' || numerator === null) return numerator;
+    const denominator =
+      this.metric() === 'usd' ? item.previousMaterialAmountUsd : item.previousProductionQty;
+    return denominator > 0 ? (numerator / denominator) * 100 : null;
+  }
+
+  targetValue(item: DashboardMonthlyPoint): number {
+    return this.metric() === 'usd' ? item.targetUsd : item.targetQty;
+  }
+
+  accessibleValue(value: number | null): string {
+    if (value === null) return this.copy().noData;
+    if (this.analysis() === 'relative') return `${value.toFixed(4)}%`;
+    if (this.metric() === 'usd' && this.monetaryValuesHidden()) return this.copy().hiddenValue;
+    return this.metric() === 'usd'
+      ? this.currency(value)
+      : `${this.number(value)} ${this.copy().units}`;
+  }
+
+  placeholderHeight(item: DashboardMonthlyPoint): number {
+    const value = this.actualValue(item) ?? 0;
+    if (this.analysis() === 'relative') return Math.min(92, Math.max(4, value * 550));
+    return Math.min(92, Math.max(4, this.metric() === 'usd' ? value / 500 : value / 3));
+  }
+
+  previousYear(): number {
+    return Number(this.year()) - 1;
+  }
+
+  monthLabel(index: number): string {
+    return DASHBOARD_MONTHS[this.language()][index];
+  }
+
+  private compactCurrency(value: number): string {
+    return value >= 1000 ? `${Math.round(value / 1000)}k` : `${Math.round(value)}`;
+  }
+
+  private currency(value: number): string {
+    return new Intl.NumberFormat(DASHBOARD_LOCALES[this.language()], {
+      style: 'currency',
+      currency: 'USD',
+    }).format(value);
+  }
+
+  private number(value: number): string {
+    return new Intl.NumberFormat(DASHBOARD_LOCALES[this.language()], {
+      maximumFractionDigits: 0,
+    }).format(value);
   }
 }
