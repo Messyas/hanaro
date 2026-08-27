@@ -1,6 +1,6 @@
 import { Component, afterNextRender, computed, inject, signal } from '@angular/core';
-import { BarChart } from 'echarts/charts';
-import { AriaComponent, GridComponent, TooltipComponent } from 'echarts/components';
+import { LineChart } from 'echarts/charts';
+import { AriaComponent, GridComponent, LegendComponent, TooltipComponent } from 'echarts/components';
 import * as echarts from 'echarts/core';
 import type { EChartsCoreOption } from 'echarts/core';
 import { SVGRenderer } from 'echarts/renderers';
@@ -8,12 +8,14 @@ import { NgxEchartsDirective, provideEchartsCore } from 'ngx-echarts';
 import { ThemeService } from '../theme/theme.service';
 import { CHART_DESIGN } from './chart-design.tokens';
 
-interface MonthlyPerformance {
+interface MonthlyScrapPerformance {
   month: string;
-  revenue: number;
+  actual: number | null;
+  reference: number | null;
+  target: number;
 }
 
-echarts.use([BarChart, GridComponent, TooltipComponent, AriaComponent, SVGRenderer]);
+echarts.use([LineChart, LegendComponent, GridComponent, TooltipComponent, AriaComponent, SVGRenderer]);
 
 @Component({
   selector: 'app-dashboard-performance-chart',
@@ -25,7 +27,7 @@ echarts.use([BarChart, GridComponent, TooltipComponent, AriaComponent, SVGRender
         echarts
         class="performance-chart"
         role="img"
-        aria-label="Receita mensal dos últimos sete meses"
+        aria-label="IF Cost mensal comparando realizado, referência e target"
         [options]="options()"
         [initOpts]="initOptions"
         [autoResize]="true"
@@ -33,26 +35,30 @@ echarts.use([BarChart, GridComponent, TooltipComponent, AriaComponent, SVGRender
     } @else {
       <div class="chart-placeholder" aria-hidden="true">
         @for (item of data; track item.month) {
-          <span [style.height.%]="item.revenue * 2"></span>
+          <span [style.height.%]="(item.actual ?? 0) * 2"></span>
         }
       </div>
     }
 
     <table class="sr-only">
       <caption>
-        Receita mensal dos últimos sete meses
+        IF Cost mensal
       </caption>
       <thead>
         <tr>
           <th>Mês</th>
-          <th>Receita</th>
+          <th>Realizado 2026</th>
+          <th>Referência 2025</th>
+          <th>Target</th>
         </tr>
       </thead>
       <tbody>
         @for (item of data; track item.month) {
           <tr>
             <td>{{ item.month }}</td>
-            <td>R$ {{ item.revenue }} mil</td>
+            <td>{{ item.actual ?? '-' }}k</td>
+            <td>{{ item.reference ?? '-' }}k</td>
+            <td>{{ item.target }}k</td>
           </tr>
         }
       </tbody>
@@ -103,14 +109,19 @@ export class DashboardPerformanceChart {
 
   readonly chartReady = signal(false);
   readonly initOptions = { renderer: 'svg' as const };
-  readonly data: readonly MonthlyPerformance[] = [
-    { month: 'Fev', revenue: 18 },
-    { month: 'Mar', revenue: 24 },
-    { month: 'Abr', revenue: 21 },
-    { month: 'Mai', revenue: 30 },
-    { month: 'Jun', revenue: 27 },
-    { month: 'Jul', revenue: 34 },
-    { month: 'Ago', revenue: 42 },
+  readonly data: readonly MonthlyScrapPerformance[] = [
+    { month: 'Jan', actual: 27, reference: 26, target: 27 },
+    { month: 'Fev', actual: 25, reference: 25, target: 26.5 },
+    { month: 'Mar', actual: 26, reference: 24, target: 26 },
+    { month: 'Abr', actual: 23, reference: 31, target: 25.5 },
+    { month: 'Mai', actual: 34, reference: 28, target: 25 },
+    { month: 'Jun', actual: 25, reference: 36, target: 24.5 },
+    { month: 'Jul', actual: 14, reference: 39, target: 24 },
+    { month: 'Ago', actual: 12.5, reference: 38, target: 23.5 },
+    { month: 'Set', actual: null, reference: null, target: 23 },
+    { month: 'Out', actual: null, reference: null, target: 22.5 },
+    { month: 'Nov', actual: null, reference: null, target: 22 },
+    { month: 'Dez', actual: null, reference: null, target: 21.5 },
   ];
 
   readonly options = computed<EChartsCoreOption>(() => {
@@ -121,9 +132,20 @@ export class DashboardPerformanceChart {
       textStyle: { fontFamily: CHART_DESIGN.fontFamily },
       aria: {
         show: true,
-        description: 'Gráfico de barras com a receita mensal dos últimos sete meses.',
+        description: 'Gráfico de linhas com IF Cost mensal, referência do ano anterior e target.',
       },
-      grid: { top: 12, right: 8, bottom: 8, left: 8, containLabel: true },
+      legend: {
+        top: 0,
+        right: 0,
+        itemWidth: 14,
+        itemHeight: 8,
+        textStyle: {
+          color: CHART_DESIGN.mutedText,
+          fontFamily: CHART_DESIGN.fontFamily,
+          fontSize: 12,
+        },
+      },
+      grid: { top: 42, right: 8, bottom: 8, left: 8, containLabel: true },
       tooltip: {
         trigger: 'axis',
         backgroundColor: CHART_DESIGN.surface,
@@ -135,7 +157,7 @@ export class DashboardPerformanceChart {
           fontFamily: CHART_DESIGN.fontFamily,
           fontSize: 12,
         },
-        axisPointer: { type: 'shadow', shadowStyle: { color: 'var(--brand-primary-softer)' } },
+        axisPointer: { type: 'line', lineStyle: { color: CHART_DESIGN.grid } },
       },
       xAxis: {
         type: 'category',
@@ -158,21 +180,41 @@ export class DashboardPerformanceChart {
           color: CHART_DESIGN.mutedText,
           fontFamily: CHART_DESIGN.fontFamily,
           fontSize: 11,
-          formatter: (value: number) => `R$ ${value} mil`,
+          formatter: (value: number) => `${value}k`,
         },
         splitLine: { lineStyle: { color: CHART_DESIGN.grid } },
       },
       series: [
         {
-          name: 'Receita',
-          type: 'bar',
-          data: this.data.map((item) => item.revenue),
-          barMaxWidth: 28,
-          itemStyle: {
-            color: CHART_DESIGN.barMain,
-            borderRadius: [CHART_DESIGN.borderRadius, CHART_DESIGN.borderRadius, 0, 0],
+          name: 'Realizado 2026',
+          type: 'line',
+          data: this.data.map((item) => item.actual),
+          smooth: true,
+          symbol: 'circle',
+          lineStyle: { width: 3, color: CHART_DESIGN.primary },
+          itemStyle: { color: CHART_DESIGN.primary },
+        },
+        {
+          name: 'Referência 2025',
+          type: 'line',
+          data: this.data.map((item) => item.reference),
+          smooth: true,
+          symbol: 'circle',
+          lineStyle: { width: 2, color: '#66728d' },
+          itemStyle: { color: '#66728d' },
+        },
+        {
+          name: 'Target',
+          type: 'line',
+          data: this.data.map((item) => item.target),
+          smooth: true,
+          symbol: 'circle',
+          lineStyle: {
+            width: 2,
+            type: 'dashed',
+            color: '#5ad6b3',
           },
-          emphasis: { itemStyle: { color: CHART_DESIGN.primary } },
+          itemStyle: { color: '#5ad6b3' },
         },
       ],
     };
