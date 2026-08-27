@@ -124,6 +124,10 @@ services:
       - type: bind
         source: ./backend/scripts
         target: /app/backend/scripts
+      - type: bind
+        source: ./backend/fixtures
+        target: /app/backend/fixtures
+        read_only: true
       - type: volume
         source: profile_images
         target: /app/backend/data/profile-images
