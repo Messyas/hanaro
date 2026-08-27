@@ -1,7 +1,7 @@
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -12,43 +12,64 @@ class ContractModel(BaseModel):
 
 class ExecutionMetadata(ContractModel):
     execution_id: uuid.UUID
-    source: str
-    request_id: str
-    started_at: datetime
-    finished_at: datetime
+    source_system: Literal["GERP"] = "GERP"
+    report_name: Literal["Other Account Transaction Text Download"]
+    mode: Literal["LOCAL_FILE_SIMULATION", "GERP_RPA"]
+    timezone: Literal["America/Manaus"] = "America/Manaus"
+    processing_date: date
+    extracted_at: datetime
+    query_date_from: date
+    query_date_to: date
+    query_window_inferred: bool
+    gerp_request_id: str | None = None
+    organization_parameter: str = "ALL"
+    organizations_found: list[str]
 
-
-class QueryWindow(ContractModel):
-    organization_scope: str = "ALL"
-    date_from: date
-    date_to: date
-    timezone: str = "America/Manaus"
-
-    @field_validator("date_to")
+    @field_validator("query_date_to")
     @classmethod
     def validate_window(cls, value: date, info: Any) -> date:
-        date_from = info.data.get("date_from")
+        date_from = info.data.get("query_date_from")
         if date_from and value < date_from:
-            raise ValueError("date_to must be greater than or equal to date_from")
+            raise ValueError("query_date_to must not be before query_date_from")
+        return value
+
+    @field_validator("extracted_at")
+    @classmethod
+    def validate_timezone(cls, value: datetime) -> datetime:
+        if value.tzinfo is None:
+            raise ValueError("extracted_at must include timezone information")
         return value
 
 
 class SourceFileMetadata(ContractModel):
     name: str
     sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
-    encoding: str = "cp1252"
-    delimiter: str = "TAB"
-    reconstructed_rows: int = 0
+    encoding: str
+    delimiter: Literal["TAB"] = "TAB"
+    size_bytes: int = Field(ge=1)
 
 
-class ExchangeRateInput(ContractModel):
-    base_currency: str = "BRL"
-    quote_currency: str = "USD"
-    brl_per_usd: Decimal
-    source: str = "MANUAL_SIMULATION"
-    requested_date: date
+def _require_decimal_string(value: object) -> object:
+    if not isinstance(value, (str, Decimal)):
+        raise ValueError("decimal values must be JSON strings")
+    return value
+
+
+class ExchangeRateMetadata(ContractModel):
+    rate_date: date
     effective_date: date
+    base_currency: Literal["BRL"] = "BRL"
+    quote_currency: Literal["USD"] = "USD"
+    brl_per_usd: Decimal
+    quote_type: str
+    source: str
+    retrieved_at: datetime | None = None
     fallback_used: bool = False
+
+    @field_validator("brl_per_usd", mode="before")
+    @classmethod
+    def validate_decimal_json(cls, value: object) -> object:
+        return _require_decimal_string(value)
 
     @field_validator("brl_per_usd")
     @classmethod
@@ -58,41 +79,53 @@ class ExchangeRateInput(ContractModel):
         return value.quantize(Decimal("0.000001"))
 
 
-class MaterialScrapPayload(ContractModel):
-    schema_version: str = "1.0"
-    execution: ExecutionMetadata
-    query: QueryWindow
-    source_file: SourceFileMetadata
-    exchange_rate: ExchangeRateInput
-    records: list[dict[str, str | int | None]]
+class MappingMetadata(ContractModel):
+    version: str
 
 
-class NormalizedScrapRecord(BaseModel):
-    source_row_number: int
+class BatchStatistics(ContractModel):
+    source_rows: int = Field(ge=0)
+    accepted_rows: int = Field(ge=0)
+    rejected_rows: int = Field(ge=0)
+    expanded_comment_rows: int = Field(ge=0)
+    issue_amount_brl_total: Decimal
+    sales_amount_total: Decimal
+    quality_flag_counts: dict[str, int]
+
+    @field_validator("issue_amount_brl_total", "sales_amount_total", mode="before")
+    @classmethod
+    def validate_decimal_json(cls, value: object) -> object:
+        return _require_decimal_string(value)
+
+
+class CanonicalScrapRecord(ContractModel):
+    source_line: int = Field(ge=2)
     organization_code: str
-    transaction_date: date
-    issue_quantity: Decimal
-    issue_amount_brl: Decimal
-    amount_usd: Decimal
-    period: date
-    period_yy_mm: str
-    quality_flags: list[str]
-    derivation_provenance: dict[str, Any]
-    account_code: str | None = None
+    account_code: str
     account_description: str | None = None
-    account_alias: str | None = None
+    account_alias: str
     subinventory_group: str | None = None
-    subinventory: str | None = None
+    subinventory_code: str | None = None
     warehouse_market: str | None = None
     receipt_department: str | None = None
     receipt_description: str | None = None
-    item_code: str | None = None
+    department: str | None = None
+    product: str | None = None
+    division: str | None = None
+    item_code: str
     uit: str | None = None
     item_description: str | None = None
     item_specification: str | None = None
+    item_type: str | None = None
+    transaction_date: date
+    period: str = Field(pattern=r"^\d{4}-\d{2}$")
+    period_yy_mm: str = Field(pattern=r"^\d{2}\.\d{2}$")
+    issue_quantity: Decimal
     issue_price: Decimal | None = None
+    issue_amount_brl: Decimal
+    amount_usd: Decimal
     sales_price: Decimal | None = None
-    sales_amount_brl: Decimal | None = None
+    sales_amount: Decimal | None = None
     warehouse_keeper: str | None = None
     planner: str | None = None
     work_order: str | None = None
@@ -102,11 +135,35 @@ class NormalizedScrapRecord(BaseModel):
     reference: str | None = None
     make_item: str | None = None
     created_by: str | None = None
-    department: str | None = None
-    product: str | None = None
-    division: str | None = None
-    item_type: str | None = None
     to_be_counted: bool | None = None
+    content_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    quality_flags: list[str]
+    derivation_provenance: dict[str, Any]
+
+    @field_validator(
+        "issue_quantity",
+        "issue_price",
+        "issue_amount_brl",
+        "amount_usd",
+        "sales_price",
+        "sales_amount",
+        mode="before",
+    )
+    @classmethod
+    def validate_decimal_json(cls, value: object) -> object:
+        if value is None:
+            return value
+        return _require_decimal_string(value)
+
+
+class MaterialScrapPayload(ContractModel):
+    schema_version: Literal["1.0.0"] = "1.0.0"
+    execution: ExecutionMetadata
+    source_file: SourceFileMetadata
+    exchange_rate: ExchangeRateMetadata
+    mapping: MappingMetadata
+    statistics: BatchStatistics
+    records: list[CanonicalScrapRecord]
 
 
 class IngestionResult(BaseModel):
@@ -119,21 +176,27 @@ class IngestionResult(BaseModel):
     is_replay: bool = False
 
 
+class IngestionAccepted(BaseModel):
+    task_id: str
+    execution_id: uuid.UUID
+    status: Literal["QUEUED"] = "QUEUED"
+
+
 class ScrapItem(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
-    source_row_number: int
+    source_line: int
     organization_code: str
-    account_code: str | None
+    account_code: str
     account_description: str | None
-    account_alias: str | None
+    account_alias: str
     subinventory_group: str | None
-    subinventory: str | None
+    subinventory_code: str | None
     warehouse_market: str | None
     receipt_department: str | None
     receipt_description: str | None
-    item_code: str | None
+    item_code: str
     uit: str | None
     item_description: str | None
     item_specification: str | None
@@ -142,7 +205,7 @@ class ScrapItem(BaseModel):
     issue_price: Decimal | None
     issue_amount_brl: Decimal
     sales_price: Decimal | None
-    sales_amount_brl: Decimal | None
+    sales_amount: Decimal | None
     warehouse_keeper: str | None
     planner: str | None
     work_order: str | None
@@ -152,7 +215,7 @@ class ScrapItem(BaseModel):
     reference: str | None
     make_item: str | None
     created_by: str | None
-    period: date
+    period: str
     period_yy_mm: str
     department: str | None
     product: str | None
@@ -160,6 +223,7 @@ class ScrapItem(BaseModel):
     item_type: str | None
     to_be_counted: bool | None
     amount_usd: Decimal
+    content_hash: str
     quality_flags: list[str]
     derivation_provenance: dict[str, Any]
 
@@ -179,6 +243,7 @@ class ScrapFilterOptions(BaseModel):
     products: list[str]
     divisions: list[str]
     item_types: list[str]
+    account_aliases: list[str]
     periods: list[str]
 
 

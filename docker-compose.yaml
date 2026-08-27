@@ -124,10 +124,6 @@ services:
       - type: bind
         source: ./backend/scripts
         target: /app/backend/scripts
-      - type: bind
-        source: ./backend/fixtures
-        target: /app/backend/fixtures
-        read_only: true
       - type: volume
         source: profile_images
         target: /app/backend/data/profile-images
@@ -154,6 +150,51 @@ services:
           path: ./backend/pyproject.toml
         - action: rebuild
           path: ./pyproject.toml
+
+  material-scrap-simulation:
+    profiles: ["simulation"]
+    image: hanaro-material-scrap-simulation:dev
+    build:
+      context: .
+      dockerfile: automation/Dockerfile
+    init: true
+    environment:
+      HANARO_SIMULATION_INPUT: ${HANARO_SIMULATION_INPUT:-/input/Other_Account_Transaction_Text_anonymized}
+      HANARO_SIMULATION_REFERENCE_DATE: ${HANARO_SIMULATION_REFERENCE_DATE:-2026-08-26}
+      HANARO_SIMULATION_EXCHANGE_RATE: ${HANARO_SIMULATION_EXCHANGE_RATE:-5.15}
+      HANARO_SIMULATION_RATE_SOURCE: ${HANARO_SIMULATION_RATE_SOURCE:-manual_fixture}
+      HANARO_SIMULATION_ORGANIZATION: ${HANARO_SIMULATION_ORGANIZATION:-ALL}
+      HANARO_SIMULATION_BACKEND_URL: http://backend:8000
+      HANARO_SIMULATION_SEND: ${HANARO_SIMULATION_SEND:-true}
+      HANARO_API_KEY: ${HANARO_API_KEY:-}
+    volumes:
+      - type: bind
+        source: ${HANARO_SIMULATION_HOST_INPUT_DIR:-./automation/fixtures}
+        target: /input
+        read_only: true
+      - type: bind
+        source: ./automation/artifacts
+        target: /app/automation/artifacts
+    depends_on:
+      backend:
+        condition: service_healthy
+      material-scrap-worker-simulation:
+        condition: service_started
+    restart: "no"
+
+  material-scrap-worker-simulation:
+    profiles: ["simulation"]
+    image: hanaro-backend:dev
+    environment: *backend-environment
+    working_dir: /app/backend/src
+    command: ["taskiq", "worker", "infrastructure.taskiq.worker:default_broker"]
+    volumes:
+      - type: bind
+        source: ./backend/src
+        target: /app/backend/src
+    depends_on:
+      backend:
+        condition: service_healthy
 
   postgres:
     image: postgres:17-alpine

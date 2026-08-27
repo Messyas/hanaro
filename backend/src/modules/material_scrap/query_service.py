@@ -15,9 +15,10 @@ from .enums import (
     IngestionStatus,
     ScrapSortField,
     SortOrder,
+    ToBeCountedFilter,
     TrendGroupBy,
 )
-from .models import ExchangeRate, IngestionRun, ScrapTransaction
+from .models import DailyExchangeRate, IngestionRun, ScrapTransaction
 from .schemas import (
     ScrapBreakdownItem,
     ScrapFilterOptions,
@@ -46,7 +47,8 @@ class ScrapFilters:
     divisions: list[str] | None = None
     item_types: list[str] | None = None
     account_codes: list[str] | None = None
-    to_be_counted: bool | None = None
+    account_aliases: list[str] | None = None
+    to_be_counted: ToBeCountedFilter | None = None
 
 
 def _filter_conditions(filters: ScrapFilters) -> list[ColumnElement[bool]]:
@@ -64,10 +66,14 @@ def _filter_conditions(filters: ScrapFilters) -> list[ColumnElement[bool]]:
         (filters.divisions, ScrapTransaction.division),
         (filters.item_types, ScrapTransaction.item_type),
         (filters.account_codes, ScrapTransaction.account_code),
+        (filters.account_aliases, ScrapTransaction.account_alias),
     )
     conditions.extend(column.in_(values) for values, column in list_filters if values)
     if filters.to_be_counted is not None:
-        conditions.append(ScrapTransaction.to_be_counted.is_(filters.to_be_counted))
+        if filters.to_be_counted == ToBeCountedFilter.UNMAPPED:
+            conditions.append(ScrapTransaction.to_be_counted.is_(None))
+        else:
+            conditions.append(ScrapTransaction.to_be_counted.is_(filters.to_be_counted == ToBeCountedFilter.TRUE))
     return conditions
 
 
@@ -122,7 +128,7 @@ async def list_scrap(
     statement = (
         statement.order_by(
             order_function(sort_columns[sort_by]),
-            asc(ScrapTransaction.source_row_number),
+            asc(ScrapTransaction.source_line),
         )
         .offset((page - 1) * page_size)
         .limit(page_size)
@@ -149,6 +155,7 @@ async def get_filter_options(db: AsyncSession, filters: ScrapFilters) -> ScrapFi
         products=await distinct_values(ScrapTransaction.product),
         divisions=await distinct_values(ScrapTransaction.division),
         item_types=await distinct_values(ScrapTransaction.item_type),
+        account_aliases=await distinct_values(ScrapTransaction.account_alias),
         periods=await distinct_values(ScrapTransaction.period_yy_mm),
     )
 
@@ -169,8 +176,8 @@ async def get_summary(db: AsyncSession, filters: ScrapFilters) -> ScrapSummary:
     )
     row = (await db.execute(statement)).one()
     latest_statement = (
-        select(ExchangeRate.brl_per_usd, IngestionRun.ingestion_finished_at)
-        .join(IngestionRun, IngestionRun.id == ExchangeRate.run_id)
+        select(DailyExchangeRate.brl_per_usd, IngestionRun.ingestion_finished_at)
+        .join(IngestionRun, IngestionRun.exchange_rate_id == DailyExchangeRate.id)
         .join(ScrapTransaction, ScrapTransaction.run_id == IngestionRun.id)
         .where(IngestionRun.is_active.is_(True), IngestionRun.status == IngestionStatus.COMPLETED.value)
         .order_by(IngestionRun.ingestion_finished_at.desc())

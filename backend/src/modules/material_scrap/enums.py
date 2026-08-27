@@ -13,6 +13,12 @@ class SortOrder(StrEnum):
     DESC = "desc"
 
 
+class ToBeCountedFilter(StrEnum):
+    TRUE = "true"
+    FALSE = "false"
+    UNMAPPED = "unmapped"
+
+
 class ScrapSortField(StrEnum):
     TRANSACTION_DATE = "transaction_date"
     ORGANIZATION_CODE = "organization_code"

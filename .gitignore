@@ -164,6 +164,7 @@ pnpm-debug.log*
 logs/
 tmp/
 temp/
+automation/artifacts/*.json
 
 .idea
 

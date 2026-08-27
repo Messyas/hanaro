@@ -68,7 +68,6 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     && rm /tmp/requirements-dev.txt
 
 COPY --chown=app:app backend/tests ./tests
-COPY --chown=app:app backend/fixtures ./fixtures
 COPY --chown=app:app backend/migrations ./migrations
 COPY --chown=app:app backend/scripts ./scripts
 COPY --chown=app:app backend/alembic.ini ./alembic.ini

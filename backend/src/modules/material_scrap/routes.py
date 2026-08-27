@@ -1,12 +1,23 @@
 from datetime import date
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from ...infrastructure.dependencies import AsyncSessionDep
-from .enums import BreakdownGroupBy, BreakdownMetric, ScrapSortField, SortOrder, TrendGroupBy
+from .dependencies import require_material_scrap_ingestion_key
+from .enums import BreakdownGroupBy, BreakdownMetric, ScrapSortField, SortOrder, ToBeCountedFilter, TrendGroupBy
 from .query_service import ScrapFilters, get_breakdown, get_filter_options, get_summary, get_trend, list_scrap
-from .schemas import ScrapBreakdownItem, ScrapFilterOptions, ScrapPage, ScrapSummary, ScrapTrendPoint
+from .schemas import (
+    IngestionAccepted,
+    MaterialScrapPayload,
+    ScrapBreakdownItem,
+    ScrapFilterOptions,
+    ScrapPage,
+    ScrapSummary,
+    ScrapTrendPoint,
+)
+from .service import CanonicalBatchValidationError, validate_canonical_batch
+from .tasks import enqueue_material_scrap
 
 scrap_router = APIRouter(tags=["Material Scrap"])
 dashboard_router = APIRouter(tags=["Material Scrap Dashboard"])
@@ -22,7 +33,8 @@ def build_filters(
     divisions: Annotated[list[str] | None, Query()] = None,
     item_types: Annotated[list[str] | None, Query()] = None,
     account_codes: Annotated[list[str] | None, Query()] = None,
-    to_be_counted: bool | None = None,
+    account_aliases: Annotated[list[str] | None, Query()] = None,
+    to_be_counted: ToBeCountedFilter | None = None,
 ) -> ScrapFilters:
     return ScrapFilters(
         date_from=date_from,
@@ -34,11 +46,29 @@ def build_filters(
         divisions=divisions,
         item_types=item_types,
         account_codes=account_codes,
+        account_aliases=account_aliases,
         to_be_counted=to_be_counted,
     )
 
 
 ScrapFiltersDep = Annotated[ScrapFilters, Depends(build_filters)]
+
+
+@scrap_router.post(
+    "/ingestions",
+    response_model=IngestionAccepted,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def create_scrap_ingestion(
+    payload: MaterialScrapPayload,
+    _: Annotated[int, Depends(require_material_scrap_ingestion_key)],
+) -> IngestionAccepted:
+    try:
+        validate_canonical_batch(payload)
+    except CanonicalBatchValidationError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    task_id = await enqueue_material_scrap(payload)
+    return IngestionAccepted(task_id=task_id, execution_id=payload.execution.execution_id)
 
 
 @scrap_router.get("", response_model=ScrapPage)
