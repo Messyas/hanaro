@@ -64,9 +64,7 @@ class ScrapDashboardService:
                 else ScrapDashboardAggregate.issue_amount_brl
             )
         return (
-            ScrapDashboardAggregate.amount_usd_abs
-            if impact_mode == ImpactMode.ABSOLUTE
-            else ScrapDashboardAggregate.amount_usd
+            ScrapDashboardAggregate.amount_usd_abs if impact_mode == ImpactMode.ABSOLUTE else ScrapDashboardAggregate.amount_usd
         )
 
     async def _total(
@@ -195,21 +193,11 @@ class ScrapDashboardService:
             for month in range(1, 13)
         ]
 
-        products = await self._ranking(
-            db, current_filters, metric, ScrapDashboardAggregate.product, ranking_limit
-        )
-        components = await self._ranking(
-            db, current_filters, metric, ScrapDashboardAggregate.item_type, ranking_limit
-        )
-        lines = await self._ranking(
-            db, current_filters, metric, ScrapDashboardAggregate.receipt_department, ranking_limit
-        )
-        models = await self._ranking(
-            db, current_filters, metric, ScrapDashboardAggregate.item_code, ranking_limit
-        )
-        offenders = await self._ranking(
-            db, current_filters, metric, ScrapDashboardAggregate.account_alias, ranking_limit
-        )
+        products = await self._ranking(db, current_filters, metric, ScrapDashboardAggregate.product, ranking_limit)
+        components = await self._ranking(db, current_filters, metric, ScrapDashboardAggregate.item_type, ranking_limit)
+        lines = await self._ranking(db, current_filters, metric, ScrapDashboardAggregate.receipt_department, ranking_limit)
+        models = await self._ranking(db, current_filters, metric, ScrapDashboardAggregate.item_code, ranking_limit)
+        offenders = await self._ranking(db, current_filters, metric, ScrapDashboardAggregate.account_alias, ranking_limit)
 
         data_statement = self._active_statement(func.max(ScrapDashboardAggregate.transaction_date))
         data_conditions = _aggregate_filter_conditions(current_filters)
@@ -220,9 +208,7 @@ class ScrapDashboardService:
             (target_total / actual * 100).quantize(PERCENT_QUANTUM) if target_total is not None and actual else None
         )
         previous_variation = (
-            ((actual - previous_actual) / previous_actual * 100).quantize(PERCENT_QUANTUM)
-            if previous_actual
-            else None
+            ((actual - previous_actual) / previous_actual * 100).quantize(PERCENT_QUANTUM) if previous_actual else None
         )
         response = DashboardResponse(
             metadata=DashboardMetadata(
