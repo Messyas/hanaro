@@ -6,7 +6,7 @@ services:
     dockerContext: .
     preDeployCommand: CONFIRM_PRODUCTION_MIGRATION=yes alembic upgrade head
     healthCheckPath: /health
-    autoDeploy: true
+    autoDeployTrigger: checksPass
     envVars:
       - key: ENVIRONMENT
         value: production
