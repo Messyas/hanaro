@@ -77,9 +77,6 @@ instance/
 # Scrapy stuff:
 .scrapy
 
-# Sphinx documentation
-/docs/
-
 # PyBuilder
 .pybuilder/
 target/
@@ -164,6 +161,7 @@ pnpm-debug.log*
 logs/
 tmp/
 temp/
+automation/artifacts/*.json
 
 .idea
 

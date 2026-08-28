@@ -15,6 +15,7 @@ pessoas e agentes de código.
   [logging, exceções e recursos](05-logging-excecoes-e-recursos.md).
 - Cache, rate limit, tarefas ou API externa: [infraestrutura e integrações](06-infra-e-integracoes.md).
 - Frontend, CORS, proxy reverso ou produção: [proxy e comunicação com o frontend](07-proxy-frontend-e-deploy.md).
+- Esteira e API de Material Scrap: [ingestão de Material Scrap](08-material-scrap-ingestion.md).
 
 > A camada HTTP deste backend é implementada em `routes.py`. As rotas fazem a
 > conversão entre HTTP e os contratos da aplicação e delegam as regras de
