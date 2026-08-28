@@ -60,3 +60,34 @@ async def test_multiple_organization_and_derived_department_filters(client: Asyn
     assert organizations.json()["total_items"] == 4
     unmapped = await client.get("/api/v1/scrap", params={"to_be_counted": "unmapped"})
     assert unmapped.json()["total_items"] == 6
+
+
+@pytest.mark.asyncio
+async def test_superuser_manages_target_and_dashboard_consumes_it(
+    superuser_auth_client: AsyncClient,
+    loaded_scrap: None,
+) -> None:
+    created = await superuser_auth_client.put(
+        "/api/v1/dashboard/scrap/targets/2026/8",
+        json={"currency": "USD", "amount": "1000.000000"},
+    )
+    assert created.status_code == 200
+    assert created.json()["amount"] == "1000.000000"
+
+    updated = await superuser_auth_client.put(
+        "/api/v1/dashboard/scrap/targets/2026/8",
+        json={"currency": "USD", "amount": "900.000000"},
+    )
+    assert updated.status_code == 200
+    targets = (await superuser_auth_client.get("/api/v1/dashboard/scrap/targets", params={"year": 2026})).json()
+    assert len(targets) == 1
+    assert targets[0]["amount"] == "900.000000"
+
+    dashboard = (
+        await superuser_auth_client.get(
+            "/api/v1/dashboard/scrap",
+            params={"year": 2026, "currency": "USD"},
+        )
+    ).json()
+    assert dashboard["kpis"]["target"] == "900.000000"
+    assert dashboard["monthly"][7]["target"] == "900.000000"

@@ -6,12 +6,16 @@ from decimal import ROUND_HALF_UP, Decimal, localcontext
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ...infrastructure.logging import get_logger
 from . import repository
 from .schemas import CanonicalScrapRecord, IngestionResult, MaterialScrapPayload
 
 
 class CanonicalBatchValidationError(ValueError):
     pass
+
+
+logger = get_logger(__name__)
 
 
 def _content_hash(record: CanonicalScrapRecord) -> str:
@@ -95,18 +99,29 @@ async def ingest_material_scrap(payload: MaterialScrapPayload, db: AsyncSession)
 
     run = await repository.create_pending_run(payload, db)
     await repository.mark_processing(run, db)
+    run_id = run.id
+    execution_id = run.execution_id
     try:
         await repository.publish_snapshot(run, payload.records, db)
     except Exception as error:
         await db.rollback()
         await repository.mark_failed(
-            run.id,
+            run_id,
             db,
             read_count=len(payload.records),
             rejected_count=len(payload.records),
-            error_message=f"{type(error).__name__}: {error}",
+            error_message=type(error).__name__,
+        )
+        logger.exception(
+            "material_scrap_ingestion_failed",
+            extra={"run_id": str(run_id), "execution_id": str(execution_id)},
         )
         raise
+
+    logger.info(
+        "material_scrap_ingestion_completed",
+        extra={"run_id": str(run.id), "accepted_count": run.accepted_count},
+    )
 
     return IngestionResult(
         run_id=run.id,

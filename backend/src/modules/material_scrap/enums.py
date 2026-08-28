@@ -42,6 +42,8 @@ class BreakdownGroupBy(StrEnum):
     PRODUCT = "product"
     DIVISION = "division"
     ITEM_TYPE = "item_type"
+    MODEL = "model"
+    OFFENDER = "offender"
 
 
 class BreakdownMetric(StrEnum):
@@ -49,3 +51,13 @@ class BreakdownMetric(StrEnum):
     AMOUNT_USD = "amount_usd"
     QUANTITY = "quantity"
     RECORDS = "records"
+
+
+class DashboardCurrency(StrEnum):
+    BRL = "BRL"
+    USD = "USD"
+
+
+class ImpactMode(StrEnum):
+    ABSOLUTE = "absolute"
+    SIGNED = "signed"

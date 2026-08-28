@@ -5,6 +5,10 @@ participant BOT as Bot Python
 participant GERP as GERP
 participant BCB as PTAX / Banco Central
 participant API as API Hanaro
+participant Q as Redis / Taskiq
+participant W as Worker Hanaro
+participant DB as PostgreSQL
+participant FE as Frontend
 
     SO->>BOT: Iniciar execução agendada
     activate BOT
@@ -37,10 +41,21 @@ participant API as API Hanaro
         BOT->>BOT: Calcular amount_usd e gerar JSON canônico
         BOT->>BOT: Reconciliar linhas, totais e hashes
         BOT->>API: POST /api/v1/scrap/ingestions
-        API-->>BOT: 202 Accepted + task_id ou erro validado
+        API->>Q: Enfileirar contrato canônico validado
+        API-->>BOT: 202 Accepted + task_id ou erro de contrato
+        Q->>W: Entregar lote
+        W->>W: Reconciliar hashes, valores e contagens
+        W->>W: Pré-calcular projeção do dashboard
+        W->>DB: Transação: linhas + projeção + snapshot + revisão
+        DB-->>W: Commit atômico
     else Erro, status anormal ou timeout
         BOT->>BOT: Registrar erro, Request ID e evidência
         BOT-->>SO: Encerrar execução como falha
     end
 
     deactivate BOT
+
+    FE->>API: GET /api/v1/dashboard/scrap?year=...&currency=...
+    API->>DB: Ler revisão e agregados ativos
+    DB-->>API: KPIs e rollups pré-calculados
+    API-->>FE: Contrato pronto: séries, rankings e metas

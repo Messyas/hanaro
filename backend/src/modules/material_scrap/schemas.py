@@ -1,9 +1,11 @@
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+from .enums import DashboardCurrency, ImpactMode
 
 
 class ContractModel(BaseModel):
@@ -21,9 +23,9 @@ class ExecutionMetadata(ContractModel):
     query_date_from: date
     query_date_to: date
     query_window_inferred: bool
-    gerp_request_id: str | None = None
-    organization_parameter: str = "ALL"
-    organizations_found: list[str]
+    gerp_request_id: str | None = Field(default=None, max_length=100)
+    organization_parameter: str = Field(default="ALL", min_length=1, max_length=80)
+    organizations_found: list[Annotated[str, Field(min_length=1, max_length=40)]] = Field(max_length=1000)
 
     @field_validator("query_date_to")
     @classmethod
@@ -40,13 +42,19 @@ class ExecutionMetadata(ContractModel):
             raise ValueError("extracted_at must include timezone information")
         return value
 
+    @model_validator(mode="after")
+    def validate_query_window_size(self) -> "ExecutionMetadata":
+        if (self.query_date_to - self.query_date_from).days > 366:
+            raise ValueError("query window cannot exceed 366 days")
+        return self
+
 
 class SourceFileMetadata(ContractModel):
-    name: str
+    name: str = Field(min_length=1, max_length=255)
     sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
-    encoding: str
+    encoding: str = Field(min_length=1, max_length=30)
     delimiter: Literal["TAB"] = "TAB"
-    size_bytes: int = Field(ge=1)
+    size_bytes: int = Field(ge=1, le=100_000_000)
 
 
 def _require_decimal_string(value: object) -> object:
@@ -60,9 +68,9 @@ class ExchangeRateMetadata(ContractModel):
     effective_date: date
     base_currency: Literal["BRL"] = "BRL"
     quote_currency: Literal["USD"] = "USD"
-    brl_per_usd: Decimal
-    quote_type: str
-    source: str
+    brl_per_usd: Decimal = Field(max_digits=18, decimal_places=6)
+    quote_type: str = Field(min_length=1, max_length=80)
+    source: str = Field(min_length=1, max_length=80)
     retrieved_at: datetime | None = None
     fallback_used: bool = False
 
@@ -80,17 +88,17 @@ class ExchangeRateMetadata(ContractModel):
 
 
 class MappingMetadata(ContractModel):
-    version: str
+    version: str = Field(min_length=1, max_length=40)
 
 
 class BatchStatistics(ContractModel):
-    source_rows: int = Field(ge=0)
-    accepted_rows: int = Field(ge=0)
-    rejected_rows: int = Field(ge=0)
-    expanded_comment_rows: int = Field(ge=0)
-    issue_amount_brl_total: Decimal
-    sales_amount_total: Decimal
-    quality_flag_counts: dict[str, int]
+    source_rows: int = Field(ge=0, le=50_000)
+    accepted_rows: int = Field(ge=0, le=50_000)
+    rejected_rows: int = Field(ge=0, le=50_000)
+    expanded_comment_rows: int = Field(ge=0, le=50_000)
+    issue_amount_brl_total: Decimal = Field(max_digits=20, decimal_places=2)
+    sales_amount_total: Decimal = Field(max_digits=20, decimal_places=2)
+    quality_flag_counts: dict[str, int] = Field(max_length=100)
 
     @field_validator("issue_amount_brl_total", "sales_amount_total", mode="before")
     @classmethod
@@ -100,45 +108,45 @@ class BatchStatistics(ContractModel):
 
 class CanonicalScrapRecord(ContractModel):
     source_line: int = Field(ge=2)
-    organization_code: str
-    account_code: str
-    account_description: str | None = None
-    account_alias: str
-    subinventory_group: str | None = None
-    subinventory_code: str | None = None
-    warehouse_market: str | None = None
-    receipt_department: str | None = None
-    receipt_description: str | None = None
-    department: str | None = None
-    product: str | None = None
-    division: str | None = None
-    item_code: str
-    uit: str | None = None
-    item_description: str | None = None
-    item_specification: str | None = None
-    item_type: str | None = None
+    organization_code: str = Field(min_length=1, max_length=40)
+    account_code: str = Field(min_length=1, max_length=80)
+    account_description: str | None = Field(default=None, max_length=4000)
+    account_alias: str = Field(min_length=1, max_length=100)
+    subinventory_group: str | None = Field(default=None, max_length=100)
+    subinventory_code: str | None = Field(default=None, max_length=100)
+    warehouse_market: str | None = Field(default=None, max_length=100)
+    receipt_department: str | None = Field(default=None, max_length=120)
+    receipt_description: str | None = Field(default=None, max_length=4000)
+    department: str | None = Field(default=None, max_length=120)
+    product: str | None = Field(default=None, max_length=40)
+    division: str | None = Field(default=None, max_length=40)
+    item_code: str = Field(min_length=1, max_length=100)
+    uit: str | None = Field(default=None, max_length=100)
+    item_description: str | None = Field(default=None, max_length=4000)
+    item_specification: str | None = Field(default=None, max_length=4000)
+    item_type: str | None = Field(default=None, max_length=40)
     transaction_date: date
     period: str = Field(pattern=r"^\d{4}-\d{2}$")
     period_yy_mm: str = Field(pattern=r"^\d{2}\.\d{2}$")
-    issue_quantity: Decimal
-    issue_price: Decimal | None = None
-    issue_amount_brl: Decimal
-    amount_usd: Decimal
-    sales_price: Decimal | None = None
-    sales_amount: Decimal | None = None
-    warehouse_keeper: str | None = None
-    planner: str | None = None
-    work_order: str | None = None
-    reason: str | None = None
-    requisition_reason: str | None = None
-    requisition_comment: str | None = None
-    reference: str | None = None
-    make_item: str | None = None
-    created_by: str | None = None
+    issue_quantity: Decimal = Field(max_digits=20, decimal_places=6)
+    issue_price: Decimal | None = Field(default=None, max_digits=20, decimal_places=8)
+    issue_amount_brl: Decimal = Field(max_digits=20, decimal_places=2)
+    amount_usd: Decimal = Field(max_digits=20, decimal_places=6)
+    sales_price: Decimal | None = Field(default=None, max_digits=20, decimal_places=8)
+    sales_amount: Decimal | None = Field(default=None, max_digits=20, decimal_places=2)
+    warehouse_keeper: str | None = Field(default=None, max_length=120)
+    planner: str | None = Field(default=None, max_length=120)
+    work_order: str | None = Field(default=None, max_length=120)
+    reason: str | None = Field(default=None, max_length=4000)
+    requisition_reason: str | None = Field(default=None, max_length=4000)
+    requisition_comment: str | None = Field(default=None, max_length=4000)
+    reference: str | None = Field(default=None, max_length=255)
+    make_item: str | None = Field(default=None, max_length=20)
+    created_by: str | None = Field(default=None, max_length=120)
     to_be_counted: bool | None = None
     content_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
-    quality_flags: list[str]
-    derivation_provenance: dict[str, Any]
+    quality_flags: list[Annotated[str, Field(min_length=1, max_length=100)]] = Field(max_length=50)
+    derivation_provenance: dict[str, Any] = Field(max_length=50)
 
     @field_validator(
         "issue_quantity",
@@ -163,7 +171,7 @@ class MaterialScrapPayload(ContractModel):
     exchange_rate: ExchangeRateMetadata
     mapping: MappingMetadata
     statistics: BatchStatistics
-    records: list[CanonicalScrapRecord]
+    records: list[CanonicalScrapRecord] = Field(max_length=50_000)
 
 
 class IngestionResult(BaseModel):
@@ -237,12 +245,15 @@ class ScrapPage(BaseModel):
 
 
 class ScrapFilterOptions(BaseModel):
+    years: list[int]
+    weeks: list[int]
     organizations: list[str]
     receipt_departments: list[str]
     departments: list[str]
     products: list[str]
     divisions: list[str]
     item_types: list[str]
+    item_codes: list[str]
     account_aliases: list[str]
     periods: list[str]
 
@@ -271,3 +282,70 @@ class ScrapBreakdownItem(BaseModel):
     key: str | None
     metric: Decimal
     record_count: int
+
+
+class ScrapTargetUpsert(ContractModel):
+    currency: DashboardCurrency
+    amount: Decimal = Field(ge=0, max_digits=24, decimal_places=6)
+
+    @field_validator("amount", mode="before")
+    @classmethod
+    def validate_decimal_json(cls, value: object) -> object:
+        return _require_decimal_string(value)
+
+
+class ScrapTargetRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    year: int
+    month: int
+    currency: DashboardCurrency
+    amount: Decimal
+    updated_at: datetime
+
+
+class DashboardMetadata(BaseModel):
+    revision: uuid.UUID
+    generated_at: datetime
+    data_through: date | None
+    currency: DashboardCurrency
+    impact_mode: ImpactMode
+    target_scope: Literal["global"] = "global"
+
+
+class DashboardKpis(BaseModel):
+    actual: Decimal
+    target: Decimal | None
+    target_attainment_percent: Decimal | None
+    previous_year_actual: Decimal
+    previous_year_variation_percent: Decimal | None
+
+
+class DashboardSeriesPoint(BaseModel):
+    period: str
+    actual: Decimal
+    previous_year: Decimal | None = None
+    target: Decimal | None = None
+
+
+class DashboardRankingItem(BaseModel):
+    key: str | None
+    amount: Decimal
+    record_count: int
+
+
+class DashboardRankings(BaseModel):
+    products: list[DashboardRankingItem]
+    components: list[DashboardRankingItem]
+    lines: list[DashboardRankingItem]
+    models: list[DashboardRankingItem]
+    offenders: list[DashboardRankingItem]
+
+
+class DashboardResponse(BaseModel):
+    metadata: DashboardMetadata
+    kpis: DashboardKpis
+    monthly: list[DashboardSeriesPoint]
+    weekly: list[DashboardSeriesPoint]
+    rankings: DashboardRankings
+    priority_occurrences: list[DashboardRankingItem]

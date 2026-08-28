@@ -18,7 +18,8 @@ from .enums import (
     ToBeCountedFilter,
     TrendGroupBy,
 )
-from .models import DailyExchangeRate, IngestionRun, ScrapTransaction
+from .models import DailyExchangeRate, IngestionRun, ScrapDashboardAggregate, ScrapTransaction
+from .projection import UNMAPPED_DIMENSION
 from .schemas import (
     ScrapBreakdownItem,
     ScrapFilterOptions,
@@ -48,7 +49,9 @@ class ScrapFilters:
     item_types: list[str] | None = None
     account_codes: list[str] | None = None
     account_aliases: list[str] | None = None
+    item_codes: list[str] | None = None
     to_be_counted: ToBeCountedFilter | None = None
+    week: int | None = None
 
 
 def _filter_conditions(filters: ScrapFilters) -> list[ColumnElement[bool]]:
@@ -67,6 +70,7 @@ def _filter_conditions(filters: ScrapFilters) -> list[ColumnElement[bool]]:
         (filters.item_types, ScrapTransaction.item_type),
         (filters.account_codes, ScrapTransaction.account_code),
         (filters.account_aliases, ScrapTransaction.account_alias),
+        (filters.item_codes, ScrapTransaction.item_code),
     )
     conditions.extend(column.in_(values) for values, column in list_filters if values)
     if filters.to_be_counted is not None:
@@ -74,6 +78,33 @@ def _filter_conditions(filters: ScrapFilters) -> list[ColumnElement[bool]]:
             conditions.append(ScrapTransaction.to_be_counted.is_(None))
         else:
             conditions.append(ScrapTransaction.to_be_counted.is_(filters.to_be_counted == ToBeCountedFilter.TRUE))
+    if filters.week is not None:
+        conditions.append(cast(func.extract("week", ScrapTransaction.transaction_date), Numeric) == filters.week)
+    return conditions
+
+
+def _aggregate_filter_conditions(filters: ScrapFilters) -> list[ColumnElement[bool]]:
+    conditions: list[ColumnElement[bool]] = []
+    if filters.date_from is not None:
+        conditions.append(ScrapDashboardAggregate.transaction_date >= filters.date_from)
+    if filters.date_to is not None:
+        conditions.append(ScrapDashboardAggregate.transaction_date <= filters.date_to)
+    list_filters = (
+        (filters.organizations, ScrapDashboardAggregate.organization_code),
+        (filters.receipt_departments, ScrapDashboardAggregate.receipt_department),
+        (filters.departments, ScrapDashboardAggregate.department),
+        (filters.products, ScrapDashboardAggregate.product),
+        (filters.divisions, ScrapDashboardAggregate.division),
+        (filters.item_types, ScrapDashboardAggregate.item_type),
+        (filters.account_codes, ScrapDashboardAggregate.account_code),
+        (filters.account_aliases, ScrapDashboardAggregate.account_alias),
+        (filters.item_codes, ScrapDashboardAggregate.item_code),
+    )
+    conditions.extend(column.in_(values) for values, column in list_filters if values)
+    if filters.to_be_counted is not None:
+        conditions.append(ScrapDashboardAggregate.to_be_counted_key == filters.to_be_counted.value)
+    if filters.week is not None:
+        conditions.append(cast(func.extract("week", ScrapDashboardAggregate.transaction_date), Numeric) == filters.week)
     return conditions
 
 
@@ -85,8 +116,21 @@ def _active_query(*columns: Any) -> Select[Any]:
     )
 
 
+def _active_aggregate_query(*columns: Any) -> Select[Any]:
+    statement: Select[Any] = select(*columns) if columns else select(ScrapDashboardAggregate)
+    return statement.join(IngestionRun, IngestionRun.id == ScrapDashboardAggregate.run_id).where(
+        IngestionRun.is_active.is_(True),
+        IngestionRun.status == IngestionStatus.COMPLETED.value,
+    )
+
+
 def _apply_filters(statement: Select[Any], filters: ScrapFilters) -> Select[Any]:
     conditions = _filter_conditions(filters)
+    return statement.where(and_(*conditions)) if conditions else statement
+
+
+def _apply_aggregate_filters(statement: Select[Any], filters: ScrapFilters) -> Select[Any]:
+    conditions = _aggregate_filter_conditions(filters)
     return statement.where(and_(*conditions)) if conditions else statement
 
 
@@ -145,32 +189,45 @@ async def list_scrap(
 
 async def get_filter_options(db: AsyncSession, filters: ScrapFilters) -> ScrapFilterOptions:
     async def distinct_values(column: InstrumentedAttribute[Any]) -> list[str]:
-        statement = _apply_filters(_active_query(column), filters).where(column.is_not(None)).distinct().order_by(column)
+        statement = (
+            _apply_aggregate_filters(_active_aggregate_query(column), filters)
+            .where(column != UNMAPPED_DIMENSION)
+            .distinct()
+            .order_by(column)
+        )
         return [str(value) for value in (await db.execute(statement)).scalars().all()]
 
+    date_statement = _apply_aggregate_filters(
+        _active_aggregate_query(ScrapDashboardAggregate.transaction_date), filters
+    ).distinct()
+    available_dates = list((await db.execute(date_statement)).scalars())
+    periods = sorted({value.strftime("%y.%m") for value in available_dates})
     return ScrapFilterOptions(
-        organizations=await distinct_values(ScrapTransaction.organization_code),
-        receipt_departments=await distinct_values(ScrapTransaction.receipt_department),
-        departments=await distinct_values(ScrapTransaction.department),
-        products=await distinct_values(ScrapTransaction.product),
-        divisions=await distinct_values(ScrapTransaction.division),
-        item_types=await distinct_values(ScrapTransaction.item_type),
-        account_aliases=await distinct_values(ScrapTransaction.account_alias),
-        periods=await distinct_values(ScrapTransaction.period_yy_mm),
+        years=sorted({value.year for value in available_dates}),
+        weeks=sorted({value.isocalendar().week for value in available_dates}),
+        organizations=await distinct_values(ScrapDashboardAggregate.organization_code),
+        receipt_departments=await distinct_values(ScrapDashboardAggregate.receipt_department),
+        departments=await distinct_values(ScrapDashboardAggregate.department),
+        products=await distinct_values(ScrapDashboardAggregate.product),
+        divisions=await distinct_values(ScrapDashboardAggregate.division),
+        item_types=await distinct_values(ScrapDashboardAggregate.item_type),
+        item_codes=await distinct_values(ScrapDashboardAggregate.item_code),
+        account_aliases=await distinct_values(ScrapDashboardAggregate.account_alias),
+        periods=periods,
     )
 
 
 async def get_summary(db: AsyncSession, filters: ScrapFilters) -> ScrapSummary:
-    counted = ScrapTransaction.to_be_counted.is_(True)
-    statement = _apply_filters(
-        _active_query(
-            func.count(ScrapTransaction.id),
-            func.coalesce(func.sum(func.abs(ScrapTransaction.issue_quantity)), 0),
-            func.coalesce(func.sum(func.abs(ScrapTransaction.issue_amount_brl)), 0),
-            func.coalesce(func.sum(func.abs(ScrapTransaction.amount_usd)), 0),
-            func.count(case((counted, ScrapTransaction.id))),
-            func.coalesce(func.sum(case((counted, func.abs(ScrapTransaction.issue_amount_brl)), else_=0)), 0),
-            func.coalesce(func.sum(case((counted, func.abs(ScrapTransaction.amount_usd)), else_=0)), 0),
+    counted = ScrapDashboardAggregate.to_be_counted_key == ToBeCountedFilter.TRUE.value
+    statement = _apply_aggregate_filters(
+        _active_aggregate_query(
+            func.coalesce(func.sum(ScrapDashboardAggregate.record_count), 0),
+            func.coalesce(func.sum(ScrapDashboardAggregate.issue_quantity_abs), 0),
+            func.coalesce(func.sum(ScrapDashboardAggregate.issue_amount_brl_abs), 0),
+            func.coalesce(func.sum(ScrapDashboardAggregate.amount_usd_abs), 0),
+            func.coalesce(func.sum(case((counted, ScrapDashboardAggregate.record_count), else_=0)), 0),
+            func.coalesce(func.sum(case((counted, ScrapDashboardAggregate.issue_amount_brl_abs), else_=0)), 0),
+            func.coalesce(func.sum(case((counted, ScrapDashboardAggregate.amount_usd_abs), else_=0)), 0),
         ),
         filters,
     )
@@ -208,8 +265,8 @@ def _period_expression(db: AsyncSession, group_by: TrendGroupBy) -> ColumnElemen
             TrendGroupBy.WEEK: "%Y-W%W",
             TrendGroupBy.MONTH: "%Y-%m",
         }
-        return func.strftime(formats[group_by], ScrapTransaction.transaction_date)
-    return func.date_trunc(group_by.value, ScrapTransaction.transaction_date)
+        return func.strftime(formats[group_by], ScrapDashboardAggregate.transaction_date)
+    return func.date_trunc(group_by.value, ScrapDashboardAggregate.transaction_date)
 
 
 def _format_period(value: date | datetime | str, group_by: TrendGroupBy) -> str:
@@ -225,13 +282,13 @@ def _format_period(value: date | datetime | str, group_by: TrendGroupBy) -> str:
 async def get_trend(db: AsyncSession, filters: ScrapFilters, group_by: TrendGroupBy) -> list[ScrapTrendPoint]:
     period = _period_expression(db, group_by).label("period")
     statement = (
-        _apply_filters(
-            _active_query(
+        _apply_aggregate_filters(
+            _active_aggregate_query(
                 period,
-                func.count(ScrapTransaction.id),
-                func.sum(func.abs(ScrapTransaction.issue_quantity)),
-                func.sum(func.abs(ScrapTransaction.issue_amount_brl)),
-                func.sum(func.abs(ScrapTransaction.amount_usd)),
+                func.sum(ScrapDashboardAggregate.record_count),
+                func.sum(ScrapDashboardAggregate.issue_quantity_abs),
+                func.sum(ScrapDashboardAggregate.issue_amount_brl_abs),
+                func.sum(ScrapDashboardAggregate.amount_usd_abs),
             ),
             filters,
         )
@@ -258,29 +315,31 @@ async def get_breakdown(
     sort_order: SortOrder,
 ) -> list[ScrapBreakdownItem]:
     group_columns = {
-        BreakdownGroupBy.ORGANIZATION: ScrapTransaction.organization_code,
-        BreakdownGroupBy.RECEIPT_DEPARTMENT: ScrapTransaction.receipt_department,
-        BreakdownGroupBy.DEPARTMENT: ScrapTransaction.department,
-        BreakdownGroupBy.PRODUCT: ScrapTransaction.product,
-        BreakdownGroupBy.DIVISION: ScrapTransaction.division,
-        BreakdownGroupBy.ITEM_TYPE: ScrapTransaction.item_type,
+        BreakdownGroupBy.ORGANIZATION: ScrapDashboardAggregate.organization_code,
+        BreakdownGroupBy.RECEIPT_DEPARTMENT: ScrapDashboardAggregate.receipt_department,
+        BreakdownGroupBy.DEPARTMENT: ScrapDashboardAggregate.department,
+        BreakdownGroupBy.PRODUCT: ScrapDashboardAggregate.product,
+        BreakdownGroupBy.DIVISION: ScrapDashboardAggregate.division,
+        BreakdownGroupBy.ITEM_TYPE: ScrapDashboardAggregate.item_type,
+        BreakdownGroupBy.MODEL: ScrapDashboardAggregate.item_code,
+        BreakdownGroupBy.OFFENDER: ScrapDashboardAggregate.account_alias,
     }
     metric_expressions = {
-        BreakdownMetric.AMOUNT_BRL: func.sum(func.abs(ScrapTransaction.issue_amount_brl)),
-        BreakdownMetric.AMOUNT_USD: func.sum(func.abs(ScrapTransaction.amount_usd)),
-        BreakdownMetric.QUANTITY: func.sum(func.abs(ScrapTransaction.issue_quantity)),
-        BreakdownMetric.RECORDS: cast(func.count(ScrapTransaction.id), Numeric(20, 6)),
+        BreakdownMetric.AMOUNT_BRL: func.sum(ScrapDashboardAggregate.issue_amount_brl_abs),
+        BreakdownMetric.AMOUNT_USD: func.sum(ScrapDashboardAggregate.amount_usd_abs),
+        BreakdownMetric.QUANTITY: func.sum(ScrapDashboardAggregate.issue_quantity_abs),
+        BreakdownMetric.RECORDS: cast(func.sum(ScrapDashboardAggregate.record_count), Numeric(20, 6)),
     }
     group_column = group_columns[group_by]
     metric_expression = metric_expressions[metric].label("metric")
-    statement = _apply_filters(
-        _active_query(group_column, metric_expression, func.count(ScrapTransaction.id)), filters
+    statement = _apply_aggregate_filters(
+        _active_aggregate_query(group_column, metric_expression, func.sum(ScrapDashboardAggregate.record_count)), filters
     ).group_by(group_column)
     statement = statement.order_by(desc(metric_expression) if sort_order == SortOrder.DESC else asc(metric_expression))
     metric_quantum = MONEY_QUANTUM if metric == BreakdownMetric.AMOUNT_BRL else SIX_PLACE_QUANTUM
     return [
         ScrapBreakdownItem(
-            key=row[0],
+            key=None if row[0] == UNMAPPED_DIMENSION else row[0],
             metric=_scaled_decimal(row[1], metric_quantum),
             record_count=int(row[2]),
         )

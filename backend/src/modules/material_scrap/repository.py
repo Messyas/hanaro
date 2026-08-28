@@ -1,11 +1,18 @@
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import select, update
+from sqlalchemy import or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .enums import IngestionStatus
-from .models import DailyExchangeRate, IngestionRun, IngestionSourceFile, ScrapTransaction
+from .models import (
+    DailyExchangeRate,
+    IngestionRun,
+    IngestionSourceFile,
+    ScrapDashboardState,
+    ScrapTransaction,
+)
+from .projection import build_dashboard_projection
 from .schemas import CanonicalScrapRecord, ExchangeRateMetadata, MaterialScrapPayload
 
 REPORT_NAME = "MATERIAL_SCRAP"
@@ -117,7 +124,24 @@ async def publish_snapshot(
     records: list[CanonicalScrapRecord],
     db: AsyncSession,
 ) -> None:
+    partial_overlap = (
+        select(IngestionRun.id)
+        .where(
+            IngestionRun.id != run.id,
+            IngestionRun.report_name == run.report_name,
+            IngestionRun.organization_scope == run.organization_scope,
+            IngestionRun.is_active.is_(True),
+            IngestionRun.date_from <= run.date_to,
+            IngestionRun.date_to >= run.date_from,
+            or_(IngestionRun.date_from < run.date_from, IngestionRun.date_to > run.date_to),
+        )
+        .limit(1)
+    )
+    if (await db.execute(partial_overlap)).scalar_one_or_none() is not None:
+        raise ValueError("new snapshot must fully cover every active overlapping window")
+
     db.add_all([ScrapTransaction(run_id=run.id, **record.model_dump()) for record in records])
+    db.add_all(build_dashboard_projection(run.id, records))
     await db.flush()
     await db.execute(
         update(IngestionRun)
@@ -125,8 +149,8 @@ async def publish_snapshot(
             IngestionRun.id != run.id,
             IngestionRun.report_name == run.report_name,
             IngestionRun.organization_scope == run.organization_scope,
-            IngestionRun.date_from == run.date_from,
-            IngestionRun.date_to == run.date_to,
+            IngestionRun.date_from >= run.date_from,
+            IngestionRun.date_to <= run.date_to,
             IngestionRun.is_active.is_(True),
         )
         .values(is_active=False)
@@ -137,6 +161,13 @@ async def publish_snapshot(
     run.status = IngestionStatus.COMPLETED.value
     run.is_active = True
     run.ingestion_finished_at = datetime.now(UTC)
+    state = await db.get(ScrapDashboardState, 1, with_for_update=True)
+    if state is None:
+        state = ScrapDashboardState(updated_at=run.ingestion_finished_at)
+        db.add(state)
+    else:
+        state.revision = uuid.uuid4()
+        state.updated_at = run.ingestion_finished_at
     await db.commit()
 
 

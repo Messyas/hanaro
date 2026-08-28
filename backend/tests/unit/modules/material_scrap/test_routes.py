@@ -1,4 +1,5 @@
 from collections.abc import AsyncGenerator
+from decimal import Decimal
 
 import pytest
 import pytest_asyncio
@@ -99,3 +100,42 @@ async def test_dynamic_filters_summary_trend_breakdown_and_ingestion(
         "execution_id": payload["execution"]["execution_id"],
         "status": "QUEUED",
     }
+
+
+@pytest.mark.asyncio
+async def test_frontend_dashboard_contract_uses_precalculated_projection(scrap_client: AsyncClient) -> None:
+    response = await scrap_client.get(
+        "/api/v1/dashboard/scrap",
+        params={"year": 2026, "currency": "USD", "impact_mode": "absolute", "ranking_limit": 5},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["metadata"]["data_through"] == "2026-08-26"
+    assert body["metadata"]["target_scope"] == "global"
+    assert Decimal(body["kpis"]["actual"]) > 0
+    assert body["kpis"]["target"] is None
+    assert len(body["monthly"]) == 12
+    assert body["weekly"]
+    assert body["rankings"]["products"]
+    assert len(body["priority_occurrences"]) <= 5
+
+
+@pytest.mark.asyncio
+async def test_dashboard_rejects_invalid_window_and_unbounded_filters(scrap_client: AsyncClient) -> None:
+    reversed_window = await scrap_client.get(
+        "/api/v1/dashboard/scrap",
+        params={"date_from": "2026-08-27", "date_to": "2026-08-01"},
+    )
+    assert reversed_window.status_code == 422
+
+    too_many_products = await scrap_client.get(
+        "/api/v1/dashboard/scrap",
+        params=[("products", f"P{index}") for index in range(51)],
+    )
+    assert too_many_products.status_code == 422
+
+    anonymous_target_write = await scrap_client.put(
+        "/api/v1/dashboard/scrap/targets/2026/8",
+        json={"currency": "USD", "amount": "1000.00"},
+    )
+    assert anonymous_target_write.status_code == 401

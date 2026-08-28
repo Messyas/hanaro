@@ -1,3 +1,4 @@
+from functools import lru_cache
 from typing import Annotated
 
 from fastapi import Depends, Header, HTTPException, status
@@ -5,6 +6,8 @@ from fastapi import Depends, Header, HTTPException, status
 from ...infrastructure.dependencies import AsyncSessionDep
 from ..api_keys.dependencies import APIKeyServiceDep
 from ..api_keys.enums import KeyPermissionAction, KeyPermissionResource
+from .dashboard_service import ScrapDashboardService
+from .target_service import ScrapTargetService
 
 
 async def require_material_scrap_ingestion_key(
@@ -32,3 +35,17 @@ async def require_material_scrap_ingestion_key(
 
 
 MaterialScrapIngestionKeyDep = Annotated[int, Depends(require_material_scrap_ingestion_key)]
+
+
+@lru_cache
+def get_scrap_dashboard_service() -> ScrapDashboardService:
+    return ScrapDashboardService()
+
+
+@lru_cache
+def get_scrap_target_service() -> ScrapTargetService:
+    return ScrapTargetService()
+
+
+ScrapDashboardServiceDep = Annotated[ScrapDashboardService, Depends(get_scrap_dashboard_service)]
+ScrapTargetServiceDep = Annotated[ScrapTargetService, Depends(get_scrap_target_service)]

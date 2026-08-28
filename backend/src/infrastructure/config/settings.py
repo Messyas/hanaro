@@ -124,6 +124,7 @@ class CacheSettings(BaseSettings):
     CACHE_REDIS_POOL_SIZE: int = config("CACHE_REDIS_POOL_SIZE", default=10, cast=int)
 
     DEFAULT_CACHE_EXPIRATION: int = config("DEFAULT_CACHE_EXPIRATION", default=3600, cast=int)
+    DASHBOARD_CACHE_TTL_SECONDS: int = config("DASHBOARD_CACHE_TTL_SECONDS", default=300, cast=int)
 
     CLIENT_CACHE_ENABLED: bool = config("CLIENT_CACHE_ENABLED", default=True, cast=bool)
     CLIENT_CACHE_MAX_AGE: int = config("CLIENT_CACHE_MAX_AGE", default=60, cast=int)

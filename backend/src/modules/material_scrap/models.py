@@ -6,6 +6,7 @@ from typing import Any
 from sqlalchemy import (
     JSON,
     Boolean,
+    CheckConstraint,
     Date,
     DateTime,
     ForeignKey,
@@ -182,3 +183,85 @@ class ScrapTransaction(Base):
     item_type: Mapped[str | None] = mapped_column(String(40), default=None)
     to_be_counted: Mapped[bool | None] = mapped_column(Boolean, default=None)
     content_hash: Mapped[str] = mapped_column(String(64), index=True, default="")
+
+
+class ScrapDashboardAggregate(Base):
+    """Pre-calculated dashboard fact at the smallest supported filter grain."""
+
+    __tablename__ = "scrap_dashboard_aggregates"
+    __table_args__ = (
+        UniqueConstraint(
+            "run_id",
+            "transaction_date",
+            "organization_code",
+            "receipt_department",
+            "department",
+            "product",
+            "division",
+            "item_type",
+            "account_code",
+            "account_alias",
+            "item_code",
+            "to_be_counted_key",
+            name="uq_scrap_dashboard_aggregate_grain",
+        ),
+        Index("ix_scrap_dashboard_run_date", "run_id", "transaction_date"),
+        Index("ix_scrap_dashboard_date_product", "transaction_date", "product"),
+        Index("ix_scrap_dashboard_date_line", "transaction_date", "receipt_department"),
+        Index("ix_scrap_dashboard_date_division", "transaction_date", "division"),
+        Index("ix_scrap_dashboard_date_component", "transaction_date", "item_type"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default_factory=uuid.uuid4, init=False)
+    run_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scrap_ingestion_runs.id", ondelete="CASCADE"), index=True)
+    transaction_date: Mapped[date] = mapped_column(Date)
+    organization_code: Mapped[str] = mapped_column(String(40))
+    receipt_department: Mapped[str] = mapped_column(String(120))
+    department: Mapped[str] = mapped_column(String(120))
+    product: Mapped[str] = mapped_column(String(40))
+    division: Mapped[str] = mapped_column(String(40))
+    item_type: Mapped[str] = mapped_column(String(40))
+    account_code: Mapped[str] = mapped_column(String(80))
+    account_alias: Mapped[str] = mapped_column(String(100))
+    item_code: Mapped[str] = mapped_column(String(100))
+    to_be_counted_key: Mapped[str] = mapped_column(String(10))
+    record_count: Mapped[int] = mapped_column(Integer)
+    issue_quantity: Mapped[Decimal] = mapped_column(Numeric(24, 6))
+    issue_quantity_abs: Mapped[Decimal] = mapped_column(Numeric(24, 6))
+    issue_amount_brl: Mapped[Decimal] = mapped_column(Numeric(24, 2))
+    issue_amount_brl_abs: Mapped[Decimal] = mapped_column(Numeric(24, 2))
+    amount_usd: Mapped[Decimal] = mapped_column(Numeric(24, 6))
+    amount_usd_abs: Mapped[Decimal] = mapped_column(Numeric(24, 6))
+
+
+class ScrapDashboardState(Base):
+    """Singleton revision used to version response-cache keys."""
+
+    __tablename__ = "scrap_dashboard_state"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, default=1, init=False)
+    revision: Mapped[uuid.UUID] = mapped_column(default_factory=uuid.uuid4, init=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class ScrapTarget(Base):
+    """Administrator-managed global monthly IF Cost target."""
+
+    __tablename__ = "scrap_targets"
+    __table_args__ = (
+        UniqueConstraint("year", "month", "currency", name="uq_scrap_target_period_currency"),
+        Index("ix_scrap_target_year_currency", "year", "currency"),
+        CheckConstraint("year BETWEEN 2000 AND 2100", name="ck_scrap_target_year"),
+        CheckConstraint("month BETWEEN 1 AND 12", name="ck_scrap_target_month"),
+        CheckConstraint("currency IN ('BRL', 'USD')", name="ck_scrap_target_currency"),
+        CheckConstraint("amount >= 0", name="ck_scrap_target_amount"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default_factory=uuid.uuid4, init=False)
+    year: Mapped[int] = mapped_column(Integer)
+    month: Mapped[int] = mapped_column(Integer)
+    currency: Mapped[str] = mapped_column(String(3))
+    amount: Mapped[Decimal] = mapped_column(Numeric(24, 6))
+    updated_by_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT"), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))

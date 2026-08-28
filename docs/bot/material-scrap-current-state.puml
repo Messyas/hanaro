@@ -27,7 +27,9 @@ state "API valida contrato\ne enfileira tarefa" as Queued
 state "Redis / Taskiq\naguarda processamento" as Queue
 state "Worker executa\ningest_material_scrap" as Worker
 state "Backend valida apenas\no JSON canonico" as BackendValidate
-state "Persistir snapshot\ne disponibilizar dashboard" as Persist
+state "Construir projeção analítica\npor dia e dimensões" as Projection
+state "Persistir transações + projeção\ne ativar snapshot" as Persist
+state "Alterar revisão do dashboard\nna mesma transação" as Revision
 state "Artefato preservado\npara nova tentativa" as Retry
 state "Falha estrutural\nsem descartar linhas" as Failed
 state "Fim" as End
@@ -56,8 +58,10 @@ Queued --> Queue
 Queue --> Worker
 Worker --> BackendValidate
 Retry --> End
-BackendValidate --> Persist
-Persist --> End
+BackendValidate --> Projection
+Projection --> Persist
+Persist --> Revision
+Revision --> End
 Failed --> End
 End --> [*]
 

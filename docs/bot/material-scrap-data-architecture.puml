@@ -35,12 +35,17 @@ package "BACKEND / FastAPI" as Backend {
   component "POST /scrap/ingestions\nX-API-Key" as IngestApi
   component "IngestionService\nvalidação + reconciliação" as Service
   component "Repository\nsnapshot + idempotência" as Repository
-  component "GET /scrap\nGET /dashboard/scrap/*" as ReadApi
+  component "ProjectionBuilder\nagregação fora do request" as Projection
+  component "DashboardService\nKPIs + séries + rankings" as DashboardService
+  component "GET /scrap\nGET /dashboard/scrap" as ReadApi
+  component "PUT /dashboard/scrap/targets/*\nsuperusuário + CSRF" as TargetApi
   component "Taskiq Worker\nprocessamento do lote" as Worker
 
   Worker --> Service : lote canônico
   Service --> Repository : persistir somente\napós validar
-  ReadApi --> Repository : consultas/agregações
+  Repository --> Projection : montar read model
+  ReadApi --> DashboardService : filtros validados
+  TargetApi --> DashboardService : muda revisão
 }
 
 database "PostgreSQL" as Postgres
@@ -48,6 +53,9 @@ database "scrap_ingestion_runs\nexecucao, janela, status, totais\nmapping_versio
 database "scrap_ingestion_source_files\nrun_id, sha256, encoding, size" as Files
 database "daily_exchange_rates\nrate_date, brl_per_usd, source\neffective_date, fallback_used" as Rates
 database "scrap_transactions\nrun_id, source_line\ncampos GERP + dimensoes\nBRL/USD, quality_flags, content_hash" as Transactions
+database "scrap_dashboard_aggregates\ngrão diário + dimensões\nsomas signed/absolute" as Aggregates
+database "scrap_dashboard_state\nrevisão para cache" as DashboardState
+database "scrap_targets\nmeta mensal BRL/USD\nator e timestamps" as Targets
 
 Postgres .. Runs : armazena
 Postgres .. Files : armazena
@@ -56,6 +64,7 @@ Postgres .. Transactions : armazena
 Runs --> Files : 1 arquivo
 Runs --> Rates : 1 cotacao
 Runs --> Transactions : snapshot
+Runs --> Aggregates : projeção do snapshot
 
 package "Redis" as Redis {
   component "Cache\nDB 0" as Cache
@@ -75,7 +84,12 @@ Backend --> Cache : cache de leitura
 Backend --> RateLimit : contadores
 Backend --> TaskQueue : tarefas assíncronas
 Repository --> Postgres : SQL transacional
-ReadApi --> Angular : JSON de consulta
+Projection --> Aggregates : mesma transação
+DashboardService --> Aggregates : consultas leves
+DashboardService --> Targets : metas cadastradas
+DashboardService --> DashboardState : versão da chave
+DashboardService --> Cache : resposta pronta + TTL
+ReadApi --> Angular : JSON pronto para renderizar
 
 note right of Json
   Os valores financeiros são strings
@@ -86,7 +100,7 @@ end note
 legend bottom
   === Responsabilidades ===
   Bot: coleta futura, pré-processamento e geração do JSON.
-  Backend: autenticação, validação, persistência e read model.
+  Backend: autenticação, validação, persistência, projeção e contrato do dashboard.
   PostgreSQL: fonte persistida dos snapshots publicados.
   Redis: cache, rate limit e broker Taskiq já configurados no Compose.
   Frontend: apresentação dos dados por HTTP.
