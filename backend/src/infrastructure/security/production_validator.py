@@ -5,6 +5,7 @@ checking for common misconfigurations that could lead to security vulnerabilitie
 """
 
 import re
+from urllib.parse import urlsplit
 
 from ..config.settings import EnvironmentOption, Settings
 from ..logging import get_logger
@@ -439,15 +440,24 @@ class ProductionSecurityValidator:
         """
         configs = []
 
+        cache_redis_endpoint = self._redis_endpoint(
+            getattr(self.settings, "CACHE_REDIS_URL", ""),
+            self.settings.CACHE_REDIS_HOST,
+            self.settings.CACHE_REDIS_PORT,
+        )
+        rate_limiter_redis_endpoint = self._redis_endpoint(
+            getattr(self.settings, "RATE_LIMITER_REDIS_URL", ""),
+            self.settings.RATE_LIMITER_REDIS_HOST,
+            self.settings.RATE_LIMITER_REDIS_PORT,
+        )
+
         if self.settings.CACHE_BACKEND == "redis":
             configs.append(
                 {
                     "service": "cache",
-                    "host": self.settings.CACHE_REDIS_HOST,
-                    "port": self.settings.CACHE_REDIS_PORT,
+                    **cache_redis_endpoint,
                     "db": self.settings.CACHE_REDIS_DB,
                     "password": self.settings.CACHE_REDIS_PASSWORD,
-                    "ssl": False,
                 }
             )
 
@@ -455,11 +465,9 @@ class ProductionSecurityValidator:
             configs.append(
                 {
                     "service": "rate_limiter",
-                    "host": self.settings.RATE_LIMITER_REDIS_HOST,
-                    "port": self.settings.RATE_LIMITER_REDIS_PORT,
+                    **rate_limiter_redis_endpoint,
                     "db": self.settings.RATE_LIMITER_REDIS_DB,
                     "password": self.settings.RATE_LIMITER_REDIS_PASSWORD,
-                    "ssl": False,
                 }
             )
 
@@ -467,15 +475,26 @@ class ProductionSecurityValidator:
             configs.append(
                 {
                     "service": "sessions",
-                    "host": self.settings.CACHE_REDIS_HOST,
-                    "port": self.settings.CACHE_REDIS_PORT,
+                    **cache_redis_endpoint,
                     "db": self.settings.CACHE_REDIS_DB,
                     "password": self.settings.CACHE_REDIS_PASSWORD,
-                    "ssl": False,
                 }
             )
 
         return configs
+
+    @staticmethod
+    def _redis_endpoint(url: str, host: str, port: int) -> dict[str, str | int | bool]:
+        """Resolve Redis endpoint details from a full URL when configured."""
+        if not url:
+            return {"host": host, "port": port, "ssl": False}
+
+        parsed = urlsplit(url)
+        return {
+            "host": parsed.hostname or host,
+            "port": parsed.port or port,
+            "ssl": parsed.scheme == "rediss",
+        }
 
     def _check_redis_instance_sharing(self) -> str:
         """Check if the same Redis instance is used by multiple services.

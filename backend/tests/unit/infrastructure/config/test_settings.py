@@ -48,6 +48,17 @@ class TestSettings:
         expected_url = "postgresql+asyncpg://prod_user:prod_pass@prod.example.com:5432/prod_db"
         assert settings.DATABASE_URL == expected_url
 
+    @patch.dict(
+        os.environ,
+        {"DATABASE_URL": "postgresql://prod_user:prod_pass@prod.example.com:5432/prod_db?sslmode=require"},
+        clear=False,
+    )
+    def test_database_url_normalizes_aiven_connection_string(self):
+        """A standard Aiven URL is converted to the asyncpg/TLS form."""
+        settings = Settings()
+
+        assert settings.DATABASE_URL == "postgresql+asyncpg://prod_user:prod_pass@prod.example.com:5432/prod_db?ssl=require"
+
     @patch.dict(os.environ, {"POSTGRES_SERVER": "localhost"}, clear=True)
     def test_database_url_fallback_to_constructed(self):
         """Test that DATABASE_URL falls back to constructed URL when env var not set."""
@@ -196,6 +207,17 @@ class TestTaskiqSettings:
         broker_url = settings.TASKIQ_BROKER_URL
         expected_url = "redis://:test-password@redis-host:6380/2"
         assert broker_url == expected_url
+
+    @patch.dict(
+        os.environ,
+        {"TASKIQ_REDIS_URL": "rediss://:secret@redis.example.com:6380/3"},
+        clear=False,
+    )
+    def test_taskiq_redis_broker_url_uses_full_tls_url(self):
+        """Managed Redis/Valkey URLs can be used without losing TLS settings."""
+        settings = Settings()
+
+        assert settings.TASKIQ_BROKER_URL == "rediss://:secret@redis.example.com:6380/3"
 
     @patch.dict(
         os.environ,

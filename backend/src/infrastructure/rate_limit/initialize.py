@@ -43,6 +43,7 @@ async def initialize_rate_limiter() -> None:
             raise ImportError("The redis package is not installed. Please install it with 'pip install redis'.")
 
         redis_settings = RedisSettings(
+            url=settings.RATE_LIMITER_REDIS_URL or None,
             host=settings.RATE_LIMITER_REDIS_HOST,
             port=settings.RATE_LIMITER_REDIS_PORT,
             db=settings.RATE_LIMITER_REDIS_DB,

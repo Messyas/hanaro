@@ -126,9 +126,9 @@ SONAR_TOKEN=seu_token
 
 Crie o projeto uma vez no SonarQube, em **Projects > Create Project > Manually**.
 Use `Hanaro` como nome e `hanaro` como **Project key**; a chave deve ser igual a
-`sonar.projectKey` em `sonar-project.properties`. Na definição de *New Code*,
+`sonar.projectKey` em `sonar-project.properties`. Na definição de _New Code_,
 escolha **Follows the instance's default** (atualmente, **Previous version**).
-Mantenha o *Quality Gate* padrão e conclua a criação. Os perfis de qualidade
+Mantenha o _Quality Gate_ padrão e conclua a criação. Os perfis de qualidade
 recomendados são os padrões **Sonar way** para Python e TypeScript.
 
 Não é necessário cadastrar relatórios pela interface. O arquivo
@@ -154,7 +154,7 @@ bash scripts/run-sonar.sh
 
 Os relatórios são gravados em `reports/sonar/`, não são versionados e são
 substituídos a cada análise. Ao término, atualize o painel do projeto em
-<http://localhost:9000> para consultar os problemas, cobertura e *Quality Gate*.
+<http://localhost:9000> para consultar os problemas, cobertura e _Quality Gate_.
 
 ### Problemas destacados no editor
 
@@ -191,6 +191,11 @@ docker compose --profile sonar down --volumes
 ```
 
 ## Produção
+
+O pipeline de staging está documentado em [docs/ci-cd.md](docs/ci-cd.md). O
+push em `developer` só dispara Render e Cloudflare depois do `CI / quality-gate`.
+O merge em `main` ainda não publica a intranet final. O blueprint de infraestrutura está em [`render.yaml`](render.yaml) e a
+configuração do Worker em [`frontend/wrangler.jsonc`](frontend/wrangler.jsonc).
 
 Crie `deploy/.env.production` a partir de
 `deploy/.env.production.example`, preencha todas as variáveis obrigatórias e

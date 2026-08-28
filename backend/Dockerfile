@@ -87,5 +87,8 @@ CMD ["alembic", "upgrade", "head"]
 # Production image: one process per container and no development dependencies.
 FROM base AS prod
 
+COPY --chown=app:app backend/migrations ./migrations
+COPY --chown=app:app backend/alembic.ini ./alembic.ini
+
 USER app
-CMD ["fastapi", "run", "src/interfaces/main.py", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "-c", "exec fastapi run src/interfaces/main.py --host 0.0.0.0 --port ${PORT:-8000}"]

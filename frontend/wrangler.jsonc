@@ -1,0 +1,16 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "hanaro-frontend",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-08-28",
+  "assets": {
+    "directory": "./dist/frontend/browser",
+    "binding": "ASSETS",
+  },
+  "vars": {
+    "API_ORIGIN": "https://hanaro-api.onrender.com",
+  },
+  "observability": {
+    "enabled": true,
+  },
+}
