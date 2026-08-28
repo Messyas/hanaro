@@ -440,13 +440,14 @@ class ProductionSecurityValidator:
         """
         configs = []
 
+        redis_url = getattr(self.settings, "REDIS_URL", "")
         cache_redis_endpoint = self._redis_endpoint(
-            getattr(self.settings, "CACHE_REDIS_URL", ""),
+            redis_url or getattr(self.settings, "CACHE_REDIS_URL", ""),
             self.settings.CACHE_REDIS_HOST,
             self.settings.CACHE_REDIS_PORT,
         )
         rate_limiter_redis_endpoint = self._redis_endpoint(
-            getattr(self.settings, "RATE_LIMITER_REDIS_URL", ""),
+            redis_url or getattr(self.settings, "RATE_LIMITER_REDIS_URL", ""),
             self.settings.RATE_LIMITER_REDIS_HOST,
             self.settings.RATE_LIMITER_REDIS_PORT,
         )
@@ -457,7 +458,8 @@ class ProductionSecurityValidator:
                     "service": "cache",
                     **cache_redis_endpoint,
                     "db": self.settings.CACHE_REDIS_DB,
-                    "password": self.settings.CACHE_REDIS_PASSWORD,
+                    "password": self._redis_password(redis_url or getattr(self.settings, "CACHE_REDIS_URL", ""))
+                    or self.settings.CACHE_REDIS_PASSWORD,
                 }
             )
 
@@ -467,7 +469,8 @@ class ProductionSecurityValidator:
                     "service": "rate_limiter",
                     **rate_limiter_redis_endpoint,
                     "db": self.settings.RATE_LIMITER_REDIS_DB,
-                    "password": self.settings.RATE_LIMITER_REDIS_PASSWORD,
+                    "password": self._redis_password(redis_url or getattr(self.settings, "RATE_LIMITER_REDIS_URL", ""))
+                    or self.settings.RATE_LIMITER_REDIS_PASSWORD,
                 }
             )
 
@@ -477,7 +480,8 @@ class ProductionSecurityValidator:
                     "service": "sessions",
                     **cache_redis_endpoint,
                     "db": self.settings.CACHE_REDIS_DB,
-                    "password": self.settings.CACHE_REDIS_PASSWORD,
+                    "password": self._redis_password(redis_url or getattr(self.settings, "CACHE_REDIS_URL", ""))
+                    or self.settings.CACHE_REDIS_PASSWORD,
                 }
             )
 
@@ -495,6 +499,11 @@ class ProductionSecurityValidator:
             "port": parsed.port or port,
             "ssl": parsed.scheme == "rediss",
         }
+
+    @staticmethod
+    def _redis_password(url: str) -> str | None:
+        """Return the password embedded in a managed Redis URL, if present."""
+        return urlsplit(url).password if url else None
 
     def _check_redis_instance_sharing(self) -> str:
         """Check if the same Redis instance is used by multiple services.

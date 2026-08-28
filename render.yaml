@@ -6,14 +6,14 @@ services:
     dockerContext: .
     preDeployCommand: CONFIRM_PRODUCTION_MIGRATION=yes alembic upgrade head
     healthCheckPath: /health
-    autoDeploy: false
+    autoDeploy: true
     envVars:
       - key: ENVIRONMENT
         value: production
       - key: DEBUG
         value: "false"
       - key: CREATE_TABLES_ON_STARTUP
-        value: "false"
+        value: "true"
       - key: ENABLE_DOCS_IN_PRODUCTION
         value: "false"
       - key: PRODUCTION_SECURITY_VALIDATION_ENABLED
@@ -21,7 +21,9 @@ services:
       - key: SECURITY_HEADERS_ENABLED
         value: "true"
       - key: CORS_ENABLED
-        value: "false"
+        value: "true"
+      - key: CORS_ORIGINS
+        sync: false
       - key: SESSION_SECURE_COOKIES
         value: "true"
       - key: SESSION_BACKEND
@@ -35,9 +37,13 @@ services:
       - key: RATE_LIMITER_BACKEND
         value: redis
       - key: RATE_LIMITER_FAIL_OPEN
-        value: "false"
-      - key: TASKIQ_ENABLED
         value: "true"
+      - key: TASKIQ_ENABLED
+        value: "false"
+      - key: POSTGRES_POOL_SIZE
+        value: "5"
+      - key: POSTGRES_MAX_OVERFLOW
+        value: "2"
       - key: TRUSTED_PROXY_HOPS
         value: "1"
       - key: TRUSTED_HOSTS
@@ -48,32 +54,5 @@ services:
         sync: false
       - key: SECRET_KEY
         sync: false
-      - key: CACHE_REDIS_URL
-        sync: false
-      - key: RATE_LIMITER_REDIS_URL
-        sync: false
-      - key: TASKIQ_REDIS_URL
-        sync: false
-
-  - type: worker
-    name: hanaro-taskiq-worker
-    runtime: docker
-    dockerfilePath: ./backend/Dockerfile
-    dockerContext: .
-    dockerCommand: taskiq worker src.infrastructure.taskiq.worker:default_broker --workers 2
-    autoDeploy: false
-    envVars:
-      - key: ENVIRONMENT
-        value: production
-      - key: DEBUG
-        value: "false"
-      - key: TASKIQ_ENABLED
-        value: "true"
-      - key: TASKIQ_BROKER_TYPE
-        value: redis
-      - key: DATABASE_URL
-        sync: false
-      - key: SECRET_KEY
-        sync: false
-      - key: TASKIQ_REDIS_URL
+      - key: REDIS_URL
         sync: false

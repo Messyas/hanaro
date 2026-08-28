@@ -26,6 +26,21 @@ def redis_backend(mock_redis):
         return backend
 
 
+@pytest.mark.parametrize(
+    "url",
+    [
+        "redis://localhost:6379/0",
+        "rediss://avnadmin:secret@valkey.example.com:12345/0",
+    ],
+)
+def test_uses_full_redis_url_for_plain_and_tls_connections(url):
+    """redis-py receives the configured scheme unchanged, including rediss."""
+    with patch("src.infrastructure.cache.backends.redis.Redis.from_url") as from_url:
+        RedisBackend(RedisSettings(url=url))
+
+    from_url.assert_called_once_with(url, socket_timeout=5, max_connections=10)
+
+
 @pytest.mark.asyncio
 async def test_get_existing_key(redis_backend, mock_redis):
     test_data = {"key": "value"}

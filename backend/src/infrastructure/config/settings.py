@@ -122,6 +122,12 @@ class CacheSettings(BaseSettings):
     CACHE_MEMCACHED_POOL_SIZE: int = config("CACHE_MEMCACHED_POOL_SIZE", default=10, cast=int)
     CACHE_MEMCACHED_CONNECT_TIMEOUT: int = config("CACHE_MEMCACHED_CONNECT_TIMEOUT", default=5, cast=int)
 
+    # A full URL is the preferred configuration for managed Redis/Valkey.  It
+    # accepts both redis:// and rediss:// schemes; the latter enables TLS.
+    REDIS_URL: str = config("REDIS_URL", default="")
+
+    # The per-service settings below are retained as fallbacks for existing
+    # self-hosted deployments. New deployments should use REDIS_URL.
     CACHE_REDIS_HOST: str = config("CACHE_REDIS_HOST", default="localhost")
     CACHE_REDIS_URL: str = config("CACHE_REDIS_URL", default="")
     CACHE_REDIS_PORT: int = config("CACHE_REDIS_PORT", default=6379, cast=int)
@@ -381,6 +387,9 @@ class TaskiqSettings(BaseSettings):
     def TASKIQ_BROKER_URL(self) -> str:
         """Generate broker URL based on configured backend."""
         if self.TASKIQ_BROKER_TYPE == TaskiqBrokerType.REDIS.value:
+            shared_redis_url = getattr(self, "REDIS_URL", "")
+            if shared_redis_url:
+                return shared_redis_url
             if self.TASKIQ_REDIS_URL:
                 return self.TASKIQ_REDIS_URL
             password_part = f":{self.TASKIQ_REDIS_PASSWORD}@" if self.TASKIQ_REDIS_PASSWORD else ""

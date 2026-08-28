@@ -41,7 +41,7 @@ async def initialize_cache() -> None:
             raise ImportError("The redis package is not installed. Please install it with 'pip install redis'.")
 
         redis_settings = RedisSettings(
-            url=settings.CACHE_REDIS_URL or None,
+            url=settings.REDIS_URL or settings.CACHE_REDIS_URL or None,
             host=settings.CACHE_REDIS_HOST,
             port=settings.CACHE_REDIS_PORT,
             db=settings.CACHE_REDIS_DB,

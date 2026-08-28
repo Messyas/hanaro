@@ -59,6 +59,13 @@ class TestSettings:
 
         assert settings.DATABASE_URL == "postgresql+asyncpg://prod_user:prod_pass@prod.example.com:5432/prod_db?ssl=require"
 
+    @patch.dict(os.environ, {"REDIS_URL": "rediss://avnadmin:secret@valkey.example.com:12345/0"}, clear=False)
+    def test_redis_url_accepts_tls_connection_string(self):
+        """A managed Valkey TLS URL is exposed unchanged to all Redis consumers."""
+        settings = Settings()
+
+        assert settings.REDIS_URL == "rediss://avnadmin:secret@valkey.example.com:12345/0"
+
     @patch.dict(os.environ, {"POSTGRES_SERVER": "localhost"}, clear=True)
     def test_database_url_fallback_to_constructed(self):
         """Test that DATABASE_URL falls back to constructed URL when env var not set."""
@@ -218,6 +225,17 @@ class TestTaskiqSettings:
         settings = Settings()
 
         assert settings.TASKIQ_BROKER_URL == "rediss://:secret@redis.example.com:6380/3"
+
+    @patch.dict(
+        os.environ,
+        {"REDIS_URL": "rediss://avnadmin:secret@valkey.example.com:6380/0"},
+        clear=False,
+    )
+    def test_taskiq_redis_broker_url_prefers_shared_tls_url(self):
+        """Taskiq keeps the rediss scheme required by managed Valkey."""
+        settings = Settings()
+
+        assert settings.TASKIQ_BROKER_URL == "rediss://avnadmin:secret@valkey.example.com:6380/0"
 
     @patch.dict(
         os.environ,

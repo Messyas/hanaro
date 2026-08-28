@@ -20,8 +20,10 @@ from ..database.session import async_session
 
 _redis_password = settings.CACHE_REDIS_PASSWORD
 _redis_auth = f":{_redis_password}@" if _redis_password else ""
-_session_redis_url = settings.CACHE_REDIS_URL or (
-    f"redis://{_redis_auth}{settings.CACHE_REDIS_HOST}:{settings.CACHE_REDIS_PORT}/{settings.CACHE_REDIS_DB}"
+_session_redis_url = (
+    settings.REDIS_URL
+    or settings.CACHE_REDIS_URL
+    or (f"redis://{_redis_auth}{settings.CACHE_REDIS_HOST}:{settings.CACHE_REDIS_PORT}/{settings.CACHE_REDIS_DB}")
 )
 
 _use_redis = settings.SESSION_BACKEND == "redis"

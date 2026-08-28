@@ -1,62 +1,28 @@
-# Deploys the client-facing staging environment after the quality gate.
-name: Deploy staging
+# Render deploys the API from main; this workflow publishes only the frontend.
+name: Deploy production frontend
 
 on:
   push:
     branches:
-      - developer
+      - main
 
 permissions:
   contents: read
 
 concurrency:
-  group: staging-deploy
+  group: production-deploy
   cancel-in-progress: false
 
 jobs:
   quality-gate:
     uses: ./.github/workflows/quality-gate.yml
 
-  deploy-render-api:
-    name: Deploy Render API
-    needs: quality-gate
-    if: needs.quality-gate.result == 'success'
-    runs-on: ubuntu-latest
-    environment: staging
-    steps:
-      - name: Trigger API deploy for this commit
-        env:
-          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_STAGING_API_DEPLOY_HOOK_URL }}
-          COMMIT_SHA: ${{ github.sha }}
-        run: |
-          test -n "$RENDER_DEPLOY_HOOK_URL"
-          if [[ "$RENDER_DEPLOY_HOOK_URL" == *"?"* ]]; then separator='&'; else separator='?'; fi
-          curl --fail-with-body --retry 3 --retry-all-errors \
-            -X POST "${RENDER_DEPLOY_HOOK_URL}${separator}ref=${COMMIT_SHA}"
-
-  deploy-render-worker:
-    name: Deploy Render worker
-    needs: quality-gate
-    if: needs.quality-gate.result == 'success'
-    runs-on: ubuntu-latest
-    environment: staging
-    steps:
-      - name: Trigger Taskiq worker deploy for this commit
-        env:
-          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_STAGING_WORKER_DEPLOY_HOOK_URL }}
-          COMMIT_SHA: ${{ github.sha }}
-        run: |
-          test -n "$RENDER_DEPLOY_HOOK_URL"
-          if [[ "$RENDER_DEPLOY_HOOK_URL" == *"?"* ]]; then separator='&'; else separator='?'; fi
-          curl --fail-with-body --retry 3 --retry-all-errors \
-            -X POST "${RENDER_DEPLOY_HOOK_URL}${separator}ref=${COMMIT_SHA}"
-
   deploy-cloudflare:
     name: Deploy Cloudflare Worker
     needs: quality-gate
     if: needs.quality-gate.result == 'success'
     runs-on: ubuntu-latest
-    environment: staging
+    environment: production
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -77,9 +43,9 @@ jobs:
         run: npm run build:cloudflare
 
       - name: Deploy Worker and assets
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/wrangler-action@v4
         with:
-          apiToken: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_STAGING_ACCOUNT_ID }}
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: "4"
           workingDirectory: frontend
