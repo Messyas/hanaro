@@ -1,0 +1,16 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - developer
+      - main
+  pull_request:
+    branches:
+      - developer
+      - main
+  workflow_dispatch:
+
+jobs:
+  quality-gate:
+    uses: ./.github/workflows/quality-gate.yml
