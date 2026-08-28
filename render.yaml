@@ -13,7 +13,7 @@ services:
       - key: DEBUG
         value: "false"
       - key: CREATE_TABLES_ON_STARTUP
-        value: "true"
+        value: "false"
       - key: ENABLE_DOCS_IN_PRODUCTION
         value: "false"
       - key: PRODUCTION_SECURITY_VALIDATION_ENABLED
