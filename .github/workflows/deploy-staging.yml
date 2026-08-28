@@ -1,0 +1,85 @@
+# Deploys the client-facing staging environment after the quality gate.
+name: Deploy staging
+
+on:
+  push:
+    branches:
+      - developer
+
+permissions:
+  contents: read
+
+concurrency:
+  group: staging-deploy
+  cancel-in-progress: false
+
+jobs:
+  quality-gate:
+    uses: ./.github/workflows/quality-gate.yml
+
+  deploy-render-api:
+    name: Deploy Render API
+    needs: quality-gate
+    if: needs.quality-gate.result == 'success'
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Trigger API deploy for this commit
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_STAGING_API_DEPLOY_HOOK_URL }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          test -n "$RENDER_DEPLOY_HOOK_URL"
+          if [[ "$RENDER_DEPLOY_HOOK_URL" == *"?"* ]]; then separator='&'; else separator='?'; fi
+          curl --fail-with-body --retry 3 --retry-all-errors \
+            -X POST "${RENDER_DEPLOY_HOOK_URL}${separator}ref=${COMMIT_SHA}"
+
+  deploy-render-worker:
+    name: Deploy Render worker
+    needs: quality-gate
+    if: needs.quality-gate.result == 'success'
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Trigger Taskiq worker deploy for this commit
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_STAGING_WORKER_DEPLOY_HOOK_URL }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          test -n "$RENDER_DEPLOY_HOOK_URL"
+          if [[ "$RENDER_DEPLOY_HOOK_URL" == *"?"* ]]; then separator='&'; else separator='?'; fi
+          curl --fail-with-body --retry 3 --retry-all-errors \
+            -X POST "${RENDER_DEPLOY_HOOK_URL}${separator}ref=${COMMIT_SHA}"
+
+  deploy-cloudflare:
+    name: Deploy Cloudflare Worker
+    needs: quality-gate
+    if: needs.quality-gate.result == 'success'
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build static Angular application
+        working-directory: frontend
+        run: npm run build:cloudflare
+
+      - name: Deploy Worker and assets
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_STAGING_ACCOUNT_ID }}
+          wranglerVersion: "4"
+          workingDirectory: frontend

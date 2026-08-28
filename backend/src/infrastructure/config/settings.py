@@ -1,6 +1,7 @@
 import logging
 import os
 from enum import StrEnum
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from pydantic_settings import BaseSettings
 from starlette.config import Config
@@ -69,7 +70,12 @@ class DatabaseSettings(BaseSettings):
         """
         direct_url = config("DATABASE_URL", default=None)
         if direct_url:
-            return direct_url
+            parsed = urlsplit(direct_url)
+            scheme = "postgresql+asyncpg" if parsed.scheme == "postgresql" else parsed.scheme
+            query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+            if "sslmode" in query and "ssl" not in query:
+                query["ssl"] = query.pop("sslmode")
+            return urlunsplit((scheme, parsed.netloc, parsed.path, urlencode(query), parsed.fragment))
 
         return (
             f"{self.POSTGRES_ASYNC_PREFIX}{self.POSTGRES_USER}:"
@@ -117,6 +123,7 @@ class CacheSettings(BaseSettings):
     CACHE_MEMCACHED_CONNECT_TIMEOUT: int = config("CACHE_MEMCACHED_CONNECT_TIMEOUT", default=5, cast=int)
 
     CACHE_REDIS_HOST: str = config("CACHE_REDIS_HOST", default="localhost")
+    CACHE_REDIS_URL: str = config("CACHE_REDIS_URL", default="")
     CACHE_REDIS_PORT: int = config("CACHE_REDIS_PORT", default=6379, cast=int)
     CACHE_REDIS_DB: int = config("CACHE_REDIS_DB", default=0, cast=int)
     CACHE_REDIS_PASSWORD: str | None = config("CACHE_REDIS_PASSWORD", default=None)
@@ -171,6 +178,7 @@ class RateLimiterSettings(BaseSettings):
     RATE_LIMITER_MEMCACHED_POOL_SIZE: int = config("RATE_LIMITER_MEMCACHED_POOL_SIZE", default=10, cast=int)
 
     RATE_LIMITER_REDIS_HOST: str = config("RATE_LIMITER_REDIS_HOST", default="localhost")
+    RATE_LIMITER_REDIS_URL: str = config("RATE_LIMITER_REDIS_URL", default="")
     RATE_LIMITER_REDIS_PORT: int = config("RATE_LIMITER_REDIS_PORT", default=6379, cast=int)
     RATE_LIMITER_REDIS_DB: int = config("RATE_LIMITER_REDIS_DB", default=1, cast=int)
     RATE_LIMITER_REDIS_PASSWORD: str | None = config("RATE_LIMITER_REDIS_PASSWORD", default=None)
@@ -355,6 +363,7 @@ class TaskiqSettings(BaseSettings):
     TASKIQ_BROKER_TYPE: str = config("TASKIQ_BROKER_TYPE", default=TaskiqBrokerType.REDIS.value)
 
     TASKIQ_REDIS_HOST: str = config("TASKIQ_REDIS_HOST", default="localhost")
+    TASKIQ_REDIS_URL: str = config("TASKIQ_REDIS_URL", default="")
     TASKIQ_REDIS_PORT: int = config("TASKIQ_REDIS_PORT", default=6379, cast=int)
     TASKIQ_REDIS_DB: int = config("TASKIQ_REDIS_DB", default=3, cast=int)
     TASKIQ_REDIS_PASSWORD: str | None = config("TASKIQ_REDIS_PASSWORD", default=None)
@@ -372,6 +381,8 @@ class TaskiqSettings(BaseSettings):
     def TASKIQ_BROKER_URL(self) -> str:
         """Generate broker URL based on configured backend."""
         if self.TASKIQ_BROKER_TYPE == TaskiqBrokerType.REDIS.value:
+            if self.TASKIQ_REDIS_URL:
+                return self.TASKIQ_REDIS_URL
             password_part = f":{self.TASKIQ_REDIS_PASSWORD}@" if self.TASKIQ_REDIS_PASSWORD else ""
             return f"redis://{password_part}{self.TASKIQ_REDIS_HOST}:{self.TASKIQ_REDIS_PORT}/{self.TASKIQ_REDIS_DB}"
         elif self.TASKIQ_BROKER_TYPE == TaskiqBrokerType.RABBITMQ.value:
