@@ -1,118 +1,122 @@
 # Ingestão de Material Scrap
 
-Esta entrega simula a saída futura do bot Smart Office, transforma o TSV do
-GERP e publica snapshots transacionais consumíveis pelo frontend. Não contém
-automação gráfica, scheduler, deploy no Smart Office nem frontend.
+O processamento do TSV GERP pertence a `automation/`. O backend aceita apenas
+o contrato JSON canônico versão `1.0.0`, valida sua reconciliação e o persiste.
+Assim, o futuro bot Windows só precisa implementar `GerpSource.obtain_file()` e
+entregar o arquivo ao mesmo processador local: a API não conhece TSV, CP1252,
+tabs em comentários nem regras de classificação.
 
-## Componentes
+## Fluxo
 
 ```text
-Fixture CP1252 ou arquivo bruto sem extensão
-        ↓
-simulator.py (contrato Smart Office 1.0)
-        ↓
-job.py ou tasks.py (CLI / Taskiq)
-        ↓
-transformer.py (reconstrução, Decimal e classificações)
-        ↓
-service.py + repository.py (snapshot transacional)
-        ↓
-PostgreSQL
-        ↓
-query_service.py (modelo de leitura indexado)
-        ↓
-routes.py (FastAPI)
-        ↓
-Frontend e dashboard
+arquivo GERP -> automation.material_scrap.process -> JSON canônico
+    -> POST /api/v1/scrap/ingestions -> Taskiq worker
+    -> PostgreSQL (write model + read model) -> cache -> endpoints de leitura
 ```
 
-O parser lê CP1252 com `errors="strict"`, reconhece as duas colunas
-`Description`, remove a coluna vazia final e remonta TABs excedentes dentro de
-`REQ Comment`. Uma linha estruturalmente inválida interrompe a carga; nenhuma
-linha é descartada silenciosamente.
+O JSON contém linhagem do arquivo (SHA-256, tamanho e encoding), janela
+consultada, datas de processamento, taxa diária BRL/USD, versão dos
+mapeamentos, totais de controle, flags de qualidade e `content_hash` de cada
+registro. Decimais são sempre strings JSON, nunca `float`.
 
 ## Banco e publicação
 
-A migration `20260826_02` cria:
+As migrations `20260826_02` e `20260827_03` mantêm snapshots versionados:
 
-- `scrap_ingestion_runs`: execução, janela lógica, contagens, estado e snapshot ativo;
-- `scrap_ingestion_source_files`: hash SHA-256 e metadados da extração;
-- `scrap_exchange_rates`: cotação Decimal usada na carga;
-- `scrap_transactions`: valores brutos, derivados, flags e proveniência.
+- `scrap_ingestion_runs` registra execução, janela, status, totais e flags;
+- `scrap_ingestion_source_files` registra arquivo e hash;
+- `daily_exchange_rates` reaproveita a cotação diária por data/moedas/tipo/fonte;
+- `scrap_transactions` armazena todos os campos canônicos, incluindo
+  `source_line`, `content_hash`, valores BRL/USD e atributos derivados.
 
-Um hash já concluído na mesma janela retorna a execução anterior. Um hash novo
-cria outra versão e só troca o snapshot ativo após todas as linhas terem sido
-gravadas e validadas na mesma transação. Em falha, a nova versão fica `FAILED`
-e a anterior continua ativa. `source_row_number` diferencia linhas idênticas
-legítimas.
+O endpoint de ingestão aplica a validação estrutural Pydantic e enfileira o lote
+no Redis/Taskiq, retornando `202 QUEUED`. A reconciliação completa não é
+duplicada durante a requisição HTTP: o worker é o único componente que valida
+contagens, totais, período, USD e hashes e grava o snapshot. O mesmo arquivo na mesma
+janela é idempotente; uma nova versão só substitui o snapshot ativo depois de
+persistir todas as linhas. Dados históricos em USD não são recalculados quando
+uma cotação futura é registrada.
 
-Foi escolhido um modelo de leitura por consultas indexadas e `is_active`, sem
-view materializada. O volume inicial ainda é desconhecido e o snapshot ativo
-torna as consultas simples; materialização e `pg_trgm` devem ser reavaliados
-com métricas reais de cardinalidade e latência. Os KPIs usam `ABS` somente na
-consulta do dashboard; a base persiste e devolve os sinais originais.
+O contrato limita a janela a 366 dias, o lote a 50.000 registros, a lista de
+organizações a 1.000 valores e as listas de filtros a 50 valores. Strings que
+participam de índices ou colunas limitadas são validadas antes de chegar ao
+banco. Campos extras são rejeitados e todo decimal canônico deve ser string
+JSON.
 
-## Executar
+## Read model e cache
 
-Na raiz, suba o PostgreSQL e aplique a migration:
+O dashboard não agrega `scrap_transactions` durante a requisição. O worker usa
+`ProjectionBuilder` para gerar `scrap_dashboard_aggregates` no grão diário e nas
+dimensões filtráveis. A publicação das transações, da projeção, do snapshot ativo
+e da nova revisão ocorre no mesmo commit.
+
+`scrap_dashboard_state` contém a revisão usada nas chaves de cache. Respostas do
+dashboard recebem TTL explícito por `DASHBOARD_CACHE_TTL_SECONDS` (300 segundos
+por padrão). Ingestões e alterações de meta trocam a revisão; chaves antigas
+expiram naturalmente, inclusive em Memcached. Se o cache estiver indisponível,
+a leitura usa o read model sem alterar autorização ou contrato.
+
+As metas de IF Cost ficam em `scrap_targets`, uma linha global por mês e moeda.
+A leitura é pública como o dashboard; escrita é idempotente e exclusiva de
+superusuário autenticado, com a proteção CSRF da sessão.
+
+## Executar localmente
+
+Com API já disponível, no diretório raiz:
 
 ```powershell
-docker compose up -d postgres redis
-docker compose run --rm backend alembic upgrade head
+python -m automation.material_scrap.process `
+  --input "C:\caminho\Other_Account_Transaction_Text_250826_" `
+  --reference-date 2026-08-26 `
+  --exchange-rate 5.15 `
+  --exchange-rate-source manual_fixture `
+  --output automation/artifacts/material_scrap.json `
+  --backend-url http://localhost:8000 `
+  --api-key "fai_..."
 ```
 
-Ingestão da fixture anonimizada com a cotação 5.15:
+Sem `--backend-url`, o JSON é gerado e mantido para repetição segura. O endpoint
+de escrita exige `X-API-Key` com permissão `material_scrap:create`.
 
-```powershell
-docker compose run --rm backend python -m src.modules.material_scrap.job `
-  --source fixtures/Other_Account_Transaction_Text_anonymized `
-  --exchange-rate 5.15
-```
+## API de leitura
 
-A fixture contém seis registros, quatro organizações, setores mapeados e não
-mapeados, uma organização não mapeada, valor positivo, valores negativos, uma
-linha com TAB interno e duas linhas idênticas legítimas. Para a cotação 5.15:
-
-- total bruto assinado em BRL: `-146.50`;
-- KPI positivado em BRL: `246.50`;
-- KPI positivado em USD: `47.864079`;
-- linhas reconstruídas: `1`;
-- linhas persistidas: `6`.
-
-O worker existente registra a tarefa `material_scrap.ingest`, que recebe o
-mesmo contrato JSON. Ele pode ser iniciado com o profile `worker`; nenhum
-scheduler foi adicionado.
-
-## API
-
-Endpoints públicos de leitura:
-
+- `POST /api/v1/scrap/ingestions` (assíncrono, retorna `task_id`)
 - `GET /api/v1/scrap`
 - `GET /api/v1/scrap/filters`
+- `GET /api/v1/dashboard/scrap` (contrato completo para a tela)
 - `GET /api/v1/dashboard/scrap/summary`
 - `GET /api/v1/dashboard/scrap/trend?group_by=day|week|month`
 - `GET /api/v1/dashboard/scrap/breakdown?group_by=organization&metric=amount_brl`
+- `GET /api/v1/dashboard/scrap/targets?year=2026`
+- `PUT /api/v1/dashboard/scrap/targets/{year}/{month}` (superusuário)
 
-Exemplos:
+Exemplos: `?organizations=NWK&account_aliases=D-DIRECT`,
+`?to_be_counted=true|false|unmapped`, e
+`?date_from=2026-08-01&date_to=2026-08-31`.
 
-```text
-GET /api/v1/scrap?organizations=NWK&organizations=NW1&page=1&page_size=50
-GET /api/v1/scrap?receipt_departments=NOVO_SETOR&sort_by=issue_amount_brl&sort_order=desc
-GET /api/v1/dashboard/scrap/trend?date_from=2026-08-01&date_to=2026-08-31&group_by=day
-GET /api/v1/dashboard/scrap/breakdown?group_by=department&metric=amount_usd
-```
+O endpoint completo aceita `year`, `currency=BRL|USD`,
+`impact_mode=absolute|signed`, `week=1..53`, `ranking_limit=1..20` e os filtros
+dimensionais existentes. A resposta entrega:
 
-Decimais são serializados como strings JSON. `sort_by`, `sort_order`,
-`group_by` e `metric` são enums e entradas fora da allowlist recebem HTTP 422.
+- KPIs realizado, target, atingimento, referência e variação anual;
+- séries mensal e semanal;
+- rankings de produto, componente, linha, modelo e ofensor;
+- top 5 ocorrências prioritárias;
+- revisão, data de geração e data máxima dos dados.
 
-## Testes
+Mapeamento atual: linha = `receipt_department`, componente = `item_type`, modelo
+= `item_code` e ofensor = `account_alias`. O frontend não deve reinterpretar
+essas dimensões nem recalcular percentuais.
 
-```powershell
-docker compose run --rm backend pytest tests/unit/modules/material_scrap -q
-docker compose run --rm backend pytest tests/integration/api/v1/material_scrap -q
-```
+## Pendências de homologação
 
-Os testes de integração usam o PostgreSQL fornecido por Testcontainers e
-exigem Docker. O arquivo corporativo real não é versionado; quando o bot real
-for integrado, ele deverá produzir `MaterialScrapPayload` e conservar os mesmos
-campos, hash, janela, encoding e semântica de snapshot.
+1. Confirmar se `Organization Code = ALL` retorna todas as NWS no Runner.
+2. Homologar matrizes de organização, departamento, item type e To be Counted.
+3. Confirmar formalmente que `Issue Amount` é BRL.
+4. Definir fornecedor/política de cotação de produção e possível fallback.
+5. Verificar se o GERP expõe um identificador estável por transação.
+6. Definir janelas reais de consulta e reconciliação.
+7. Homologar `account_alias` como dimensão de ofensor; trocar o mapeamento no
+   backend se o GERP fornecer um campo mais específico.
+
+Não há automação visual, scheduler interno ou credenciais GERP nesta entrega.

@@ -1,0 +1,58 @@
+services:
+  - type: web
+    name: hanaro-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    preDeployCommand: CONFIRM_PRODUCTION_MIGRATION=yes alembic upgrade head
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: CREATE_TABLES_ON_STARTUP
+        value: "true"
+      - key: ENABLE_DOCS_IN_PRODUCTION
+        value: "false"
+      - key: PRODUCTION_SECURITY_VALIDATION_ENABLED
+        value: "true"
+      - key: SECURITY_HEADERS_ENABLED
+        value: "true"
+      - key: CORS_ENABLED
+        value: "true"
+      - key: CORS_ORIGINS
+        sync: false
+      - key: SESSION_SECURE_COOKIES
+        value: "true"
+      - key: SESSION_BACKEND
+        value: redis
+      - key: CACHE_ENABLED
+        value: "true"
+      - key: CACHE_BACKEND
+        value: redis
+      - key: RATE_LIMITER_ENABLED
+        value: "true"
+      - key: RATE_LIMITER_BACKEND
+        value: redis
+      - key: RATE_LIMITER_FAIL_OPEN
+        value: "true"
+      - key: TASKIQ_ENABLED
+        value: "false"
+      - key: POSTGRES_POOL_SIZE
+        value: "5"
+      - key: POSTGRES_MAX_OVERFLOW
+        value: "2"
+      - key: TRUSTED_PROXY_HOPS
+        value: "1"
+      - key: TRUSTED_HOSTS
+        sync: false
+      - key: OAUTH_REDIRECT_BASE_URL
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        sync: false
+      - key: REDIS_URL
+        sync: false

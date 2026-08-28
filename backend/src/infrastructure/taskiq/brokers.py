@@ -25,13 +25,18 @@ def create_default_broker() -> AsyncBroker:
 
 def _create_redis_broker() -> AsyncBroker:
     """Create Redis-based broker for taskiq."""
-    redis_host = settings.TASKIQ_REDIS_HOST
-    redis_port = settings.TASKIQ_REDIS_PORT
-    redis_db = settings.TASKIQ_REDIS_DB
-    redis_password = settings.TASKIQ_REDIS_PASSWORD
+    if settings.REDIS_URL:
+        redis_url = settings.REDIS_URL
+    elif settings.TASKIQ_REDIS_URL:
+        redis_url = settings.TASKIQ_REDIS_URL
+    else:
+        redis_host = settings.TASKIQ_REDIS_HOST
+        redis_port = settings.TASKIQ_REDIS_PORT
+        redis_db = settings.TASKIQ_REDIS_DB
+        redis_password = settings.TASKIQ_REDIS_PASSWORD
 
-    password_part = f":{redis_password}@" if redis_password else ""
-    redis_url = f"redis://{password_part}{redis_host}:{redis_port}/{redis_db}"
+        password_part = f":{redis_password}@" if redis_password else ""
+        redis_url = f"redis://{password_part}{redis_host}:{redis_port}/{redis_db}"
 
     broker = ListQueueBroker(url=redis_url, queue_name="default").with_result_backend(
         RedisAsyncResultBackend(redis_url=redis_url)

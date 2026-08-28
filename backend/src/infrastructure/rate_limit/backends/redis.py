@@ -29,9 +29,11 @@ class RedisSettings(BaseModel):
         password: Redis server password. Default is None.
         connect_timeout: Connection timeout in seconds. Default is 5.
         pool_size: Maximum number of connections in the pool. Default is 10.
+        url: Optional full Redis URL, including `rediss://` for TLS.
     """
 
     host: str = "localhost"
+    url: str | None = None
     port: int = 6379
     db: int = 0
     password: str | None = None
@@ -53,17 +55,27 @@ class RedisBackend(RateLimiterBackend):
         super().__init__(fail_open=fail_open)
         self.settings = settings or RedisSettings()
         try:
-            self.client = Redis(
-                host=self.settings.host,
-                port=self.settings.port,
-                db=self.settings.db,
-                password=self.settings.password,
-                socket_timeout=self.settings.connect_timeout,
-                socket_connect_timeout=self.settings.connect_timeout,
-                socket_keepalive=True,
-                decode_responses=True,
-                max_connections=self.settings.pool_size,
-            )
+            if self.settings.url:
+                self.client = Redis.from_url(
+                    self.settings.url,
+                    socket_timeout=self.settings.connect_timeout,
+                    socket_connect_timeout=self.settings.connect_timeout,
+                    socket_keepalive=True,
+                    decode_responses=True,
+                    max_connections=self.settings.pool_size,
+                )
+            else:
+                self.client = Redis(
+                    host=self.settings.host,
+                    port=self.settings.port,
+                    db=self.settings.db,
+                    password=self.settings.password,
+                    socket_timeout=self.settings.connect_timeout,
+                    socket_connect_timeout=self.settings.connect_timeout,
+                    socket_keepalive=True,
+                    decode_responses=True,
+                    max_connections=self.settings.pool_size,
+                )
         except Exception as e:
             logger.error(f"Failed to initialize Redis client: {e}")
             raise RateLimiterBackendException(f"Failed to initialize Redis client: {e}")

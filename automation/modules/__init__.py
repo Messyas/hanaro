@@ -1,0 +1,1 @@
+"""Future UI automation adapters."""

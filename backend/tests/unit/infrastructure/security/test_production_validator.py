@@ -22,6 +22,7 @@ class TestProductionSecurityValidator:
             "SECRET_KEY": "xF9mWqP3nL7vBfKsRt8HjZ2CyE5QaM6NuV4DgX1SpY7LwB9KzT3RhI0UoJ5PcA2MvS8",
             "POSTGRES_PASSWORD": "secure_db_password",
             "REDIS_PASSWORD": "secure_redis_password",
+            "REDIS_URL": "",
             "CACHE_BACKEND": "memcached",
             "RATE_LIMITER_BACKEND": "memcached",
             "SESSION_BACKEND": "redis",

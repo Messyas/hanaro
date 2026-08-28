@@ -1,6 +1,6 @@
 """Tests for the Redis rate limiter backend."""
 
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from redis.exceptions import RedisError
@@ -35,6 +35,28 @@ def redis_backend(mock_redis_client):
     backend.client = client_mock
 
     yield backend, client_mock, pipeline_mock
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "redis://localhost:6379/0",
+        "rediss://avnadmin:secret@valkey.example.com:12345/0",
+    ],
+)
+def test_uses_full_redis_url_for_plain_and_tls_connections(url):
+    """Rate limiting preserves the redis/rediss scheme supplied by settings."""
+    with patch("src.infrastructure.rate_limit.backends.redis.Redis.from_url") as from_url:
+        RedisBackend(RedisSettings(url=url))
+
+    from_url.assert_called_once_with(
+        url,
+        socket_timeout=5,
+        socket_connect_timeout=5,
+        socket_keepalive=True,
+        decode_responses=True,
+        max_connections=10,
+    )
 
 
 @pytest.mark.asyncio

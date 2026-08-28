@@ -1,0 +1,101 @@
+@startuml
+top to bottom direction
+
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontColor #222222
+skinparam ArrowColor #444444
+skinparam ArrowThickness 1.4
+skinparam actor {
+  BorderColor #333333
+  FontColor #222222
+  BackgroundColor white
+}
+skinparam usecase {
+  BackgroundColor white
+  BorderColor #333333
+  FontColor #222222
+  ArrowColor #444444
+}
+skinparam rectangle {
+  BackgroundColor #FAFAFA
+  BorderColor #333333
+  FontColor #222222
+  RoundCorner 14
+}
+
+actor Analista as analyst
+actor Gestor as manager
+actor "Desenvolvedor /\nAdministrador" as admin
+actor Trabalhador as worker
+actor "Smart Office" as smartoffice
+
+manager --|> analyst
+
+rectangle Hanaro {
+  usecase "Autenticar-se" as UC_LOGIN
+
+  package "Acompanhamento" {
+    usecase "Visualizar dashboard" as UC_DASH
+    usecase "Aplicar filtros e\ncomparar períodos" as UC_FILTER
+    usecase "Visualizar alertas" as UC_ALERTS
+    usecase "Acompanhar ações" as UC_ACTIONS
+    usecase "Exibir Modo TV" as UC_TV
+  }
+
+  package "Gestão do Scrap" {
+    usecase "Consultar Base de Scrap" as UC_BASE
+    usecase "Visualizar detalhes e\nrastreabilidade" as UC_DETAILS
+    usecase "Revisar e justificar Scrap" as UC_REVIEW
+    usecase "Registrar análise 4M" as UC_4M
+    usecase "Aprovar justificativas\ne ações" as UC_APPROVE
+    usecase "Definir metas e\nprioridades" as UC_TARGETS
+    usecase "Gerar e consultar relatórios" as UC_REPORTS
+  }
+
+  package "Operação e governança" {
+    usecase "Receber dados automatizados" as UC_RECEIVE
+    usecase "Importar arquivo de\ncontingência" as UC_IMPORT
+    usecase "Processar e consolidar dados" as UC_PROCESS
+    usecase "Acompanhar execuções e falhas" as UC_RUNS
+    usecase "Reprocessar execução" as UC_REPROCESS
+    usecase "Consultar auditoria" as UC_AUDIT
+    usecase "Administrar usuários,\npermissões e configurações" as UC_CONFIG
+  }
+}
+
+analyst --> UC_LOGIN
+analyst --> UC_DASH
+analyst --> UC_BASE
+analyst --> UC_REVIEW
+analyst --> UC_ALERTS
+analyst --> UC_ACTIONS
+analyst --> UC_REPORTS
+
+manager --> UC_APPROVE
+manager --> UC_TARGETS
+
+admin --> UC_LOGIN
+admin --> UC_RUNS
+admin --> UC_REPROCESS
+admin --> UC_IMPORT
+admin --> UC_AUDIT
+admin --> UC_CONFIG
+
+worker --> UC_TV
+smartoffice --> UC_RECEIVE
+
+UC_DASH ..> UC_FILTER : <<include>>
+UC_BASE ..> UC_FILTER : <<include>>
+UC_BASE ..> UC_DETAILS : <<include>>
+UC_REVIEW ..> UC_BASE : <<include>>
+UC_4M ..> UC_REVIEW : <<extend>>
+UC_APPROVE ..> UC_REVIEW : <<include>>
+UC_REPORTS ..> UC_FILTER : <<include>>
+UC_TV ..> UC_DASH : <<include>>
+UC_RECEIVE ..> UC_PROCESS : <<include>>
+UC_IMPORT ..> UC_PROCESS : <<include>>
+UC_REPROCESS ..> UC_RUNS : <<include>>
+
+@enduml
