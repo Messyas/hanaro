@@ -115,8 +115,7 @@ describe('ExecutionsPage', () => {
   });
 
   it('should reload data when status filter changes', () => {
-    const event = { target: { value: 'FAILED' } } as unknown as Event;
-    component.onStatusChange(event);
+    component.selectStatus('FAILED');
 
     expect(component.statusFilter()).toBe('FAILED');
     expect(component.page()).toBe(1);
@@ -163,11 +162,47 @@ describe('ExecutionsPage', () => {
     expect(component.formatTrigger('SCHEDULED')).toBe('예약됨');
   });
 
+  it('should toggle filter popover, compute active filters count and clear filters', () => {
+    expect(component.filterOpen()).toBe(false);
+    expect(component.activeFiltersCount()).toBe(0);
+
+    component.toggleFilterPopover();
+    fixture.detectChanges();
+    expect(component.filterOpen()).toBe(true);
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('.filter-popover-panel')).toBeTruthy();
+
+    // Set search query and status filter
+    component.searchQuery.set('EXE-1234');
+    component.statusFilter.set('FAILED');
+    expect(component.activeFiltersCount()).toBe(2);
+
+    fixture.detectChanges();
+    const pills = compiled.querySelectorAll('.filter-pill');
+    expect(pills.length).toBe(2);
+
+    // Clear search pill
+    component.clearSearch();
+    expect(component.searchQuery()).toBe('');
+    expect(component.activeFiltersCount()).toBe(1);
+
+    // Clear all filters
+    component.clearFilters();
+    expect(component.statusFilter()).toBe('');
+    expect(component.activeFiltersCount()).toBe(0);
+
+    // Close popover
+    component.closeFilterPopover();
+    fixture.detectChanges();
+    expect(component.filterOpen()).toBe(false);
+    expect(compiled.querySelector('.filter-popover-panel')).toBeFalsy();
+  });
+
   it('should persist page size to localStorage and reload list', () => {
     const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
-    const event = { target: { value: '50' } } as unknown as Event;
 
-    component.onPageSizeChange(event);
+    component.selectPageSize(50);
 
     expect(component.pageSize()).toBe(50);
     expect(component.page()).toBe(1);
@@ -177,5 +212,58 @@ describe('ExecutionsPage', () => {
     );
 
     setItemSpy.mockRestore();
+  });
+
+  it('should toggle custom datepicker, select date and set today', () => {
+    expect(component.dateFromPickerOpen()).toBe(false);
+    component.toggleDateFromPicker();
+    expect(component.dateFromPickerOpen()).toBe(true);
+
+    component.selectDayFrom('2026-08-15');
+    expect(component.dateFrom()).toBe('2026-08-15');
+    expect(component.dateFromPickerOpen()).toBe(false);
+
+    component.setTodayTo();
+    expect(component.dateTo()).toBeTruthy();
+    expect(component.dateToPickerOpen()).toBe(false);
+
+    component.clearDateFromInput();
+    expect(component.dateFrom()).toBe('');
+  });
+
+  it('should validate date range consistency and block invalid queries', () => {
+    component.dateFrom.set('2026-08-20');
+    component.dateTo.set('2026-08-10');
+
+    expect(component.dateRangeError()).toBe(true);
+
+    mockExecutionsService.list.mockClear();
+    component.loadExecutions();
+    expect(mockExecutionsService.list).not.toHaveBeenCalled();
+
+    // Selecting day from clears dateTo if dateTo is before new dateFrom
+    component.selectDayFrom('2026-08-25');
+    expect(component.dateTo()).toBe('');
+    expect(component.dateRangeError()).toBe(false);
+
+    // Days before dateFrom should be marked as disabled in dateTo calendar
+    const days = component.getCalendarDays(new Date(2026, 7, 1), '', '2026-08-25');
+    const dayBefore = days.find((d) => d.dateStr === '2026-08-20');
+    const dayAfter = days.find((d) => d.dateStr === '2026-08-26');
+    expect(dayBefore?.isDisabled).toBe(true);
+    expect(dayAfter?.isDisabled).toBe(false);
+  });
+
+  it('should format date strings with / and normalize typed slash inputs', () => {
+    expect(component.formatDateSlash('2026-08-30')).toBe('2026/08/30');
+    expect(component.formatDateSlash('')).toBe('');
+
+    const eventFrom = { target: { value: '2026/08/01' } } as unknown as Event;
+    component.onDateFromChange(eventFrom);
+    expect(component.dateFrom()).toBe('2026-08-01');
+
+    const eventTo = { target: { value: '2026/08/31' } } as unknown as Event;
+    component.onDateToChange(eventTo);
+    expect(component.dateTo()).toBe('2026-08-31');
   });
 });

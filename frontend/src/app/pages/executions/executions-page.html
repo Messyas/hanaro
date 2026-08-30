@@ -1,82 +1,361 @@
 <section class="executions-page page-stack" aria-labelledby="executions-title">
-  <!-- Header -->
+  <!-- Header da Página -->
   <header class="executions-heading">
     <h1 class="page-title" id="executions-title">{{ t().executionsTitle }}</h1>
   </header>
 
-  <!-- Filtros -->
-  <div class="panel-card">
-    <div class="filters-grid">
-      <div class="filter-group">
-        <label for="filter-date-from">{{ t().executionsDateFrom }}</label>
-        <input
-          id="filter-date-from"
-          class="input-control"
-          type="date"
-          [value]="dateFrom()"
-          (change)="onDateFromChange($event)"
-        />
-      </div>
-
-      <div class="filter-group">
-        <label for="filter-date-to">{{ t().executionsDateTo }}</label>
-        <input
-          id="filter-date-to"
-          class="input-control"
-          type="date"
-          [value]="dateTo()"
-          (change)="onDateToChange($event)"
-        />
-      </div>
-
-      <div class="filter-group">
-        <label for="filter-status">{{ t().executionsStatus }}</label>
-        <select
-          id="filter-status"
-          class="input-control"
-          [value]="statusFilter()"
-          (change)="onStatusChange($event)"
-        >
-          <option value="">{{ t().executionsAllStatus }}</option>
-          <option value="COMPLETED">{{ t().executionsStatusCompleted }}</option>
-          <option value="FAILED">{{ t().executionsStatusFailed }}</option>
-          <option value="RUNNING">{{ t().executionsStatusRunning }}</option>
-          <option value="QUEUED">{{ t().executionsStatusQueued }}</option>
-          <option value="CANCELLED">{{ t().executionsStatusCancelled }}</option>
-        </select>
-      </div>
-
-      <div class="filter-group">
-        <label for="filter-search">{{ t().executionsSearchId }}</label>
-        <input
-          id="filter-search"
-          class="input-control"
-          type="text"
-          [placeholder]="t().executionsSearchPlaceholder"
-          [value]="searchQuery()"
-          (input)="onSearchInput($event)"
-        />
-      </div>
-
-      <div class="filter-actions">
-        <button
-          class="btn btn-ghost"
-          type="button"
-          (click)="clearFilters()"
-        >
-          <span>{{ t().executionsClearFilters }}</span>
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Tabela de Histórico -->
+  <!-- Tabela de Histórico com Filtro Integrado no Cabeçalho -->
   <article class="panel-card">
     <header class="section-header">
-      <h2>{{ t().executionsHistoryTitle }}</h2>
-      @if (data(); as pageData) {
-        <span class="meta-label">{{ t().executionsTotalLabel }} {{ pageData.total_items }}</span>
-      }
+      <div class="section-header-left">
+        <h2>{{ t().executionsHistoryTitle }}</h2>
+        @if (data(); as pageData) {
+          <span class="meta-label">{{ t().executionsTotalLabel }} {{ pageData.total_items }}</span>
+        }
+      </div>
+
+      <div class="section-header-right">
+        <!-- Pílulas de Filtros Ativos (se houver algum ativo) -->
+        @if (activeFiltersCount() > 0) {
+          <div class="active-filters-bar">
+            @if (searchQuery().trim()) {
+              <span class="filter-pill">
+                <span class="filter-pill-label">ID:</span>
+                <span class="filter-pill-value">{{ searchQuery().trim() }}</span>
+                <button
+                  type="button"
+                  class="filter-pill-remove"
+                  (click)="clearSearch($event)"
+                  aria-label="Remover filtro de busca"
+                >
+                  <ui-icon name="x" />
+                </button>
+              </span>
+            }
+            @if (statusFilter()) {
+              <span class="filter-pill">
+                <span class="filter-pill-label">{{ t().executionsStatus }}:</span>
+                <span class="filter-pill-value">{{ formatStatus(statusFilter()) }}</span>
+                <button
+                  type="button"
+                  class="filter-pill-remove"
+                  (click)="clearStatus($event)"
+                  aria-label="Remover filtro de status"
+                >
+                  <ui-icon name="x" />
+                </button>
+              </span>
+            }
+            @if (dateFrom() || dateTo()) {
+              <span class="filter-pill">
+                <span class="filter-pill-label">{{ t().executionsDateFrom }}:</span>
+                <span class="filter-pill-value">{{ formatDateSlash(dateFrom()) || '...' }} → {{ formatDateSlash(dateTo()) || '...' }}</span>
+                <button
+                  type="button"
+                  class="filter-pill-remove"
+                  (click)="clearDates($event)"
+                  aria-label="Remover filtro de datas"
+                >
+                  <ui-icon name="x" />
+                </button>
+              </span>
+            }
+            <button
+              type="button"
+              class="btn-clear-inline"
+              (click)="clearFilters()"
+            >
+              {{ t().executionsClearAll }}
+            </button>
+          </div>
+        }
+
+        <!-- Botão Disparador do Filtro + Popover Flutuante -->
+        <div class="filter-popover-anchor">
+          <button
+            class="btn btn-secondary filter-trigger-btn"
+            [class.active]="filterOpen() || activeFiltersCount() > 0"
+            type="button"
+            (click)="toggleFilterPopover($event)"
+            aria-haspopup="dialog"
+            [attr.aria-expanded]="filterOpen()"
+          >
+            <ui-icon name="filter" />
+            <span>{{ t().executionsFilterBtn }}</span>
+            @if (activeFiltersCount() > 0) {
+              <span class="filter-badge">{{ activeFiltersCount() }}</span>
+            }
+          </button>
+
+          <!-- Painel do Popover -->
+          @if (filterOpen()) {
+            <div
+              class="filter-popover-panel"
+              role="dialog"
+              aria-modal="false"
+              (click)="$event.stopPropagation()"
+            >
+              <div class="popover-header">
+                <div class="popover-title-group">
+                  <ui-icon name="filter" />
+                  <strong>{{ t().executionsFilterPopoverTitle }}</strong>
+                </div>
+                @if (activeFiltersCount() > 0) {
+                  <button
+                    type="button"
+                    class="popover-clear-btn"
+                    (click)="clearFilters()"
+                  >
+                    {{ t().executionsClearAll }}
+                  </button>
+                }
+              </div>
+
+              <div class="popover-body">
+                <!-- 1. Buscar (Primeiro campo, conforme solicitado) -->
+                <div class="filter-field">
+                  <label for="filter-search">{{ t().executionsSearchLabel }}</label>
+                  <div class="search-input-wrapper">
+                    <input
+                      id="filter-search"
+                      class="input-control"
+                      type="text"
+                      [placeholder]="t().executionsSearchPlaceholder"
+                      [value]="searchQuery()"
+                      (input)="onSearchInput($event)"
+                    />
+                    @if (searchQuery().trim()) {
+                      <button
+                        type="button"
+                        class="clear-search-btn"
+                        (click)="clearSearch($event)"
+                        aria-label="Limpar busca"
+                      >
+                        <ui-icon name="x" />
+                      </button>
+                    }
+                  </div>
+                </div>
+
+                <!-- 2. Status (Custom Select) -->
+                <div class="filter-field">
+                  <label id="status-select-label">{{ t().executionsStatus }}</label>
+                  <div class="custom-select-anchor status-select-anchor" (click)="$event.stopPropagation()">
+                    <button
+                      type="button"
+                      class="custom-select-trigger"
+                      [class.open]="statusDropdownOpen()"
+                      (click)="toggleStatusDropdown($event)"
+                      aria-haspopup="listbox"
+                      [attr.aria-expanded]="statusDropdownOpen()"
+                      aria-labelledby="status-select-label"
+                    >
+                      <span>{{ getStatusOptionLabel(statusFilter()) }}</span>
+                      <ui-icon name="chevron-down" [class.rotated]="statusDropdownOpen()" />
+                    </button>
+
+                    @if (statusDropdownOpen()) {
+                      <div class="custom-select-menu" role="listbox">
+                        @for (opt of statusOptions; track opt.value) {
+                          <button
+                            type="button"
+                            class="custom-select-item"
+                            [class.selected]="statusFilter() === opt.value"
+                            (click)="selectStatus(opt.value)"
+                            role="option"
+                            [attr.aria-selected]="statusFilter() === opt.value"
+                          >
+                            <span>{{ getStatusOptionLabel(opt.value) }}</span>
+                            @if (statusFilter() === opt.value) {
+                              <span class="selected-indicator"></span>
+                            }
+                          </button>
+                        }
+                      </div>
+                    }
+                  </div>
+                </div>
+
+                <!-- 3. Datas (Inicial e Final Customizadas com Validação Temporal) -->
+                <div class="filter-dates-grid">
+                  <!-- Data Inicial -->
+                  <div class="filter-field">
+                    <label>{{ t().executionsDateFrom }}</label>
+                    <div class="custom-datepicker-anchor date-from-anchor" (click)="$event.stopPropagation()">
+                      <div class="datepicker-input-wrapper">
+                        <input
+                          class="input-control datepicker-input"
+                          [class.input-invalid]="dateRangeError()"
+                          type="text"
+                          placeholder="YYYY/MM/DD"
+                          [value]="formatDateSlash(dateFrom())"
+                          (input)="onDateFromChange($event)"
+                          (click)="toggleDateFromPicker($event)"
+                        />
+                        <button
+                          type="button"
+                          class="datepicker-icon-btn"
+                          [class.active]="dateFromPickerOpen()"
+                          (click)="toggleDateFromPicker($event)"
+                          aria-label="Abrir calendário"
+                        >
+                          <ui-icon name="calendar" />
+                        </button>
+                      </div>
+
+                      @if (dateFromPickerOpen()) {
+                        <div class="custom-calendar-popup" role="dialog" (click)="$event.stopPropagation()">
+                          <div class="calendar-header">
+                            <button type="button" class="cal-nav-btn" (click)="prevMonthFrom($event)">
+                              <ui-icon name="chevron-left" />
+                            </button>
+                            <span class="cal-month-title">{{ getMonthYearLabel(viewDateFrom()) }}</span>
+                            <button type="button" class="cal-nav-btn" (click)="nextMonthFrom($event)">
+                              <ui-icon name="chevron-right" />
+                            </button>
+                          </div>
+
+                          <div class="calendar-weekdays">
+                            @for (w of getWeekdayLabels(); track w) {
+                              <span class="cal-weekday">{{ w }}</span>
+                            }
+                          </div>
+
+                          <div class="calendar-days-grid">
+                            @for (day of getCalendarDays(viewDateFrom(), dateFrom(), undefined, dateTo()); track day.dateStr) {
+                              <button
+                                type="button"
+                                class="cal-day-btn"
+                                [class.current-month]="day.isCurrentMonth"
+                                [class.other-month]="!day.isCurrentMonth"
+                                [class.today]="day.isToday"
+                                [class.selected]="day.isSelected"
+                                [class.disabled]="day.isDisabled"
+                                [disabled]="day.isDisabled"
+                                (click)="selectDayFrom(day.dateStr)"
+                              >
+                                <span>{{ day.dayNumber }}</span>
+                              </button>
+                            }
+                          </div>
+
+                          <div class="calendar-footer">
+                            <button type="button" class="cal-action-btn" (click)="clearDateFromInput()">
+                              {{ t().calendarClear }}
+                            </button>
+                            <button type="button" class="cal-action-btn cal-today-btn" (click)="setTodayFrom()">
+                              {{ t().calendarToday }}
+                            </button>
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  </div>
+
+                  <!-- Data Final -->
+                  <div class="filter-field">
+                    <label>{{ t().executionsDateTo }}</label>
+                    <div class="custom-datepicker-anchor date-to-anchor" (click)="$event.stopPropagation()">
+                      <div class="datepicker-input-wrapper">
+                        <input
+                          class="input-control datepicker-input"
+                          [class.input-invalid]="dateRangeError()"
+                          type="text"
+                          placeholder="YYYY/MM/DD"
+                          [value]="formatDateSlash(dateTo())"
+                          (input)="onDateToChange($event)"
+                          (click)="toggleDateToPicker($event)"
+                        />
+                        <button
+                          type="button"
+                          class="datepicker-icon-btn"
+                          [class.active]="dateToPickerOpen()"
+                          (click)="toggleDateToPicker($event)"
+                          aria-label="Abrir calendário"
+                        >
+                          <ui-icon name="calendar" />
+                        </button>
+                      </div>
+
+                      @if (dateToPickerOpen()) {
+                        <div class="custom-calendar-popup" role="dialog" (click)="$event.stopPropagation()">
+                          <div class="calendar-header">
+                            <button type="button" class="cal-nav-btn" (click)="prevMonthTo($event)">
+                              <ui-icon name="chevron-left" />
+                            </button>
+                            <span class="cal-month-title">{{ getMonthYearLabel(viewDateTo()) }}</span>
+                            <button type="button" class="cal-nav-btn" (click)="nextMonthTo($event)">
+                              <ui-icon name="chevron-right" />
+                            </button>
+                          </div>
+
+                          <div class="calendar-weekdays">
+                            @for (w of getWeekdayLabels(); track w) {
+                              <span class="cal-weekday">{{ w }}</span>
+                            }
+                          </div>
+
+                          <div class="calendar-days-grid">
+                            @for (day of getCalendarDays(viewDateTo(), dateTo(), dateFrom(), undefined); track day.dateStr) {
+                              <button
+                                type="button"
+                                class="cal-day-btn"
+                                [class.current-month]="day.isCurrentMonth"
+                                [class.other-month]="!day.isCurrentMonth"
+                                [class.today]="day.isToday"
+                                [class.selected]="day.isSelected"
+                                [class.disabled]="day.isDisabled"
+                                [disabled]="day.isDisabled"
+                                (click)="selectDayTo(day.dateStr)"
+                              >
+                                <span>{{ day.dayNumber }}</span>
+                              </button>
+                            }
+                          </div>
+
+                          <div class="calendar-footer">
+                            <button type="button" class="cal-action-btn" (click)="clearDateToInput()">
+                              {{ t().calendarClear }}
+                            </button>
+                            <button type="button" class="cal-action-btn cal-today-btn" (click)="setTodayTo()">
+                              {{ t().calendarToday }}
+                            </button>
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Alerta de Inconsistência Temporal -->
+                @if (dateRangeError()) {
+                  <div class="filter-error-alert" role="alert">
+                    <ui-icon name="x" />
+                    <span>{{ t().executionsDateRangeError }}</span>
+                  </div>
+                }
+              </div>
+
+              <div class="popover-footer">
+                <button
+                  type="button"
+                  class="btn btn-ghost"
+                  (click)="clearFilters()"
+                >
+                  {{ t().executionsClearFilters }}
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-primary"
+                  (click)="closeFilterPopover()"
+                >
+                  {{ t().executionsApplyFilters }}
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
     </header>
 
     @if (loading()) {
@@ -165,37 +444,55 @@
         </div>
 
         <div class="pagination-controls">
-          <label for="page-size-select" class="meta-label">{{ t().executionsPaginationPerPage }}</label>
-          <select
-            id="page-size-select"
-            class="input-control"
-            style="width: auto; padding: 0.35rem 0.5rem;"
-            [value]="pageSize()"
-            (change)="onPageSizeChange($event)"
-          >
-            <option value="10">10</option>
-            <option value="25">25</option>
-            <option value="50">50</option>
-            <option value="100">100</option>
-          </select>
+          <span class="meta-label">{{ t().executionsPaginationPerPage }}</span>
+          <div class="custom-select-anchor pagination-size-select" (click)="$event.stopPropagation()">
+            <button
+              type="button"
+              class="custom-select-trigger size-trigger"
+              [class.open]="pageSizeDropdownOpen()"
+              (click)="togglePageSizeDropdown($event)"
+              aria-haspopup="listbox"
+              [attr.aria-expanded]="pageSizeDropdownOpen()"
+            >
+              <span>{{ pageSize() }}</span>
+              <ui-icon name="chevron-down" [class.rotated]="pageSizeDropdownOpen()" />
+            </button>
+
+            @if (pageSizeDropdownOpen()) {
+              <div class="custom-select-menu size-menu" role="listbox">
+                @for (size of allowedPageSizes; track size) {
+                  <button
+                    type="button"
+                    class="custom-select-item"
+                    [class.selected]="pageSize() === size"
+                    (click)="selectPageSize(size)"
+                    role="option"
+                    [attr.aria-selected]="pageSize() === size"
+                  >
+                    <span>{{ size }}</span>
+                  </button>
+                }
+              </div>
+            }
+          </div>
 
           <button
-            class="btn btn-secondary"
+            class="btn btn-secondary btn-pagination-nav"
             type="button"
-            style="padding: 0.35rem 0.75rem;"
             [disabled]="page() <= 1"
             (click)="previousPage()"
+            aria-label="Previous page"
           >
-            {{ t().executionsPaginationPrevious }}
+            <ui-icon name="chevron-left" />
           </button>
           <button
-            class="btn btn-secondary"
+            class="btn btn-secondary btn-pagination-nav"
             type="button"
-            style="padding: 0.35rem 0.75rem;"
             [disabled]="page() >= data()!.total_pages"
             (click)="nextPage()"
+            aria-label="Next page"
           >
-            {{ t().executionsPaginationNext }}
+            <ui-icon name="chevron-right" />
           </button>
         </div>
       </footer>
@@ -279,7 +576,7 @@
                 </div>
                 <div class="meta-item">
                   <span class="meta-label">{{ t().executionsColStart }} / {{ t().executionsColEnd }}</span>
-                  <span class="meta-value">{{ detail.query_date_from }} — {{ detail.query_date_to }}</span>
+                  <span class="meta-value">{{ formatDateSlash(detail.query_date_from) }} — {{ formatDateSlash(detail.query_date_to) }}</span>
                 </div>
                 <div class="meta-item">
                   <span class="meta-label">{{ t().executionsColDuration }}</span>

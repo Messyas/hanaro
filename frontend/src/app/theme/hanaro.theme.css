@@ -97,10 +97,15 @@
   --mat-sys-on-surface-variant: var(--app-text-secondary);
   --mat-sys-outline: var(--app-text-subtle);
   --mat-sys-outline-variant: var(--app-border);
+
+  color-scheme: light;
+  accent-color: var(--brand-primary);
 }
 
 /* ─── 🌙 LG Dark Theme (OLED Black) ───────────────────────────────── */
 :root[data-theme='dark'] {
+  color-scheme: dark;
+  accent-color: var(--brand-primary);
   /* Brand — carmim vibrante para brilhar no escuro */
   --brand-primary: #e7194a;
   --brand-primary-hover: #d11442;

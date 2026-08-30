@@ -102,7 +102,16 @@ export interface AppTranslations {
   executionsAllStatus: string;
   executionsSearchId: string;
   executionsSearchPlaceholder: string;
+  executionsSearchLabel: string;
+  executionsFilterBtn: string;
+  executionsFilterPopoverTitle: string;
+  executionsActiveFilters: string;
+  executionsClearAll: string;
+  executionsApplyFilters: string;
   executionsClearFilters: string;
+  executionsDateRangeError: string;
+  calendarToday: string;
+  calendarClear: string;
   executionsHistoryTitle: string;
   executionsTotalLabel: string;
   executionsColProcess: string;
@@ -144,8 +153,6 @@ export interface AppTranslations {
   executionsPaginationPage: string;
   executionsPaginationOf: string;
   executionsPaginationPerPage: string;
-  executionsPaginationPrevious: string;
-  executionsPaginationNext: string;
   executionsLoading: string;
   executionsEmptyTitle: string;
   executionsEmptyDesc: string;
@@ -257,7 +264,16 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     executionsAllStatus: 'Todos os status',
     executionsSearchId: 'Buscar Execution ID',
     executionsSearchPlaceholder: 'Ex: 550e8400...',
+    executionsSearchLabel: 'Buscar por ID ou processo',
+    executionsFilterBtn: 'Filtrar',
+    executionsFilterPopoverTitle: 'Filtrar rotinas',
+    executionsActiveFilters: 'Filtros ativos',
+    executionsClearAll: 'Limpar tudo',
+    executionsApplyFilters: 'Aplicar',
     executionsClearFilters: 'Limpar filtros',
+    executionsDateRangeError: 'A data final não pode ser anterior à data inicial.',
+    calendarToday: 'Hoje',
+    calendarClear: 'Limpar',
     executionsHistoryTitle: 'Histórico de rotinas',
     executionsTotalLabel: 'TOTAL:',
     executionsColProcess: 'EXECUTION ID / PROCESSO',
@@ -299,8 +315,6 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     executionsPaginationPage: 'Página',
     executionsPaginationOf: 'de',
     executionsPaginationPerPage: 'POR PÁGINA:',
-    executionsPaginationPrevious: 'Anterior',
-    executionsPaginationNext: 'Próxima',
     executionsLoading: 'Carregando histórico de execuções...',
     executionsEmptyTitle: 'Nenhuma execução encontrada',
     executionsEmptyDesc: 'Nenhuma execução de automação corresponde aos filtros selecionados.',
@@ -409,7 +423,16 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     executionsAllStatus: 'All statuses',
     executionsSearchId: 'Search Execution ID',
     executionsSearchPlaceholder: 'E.g. 550e8400...',
+    executionsSearchLabel: 'Search by ID or process',
+    executionsFilterBtn: 'Filter',
+    executionsFilterPopoverTitle: 'Filter routines',
+    executionsActiveFilters: 'Active filters',
+    executionsClearAll: 'Clear all',
+    executionsApplyFilters: 'Apply',
     executionsClearFilters: 'Clear filters',
+    executionsDateRangeError: 'End date cannot be before start date.',
+    calendarToday: 'Today',
+    calendarClear: 'Clear',
     executionsHistoryTitle: 'Routine history',
     executionsTotalLabel: 'TOTAL:',
     executionsColProcess: 'EXECUTION ID / PROCESS',
@@ -451,8 +474,6 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     executionsPaginationPage: 'Page',
     executionsPaginationOf: 'of',
     executionsPaginationPerPage: 'PER PAGE:',
-    executionsPaginationPrevious: 'Previous',
-    executionsPaginationNext: 'Next',
     executionsLoading: 'Loading execution history...',
     executionsEmptyTitle: 'No executions found',
     executionsEmptyDesc: 'No automation executions match the selected filters.',
@@ -561,7 +582,16 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     executionsAllStatus: '전체 상태',
     executionsSearchId: '실행 ID 검색',
     executionsSearchPlaceholder: '예: 550e8400...',
+    executionsSearchLabel: 'ID 또는 프로세스 검색',
+    executionsFilterBtn: '필터',
+    executionsFilterPopoverTitle: '작업 필터',
+    executionsActiveFilters: '적용된 필터',
+    executionsClearAll: '모두 초기화',
+    executionsApplyFilters: '적용',
     executionsClearFilters: '필터 초기화',
+    executionsDateRangeError: '종료일은 시작일보다 이전일 수 없습니다.',
+    calendarToday: '오늘',
+    calendarClear: '초기화',
     executionsHistoryTitle: '작업 이력',
     executionsTotalLabel: '총:',
     executionsColProcess: '실행 ID / 프로세스',
@@ -603,8 +633,6 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     executionsPaginationPage: '페이지',
     executionsPaginationOf: '/',
     executionsPaginationPerPage: '페이지당:',
-    executionsPaginationPrevious: '이전',
-    executionsPaginationNext: '다음',
     executionsLoading: '실행 이력을 불러오는 중…',
     executionsEmptyTitle: '실행 내역이 없습니다',
     executionsEmptyDesc: '선택한 필터와 일치하는 자동화 실행 내역이 없습니다.',

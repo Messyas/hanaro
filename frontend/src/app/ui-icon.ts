@@ -9,10 +9,13 @@ export type IconName =
   | 'chart-columns'
   | 'chart-line'
   | 'chevron-down'
+  | 'chevron-left'
+  | 'chevron-right'
   | 'clock'
   | 'cog'
   | 'credit-card'
   | 'ellipsis-v'
+  | 'filter'
   | 'folder'
   | 'globe'
   | 'home'
@@ -44,6 +47,15 @@ export type IconName =
       @switch (name()) {
         @case ('arrow-left') {
           <path d="M19 12H5M12 19l-7-7 7-7" />
+        }
+        @case ('chevron-left') {
+          <path d="m15 18-6-6 6-6" />
+        }
+        @case ('chevron-right') {
+          <path d="m9 18 6-6-6-6" />
+        }
+        @case ('filter') {
+          <path d="M4 6h16M7 12h10M10 18h4" />
         }
         @case ('home') {
           <path d="m3.5 10.5 8.5-7 8.5 7" />
