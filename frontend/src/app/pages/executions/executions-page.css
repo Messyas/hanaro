@@ -31,7 +31,10 @@
   border-radius: 0.5rem;
   border: 1px solid transparent;
   cursor: pointer;
-  transition: background-color 150ms ease, border-color 150ms ease, opacity 150ms ease;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    opacity 150ms ease;
   line-height: 1.25rem;
 }
 
@@ -167,7 +170,9 @@
   border-radius: 50%;
   width: 1rem;
   height: 1rem;
-  transition: color 150ms ease, background-color 150ms ease;
+  transition:
+    color 150ms ease,
+    background-color 150ms ease;
 }
 
 .filter-pill-remove:hover {
@@ -245,7 +250,9 @@
   background: var(--app-surface);
   border: 1px solid var(--app-card-border);
   border-radius: 0.75rem;
-  box-shadow: 0 12px 30px -4px rgb(0 0 0 / 30%), 0 4px 12px -2px rgb(0 0 0 / 20%);
+  box-shadow:
+    0 12px 30px -4px rgb(0 0 0 / 30%),
+    0 4px 12px -2px rgb(0 0 0 / 20%);
   animation: popoverFadeIn 150ms cubic-bezier(0.16, 1, 0.3, 1);
   display: flex;
   flex-direction: column;
@@ -371,7 +378,10 @@
   background: var(--app-surface);
   color: var(--app-text);
   accent-color: var(--brand-primary);
-  transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    background-color 150ms ease;
 }
 
 .input-control:hover:not(:focus) {
@@ -423,7 +433,9 @@
   width: 0.85rem;
   height: 0.85rem;
   color: var(--app-text-muted-detail);
-  transition: transform 150ms ease, color 150ms ease;
+  transition:
+    transform 150ms ease,
+    color 150ms ease;
   flex-shrink: 0;
 }
 
@@ -442,7 +454,9 @@
   border: 1px solid var(--app-card-border);
   border-radius: 0.5rem;
   padding: 0.3rem;
-  box-shadow: 0 10px 25px -4px rgb(0 0 0 / 35%), 0 4px 10px -2px rgb(0 0 0 / 25%);
+  box-shadow:
+    0 10px 25px -4px rgb(0 0 0 / 35%),
+    0 4px 10px -2px rgb(0 0 0 / 25%);
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
@@ -474,7 +488,9 @@
   color: var(--app-text);
   cursor: pointer;
   text-align: left;
-  transition: background-color 120ms ease, color 120ms ease;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
 }
 
 .custom-select-item:hover {
@@ -545,7 +561,9 @@
   border-radius: 0.35rem;
   color: var(--app-text-muted-detail);
   cursor: pointer;
-  transition: color 150ms ease, background-color 150ms ease;
+  transition:
+    color 150ms ease,
+    background-color 150ms ease;
 }
 
 .datepicker-icon-btn:hover,
@@ -570,7 +588,9 @@
   border: 1px solid var(--app-card-border);
   border-radius: 0.65rem;
   padding: 0.65rem;
-  box-shadow: 0 14px 30px -4px rgb(0 0 0 / 40%), 0 6px 14px -2px rgb(0 0 0 / 25%);
+  box-shadow:
+    0 14px 30px -4px rgb(0 0 0 / 40%),
+    0 6px 14px -2px rgb(0 0 0 / 25%);
   animation: calendarPopupFade 140ms cubic-bezier(0.16, 1, 0.3, 1);
   display: flex;
   flex-direction: column;
@@ -1204,4 +1224,3 @@
     max-width: 270px;
   }
 }
-

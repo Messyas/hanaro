@@ -120,7 +120,7 @@ describe('ExecutionsPage', () => {
     expect(component.statusFilter()).toBe('FAILED');
     expect(component.page()).toBe(1);
     expect(mockExecutionsService.list).toHaveBeenCalledWith(
-      expect.objectContaining({ status: 'FAILED', page: 1 })
+      expect.objectContaining({ status: 'FAILED', page: 1 }),
     );
   });
 
@@ -129,7 +129,9 @@ describe('ExecutionsPage', () => {
     fixture.detectChanges();
 
     expect(component.selectedExecutionId()).toBe('22222222-2222-2222-2222-222222222222');
-    expect(mockExecutionsService.getDetail).toHaveBeenCalledWith('22222222-2222-2222-2222-222222222222');
+    expect(mockExecutionsService.getDetail).toHaveBeenCalledWith(
+      '22222222-2222-2222-2222-222222222222',
+    );
     expect(component.selectedDetail()).toEqual(mockDetailData);
 
     const compiled = fixture.nativeElement as HTMLElement;
@@ -208,7 +210,7 @@ describe('ExecutionsPage', () => {
     expect(component.page()).toBe(1);
     expect(setItemSpy).toHaveBeenCalledWith('hanaro-executions-page-size', '50');
     expect(mockExecutionsService.list).toHaveBeenCalledWith(
-      expect.objectContaining({ page_size: 50, page: 1 })
+      expect.objectContaining({ page_size: 50, page: 1 }),
     );
 
     setItemSpy.mockRestore();
@@ -283,7 +285,7 @@ describe('ExecutionsPage', () => {
 
     vi.advanceTimersByTime(150); // total 350ms since second keystroke
     expect(mockExecutionsService.list).toHaveBeenCalledWith(
-      expect.objectContaining({ search: 'EXE-1234', page: 1 })
+      expect.objectContaining({ search: 'EXE-1234', page: 1 }),
     );
 
     vi.useRealTimers();
@@ -303,7 +305,7 @@ describe('ExecutionsPage', () => {
     component.onDateFromChange(completeEvent);
     expect(component.dateFrom()).toBe('2026-08-15');
     expect(mockExecutionsService.list).toHaveBeenCalledWith(
-      expect.objectContaining({ date_from: '2026-08-15', page: 1 })
+      expect.objectContaining({ date_from: '2026-08-15', page: 1 }),
     );
 
     // Empty date string (cleared) SHOULD trigger load
@@ -311,8 +313,6 @@ describe('ExecutionsPage', () => {
     const emptyEvent = { target: { value: '' } } as unknown as Event;
     component.onDateFromChange(emptyEvent);
     expect(component.dateFrom()).toBe('');
-    expect(mockExecutionsService.list).toHaveBeenCalledWith(
-      expect.objectContaining({ page: 1 })
-    );
+    expect(mockExecutionsService.list).toHaveBeenCalledWith(expect.objectContaining({ page: 1 }));
   });
 });

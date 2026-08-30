@@ -1,15 +1,7 @@
-export type AutomationExecutionStatus =
-  | 'QUEUED'
-  | 'RUNNING'
-  | 'COMPLETED'
-  | 'FAILED'
-  | 'CANCELLED';
+export type AutomationExecutionStatus = 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
 
 export type AutomationSnapshotStatus =
-  | 'NOT_PUBLISHED'
-  | 'PUBLISHED'
-  | 'UNCHANGED_REPLAY'
-  | 'PRESERVED_PREVIOUS';
+  'NOT_PUBLISHED' | 'PUBLISHED' | 'UNCHANGED_REPLAY' | 'PRESERVED_PREVIOUS';
 
 export type AutomationTrigger = 'SCHEDULED';
 
@@ -25,12 +17,7 @@ export type ExecutionStepCode =
   | 'JSON_VALIDATION'
   | 'SNAPSHOT_PUBLICATION';
 
-export type ExecutionStepStatus =
-  | 'PENDING'
-  | 'RUNNING'
-  | 'COMPLETED'
-  | 'FAILED'
-  | 'SKIPPED';
+export type ExecutionStepStatus = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'SKIPPED';
 
 export type ExecutionSortField = 'started_at' | 'finished_at' | 'status';
 export type SortOrder = 'asc' | 'desc';

@@ -69,7 +69,7 @@ describe('ExecutionsService', () => {
       });
 
     const req = httpTesting.expectOne(
-      '/api/v1/scrap/executions?page=1&page_size=25&status=COMPLETED&date_from=2026-08-01&date_to=2026-08-30'
+      '/api/v1/scrap/executions?page=1&page_size=25&status=COMPLETED&date_from=2026-08-01&date_to=2026-08-30',
     );
     expect(req.request.method).toBe('GET');
     req.flush(mockPage);

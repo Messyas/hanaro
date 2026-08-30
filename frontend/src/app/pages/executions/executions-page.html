@@ -49,7 +49,10 @@
             @if (dateFrom() || dateTo()) {
               <span class="filter-pill">
                 <span class="filter-pill-label">{{ t().executionsDateFrom }}:</span>
-                <span class="filter-pill-value">{{ formatDateSlash(dateFrom()) || '...' }} → {{ formatDateSlash(dateTo()) || '...' }}</span>
+                <span class="filter-pill-value"
+                  >{{ formatDateSlash(dateFrom()) || '...' }} →
+                  {{ formatDateSlash(dateTo()) || '...' }}</span
+                >
                 <button
                   type="button"
                   class="filter-pill-remove"
@@ -60,11 +63,7 @@
                 </button>
               </span>
             }
-            <button
-              type="button"
-              class="btn-clear-inline"
-              (click)="clearFilters()"
-            >
+            <button type="button" class="btn-clear-inline" (click)="clearFilters()">
               {{ t().executionsClearAll }}
             </button>
           </div>
@@ -101,11 +100,7 @@
                   <strong>{{ t().executionsFilterPopoverTitle }}</strong>
                 </div>
                 @if (activeFiltersCount() > 0) {
-                  <button
-                    type="button"
-                    class="popover-clear-btn"
-                    (click)="clearFilters()"
-                  >
+                  <button type="button" class="popover-clear-btn" (click)="clearFilters()">
                     {{ t().executionsClearAll }}
                   </button>
                 }
@@ -140,7 +135,10 @@
                 <!-- 2. Status (Custom Select) -->
                 <div class="filter-field">
                   <label id="status-select-label">{{ t().executionsStatus }}</label>
-                  <div class="custom-select-anchor status-select-anchor" (click)="$event.stopPropagation()">
+                  <div
+                    class="custom-select-anchor status-select-anchor"
+                    (click)="$event.stopPropagation()"
+                  >
                     <button
                       type="button"
                       class="custom-select-trigger"
@@ -181,7 +179,10 @@
                   <!-- Data Inicial -->
                   <div class="filter-field">
                     <label>{{ t().executionsDateFrom }}</label>
-                    <div class="custom-datepicker-anchor date-from-anchor" (click)="$event.stopPropagation()">
+                    <div
+                      class="custom-datepicker-anchor date-from-anchor"
+                      (click)="$event.stopPropagation()"
+                    >
                       <div class="datepicker-input-wrapper">
                         <input
                           class="input-control datepicker-input"
@@ -204,13 +205,27 @@
                       </div>
 
                       @if (dateFromPickerOpen()) {
-                        <div class="custom-calendar-popup" role="dialog" (click)="$event.stopPropagation()">
+                        <div
+                          class="custom-calendar-popup"
+                          role="dialog"
+                          (click)="$event.stopPropagation()"
+                        >
                           <div class="calendar-header">
-                            <button type="button" class="cal-nav-btn" (click)="prevMonthFrom($event)">
+                            <button
+                              type="button"
+                              class="cal-nav-btn"
+                              (click)="prevMonthFrom($event)"
+                            >
                               <ui-icon name="chevron-left" />
                             </button>
-                            <span class="cal-month-title">{{ getMonthYearLabel(viewDateFrom()) }}</span>
-                            <button type="button" class="cal-nav-btn" (click)="nextMonthFrom($event)">
+                            <span class="cal-month-title">{{
+                              getMonthYearLabel(viewDateFrom())
+                            }}</span>
+                            <button
+                              type="button"
+                              class="cal-nav-btn"
+                              (click)="nextMonthFrom($event)"
+                            >
                               <ui-icon name="chevron-right" />
                             </button>
                           </div>
@@ -222,7 +237,15 @@
                           </div>
 
                           <div class="calendar-days-grid">
-                            @for (day of getCalendarDays(viewDateFrom(), dateFrom(), undefined, dateTo()); track day.dateStr) {
+                            @for (
+                              day of getCalendarDays(
+                                viewDateFrom(),
+                                dateFrom(),
+                                undefined,
+                                dateTo()
+                              );
+                              track day.dateStr
+                            ) {
                               <button
                                 type="button"
                                 class="cal-day-btn"
@@ -240,10 +263,18 @@
                           </div>
 
                           <div class="calendar-footer">
-                            <button type="button" class="cal-action-btn" (click)="clearDateFromInput()">
+                            <button
+                              type="button"
+                              class="cal-action-btn"
+                              (click)="clearDateFromInput()"
+                            >
                               {{ t().calendarClear }}
                             </button>
-                            <button type="button" class="cal-action-btn cal-today-btn" (click)="setTodayFrom()">
+                            <button
+                              type="button"
+                              class="cal-action-btn cal-today-btn"
+                              (click)="setTodayFrom()"
+                            >
                               {{ t().calendarToday }}
                             </button>
                           </div>
@@ -255,7 +286,10 @@
                   <!-- Data Final -->
                   <div class="filter-field">
                     <label>{{ t().executionsDateTo }}</label>
-                    <div class="custom-datepicker-anchor date-to-anchor" (click)="$event.stopPropagation()">
+                    <div
+                      class="custom-datepicker-anchor date-to-anchor"
+                      (click)="$event.stopPropagation()"
+                    >
                       <div class="datepicker-input-wrapper">
                         <input
                           class="input-control datepicker-input"
@@ -278,12 +312,18 @@
                       </div>
 
                       @if (dateToPickerOpen()) {
-                        <div class="custom-calendar-popup" role="dialog" (click)="$event.stopPropagation()">
+                        <div
+                          class="custom-calendar-popup"
+                          role="dialog"
+                          (click)="$event.stopPropagation()"
+                        >
                           <div class="calendar-header">
                             <button type="button" class="cal-nav-btn" (click)="prevMonthTo($event)">
                               <ui-icon name="chevron-left" />
                             </button>
-                            <span class="cal-month-title">{{ getMonthYearLabel(viewDateTo()) }}</span>
+                            <span class="cal-month-title">{{
+                              getMonthYearLabel(viewDateTo())
+                            }}</span>
                             <button type="button" class="cal-nav-btn" (click)="nextMonthTo($event)">
                               <ui-icon name="chevron-right" />
                             </button>
@@ -296,7 +336,10 @@
                           </div>
 
                           <div class="calendar-days-grid">
-                            @for (day of getCalendarDays(viewDateTo(), dateTo(), dateFrom(), undefined); track day.dateStr) {
+                            @for (
+                              day of getCalendarDays(viewDateTo(), dateTo(), dateFrom(), undefined);
+                              track day.dateStr
+                            ) {
                               <button
                                 type="button"
                                 class="cal-day-btn"
@@ -314,10 +357,18 @@
                           </div>
 
                           <div class="calendar-footer">
-                            <button type="button" class="cal-action-btn" (click)="clearDateToInput()">
+                            <button
+                              type="button"
+                              class="cal-action-btn"
+                              (click)="clearDateToInput()"
+                            >
                               {{ t().calendarClear }}
                             </button>
-                            <button type="button" class="cal-action-btn cal-today-btn" (click)="setTodayTo()">
+                            <button
+                              type="button"
+                              class="cal-action-btn cal-today-btn"
+                              (click)="setTodayTo()"
+                            >
                               {{ t().calendarToday }}
                             </button>
                           </div>
@@ -337,18 +388,10 @@
               </div>
 
               <div class="popover-footer">
-                <button
-                  type="button"
-                  class="btn btn-ghost"
-                  (click)="clearFilters()"
-                >
+                <button type="button" class="btn btn-ghost" (click)="clearFilters()">
                   {{ t().executionsClearFilters }}
                 </button>
-                <button
-                  type="button"
-                  class="btn btn-primary"
-                  (click)="closeFilterPopover()"
-                >
+                <button type="button" class="btn btn-primary" (click)="closeFilterPopover()">
                   {{ t().executionsApplyFilters }}
                 </button>
               </div>
@@ -438,12 +481,18 @@
       <!-- Paginação -->
       <footer class="pagination-container">
         <div>
-          <span>{{ t().executionsPaginationPage }} {{ page() }} {{ t().executionsPaginationOf }} {{ data()!.total_pages || 1 }}</span>
+          <span
+            >{{ t().executionsPaginationPage }} {{ page() }} {{ t().executionsPaginationOf }}
+            {{ data()!.total_pages || 1 }}</span
+          >
         </div>
 
         <div class="pagination-controls">
           <span class="meta-label">{{ t().executionsPaginationPerPage }}</span>
-          <div class="custom-select-anchor pagination-size-select" (click)="$event.stopPropagation()">
+          <div
+            class="custom-select-anchor pagination-size-select"
+            (click)="$event.stopPropagation()"
+          >
             <button
               type="button"
               class="custom-select-trigger size-trigger"
@@ -538,7 +587,10 @@
             <!-- Seção 1: Status & Falha -->
             @if (detail.status === 'FAILED') {
               <div class="failure-box">
-                <strong>{{ t().executionsFailureTitle }}: {{ detail.failure_code || detail.status }}</strong>
+                <strong
+                  >{{ t().executionsFailureTitle }}:
+                  {{ detail.failure_code || detail.status }}</strong
+                >
                 @if (detail.failure_category) {
                   <span class="meta-label">{{ detail.failure_category }}</span>
                 }
@@ -571,8 +623,13 @@
                   <span class="meta-value">{{ formatTrigger(detail.trigger) }}</span>
                 </div>
                 <div class="meta-item">
-                  <span class="meta-label">{{ t().executionsColStart }} / {{ t().executionsColEnd }}</span>
-                  <span class="meta-value">{{ formatDateSlash(detail.query_date_from) }} — {{ formatDateSlash(detail.query_date_to) }}</span>
+                  <span class="meta-label"
+                    >{{ t().executionsColStart }} / {{ t().executionsColEnd }}</span
+                  >
+                  <span class="meta-value"
+                    >{{ formatDateSlash(detail.query_date_from) }} —
+                    {{ formatDateSlash(detail.query_date_to) }}</span
+                  >
                 </div>
                 <div class="meta-item">
                   <span class="meta-label">{{ t().executionsColDuration }}</span>
@@ -599,7 +656,7 @@
                 </div>
                 <div class="meta-item">
                   <span class="meta-label">{{ t().executionsMetaSha256 }}</span>
-                  <span class="meta-value" style="font-size: 0.7rem;">
+                  <span class="meta-value" style="font-size: 0.7rem">
                     {{ detail.source_file_sha256 || '—' }}
                   </span>
                 </div>

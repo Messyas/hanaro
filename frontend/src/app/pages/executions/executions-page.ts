@@ -1,5 +1,14 @@
 import { DecimalPipe, isPlatformBrowser } from '@angular/common';
-import { Component, DestroyRef, HostListener, OnInit, PLATFORM_ID, computed, inject, signal } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  HostListener,
+  OnInit,
+  PLATFORM_ID,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { LanguageService } from '../../i18n/language.service';
@@ -217,7 +226,12 @@ export class ExecutionsPage implements OnInit {
     return ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
   }
 
-  getCalendarDays(viewDate: Date, selectedIsoDate: string, minDate?: string, maxDate?: string): CalendarDay[] {
+  getCalendarDays(
+    viewDate: Date,
+    selectedIsoDate: string,
+    minDate?: string,
+    maxDate?: string,
+  ): CalendarDay[] {
     const year = viewDate.getFullYear();
     const month = viewDate.getMonth();
 
@@ -294,9 +308,7 @@ export class ExecutionsPage implements OnInit {
     if (m < 1 || m > 12 || d < 1 || d > 31) return false;
     const testDate = new Date(y, m - 1, d);
     return (
-      testDate.getFullYear() === y &&
-      testDate.getMonth() === m - 1 &&
-      testDate.getDate() === d
+      testDate.getFullYear() === y && testDate.getMonth() === m - 1 && testDate.getDate() === d
     );
   }
 
@@ -533,7 +545,8 @@ export class ExecutionsPage implements OnInit {
         this.loadingDetail.set(false);
       },
       error: (err: { error?: { detail?: string }; message?: string }) => {
-        const message = err.error?.detail || err.message || 'Erro ao carregar detalhes da execução.';
+        const message =
+          err.error?.detail || err.message || 'Erro ao carregar detalhes da execução.';
         this.detailError.set(message);
         this.loadingDetail.set(false);
       },

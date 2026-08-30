@@ -46,7 +46,15 @@ describe('App', () => {
     const childPaths = shellRoute?.children?.map((route) => route.path);
 
     expect(routes.some((route) => route.path === 'login')).toBe(false);
-    expect(childPaths).toEqual(['dashboard', 'execucoes', 'relatorios', 'configuracoes', 'perfil', '', '**']);
+    expect(childPaths).toEqual([
+      'dashboard',
+      'execucoes',
+      'relatorios',
+      'configuracoes',
+      'perfil',
+      '',
+      '**',
+    ]);
   });
 
   it('should update sidebar and breadcrumb labels when the runtime language changes', () => {
