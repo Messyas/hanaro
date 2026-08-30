@@ -33,7 +33,7 @@ graph TD
     end
 
     subgraph "4. Camada de Roteamento & Autenticação (58 Endpoints)"
-        R_Auth["/api/v1/auth (crudauth + Google PKCE)"]
+        R_Auth["/api/v1/auth (credenciais locais + sessão)"]
         R_User["/api/v1/users (RBAC & LGPD)"]
         R_Key["/api/v1/api-keys (SHA-256 Hashed Keys)"]
         R_Scrap["/api/v1/scrap & /executions (Pessimistic Locks)"]
@@ -91,8 +91,6 @@ Abaixo está o inventário e diagnóstico exaustivo de segurança de cada um dos
 | `POST` | `/api/v1/auth/login` | Aberto / Rate-Limited | `UserLogin` (JSON) | Protegido contra força bruta via Rate Limiter. Emite cookies assinados com `HttpOnly`, `SameSite=Lax/Strict` e `Secure`. |
 | `POST` | `/api/v1/auth/logout` | `CurrentUserDep` | N/A (Header/Cookie) | Invalidação imediata de sessão no backend e limpeza de cookies com cabeçalho `Set-Cookie` expirado. Exige token CSRF válido. |
 | `GET` | `/api/v1/auth/check-auth` | `OptionalPrincipalDep` | N/A | Retorna status da sessão e usuário autenticado. Responde `200 {authenticated: false}` para anônimos sem vazar stack trace. |
-| `GET` | `/api/v1/auth/oauth/google` | Aberto / Browser Redirect | N/A | Inicia fluxo OAuth 2.0 com Google. Gera e armazena estado criptográfico (`state`) e desafio PKCE (*Proof Key for Code Exchange*). |
-| `GET` | `/api/v1/auth/oauth/callback/google` | Validação de State / PKCE | `code`, `state` (Query) | Validação estrita do parâmetro `state` contra replay/CSRF. Troca de token diretamente com endpoint Google via HTTPS. |
 | `POST` | `/api/v1/auth/refresh-csrf` | `CurrentUserDep` | N/A | Gera novo token CSRF vinculado à sessão ativa, prevenindo ataques de fixação de sessão. |
 
 ### 3.2. Módulo de Usuários e Perfis (`/api/v1/users`)
@@ -102,7 +100,7 @@ Abaixo está o inventário e diagnóstico exaustivo de segurança de cada um dos
 | `POST` | `/api/v1/users/` | `CurrentSuperUserDep` | `UserCreate` (Zxcvbn $\ge 3$) | Apenas administradores criam novas contas manualmente. Senhas avaliadas pelo algoritmo Zxcvbn contra senhas fracas. |
 | `GET` | `/api/v1/users/me` | `CurrentUserDep` | N/A | Retorna exclusivamente o perfil do usuário da sessão atual, prevenindo BOLA/IDOR por design. |
 | `GET` | `/api/v1/users/{username}` | `CurrentUserDep` | `username` (Path) | Usuários comuns só podem consultar seu próprio perfil; superusuários podem consultar qualquer um. |
-| `PATCH` | `/api/v1/users/{username}` | `CurrentUserDep` | `UserUpdate` | Permissão validada via `verify_user_permission`. Alteração de e-mail força `email_verified=False` automaticamente. |
+| `PATCH` | `/api/v1/users/{username}` | `CurrentUserDep` | `UserUpdate` | Permissão validada via `verify_user_permission`; o schema rejeita campos desconhecidos e de privilégio. |
 | `DELETE` | `/api/v1/users/{username}` | `CurrentUserDep` | `username` (Path) | Soft delete (`is_deleted=True`). Impede auto-exclusão acidental e desativa credenciais imediatamente. |
 | `DELETE` | `/api/v1/users/db/{username}` | `CurrentSuperUserDep` | `username` (Path) | **GDPR/LGPD Anonymization:** Limpa PII, sobrescreve hash por `"DELETED_INVALID_HASH"`, preserva integridade relacional. |
 | `GET` | `/api/v1/users/active-and-inactive/{username}` | `CurrentSuperUserDep` | `username` (Path) | Consulta administrativa para auditoria de contas desativadas. Restrita a Superusuários. |

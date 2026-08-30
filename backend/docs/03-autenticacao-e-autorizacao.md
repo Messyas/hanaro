@@ -2,14 +2,23 @@
 
 O padrão de autenticação do backend é o `crudauth`, com sessão em cookie, CSRF,
 lockout progressivo e armazenamento Redis ou memória. Toda autenticação passa
-por esse fluxo; o frontend apenas utiliza a sessão emitida pelo backend.
+por esse fluxo; o frontend apenas utiliza a sessão emitida pelo backend. As
+contas são provisionadas administrativamente e o único login disponível usa
+username e senha local.
 
 ## Modelo de acesso da aplicação
+
+O contrato completo e as decisões de produto estão em
+[`docs/modelo-de-acesso.md`](../../docs/modelo-de-acesso.md). Em especial, o
+dashboard agregado é público para suportar o modo TV, enquanto relatórios,
+perfil e configurações de domínio seguem fronteiras próprias.
 
 | Superfície | Dependência | Requisitos |
 | --- | --- | --- |
 | Dashboard público | nenhuma | `GET`, dados não pessoais e schema mínimo |
 | Modo TV | nenhuma | somente leitura, sem sessão e sem controles administrativos |
+| Relatórios | `CurrentUserDep` | dados detalhados disponíveis apenas para conta provisionada |
+| Aliases | leitura autenticada / escrita `CurrentSuperUserDep` | configuração compartilhada; somente administrador altera |
 | Perfil/preferências | `CurrentUserDep` | usuário derivado da sessão e CSRF em escritas |
 | Administração | `CurrentSuperUserDep` | autorização explícita e evento auditável |
 
@@ -17,6 +26,13 @@ Rotas públicas são uma decisão por caso de uso, não um padrão do módulo in
 Cada consulta pública define campos, limites, cache e rate limit próprios. O modo
 TV usa endpoints dedicados para impedir que futuras alterações em endpoints
 autenticados exponham dados pessoais.
+
+`GET /api/v1/scrap` e `GET /api/v1/scrap/filters` são endpoints detalhados e
+devem ser protegidos antes de alimentar a tela de Relatórios. Eles não fazem
+parte do contrato público agregado de `/api/v1/dashboard/scrap`.
+
+O payload de Perfil aceita somente campos editáveis pelo próprio usuário.
+Campos desconhecidos, tier e privilégios são rejeitados pelo schema.
 
 ## Dependências obrigatórias
 
@@ -77,19 +93,6 @@ risco de BOLA e condições de corrida.
 - [ ] Manter o modo TV sem cookie de sessão.
 - [ ] Dimensionar a sessão de perfil para o turno de trabalho; estações
       compartilhadas exigem logout explícito e sessão não persistente.
-- [ ] Integrar um IdP corporativo por OIDC quando ele estiver disponível; ao
-      concluir o callback, criar a mesma sessão local usada pelo login atual.
-
-## OAuth
-
-- [ ] Reutilizar provider, `OAuthState` e PKCE existentes.
-- [ ] Validar `state`, provider e `code_verifier` antes da troca do código.
-- [ ] Consumir/remover o state após uso e respeitar TTL.
-- [ ] Restringir redirect pós-login a destinos internos presentes em allowlist.
-- [ ] Validar payload do provedor como entrada não confiável.
-- [ ] Usar timeout e TLS ao chamar o provedor.
-- [ ] Converter credenciais do provedor em sessão local e omitir access/refresh tokens das respostas.
-- [ ] Excluir código, token, state e perfil completo de logs e mensagens de erro.
 
 ## Testes específicos
 
@@ -102,7 +105,7 @@ risco de BOLA e condições de corrida.
 - [ ] Login inválido não revela se username/email existe.
 - [ ] Repetidas falhas de login acionam `429` e `Retry-After`.
 - [ ] Logout revoga sessão e remove cookies.
-- [ ] OAuth rejeita state ausente/reutilizado, provider divergente e redirect externo.
+- [ ] Rotas de autenticação externa não estão registradas e respondem `404`.
 - [ ] API key inválida, expirada, inativa ou sem permissão falha.
 - [ ] Comparação de API key ocorre por hash e resposta de listagem não contém a chave.
 

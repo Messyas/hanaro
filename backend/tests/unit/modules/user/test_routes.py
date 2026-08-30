@@ -33,7 +33,6 @@ def valid_user_dict():
         "username": "johndoe",
         "email": "john@example.com",
         "is_superuser": False,
-        "email_verified": False,
         "profile_image_url": "https://example.com/pic.jpg",
         "tier_id": 1,
     }

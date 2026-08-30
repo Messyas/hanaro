@@ -185,12 +185,6 @@ erDiagram
         string profile_image_url
         int tier_id "FK"
         boolean is_superuser
-        string google_id
-        string github_id
-        string oauth_provider
-        boolean email_verified
-        datetime oauth_created_at
-        datetime oauth_updated_at
         datetime created_at
         datetime updated_at
         datetime deleted_at

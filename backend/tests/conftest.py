@@ -314,7 +314,6 @@ def mock_rate_limit_settings_fail_open():
     settings.DEFAULT_RATE_LIMIT_PERIOD = 60
     return settings
 
-
 @pytest.fixture
 def mock_rate_limit_settings_fail_closed():
     """Mock settings with fail_open=False for rate limiter tests."""
@@ -326,11 +325,3 @@ def mock_rate_limit_settings_fail_closed():
     return settings
 
 
-@pytest.fixture(autouse=True)
-def mock_oauth_settings(monkeypatch):
-    """Mock OAuth settings for testing."""
-    monkeypatch.setenv("OAUTH_REDIRECT_BASE_URL", "http://localhost:8000")
-    monkeypatch.setenv("OAUTH_GOOGLE_CLIENT_ID", "mock-google-client-id")
-    monkeypatch.setenv("OAUTH_GOOGLE_CLIENT_SECRET", "mock-google-client-secret")
-    monkeypatch.setenv("OAUTH_GITHUB_CLIENT_ID", "mock-github-client-id")
-    monkeypatch.setenv("OAUTH_GITHUB_CLIENT_SECRET", "mock-github-client-secret")

@@ -48,8 +48,6 @@ services:
         value: "1"
       - key: TRUSTED_HOSTS
         sync: false
-      - key: OAUTH_REDIRECT_BASE_URL
-        sync: false
       - key: DATABASE_URL
         sync: false
       - key: SECRET_KEY

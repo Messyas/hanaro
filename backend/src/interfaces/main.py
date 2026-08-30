@@ -49,7 +49,7 @@ app = create_application(
     A modern FastAPI starter with:
 
     * Vertical-slice modules and a clean infrastructure layer
-    * Session-based auth with OAuth providers
+    * Session-based authentication with local username and password
     * Swappable cache, queue, and rate-limit backends
     * SQLAdmin admin UI
     """,

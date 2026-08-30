@@ -685,13 +685,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/da/11/535ee9a8f2a21ab302a249f3e37d153b4376e77503b94b9c984f099eb79a/crudauth-0.6.0-py3-none-any.whl", hash = "sha256:9951cdbd8d7c8bee33b1b789349fb565718118752dfd24779614ce2b0d5e4bf0", size = 139738, upload-time = "2026-06-22T02:46:24.869Z" },
 ]
 
-[package.optional-dependencies]
-all = [
-    { name = "httpx" },
-    { name = "redis" },
-    { name = "user-agents" },
-]
-
 [[package]]
 name = "dnspython"
 version = "2.8.0"
@@ -787,7 +780,7 @@ dependencies = [
     { name = "aiosqlite" },
     { name = "alembic" },
     { name = "asyncpg" },
-    { name = "crudauth", extra = ["all"] },
+    { name = "crudauth" },
     { name = "faker" },
     { name = "fastapi", extra = ["standard"] },
     { name = "fastcrud" },
@@ -828,7 +821,7 @@ requires-dist = [
     { name = "aiosqlite", specifier = ">=0.21.0" },
     { name = "alembic", specifier = ">=1.16.4" },
     { name = "asyncpg", specifier = ">=0.30.0" },
-    { name = "crudauth", extras = ["all"], specifier = ">=0.6.0,<0.7.0" },
+    { name = "crudauth", specifier = ">=0.6.0,<0.7.0" },
     { name = "faker", specifier = ">=37.1.0" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.115.8" },
     { name = "fastcrud", specifier = ">=0.21.0" },

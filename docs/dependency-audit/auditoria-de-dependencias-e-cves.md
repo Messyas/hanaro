@@ -54,7 +54,7 @@ graph TD
 ### 2.3. Autenticação, Criptografia e Segurança
 | Pacote | Versão Definida | Função Arquitetural | Status de Segurança |
 | :--- | :---: | :--- | :---: |
-| `crudauth[all]` | `>=0.6.0,<0.7.0` | Autenticação modular com PKCE OAuth e Cookies | ✅ Seguro (0 CVEs) |
+| `crudauth` | `>=0.6.0,<0.7.0` | Login local, hashing, lockout e sessões em cookies | ✅ Seguro (0 CVEs) |
 | `itsdangerous` | `>=2.2.0` | Assinatura criptográfica de cookies e tokens de sessão | ✅ Seguro (0 CVEs) |
 | `zxcvbn` | `==4.5.0` | Avaliador de entropia e força de senhas | ✅ Seguro (0 CVEs) |
 | `user-agents` | `>=2.2.0` | Identificação de navegadores e detecção de anomalias | ✅ Seguro (0 CVEs) |

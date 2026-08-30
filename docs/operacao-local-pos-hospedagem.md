@@ -37,7 +37,7 @@ Estas alterações devem ser feitas depois de confirmar que a operação local f
 - Se a integração Aiven não for mais desejada no código, remova primeiro os testes e a documentação referentes a `rediss://` e `DATABASE_URL`; depois remova as variáveis e os fallbacks associados. Faça isso em um commit separado da migração de dados.
 - Mantenha `SESSION_BACKEND=redis`, `CACHE_BACKEND=redis` e `RATE_LIMITER_BACKEND=redis` se o Redis local estiver ativo. Para uma demonstração sem Redis, use `SESSION_BACKEND=memory`, `CACHE_ENABLED=false` e `RATE_LIMITER_ENABLED=false`.
 - Deixe `TASKIQ_ENABLED=false` enquanto não existir worker local. Para reativá-lo, suba Redis, configure `TASKIQ_ENABLED=true` e execute o worker no mesmo ambiente.
-- Ajuste `CORS_ORIGINS`, `TRUSTED_HOSTS` e `OAUTH_REDIRECT_BASE_URL` para hosts locais, ou mantenha CORS desativado se o proxy do frontend continuar garantindo mesma origem.
+- Ajuste `CORS_ORIGINS` e `TRUSTED_HOSTS` para hosts locais, ou mantenha CORS desativado se o proxy do frontend continuar garantindo mesma origem.
 
 Não é necessário modificar o driver PostgreSQL: sem `DATABASE_URL`, a aplicação já monta a URL assíncrona pelas variáveis `POSTGRES_*`.
 
@@ -68,5 +68,5 @@ Não cancele as contas antes de confirmar que o ambiente local está funcionando
 
 - **Acesso na rede interna:** escolha um hostname interno ou IP fixo e ajuste `TRUSTED_HOSTS`/CORS conforme ele.
 - **Dados locais futuros:** defina se os novos dados locais precisarão de backup recorrente e onde eles serão armazenados.
-- **HTTPS local/interno:** se usuários acessarem por navegador em outra máquina, use um proxy interno e certificado confiável para manter cookies `Secure` e OAuth funcionando corretamente.
+- **HTTPS local/interno:** se usuários acessarem por navegador em outra máquina, use um proxy interno e certificado confiável para manter os cookies de sessão `Secure` funcionando corretamente.
 - **Atualizações:** sem Cloudflare/Render, a pessoa responsável deverá executar `git pull`, `docker compose up --build` e as migrações de forma controlada.

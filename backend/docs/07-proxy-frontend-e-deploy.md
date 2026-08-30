@@ -61,7 +61,7 @@ O startup rejeita uma política CORS com credenciais e wildcard.
 - `csrf_token`: cookie legível pelo Angular.
 - `X-CSRF-Token`: header enviado automaticamente pelo `HttpClient` em escritas.
 - URLs relativas: permitem que cookies e XSRF permaneçam same-origin.
-- Tokens OAuth: permanecem no backend; o navegador recebe uma sessão local.
+- Credenciais locais: são enviadas somente ao endpoint de login; o navegador recebe uma sessão local.
 
 ## Testes de aceitação
 

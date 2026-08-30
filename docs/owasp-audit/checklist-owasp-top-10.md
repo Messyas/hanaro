@@ -15,7 +15,7 @@ Esta auditoria apresenta a avaliação detalhada da arquitetura e do código-fon
 O sistema implementa uma estratégia de **Defesa em Profundidade (*Defense in Depth*)**, com mecanismos preventivos em todas as camadas:
 1. **Borda & Transporte:** Nginx Reverse Proxy / Cloudflare Edge com cabeçalhos de segurança, rate limiting e terminação TLS.
 2. **Framework & Middleware:** Middleware customizado de rate limiting (Redis/Memcached), controle de cache (`no-cache, no-store`), validação CSRF com token de dupla submissão e injeção de `Correlation-ID`.
-3. **Aplicação & Domínio:** Autenticação modular (`crudauth` + Google OAuth PKCE), controle de acesso baseado em escopos para APIs de robôs (`X-API-Key`), isolamento transacional pessimista (`with_for_update()`) e hashing criptográfico canônico (SHA-256).
+3. **Aplicação & Domínio:** Autenticação local (`crudauth`, username/senha e sessão), controle de acesso baseado em escopos para APIs de robôs (`X-API-Key`), isolamento transacional pessimista (`with_for_update()`) e hashing criptográfico canônico (SHA-256).
 4. **Validador de Startup em Produção:** O módulo [`production_validator.py`](file:///C:/Users/User/Documents/projects/hanaro/backend/src/infrastructure/security/production_validator.py) aborta automaticamente a inicialização do container em produção se detectar senhas fracas, chaves padrão, CORS irrestrito (`*`) ou cookies inseguros.
 
 ---
@@ -50,10 +50,10 @@ graph TD
 | **A04:2021** | **Insecure Design** | ✅ **Conforme** | Rate limiting ativo por IP/Usuário com backends Redis/Memcached. Máquinas de estado imutáveis para execuções (`TERMINAL_EXECUTION_STATES`). Transactional Outbox Pattern para envio de e-mails assíncronos. |
 | **A05:2021** | **Security Misconfiguration** | ✅ **Conforme** | Validador de inicialização (`ProductionSecurityValidator`) que bloqueia deploy com senhas padrão. Documentação Swagger desabilitável em produção (`ENABLE_DOCS_IN_PRODUCTION=false`). |
 | **A06:2021** | **Vulnerable and Outdated Components** | ✅ **Conforme** | Versões fixadas em `requirements.txt` e `package.json`. Pipeline de CI automatizado com SonarQube Quality Gate e pre-commit hooks (`flake8`, `mypy`, `black`, `isort`). |
-| **A07:2021** | **Identification and Authentication Failures** | ✅ **Conforme** | Fluxo Google OAuth 2.0 com verificação PKCE e estado CSRF. Desativação imediata de credenciais em soft-deleted users. Proteção contra força bruta via Rate Limiting. |
+| **A07:2021** | **Identification and Authentication Failures** | ✅ **Conforme** | Login local com senha derivada por hash, sessão protegida por cookie/CSRF, desativação imediata de usuários soft-deleted e lockout contra força bruta. |
 | **A08:2021** | **Software and Data Integrity Failures** | ✅ **Conforme** | Validação canônica de snapshots com hash de integridade SHA-256 (`canonical_content_hash`). Tipagem estrita no Pydantic V2 com restrições de tamanho (`ge`, `le`, `max_length`). |
 | **A09:2021** | **Security Logging and Monitoring Failures** | ✅ **Conforme** | Formatação estruturada (JSON/Detailed). Injeção automática de `Correlation-ID` em cada requisição. Mascaramento ativo de senhas e tokens via `sanitize_message`. |
-| **A10:2021** | **Server-Side Request Forgery (SSRF)** | ✅ **Conforme** | Nenhuma requisição HTTP dinâmica direcionada por entrada do usuário. Conexões externas restritas aos endpoints pré-configurados de OAuth (Google) e GERP. |
+| **A10:2021** | **Server-Side Request Forgery (SSRF)** | ✅ **Conforme** | Nenhuma requisição HTTP dinâmica direcionada por entrada do usuário. As integrações externas usam destinos configurados no servidor. |
 
 ---
 
@@ -112,7 +112,7 @@ graph TD
 
 ### A07:2021 – Identification and Authentication Failures
 * **Autenticação Segura via `crudauth`:**
-  * Autenticação delegada ao Google OAuth com PKCE (*Proof Key for Code Exchange*) e validação de `state` criptográfico de uso único para barrar ataques de CSRF/intercepção.
+  * Autenticação exclusivamente local por username e senha para contas provisionadas administrativamente; não há login social nem criação automática de conta.
   * Rate limiting configurado para proteger endpoints contra ataques de força bruta.
 
 ### A08:2021 – Software and Data Integrity Failures

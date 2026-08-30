@@ -32,7 +32,7 @@ class WidgetRead(BaseModel):
 - [ ] Definir payloads com allowlist em schemas próprios, separados dos modelos ORM.
 - [ ] Aplicar normalização somente quando a regra for inequívoca; entradas inválidas geram erro explícito.
 - [ ] Validar URLs externas por esquema, host/porta permitidos e destino resolvido; a validação de SSRF inclui controles além de regex.
-- [ ] Excluir de todas as respostas `hashed_password`, `key_hash`, sessão, CSRF e credenciais OAuth.
+- [ ] Excluir de todas as respostas `hashed_password`, `key_hash`, sessão, CSRF e demais credenciais.
 
 ## 3. Implementar serviço e dependência
 

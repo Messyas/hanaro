@@ -14,7 +14,7 @@ Esta auditoria realizou uma varredura profunda de segurança em todos os **373 a
 - Chaves Privadas (RSA, EC, OpenSSH, PGP, DSA);
 - Credenciais e Tokens de Nuvem (AWS Access Keys, Google Cloud API Keys, GitHub Personal Access Tokens);
 - Strings de conexão com bancos de dados (`postgresql://`, `redis://`, `amqp://`) contendo senhas embutidas;
-- Segredos de Aplicação e Sessão (`SECRET_KEY`, `JWT_SECRET`, OAuth Client Secrets, tokens de webhook);
+- Segredos de Aplicação e Sessão (`SECRET_KEY`, `JWT_SECRET`, tokens de webhook);
 - Certificados e chaves criptográficas TLS/X.509 (`.pem`, `.key`, `.p12`, `.crt`).
 
 ### Veredito da Auditoria
