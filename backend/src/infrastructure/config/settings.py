@@ -362,6 +362,25 @@ class LoggingSettings(BaseSettings):
         return level_map.get(self.LOG_LEVEL.upper(), logging.INFO)
 
 
+class NotificationSettings(BaseSettings):
+    """Optional SMTP delivery for operational alerts.
+
+    Empty recipients intentionally keep the durable outbox in ``SKIPPED`` state.
+    """
+
+    SMTP_HOST: str = config("SMTP_HOST", default="")
+    SMTP_PORT: int = config("SMTP_PORT", default=587, cast=int)
+    SMTP_USERNAME: str = config("SMTP_USERNAME", default="")
+    SMTP_PASSWORD: str = config("SMTP_PASSWORD", default="")
+    SMTP_FROM: str = config("SMTP_FROM", default="")
+    SMTP_USE_TLS: bool = config("SMTP_USE_TLS", default=True, cast=bool)
+    MATERIAL_SCRAP_DEVELOPER_EMAILS: str = config("MATERIAL_SCRAP_DEVELOPER_EMAILS", default="")
+
+    @property
+    def MATERIAL_SCRAP_DEVELOPER_EMAIL_LIST(self) -> list[str]:
+        return [email.strip() for email in self.MATERIAL_SCRAP_DEVELOPER_EMAILS.split(",") if email.strip()]
+
+
 class TaskiqSettings(BaseSettings):
     """Taskiq async task queue settings."""
 
@@ -419,6 +438,7 @@ class Settings(
     SQLAdminSettings,
     SecuritySettings,
     LoggingSettings,
+    NotificationSettings,
     TaskiqSettings,
 ):
     """Main settings class that combines all setting categories."""

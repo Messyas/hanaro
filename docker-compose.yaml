@@ -186,8 +186,8 @@ services:
     profiles: ["simulation"]
     image: hanaro-backend:dev
     environment: *backend-environment
-    working_dir: /app/backend/src
-    command: ["taskiq", "worker", "infrastructure.taskiq.worker:default_broker"]
+    working_dir: /app/backend
+    command: ["taskiq", "worker", "src.infrastructure.taskiq.worker:default_broker"]
     volumes:
       - type: bind
         source: ./backend/src
@@ -349,8 +349,8 @@ services:
       target: dev
     init: true
     environment: *backend-environment
-    working_dir: /app/backend/src
-    command: ["taskiq", "worker", "infrastructure.taskiq.worker:default_broker", "--reload"]
+    working_dir: /app/backend
+    command: ["taskiq", "worker", "src.infrastructure.taskiq.worker:default_broker", "--reload"]
     volumes:
       - type: bind
         source: ./backend/src
