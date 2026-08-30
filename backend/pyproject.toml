@@ -27,7 +27,6 @@ dependencies = [
     "pydantic>=2.10.6",
     "pydantic-settings>=2.7.1",
     "redis>=6.1.0",
-    "sqladmin>=0.22.0",
     "sqlalchemy>=2.0.37",
     "taskiq>=0.11.20",
     "taskiq-redis>=1.1.2",
@@ -45,7 +44,6 @@ dev = [
     "pytest-cov>=6.0.0",
     "pytest-mock>=3.14.0",
     "testcontainers[postgres]>=4.10.0",
-    "types-WTForms==3.2.1.20260518",
     "types-zxcvbn==4.5.0.20260518",
     "pytest-xdist[psutil]>=3.8.0",
 ]
@@ -97,18 +95,6 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = "user_agents"
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = "sqladmin"
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = "sqladmin.*"
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = ["wtforms", "wtforms.*"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]

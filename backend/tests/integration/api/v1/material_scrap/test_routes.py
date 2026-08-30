@@ -12,8 +12,16 @@ async def loaded_scrap(db_session: AsyncSession) -> None:
 
 
 @pytest.mark.asyncio
-async def test_scrap_listing_pagination_filters_search_and_sort_validation(client: AsyncClient, loaded_scrap: None) -> None:
-    response = await client.get(
+async def test_scrap_listing_requires_authentication(client: AsyncClient, loaded_scrap: None) -> None:
+    response = await client.get("/api/v1/scrap")
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_scrap_listing_pagination_filters_search_and_sort_validation(
+    auth_client: AsyncClient, loaded_scrap: None
+) -> None:
+    response = await auth_client.get(
         "/api/v1/scrap",
         params=[("organizations", "NWK"), ("page", "1"), ("page_size", "2"), ("sort_by", "item_code")],
     )
@@ -23,9 +31,9 @@ async def test_scrap_listing_pagination_filters_search_and_sort_validation(clien
     assert body["total_pages"] == 2
     assert len(body["items"]) == 2
 
-    search = await client.get("/api/v1/scrap", params={"search": "linha inicial"})
+    search = await auth_client.get("/api/v1/scrap", params={"search": "linha inicial"})
     assert search.json()["total_items"] == 1
-    invalid_sort = await client.get("/api/v1/scrap", params={"sort_by": "drop_table"})
+    invalid_sort = await auth_client.get("/api/v1/scrap", params={"sort_by": "drop_table"})
     assert invalid_sort.status_code == 422
 
 
@@ -52,13 +60,15 @@ async def test_filter_options_and_dashboard_queries(client: AsyncClient, loaded_
 
 
 @pytest.mark.asyncio
-async def test_multiple_organization_and_derived_department_filters(client: AsyncClient, loaded_scrap: None) -> None:
-    organizations = await client.get(
+async def test_multiple_organization_and_derived_department_filters(
+    auth_client: AsyncClient, loaded_scrap: None
+) -> None:
+    organizations = await auth_client.get(
         "/api/v1/scrap",
         params=[("organizations", "NWK"), ("organizations", "NW1")],
     )
     assert organizations.json()["total_items"] == 4
-    unmapped = await client.get("/api/v1/scrap", params={"to_be_counted": "unmapped"})
+    unmapped = await auth_client.get("/api/v1/scrap", params={"to_be_counted": "unmapped"})
     assert unmapped.json()["total_items"] == 6
 
 

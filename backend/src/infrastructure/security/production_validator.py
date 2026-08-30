@@ -216,7 +216,6 @@ class ProductionSecurityValidator:
             - Debug mode enabled in production
             - API documentation exposed
             - Insecure session configurations
-            - Weak admin credentials
 
             While these don't prevent startup, they should be addressed
             to maintain optimal security posture.
@@ -226,7 +225,6 @@ class ProductionSecurityValidator:
             - CORS_ORIGINS set to '*'
             - Redis without password authentication
             - Session timeout too long
-            - Weak admin usernames or passwords
         """
         warnings = []
 
@@ -251,9 +249,6 @@ class ProductionSecurityValidator:
 
         session_warnings = self._check_session_security()
         warnings.extend(session_warnings)
-
-        admin_warnings = self._check_admin_credentials()
-        warnings.extend(admin_warnings)
 
         for warning in warnings:
             self.logger.warning(f"PRODUCTION SECURITY WARNING: {warning}")
@@ -344,19 +339,6 @@ class ProductionSecurityValidator:
         if "1234" in secret or "abcd" in secret.lower() or "qwerty" in secret.lower():
             return True
 
-        return False
-
-    def _is_admin_access_completely_open(self) -> bool:
-        """Check if admin interface has no access restrictions.
-
-        Returns:
-            True if admin access is completely open, False otherwise.
-
-        Note:
-            The admin interface uses SQLAdmin with session-based authentication.
-            Additional IP restrictions should be handled at the reverse proxy level
-            (e.g., nginx, caddy) in production environments.
-        """
         return False
 
     def _is_database_using_default_credentials(self) -> bool:
@@ -625,79 +607,6 @@ class ProductionSecurityValidator:
             )
 
         return warnings
-
-    def _check_admin_credentials(self) -> list[str]:
-        """Check admin credentials security.
-
-        Returns:
-            List of admin credential security warning messages.
-
-        Note:
-            Admin credential security checks include:
-            - Username predictability
-            - Password strength and length
-            - Common weak password detection
-
-            Weak admin credentials are a common attack vector and should
-            be strengthened in production environments.
-        """
-        warnings: list[str] = []
-
-        if not self.settings.ADMIN_ENABLED:
-            return warnings
-
-        if not self.settings.ADMIN_USERNAME or not self.settings.ADMIN_PASSWORD:
-            return warnings
-
-        weak_usernames = ["admin", "administrator", "root", "user", "test", "demo"]
-        if self.settings.ADMIN_USERNAME.lower() in weak_usernames:
-            warnings.append(
-                f"Admin username '{self.settings.ADMIN_USERNAME}' is predictable. "
-                f"Consider using a less obvious username for better security."
-            )
-
-        password = self.settings.ADMIN_PASSWORD
-        if len(password) < 12:
-            warnings.append(
-                "Admin password is shorter than 12 characters. Use a longer, "
-                "stronger password for admin accounts in production."
-            )
-
-        weak_passwords = {
-            "password",
-            "123456",
-            "admin",
-            "password123",
-            "admin123",
-            "qwerty",
-            "letmein",
-            "welcome",
-            "changeme",
-            "123456",
-            "12345678",
-            "1234",
-            "123",
-            "12345",
-            "123456789",
-            "adminisp",
-            "demo",
-            "root",
-            "123123",
-            "admin@123",
-            "123456aA@",
-            "01031974",
-            "Admin@123",
-            "111111",
-            "admin1234",
-            "admin1",
-        }
-        if password.lower() in weak_passwords:
-            warnings.append(
-                "Admin password appears to be a common weak password. Use a strong, unique password for admin accounts."
-            )
-
-        return warnings
-
 
 def validate_production_security(settings: Settings) -> None:
     """Convenience function to validate production security configuration.

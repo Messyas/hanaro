@@ -7,6 +7,7 @@ from fastapi import APIRouter, FastAPI
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+from src.infrastructure.auth.dependencies import get_current_user
 from src.infrastructure.database.session import Base, async_session
 from src.modules.material_scrap.dependencies import require_material_scrap_ingestion_key
 from src.modules.material_scrap.routes import dashboard_router, scrap_router
@@ -36,7 +37,11 @@ async def scrap_client() -> AsyncGenerator[AsyncClient, None]:
     async def allow_ingestion() -> int:
         return 1
 
+    async def authenticated_user() -> dict[str, object]:
+        return {"id": 1, "tier_id": 1, "is_superuser": False}
+
     app.dependency_overrides[async_session] = override_session
+    app.dependency_overrides[get_current_user] = authenticated_user
     app.dependency_overrides[require_material_scrap_ingestion_key] = allow_ingestion
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://testserver") as client:
         yield client
@@ -62,6 +67,22 @@ async def test_listing_filters_search_pagination_and_allowlist(scrap_client: Asy
     search = await scrap_client.get("/api/v1/scrap", params={"search": "linha inicial"})
     assert search.json()["total_items"] == 1
     assert (await scrap_client.get("/api/v1/scrap", params={"sort_by": "drop_table"})).status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_detailed_listing_requires_authentication() -> None:
+    """The detailed report endpoint is not part of the public dashboard contract."""
+    app = FastAPI()
+    app.include_router(scrap_router, prefix="/api/v1/scrap")
+
+    async def override_session() -> AsyncGenerator[AsyncSession, None]:
+        yield AsyncSession()
+
+    app.dependency_overrides[async_session] = override_session
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://testserver") as client:
+        response = await client.get("/api/v1/scrap")
+
+    assert response.status_code == 401
 
 
 @pytest.mark.asyncio
@@ -134,8 +155,8 @@ async def test_dashboard_rejects_invalid_window_and_unbounded_filters(scrap_clie
     )
     assert too_many_products.status_code == 422
 
-    anonymous_target_write = await scrap_client.put(
+    regular_user_target_write = await scrap_client.put(
         "/api/v1/dashboard/scrap/targets/2026/8",
         json={"currency": "USD", "amount": "1000.00"},
     )
-    assert anonymous_target_write.status_code == 401
+    assert regular_user_target_write.status_code == 403

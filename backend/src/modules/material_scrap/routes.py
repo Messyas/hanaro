@@ -210,6 +210,7 @@ async def read_automation_execution(
 @scrap_router.get("", response_model=ScrapPage)
 async def read_scrap(
     db: AsyncSessionDep,
+    _: CurrentUserDep,
     filters: ScrapFiltersDep,
     search: str | None = Query(default=None, max_length=200),
     page: int = Query(default=1, ge=1),

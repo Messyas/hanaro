@@ -40,7 +40,8 @@ do proxy em `deploy/nginx/default.conf.template`.
       esta stack. Restrinja `--forwarded-allow-ips` se outra carga for anexada.
 - [ ] Aplicar CSP, HSTS, `nosniff`, política de frames, referrer e permissions no
       proxy que responde pelo frontend.
-- [ ] Manter documentação OpenAPI e SQLAdmin indisponíveis publicamente.
+- [ ] Manter a documentação OpenAPI indisponível publicamente em produção,
+  salvo quando protegida por superusuário.
 
 ## CORS quando houver outra origem
 

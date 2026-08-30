@@ -12,7 +12,6 @@ from ..infrastructure.database.session import engine
 from ..infrastructure.logging import get_logger
 from ..infrastructure.security import validate_production_security
 from ..interfaces.api import router
-from .admin.initialize import create_admin_interface
 
 settings = get_settings()
 logger = get_logger()
@@ -51,7 +50,6 @@ app = create_application(
     * Vertical-slice modules and a clean infrastructure layer
     * Session-based authentication with local username and password
     * Swappable cache, queue, and rate-limit backends
-    * SQLAdmin admin UI
     """,
     version="0.19.0",
     contact={
@@ -75,9 +73,6 @@ app.add_middleware(
     same_site="lax",
     https_only=settings.SESSION_SECURE_COOKIES,
 )
-create_admin_interface(app)
-
-
 @app.get("/health/live", tags=["System"])
 async def liveness_check() -> dict[str, str]:
     """Confirm that the API process can receive requests."""

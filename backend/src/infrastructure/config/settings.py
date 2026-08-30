@@ -301,12 +301,6 @@ class ProfileImageSettings(BaseSettings):
     PROFILE_IMAGE_MAX_DIMENSION: int = config("PROFILE_IMAGE_MAX_DIMENSION", default=4096, cast=int)
 
 
-class SQLAdminSettings(BaseSettings):
-    """SQLAdmin interface settings."""
-
-    ADMIN_ENABLED: bool = config("ADMIN_ENABLED", default=True, cast=bool)
-
-
 class SecuritySettings(BaseSettings):
     """Security validation settings."""
 
@@ -428,7 +422,6 @@ class Settings(
     AppSettings,
     AdminSettings,
     ProfileImageSettings,
-    SQLAdminSettings,
     SecuritySettings,
     LoggingSettings,
     NotificationSettings,
