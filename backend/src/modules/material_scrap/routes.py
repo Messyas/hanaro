@@ -156,7 +156,7 @@ async def fail_automation_execution(
     _: Annotated[int, Depends(require_material_scrap_ingestion_key)],
     execution_id: uuid.UUID,
 ) -> ExecutionDetail:
-    _, notification_id = await mark_execution_failed(execution_id, command, db)
+    _execution, notification_id = await mark_execution_failed(execution_id, command, db)
     if notification_id is not None:
         try:
             await enqueue_execution_notification(str(notification_id))

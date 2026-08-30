@@ -11,7 +11,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from .enums import (
     AutomationExecutionStatus,
+    AutomationMode,
     AutomationSnapshotStatus,
+    AutomationTrigger,
     ExecutionSortField,
     ExecutionStepCode,
     ExecutionStepStatus,
@@ -70,10 +72,10 @@ def _execution_list_item(execution: ScrapAutomationExecution) -> ExecutionListIt
         correlation_id=execution.correlation_id,
         source_system=execution.source_system,
         report_name=execution.report_name,
-        trigger=execution.trigger,
-        mode=execution.mode,
-        status=execution.status,
-        current_step=execution.current_step,
+        trigger=AutomationTrigger(execution.trigger),
+        mode=AutomationMode(execution.mode),
+        status=AutomationExecutionStatus(execution.status),
+        current_step=ExecutionStepCode(execution.current_step) if execution.current_step else None,
         query_date_from=execution.query_date_from,
         query_date_to=execution.query_date_to,
         organization_parameter=execution.organization_parameter,
@@ -85,17 +87,17 @@ def _execution_list_item(execution: ScrapAutomationExecution) -> ExecutionListIt
         records_received=execution.records_received,
         records_accepted=execution.records_accepted,
         records_rejected=execution.records_rejected,
-        snapshot_status=execution.snapshot_status,
+        snapshot_status=AutomationSnapshotStatus(execution.snapshot_status),
         failure_category=execution.failure_category,
     )
 
 
 def _step_read(step: ScrapExecutionStep) -> ExecutionStepRead:
     return ExecutionStepRead(
-        step_code=step.step_code,
+        step_code=ExecutionStepCode(step.step_code),
         sequence=step.sequence,
         attempt=step.attempt,
-        status=step.status,
+        status=ExecutionStepStatus(step.status),
         started_at=step.started_at,
         finished_at=step.finished_at,
         duration_ms=step.duration_ms,
@@ -159,7 +161,7 @@ async def ensure_execution_from_payload(payload: MaterialScrapPayload, db: Async
             execution_id=payload.execution.execution_id,
             source_system=payload.execution.source_system,
             report_name=payload.execution.report_name,
-            mode=payload.execution.mode,
+            mode=AutomationMode(payload.execution.mode),
             organization_parameter=payload.execution.organization_parameter,
             query_date_from=payload.execution.query_date_from,
             query_date_to=payload.execution.query_date_to,
