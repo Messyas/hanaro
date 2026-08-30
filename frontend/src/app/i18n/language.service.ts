@@ -11,6 +11,7 @@ export interface LanguageOption {
 
 export interface AppTranslations {
   navDashboard: string;
+  navExecutions: string;
   navReports: string;
   navSettings: string;
   navProfile: string;
@@ -92,11 +93,80 @@ export interface AppTranslations {
   close: string;
   cancel: string;
   confirmSignOut: string;
+
+  // Execuções
+  executionsTitle: string;
+  executionsDateFrom: string;
+  executionsDateTo: string;
+  executionsStatus: string;
+  executionsAllStatus: string;
+  executionsSearchId: string;
+  executionsSearchPlaceholder: string;
+  executionsClearFilters: string;
+  executionsHistoryTitle: string;
+  executionsTotalLabel: string;
+  executionsColProcess: string;
+  executionsColOrigin: string;
+  executionsColTrigger: string;
+  executionsColStart: string;
+  executionsColEnd: string;
+  executionsColDuration: string;
+  executionsColReceived: string;
+  executionsColValid: string;
+  executionsColRejected: string;
+  executionsColSnapshot: string;
+  executionsColStatus: string;
+  executionsStatusCompleted: string;
+  executionsStatusFailed: string;
+  executionsStatusRunning: string;
+  executionsStatusQueued: string;
+  executionsStatusCancelled: string;
+  executionsSnapshotPublished: string;
+  executionsSnapshotUnchangedReplay: string;
+  executionsSnapshotPreservedPrevious: string;
+  executionsSnapshotNotPublished: string;
+  executionsTriggerScheduled: string;
+  executionsTriggerManual: string;
+  executionsTriggerAutomatic: string;
+  executionsDetailTitle: string;
+  executionsCloseDetail: string;
+  executionsMetaGeneral: string;
+  executionsMetaTechnical: string;
+  executionsMetaExecutionId: string;
+  executionsMetaCorrelationId: string;
+  executionsMetaGerpRequestId: string;
+  executionsMetaReport: string;
+  executionsMetaSourceFile: string;
+  executionsMetaSha256: string;
+  executionsTimelineTitle: string;
+  executionsTimelineDesc: string;
+  executionsFailureTitle: string;
+  executionsPaginationPage: string;
+  executionsPaginationOf: string;
+  executionsPaginationPerPage: string;
+  executionsPaginationPrevious: string;
+  executionsPaginationNext: string;
+  executionsLoading: string;
+  executionsEmptyTitle: string;
+  executionsEmptyDesc: string;
+  executionsErrorTitle: string;
+  executionsRetry: string;
+  executionsStepGerpRequest: string;
+  executionsStepGerpReportGeneration: string;
+  executionsStepFileDownload: string;
+  executionsStepFileValidation: string;
+  executionsStepDataNormalization: string;
+  executionsStepExchangeRate: string;
+  executionsStepJsonValidation: string;
+  executionsStepSnapshotPublication: string;
+  executionsStepPending: string;
+  executionsStepSkipped: string;
 }
 
 const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
   pt: {
     navDashboard: 'Dashboard',
+    navExecutions: 'Execuções',
     navReports: 'Relatórios',
     navSettings: 'Configurações',
     navProfile: 'Perfil',
@@ -179,9 +249,77 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     close: 'Fechar',
     cancel: 'Cancelar',
     confirmSignOut: 'Sim, sair.',
+
+    executionsTitle: 'Execuções e atualização',
+    executionsDateFrom: 'Data inicial',
+    executionsDateTo: 'Data final',
+    executionsStatus: 'Status',
+    executionsAllStatus: 'Todos os status',
+    executionsSearchId: 'Buscar Execution ID',
+    executionsSearchPlaceholder: 'Ex: 550e8400...',
+    executionsClearFilters: 'Limpar filtros',
+    executionsHistoryTitle: 'Histórico de rotinas',
+    executionsTotalLabel: 'TOTAL:',
+    executionsColProcess: 'EXECUTION ID / PROCESSO',
+    executionsColOrigin: 'ORIGEM',
+    executionsColTrigger: 'GATILHO',
+    executionsColStart: 'INÍCIO',
+    executionsColEnd: 'FIM',
+    executionsColDuration: 'DURAÇÃO',
+    executionsColReceived: 'RECEBIDOS',
+    executionsColValid: 'VÁLIDOS',
+    executionsColRejected: 'REJEITADOS',
+    executionsColSnapshot: 'SNAPSHOT',
+    executionsColStatus: 'STATUS',
+    executionsStatusCompleted: 'Concluído',
+    executionsStatusFailed: 'Falha',
+    executionsStatusRunning: 'Em andamento',
+    executionsStatusQueued: 'Na fila',
+    executionsStatusCancelled: 'Cancelado',
+    executionsSnapshotPublished: 'Publicado',
+    executionsSnapshotUnchangedReplay: 'Replay idêntico',
+    executionsSnapshotPreservedPrevious: 'Preservado anterior',
+    executionsSnapshotNotPublished: 'Não publicado',
+    executionsTriggerScheduled: 'Agendado',
+    executionsTriggerManual: 'Manual',
+    executionsTriggerAutomatic: 'Automático',
+    executionsDetailTitle: 'Detalhes da Execução',
+    executionsCloseDetail: 'Fechar detalhes',
+    executionsMetaGeneral: 'Informações Gerais',
+    executionsMetaTechnical: 'Metadados Técnicos',
+    executionsMetaExecutionId: 'Execution ID',
+    executionsMetaCorrelationId: 'Correlation ID',
+    executionsMetaGerpRequestId: 'GERP Request ID',
+    executionsMetaReport: 'Relatório',
+    executionsMetaSourceFile: 'Arquivo Origem',
+    executionsMetaSha256: 'SHA-256',
+    executionsTimelineTitle: 'Timeline das 8 etapas do robô',
+    executionsTimelineDesc: 'Rastreabilidade de cada fase executada pela automação',
+    executionsFailureTitle: 'Detalhes da Falha',
+    executionsPaginationPage: 'Página',
+    executionsPaginationOf: 'de',
+    executionsPaginationPerPage: 'POR PÁGINA:',
+    executionsPaginationPrevious: 'Anterior',
+    executionsPaginationNext: 'Próxima',
+    executionsLoading: 'Carregando histórico de execuções...',
+    executionsEmptyTitle: 'Nenhuma execução encontrada',
+    executionsEmptyDesc: 'Nenhuma execução de automação corresponde aos filtros selecionados.',
+    executionsErrorTitle: 'Não foi possível carregar as execuções',
+    executionsRetry: 'Tentar novamente',
+    executionsStepGerpRequest: 'Solicitação no GERP',
+    executionsStepGerpReportGeneration: 'Geração do Relatório GERP',
+    executionsStepFileDownload: 'Download do Arquivo TSV',
+    executionsStepFileValidation: 'Validação do Arquivo TSV',
+    executionsStepDataNormalization: 'Normalização dos Dados',
+    executionsStepExchangeRate: 'Obtenção da Taxa de Câmbio',
+    executionsStepJsonValidation: 'Validação do JSON Canônico',
+    executionsStepSnapshotPublication: 'Publicação do Snapshot',
+    executionsStepPending: 'Pendente',
+    executionsStepSkipped: 'Ignorado',
   },
   en: {
     navDashboard: 'Dashboard',
+    navExecutions: 'Executions',
     navReports: 'Reports',
     navSettings: 'Settings',
     navProfile: 'Profile',
@@ -263,9 +401,77 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     close: 'Close',
     cancel: 'Cancel',
     confirmSignOut: 'Yes, sign out.',
+
+    executionsTitle: 'Executions and Sync',
+    executionsDateFrom: 'Start date',
+    executionsDateTo: 'End date',
+    executionsStatus: 'Status',
+    executionsAllStatus: 'All statuses',
+    executionsSearchId: 'Search Execution ID',
+    executionsSearchPlaceholder: 'E.g. 550e8400...',
+    executionsClearFilters: 'Clear filters',
+    executionsHistoryTitle: 'Routine history',
+    executionsTotalLabel: 'TOTAL:',
+    executionsColProcess: 'EXECUTION ID / PROCESS',
+    executionsColOrigin: 'ORIGIN',
+    executionsColTrigger: 'TRIGGER',
+    executionsColStart: 'START',
+    executionsColEnd: 'END',
+    executionsColDuration: 'DURATION',
+    executionsColReceived: 'RECEIVED',
+    executionsColValid: 'VALID',
+    executionsColRejected: 'REJECTED',
+    executionsColSnapshot: 'SNAPSHOT',
+    executionsColStatus: 'STATUS',
+    executionsStatusCompleted: 'Completed',
+    executionsStatusFailed: 'Failed',
+    executionsStatusRunning: 'Running',
+    executionsStatusQueued: 'Queued',
+    executionsStatusCancelled: 'Cancelled',
+    executionsSnapshotPublished: 'Published',
+    executionsSnapshotUnchangedReplay: 'Identical Replay',
+    executionsSnapshotPreservedPrevious: 'Preserved Previous',
+    executionsSnapshotNotPublished: 'Not published',
+    executionsTriggerScheduled: 'Scheduled',
+    executionsTriggerManual: 'Manual',
+    executionsTriggerAutomatic: 'Automatic',
+    executionsDetailTitle: 'Execution Details',
+    executionsCloseDetail: 'Close details',
+    executionsMetaGeneral: 'General Information',
+    executionsMetaTechnical: 'Technical Metadata',
+    executionsMetaExecutionId: 'Execution ID',
+    executionsMetaCorrelationId: 'Correlation ID',
+    executionsMetaGerpRequestId: 'GERP Request ID',
+    executionsMetaReport: 'Report',
+    executionsMetaSourceFile: 'Source File',
+    executionsMetaSha256: 'SHA-256',
+    executionsTimelineTitle: 'Robot 8-step Timeline',
+    executionsTimelineDesc: 'Traceability for each phase executed by the automation',
+    executionsFailureTitle: 'Failure Details',
+    executionsPaginationPage: 'Page',
+    executionsPaginationOf: 'of',
+    executionsPaginationPerPage: 'PER PAGE:',
+    executionsPaginationPrevious: 'Previous',
+    executionsPaginationNext: 'Next',
+    executionsLoading: 'Loading execution history...',
+    executionsEmptyTitle: 'No executions found',
+    executionsEmptyDesc: 'No automation executions match the selected filters.',
+    executionsErrorTitle: 'Unable to load executions',
+    executionsRetry: 'Try again',
+    executionsStepGerpRequest: 'GERP Request',
+    executionsStepGerpReportGeneration: 'GERP Report Generation',
+    executionsStepFileDownload: 'TSV File Download',
+    executionsStepFileValidation: 'TSV File Validation',
+    executionsStepDataNormalization: 'Data Normalization',
+    executionsStepExchangeRate: 'Exchange Rate Fetch',
+    executionsStepJsonValidation: 'Canonical JSON Validation',
+    executionsStepSnapshotPublication: 'Snapshot Publication',
+    executionsStepPending: 'Pending',
+    executionsStepSkipped: 'Skipped',
   },
   ko: {
     navDashboard: '대시보드',
+    navExecutions: '실행 내역',
     navReports: '보고서',
     navSettings: '설정',
     navProfile: '프로필',
@@ -347,6 +553,73 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     close: '닫기',
     cancel: '취소',
     confirmSignOut: '로그아웃',
+
+    executionsTitle: '실행 및 동기화',
+    executionsDateFrom: '시작일',
+    executionsDateTo: '종료일',
+    executionsStatus: '상태',
+    executionsAllStatus: '전체 상태',
+    executionsSearchId: '실행 ID 검색',
+    executionsSearchPlaceholder: '예: 550e8400...',
+    executionsClearFilters: '필터 초기화',
+    executionsHistoryTitle: '작업 이력',
+    executionsTotalLabel: '총:',
+    executionsColProcess: '실행 ID / 프로세스',
+    executionsColOrigin: '출처',
+    executionsColTrigger: '트리거',
+    executionsColStart: '시작',
+    executionsColEnd: '종료',
+    executionsColDuration: '소요 시간',
+    executionsColReceived: '수신',
+    executionsColValid: '유효',
+    executionsColRejected: '반려',
+    executionsColSnapshot: '스냅샷',
+    executionsColStatus: '상태',
+    executionsStatusCompleted: '완료됨',
+    executionsStatusFailed: '실패',
+    executionsStatusRunning: '진행 중',
+    executionsStatusQueued: '대기 중',
+    executionsStatusCancelled: '취소됨',
+    executionsSnapshotPublished: '게시됨',
+    executionsSnapshotUnchangedReplay: '동일 재현',
+    executionsSnapshotPreservedPrevious: '이전 유지',
+    executionsSnapshotNotPublished: '미게시',
+    executionsTriggerScheduled: '예약됨',
+    executionsTriggerManual: '수동',
+    executionsTriggerAutomatic: '자동',
+    executionsDetailTitle: '실행 세부 정보',
+    executionsCloseDetail: '세부 정보 닫기',
+    executionsMetaGeneral: '일반 정보',
+    executionsMetaTechnical: '기술 메타데이터',
+    executionsMetaExecutionId: '실행 ID',
+    executionsMetaCorrelationId: '상관 ID',
+    executionsMetaGerpRequestId: 'GERP 요청 ID',
+    executionsMetaReport: '보고서',
+    executionsMetaSourceFile: '원본 파일',
+    executionsMetaSha256: 'SHA-256',
+    executionsTimelineTitle: '로봇 8단계 타임라인',
+    executionsTimelineDesc: '자동화에서 실행된 각 단계별 추적 정보',
+    executionsFailureTitle: '실패 세부 정보',
+    executionsPaginationPage: '페이지',
+    executionsPaginationOf: '/',
+    executionsPaginationPerPage: '페이지당:',
+    executionsPaginationPrevious: '이전',
+    executionsPaginationNext: '다음',
+    executionsLoading: '실행 이력을 불러오는 중…',
+    executionsEmptyTitle: '실행 내역이 없습니다',
+    executionsEmptyDesc: '선택한 필터와 일치하는 자동화 실행 내역이 없습니다.',
+    executionsErrorTitle: '실행 내역을 불러올 수 없습니다',
+    executionsRetry: '다시 시도',
+    executionsStepGerpRequest: 'GERP 요청',
+    executionsStepGerpReportGeneration: 'GERP 보고서 생성',
+    executionsStepFileDownload: 'TSV 파일 다운로드',
+    executionsStepFileValidation: 'TSV 파일 검증',
+    executionsStepDataNormalization: '데이터 정규화',
+    executionsStepExchangeRate: '환율 조회',
+    executionsStepJsonValidation: '표준 JSON 검증',
+    executionsStepSnapshotPublication: '스냅샷 게시',
+    executionsStepPending: '대기 중',
+    executionsStepSkipped: '건너뜀',
   },
 };
 

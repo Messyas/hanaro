@@ -14,6 +14,13 @@ export const routes: Routes = [
           import('./pages/dashboard/dashboard-page').then((module) => module.DashboardPage),
       },
       {
+        path: 'execucoes',
+        title: 'Execuções GERP',
+        canActivate: [authenticatedGuard],
+        loadComponent: () =>
+          import('./pages/executions/executions-page').then((module) => module.ExecutionsPage),
+      },
+      {
         path: 'relatorios',
         title: 'Relatórios',
         canActivate: [authenticatedGuard],

@@ -69,6 +69,7 @@ desabilitado enquanto frontend e API estiverem na mesma origem.
 - [ ] Seguir a [separação entre Perfil, Configurações e tradução reativa](profile-settings-i18n.md).
 - [ ] Normalizar os ícones conforme a [animação dos ícones da sidebar](sidebar-icon-animation.md).
 - [ ] Seguir o [contrato do login no shell público](login.md) em mudanças de autenticação.
+- [ ] Seguir o [guia do Monitor de Execuções GERP](gerp-executions-monitor.md) na implementação do histórico de rotinas da automação.
 - [ ] Criar `modules/<funcionalidade>/` com componente, rotas, serviço e testes
       necessários à própria feature.
 - [ ] Lazy-load da rota quando a funcionalidade não fizer parte da primeira tela.

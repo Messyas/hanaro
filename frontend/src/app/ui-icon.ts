@@ -144,8 +144,8 @@ export type IconName =
           <path pathLength="1" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
         }
         @case ('clock') {
-          <circle cx="12" cy="12" r="9" />
-          <path d="M12 7v5l3.5 2" />
+          <path pathLength="1" d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" />
+          <path pathLength="1" d="M12 7v5l3.5 2" />
         }
         @case ('sidebar') {
           <rect x="3" y="4" width="18" height="16" rx="2" />

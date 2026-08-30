@@ -46,7 +46,7 @@ describe('App', () => {
     const childPaths = shellRoute?.children?.map((route) => route.path);
 
     expect(routes.some((route) => route.path === 'login')).toBe(false);
-    expect(childPaths).toEqual(['dashboard', 'relatorios', 'configuracoes', 'perfil', '', '**']);
+    expect(childPaths).toEqual(['dashboard', 'execucoes', 'relatorios', 'configuracoes', 'perfil', '', '**']);
   });
 
   it('should update sidebar and breadcrumb labels when the runtime language changes', () => {
@@ -56,6 +56,7 @@ describe('App', () => {
     language.setLanguage('en');
     expect(shell.navigation().map((item) => item.label)).toEqual([
       'Dashboard',
+      'Executions',
       'Reports',
       'Settings',
       'Profile',
@@ -64,6 +65,7 @@ describe('App', () => {
     language.setLanguage('ko');
     expect(shell.navigation().map((item) => item.label)).toEqual([
       '대시보드',
+      '실행 내역',
       '보고서',
       '설정',
       '프로필',
