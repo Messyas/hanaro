@@ -11,6 +11,7 @@ from src.infrastructure.auth.dependencies import get_optional_principal
 from src.interfaces.main import app
 from src.modules.user.models import User
 
+
 @pytest.mark.asyncio
 async def test_login_success(client: AsyncClient, test_user: dict):
     """A valid username/password logs in: 200, a CSRF token, and a session cookie.
