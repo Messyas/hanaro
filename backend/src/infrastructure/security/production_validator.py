@@ -608,6 +608,7 @@ class ProductionSecurityValidator:
 
         return warnings
 
+
 def validate_production_security(settings: Settings) -> None:
     """Convenience function to validate production security configuration.
 

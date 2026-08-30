@@ -34,6 +34,7 @@ class User(TimestampSchema, UserBase, PersistentDeletion):
     ]
     tier_id: int | None = None
 
+
 class UserRead(BaseModel):
     """Schema for reading user data, excludes sensitive information."""
 
@@ -51,6 +52,8 @@ class UserRead(BaseModel):
     is_deleted: bool = False
     tier_id: int | None
     is_superuser: bool = False
+
+
 class UserCreate(UserBase):
     """Schema for creating a new user."""
 
@@ -95,6 +98,8 @@ class UserCreateInternal(UserBase):
     """Internal schema for user creation with hashed password."""
 
     hashed_password: str
+
+
 class UserUpdate(BaseModel):
     """Schema for updating user data."""
 
@@ -142,6 +147,8 @@ class UserUpdate(BaseModel):
         ]
         | None
     ) = None
+
+
 class UserUpdateInternal(UserUpdate):
     """Internal schema for user updates."""
 
@@ -187,6 +194,8 @@ class UserAnonymize(BaseModel):
     profile_image_url: str | None = None
     tier_id: int | None = None
     is_superuser: bool = False
+
+
 class UserRestoreDeleted(BaseModel):
     """Schema for restoring a deleted user."""
 

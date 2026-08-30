@@ -189,12 +189,21 @@ async def read_automation_executions(
     if date_from and date_to and date_to < date_from:
         raise HTTPException(status_code=422, detail="date_to must not be before date_from")
     return await list_executions(
-        db, page=page, page_size=page_size,
+        db,
+        page=page,
+        page_size=page_size,
         date_from=datetime.combine(date_from, time.min, tzinfo=UTC) if date_from else None,
         date_to=datetime.combine(date_to, time.max, tzinfo=UTC) if date_to else None,
-        status_filter=status_filter, mode=mode.value if mode else None, trigger=trigger.value if trigger else None,
-        snapshot_status=snapshot_status, failure_category=failure_category, execution_id=execution_id,
-        gerp_request_id=gerp_request_id, search=search, sort_by=sort_by, sort_order=sort_order,
+        status_filter=status_filter,
+        mode=mode.value if mode else None,
+        trigger=trigger.value if trigger else None,
+        snapshot_status=snapshot_status,
+        failure_category=failure_category,
+        execution_id=execution_id,
+        gerp_request_id=gerp_request_id,
+        search=search,
+        sort_by=sort_by,
+        sort_order=sort_order,
     )
 
 

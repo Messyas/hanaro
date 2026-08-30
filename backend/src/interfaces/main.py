@@ -73,6 +73,8 @@ app.add_middleware(
     same_site="lax",
     https_only=settings.SESSION_SECURE_COOKIES,
 )
+
+
 @app.get("/health/live", tags=["System"])
 async def liveness_check() -> dict[str, str]:
     """Confirm that the API process can receive requests."""

@@ -118,9 +118,9 @@ async def get_execution(execution_id: uuid.UUID, db: AsyncSession, *, lock: bool
 
 
 async def start_execution(command: AutomationExecutionStart, db: AsyncSession) -> ScrapAutomationExecution:
-    existing = (await db.execute(
-        select(ScrapAutomationExecution).where(ScrapAutomationExecution.execution_id == command.execution_id)
-    )).scalar_one_or_none()
+    existing = (
+        await db.execute(select(ScrapAutomationExecution).where(ScrapAutomationExecution.execution_id == command.execution_id))
+    ).scalar_one_or_none()
     if existing is not None:
         return existing
     now = now_utc()
@@ -153,9 +153,11 @@ async def start_execution(command: AutomationExecutionStart, db: AsyncSession) -
 
 
 async def ensure_execution_from_payload(payload: MaterialScrapPayload, db: AsyncSession) -> ScrapAutomationExecution:
-    execution = (await db.execute(
-        select(ScrapAutomationExecution).where(ScrapAutomationExecution.execution_id == payload.execution.execution_id)
-    )).scalar_one_or_none()
+    execution = (
+        await db.execute(
+            select(ScrapAutomationExecution).where(ScrapAutomationExecution.execution_id == payload.execution.execution_id)
+        )
+    ).scalar_one_or_none()
     if execution is None:
         command = AutomationExecutionStart(
             execution_id=payload.execution.execution_id,
@@ -315,18 +317,31 @@ async def link_ingestion_result(
     execution.finished_at = now
     execution.updated_at = now
     for code in (ExecutionStepCode.JSON_VALIDATION, ExecutionStepCode.SNAPSHOT_PUBLICATION):
-        step = (await db.execute(select(ScrapExecutionStep).where(
-            ScrapExecutionStep.execution_id == execution.id,
-            ScrapExecutionStep.step_code == code.value,
-            ScrapExecutionStep.attempt == 1,
-        ))).scalar_one_or_none()
+        step = (
+            await db.execute(
+                select(ScrapExecutionStep).where(
+                    ScrapExecutionStep.execution_id == execution.id,
+                    ScrapExecutionStep.step_code == code.value,
+                    ScrapExecutionStep.attempt == 1,
+                )
+            )
+        ).scalar_one_or_none()
         if step is None:
-            db.add(ScrapExecutionStep(
-                execution_id=execution.id, step_code=code.value, sequence=STEP_SEQUENCE[code], attempt=1,
-                status=ExecutionStepStatus.COMPLETED.value, started_at=now, finished_at=now, duration_ms=0,
-                message="Exact replay" if is_replay and code == ExecutionStepCode.SNAPSHOT_PUBLICATION else None,
-                created_at=now, updated_at=now,
-            ))
+            db.add(
+                ScrapExecutionStep(
+                    execution_id=execution.id,
+                    step_code=code.value,
+                    sequence=STEP_SEQUENCE[code],
+                    attempt=1,
+                    status=ExecutionStepStatus.COMPLETED.value,
+                    started_at=now,
+                    finished_at=now,
+                    duration_ms=0,
+                    message="Exact replay" if is_replay and code == ExecutionStepCode.SNAPSHOT_PUBLICATION else None,
+                    created_at=now,
+                    updated_at=now,
+                )
+            )
         elif step.status not in TERMINAL_STEP_STATES or step.status == ExecutionStepStatus.COMPLETED.value:
             step.status = ExecutionStepStatus.COMPLETED.value
             step.finished_at = now
@@ -387,21 +402,46 @@ async def list_executions(
         ExecutionSortField.STATUS: ScrapAutomationExecution.status,
     }[sort_by]
     order = sort_column.asc() if sort_order == SortOrder.ASC else sort_column.desc()
-    executions = list((await db.execute(
-        select(ScrapAutomationExecution).where(*filters).order_by(order, ScrapAutomationExecution.id.desc())
-        .offset((page - 1) * page_size).limit(page_size)
-    )).scalars())
-    return ExecutionPage(items=[_execution_list_item(item) for item in executions], page=page, page_size=page_size,
-                         total_items=total, total_pages=(total + page_size - 1) // page_size)
+    executions = list(
+        (
+            await db.execute(
+                select(ScrapAutomationExecution)
+                .where(*filters)
+                .order_by(order, ScrapAutomationExecution.id.desc())
+                .offset((page - 1) * page_size)
+                .limit(page_size)
+            )
+        ).scalars()
+    )
+    return ExecutionPage(
+        items=[_execution_list_item(item) for item in executions],
+        page=page,
+        page_size=page_size,
+        total_items=total,
+        total_pages=(total + page_size - 1) // page_size,
+    )
 
 
 async def get_execution_detail(execution_id: uuid.UUID, db: AsyncSession) -> ExecutionDetail:
     execution = await get_execution(execution_id, db)
-    steps = list((await db.execute(select(ScrapExecutionStep).where(
-        ScrapExecutionStep.execution_id == execution.id
-    ).order_by(ScrapExecutionStep.sequence, ScrapExecutionStep.attempt, ScrapExecutionStep.started_at))).scalars())
-    return ExecutionDetail(**_execution_list_item(execution).model_dump(), processing_date=execution.processing_date,
-                           timezone=execution.timezone, source_file_name=execution.source_file_name,
-                           source_file_sha256=execution.source_file_sha256, failure_code=execution.failure_code,
-                           failure_message=execution.failure_message, retry_count=execution.retry_count,
-                           ingestion_run_id=execution.ingestion_run_id, steps=[_step_read(step) for step in steps])
+    steps = list(
+        (
+            await db.execute(
+                select(ScrapExecutionStep)
+                .where(ScrapExecutionStep.execution_id == execution.id)
+                .order_by(ScrapExecutionStep.sequence, ScrapExecutionStep.attempt, ScrapExecutionStep.started_at)
+            )
+        ).scalars()
+    )
+    return ExecutionDetail(
+        **_execution_list_item(execution).model_dump(),
+        processing_date=execution.processing_date,
+        timezone=execution.timezone,
+        source_file_name=execution.source_file_name,
+        source_file_sha256=execution.source_file_sha256,
+        failure_code=execution.failure_code,
+        failure_message=execution.failure_message,
+        retry_count=execution.retry_count,
+        ingestion_run_id=execution.ingestion_run_id,
+        steps=[_step_read(step) for step in steps],
+    )

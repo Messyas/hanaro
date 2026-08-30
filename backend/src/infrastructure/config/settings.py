@@ -264,6 +264,7 @@ class AuthSettings(BaseSettings):
     # peer (no proxy). Set to 1 behind a single nginx/Caddy, 2 if Cloudflare is also in front.
     TRUSTED_PROXY_HOPS: int = config("TRUSTED_PROXY_HOPS", default=0, cast=int)
 
+
 class APISettings(BaseSettings):
     """API-related settings."""
 

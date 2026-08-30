@@ -71,12 +71,14 @@ async def notify_material_scrap_failure(notification_id: str, db: DBSession) -> 
         await asyncio.to_thread(
             _send_failure_email,
             f"[Hanaro] Material Scrap failure: {execution.failure_code}",
-            "\n".join((
-                f"execution_id: {execution.execution_id}",
-                f"category: {execution.failure_category}",
-                f"code: {execution.failure_code}",
-                f"message: {execution.failure_message}",
-            )),
+            "\n".join(
+                (
+                    f"execution_id: {execution.execution_id}",
+                    f"category: {execution.failure_category}",
+                    f"code: {execution.failure_code}",
+                    f"message: {execution.failure_message}",
+                )
+            ),
         )
     except Exception as error:
         notification.status = "FAILED"

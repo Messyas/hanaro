@@ -314,6 +314,7 @@ def mock_rate_limit_settings_fail_open():
     settings.DEFAULT_RATE_LIMIT_PERIOD = 60
     return settings
 
+
 @pytest.fixture
 def mock_rate_limit_settings_fail_closed():
     """Mock settings with fail_open=False for rate limiter tests."""
@@ -323,5 +324,3 @@ def mock_rate_limit_settings_fail_closed():
     settings.DEFAULT_RATE_LIMIT_LIMIT = 100
     settings.DEFAULT_RATE_LIMIT_PERIOD = 60
     return settings
-
-

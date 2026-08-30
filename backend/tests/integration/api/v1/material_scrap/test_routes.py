@@ -60,9 +60,7 @@ async def test_filter_options_and_dashboard_queries(client: AsyncClient, loaded_
 
 
 @pytest.mark.asyncio
-async def test_multiple_organization_and_derived_department_filters(
-    auth_client: AsyncClient, loaded_scrap: None
-) -> None:
+async def test_multiple_organization_and_derived_department_filters(auth_client: AsyncClient, loaded_scrap: None) -> None:
     organizations = await auth_client.get(
         "/api/v1/scrap",
         params=[("organizations", "NWK"), ("organizations", "NW1")],
