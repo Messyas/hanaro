@@ -1,5 +1,7 @@
 import { DecimalPipe, isPlatformBrowser } from '@angular/common';
-import { Component, HostListener, OnInit, PLATFORM_ID, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, HostListener, OnInit, PLATFORM_ID, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { LanguageService } from '../../i18n/language.service';
 import { UiIcon } from '../../ui-icon';
 import {
@@ -40,7 +42,9 @@ export interface CalendarDay {
 export class ExecutionsPage implements OnInit {
   private readonly executionsService = inject(ExecutionsService);
   private readonly platformId = inject(PLATFORM_ID);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly isBrowser = isPlatformBrowser(this.platformId);
+  private readonly searchSubject = new Subject<string>();
 
   readonly language = inject(LanguageService);
   readonly t = computed(() => this.language.translations());
@@ -105,6 +109,14 @@ export class ExecutionsPage implements OnInit {
   readonly detailError = signal<string | null>(null);
 
   ngOnInit(): void {
+    this.searchSubject
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
+      .subscribe((query) => {
+        this.searchQuery.set(query);
+        this.page.set(1);
+        this.loadExecutions();
+      });
+
     this.loadExecutions();
   }
 
@@ -276,6 +288,18 @@ export class ExecutionsPage implements OnInit {
     return `${year}-${month}-${day}`;
   }
 
+  private isValidIsoDateString(str: string): boolean {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(str)) return false;
+    const [y, m, d] = str.split('-').map(Number);
+    if (m < 1 || m > 12 || d < 1 || d > 31) return false;
+    const testDate = new Date(y, m - 1, d);
+    return (
+      testDate.getFullYear() === y &&
+      testDate.getMonth() === m - 1 &&
+      testDate.getDate() === d
+    );
+  }
+
   prevMonthFrom(event?: Event): void {
     if (event) event.stopPropagation();
     this.viewDateFrom.update((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1));
@@ -302,7 +326,7 @@ export class ExecutionsPage implements OnInit {
     this.dateFromPickerOpen.set(next);
     this.dateToPickerOpen.set(false);
     this.statusDropdownOpen.set(false);
-    if (next && this.dateFrom()) {
+    if (next && this.dateFrom() && this.isValidIsoDateString(this.dateFrom())) {
       const parsed = new Date(this.dateFrom() + 'T00:00:00');
       if (!isNaN(parsed.getTime())) this.viewDateFrom.set(parsed);
     }
@@ -314,7 +338,7 @@ export class ExecutionsPage implements OnInit {
     this.dateToPickerOpen.set(next);
     this.dateFromPickerOpen.set(false);
     this.statusDropdownOpen.set(false);
-    if (next && this.dateTo()) {
+    if (next && this.dateTo() && this.isValidIsoDateString(this.dateTo())) {
       const parsed = new Date(this.dateTo() + 'T00:00:00');
       if (!isNaN(parsed.getTime())) this.viewDateTo.set(parsed);
     }
@@ -380,8 +404,12 @@ export class ExecutionsPage implements OnInit {
       sort_order: this.sortOrder(),
     };
 
-    if (this.dateFrom()) params.date_from = this.dateFrom();
-    if (this.dateTo()) params.date_to = this.dateTo();
+    if (this.dateFrom() && this.isValidIsoDateString(this.dateFrom())) {
+      params.date_from = this.dateFrom();
+    }
+    if (this.dateTo() && this.isValidIsoDateString(this.dateTo())) {
+      params.date_to = this.dateTo();
+    }
     if (this.statusFilter()) params.status = this.statusFilter() as AutomationExecutionStatus;
     if (this.searchQuery().trim()) params.search = this.searchQuery().trim();
 
@@ -407,6 +435,7 @@ export class ExecutionsPage implements OnInit {
     this.dateTo.set('');
     this.statusFilter.set('');
     this.searchQuery.set('');
+    this.searchSubject.next('');
     this.page.set(1);
     this.loadExecutions();
   }
@@ -414,6 +443,7 @@ export class ExecutionsPage implements OnInit {
   clearSearch(event?: Event): void {
     if (event) event.stopPropagation();
     this.searchQuery.set('');
+    this.searchSubject.next('');
     this.page.set(1);
     this.loadExecutions();
   }
@@ -437,9 +467,12 @@ export class ExecutionsPage implements OnInit {
     const rawValue = (event.target as HTMLInputElement).value;
     const normalized = rawValue.replace(/\//g, '-').trim();
     this.dateFrom.set(normalized);
-    if (!this.dateRangeError()) {
-      this.page.set(1);
-      this.loadExecutions();
+    // Dispara a busca apenas se o campo estiver vazio ou for uma data ISO completa e válida
+    if (!normalized || this.isValidIsoDateString(normalized)) {
+      if (!this.dateRangeError()) {
+        this.page.set(1);
+        this.loadExecutions();
+      }
     }
   }
 
@@ -447,17 +480,18 @@ export class ExecutionsPage implements OnInit {
     const rawValue = (event.target as HTMLInputElement).value;
     const normalized = rawValue.replace(/\//g, '-').trim();
     this.dateTo.set(normalized);
-    if (!this.dateRangeError()) {
-      this.page.set(1);
-      this.loadExecutions();
+    // Dispara a busca apenas se o campo estiver vazio ou for uma data ISO completa e válida
+    if (!normalized || this.isValidIsoDateString(normalized)) {
+      if (!this.dateRangeError()) {
+        this.page.set(1);
+        this.loadExecutions();
+      }
     }
   }
 
   onSearchInput(event: Event): void {
     const value = (event.target as HTMLInputElement).value;
-    this.searchQuery.set(value);
-    this.page.set(1);
-    this.loadExecutions();
+    this.searchSubject.next(value);
   }
 
   onPageSizeChange(event: Event): void {

@@ -266,4 +266,53 @@ describe('ExecutionsPage', () => {
     component.onDateToChange(eventTo);
     expect(component.dateTo()).toBe('2026-08-31');
   });
+
+  it('should debounce search input before triggering executions list reload', () => {
+    vi.useFakeTimers();
+    mockExecutionsService.list.mockClear();
+
+    const inputEvent1 = { target: { value: 'EXE' } } as unknown as Event;
+    component.onSearchInput(inputEvent1);
+    vi.advanceTimersByTime(100);
+    expect(mockExecutionsService.list).not.toHaveBeenCalled();
+
+    const inputEvent2 = { target: { value: 'EXE-1234' } } as unknown as Event;
+    component.onSearchInput(inputEvent2);
+    vi.advanceTimersByTime(200);
+    expect(mockExecutionsService.list).not.toHaveBeenCalled();
+
+    vi.advanceTimersByTime(150); // total 350ms since second keystroke
+    expect(mockExecutionsService.list).toHaveBeenCalledWith(
+      expect.objectContaining({ search: 'EXE-1234', page: 1 })
+    );
+
+    vi.useRealTimers();
+  });
+
+  it('should ignore incomplete manual date input and only load when valid or cleared', () => {
+    mockExecutionsService.list.mockClear();
+
+    // Partial date string should NOT trigger load
+    const partialEvent = { target: { value: '2026/08' } } as unknown as Event;
+    component.onDateFromChange(partialEvent);
+    expect(component.dateFrom()).toBe('2026-08');
+    expect(mockExecutionsService.list).not.toHaveBeenCalled();
+
+    // Full valid date string SHOULD trigger load
+    const completeEvent = { target: { value: '2026/08/15' } } as unknown as Event;
+    component.onDateFromChange(completeEvent);
+    expect(component.dateFrom()).toBe('2026-08-15');
+    expect(mockExecutionsService.list).toHaveBeenCalledWith(
+      expect.objectContaining({ date_from: '2026-08-15', page: 1 })
+    );
+
+    // Empty date string (cleared) SHOULD trigger load
+    mockExecutionsService.list.mockClear();
+    const emptyEvent = { target: { value: '' } } as unknown as Event;
+    component.onDateFromChange(emptyEvent);
+    expect(component.dateFrom()).toBe('');
+    expect(mockExecutionsService.list).toHaveBeenCalledWith(
+      expect.objectContaining({ page: 1 })
+    );
+  });
 });
