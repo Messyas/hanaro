@@ -421,13 +421,11 @@
                 <td class="align-right">{{ item.records_rejected | number }}</td>
                 <td class="align-center">
                   <span [class]="getSnapshotBadgeClass(item.snapshot_status)">
-                    <span class="badge-dot"></span>
                     {{ formatSnapshotStatus(item.snapshot_status) }}
                   </span>
                 </td>
                 <td class="align-center">
                   <span [class]="getStatusBadgeClass(item.status)">
-                    <span class="badge-dot"></span>
                     {{ formatStatus(item.status) }}
                   </span>
                 </td>
@@ -555,14 +553,12 @@
                 <div class="meta-item">
                   <span class="meta-label">{{ t().executionsColStatus }}</span>
                   <span [class]="getStatusBadgeClass(detail.status)">
-                    <span class="badge-dot"></span>
                     {{ formatStatus(detail.status) }}
                   </span>
                 </div>
                 <div class="meta-item">
                   <span class="meta-label">{{ t().executionsColSnapshot }}</span>
                   <span [class]="getSnapshotBadgeClass(detail.snapshot_status)">
-                    <span class="badge-dot"></span>
                     {{ formatSnapshotStatus(detail.snapshot_status) }}
                   </span>
                 </div>
@@ -624,8 +620,8 @@
               <div class="timeline-list">
                 @for (step of detail.steps; track step.sequence + '-' + step.attempt) {
                   <div class="timeline-item">
-                    <div [class]="'timeline-dot step-' + step.status"></div>
                     <div class="timeline-header">
+                      <div class="timeline-branch"></div>
                       <span class="timeline-step-name">
                         {{ step.sequence }}. {{ formatStepName(step.step_code) }}
                       </span>
