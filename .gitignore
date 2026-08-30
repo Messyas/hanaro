@@ -170,3 +170,6 @@ automation/artifacts/*.json
 # Config files:
 src/.env
 
+# Graphify
+graphify-out/
+.graphify/
