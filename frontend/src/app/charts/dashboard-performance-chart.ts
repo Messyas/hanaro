@@ -138,6 +138,7 @@ export class DashboardPerformanceChart {
   readonly analysis = input.required<DashboardAnalysis>();
   readonly year = input.required<string>();
   readonly language = input.required<LanguageCode>();
+  readonly labels = input<readonly string[] | null>(null);
   readonly monetaryValuesHidden = input(false);
   readonly copy = computed(() => DASHBOARD_TRANSLATIONS[this.language()]);
   readonly chartReady = signal(false);
@@ -189,7 +190,7 @@ export class DashboardPerformanceChart {
       },
       xAxis: {
         type: 'category',
-        data: DASHBOARD_MONTHS[this.language()].slice(0, data.length),
+        data: this.periodLabels(data.length),
         axisLine: { show: false },
         axisTick: { show: false },
         axisLabel: {
@@ -305,7 +306,11 @@ export class DashboardPerformanceChart {
   }
 
   monthLabel(index: number): string {
-    return DASHBOARD_MONTHS[this.language()][index];
+    return this.periodLabels(this.data().length)[index];
+  }
+
+  private periodLabels(length: number): readonly string[] {
+    return this.labels() ?? DASHBOARD_MONTHS[this.language()].slice(0, length);
   }
 
   private compactCurrency(value: number): string {

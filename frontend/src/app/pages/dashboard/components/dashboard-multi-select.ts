@@ -1,4 +1,4 @@
-import { Component, ElementRef, input, output, signal, viewChild } from '@angular/core';
+import { Component, computed, ElementRef, input, output, signal, viewChild } from '@angular/core';
 import { UiIcon } from '../../../ui-icon';
 
 @Component({
@@ -12,8 +12,17 @@ import { UiIcon } from '../../../ui-icon';
         <ui-icon name="chevron-down" />
       </summary>
       <div class="dashboard-multi-menu">
+        <label class="dashboard-multi-search">
+          <input
+            type="search"
+            [attr.aria-label]="searchPlaceholder()"
+            [placeholder]="searchPlaceholder()"
+            [value]="searchTerm()"
+            (input)="updateSearch($event)"
+          />
+        </label>
         <div class="dashboard-multi-options">
-          @for (option of options(); track option) {
+          @for (option of filteredOptions(); track option) {
             <label class="dashboard-multi-option">
               <input
                 type="checkbox"
@@ -22,6 +31,8 @@ import { UiIcon } from '../../../ui-icon';
               />
               <span>{{ option }}</span>
             </label>
+          } @empty {
+            <span class="dashboard-multi-empty">{{ noOptionsLabel() }}</span>
           }
         </div>
         <footer>
@@ -40,9 +51,21 @@ export class DashboardMultiSelect {
   readonly allLabel = input('Todos');
   readonly applyLabel = input('Aplicar');
   readonly selectedPlural = input('selecionados');
+  readonly searchLabel = input('Buscar');
+  readonly noOptionsLabel = input('Nenhuma opção encontrada');
   readonly selectionChange = output<readonly string[]>();
   readonly draft = signal<readonly string[]>([]);
+  readonly searchTerm = signal('');
   readonly details = viewChild<ElementRef<HTMLDetailsElement>>('details');
+  readonly searchPlaceholder = computed(
+    () => `${this.searchLabel()} ${this.label().toLowerCase()}`,
+  );
+  readonly filteredOptions = computed(() => {
+    const search = this.normalize(this.searchTerm());
+    if (!search) return this.options();
+
+    return this.options().filter((option) => this.normalize(option).includes(search));
+  });
 
   summary(): string {
     const selected = this.selected();
@@ -52,7 +75,15 @@ export class DashboardMultiSelect {
   }
 
   handleToggle(): void {
-    if (this.details()?.nativeElement.open) this.draft.set([...this.selected()]);
+    if (this.details()?.nativeElement.open) {
+      this.draft.set([...this.selected()]);
+      return;
+    }
+    this.searchTerm.set('');
+  }
+
+  updateSearch(event: Event): void {
+    this.searchTerm.set((event.target as HTMLInputElement).value);
   }
 
   toggleOption(option: string): void {
@@ -74,5 +105,13 @@ export class DashboardMultiSelect {
   private close(): void {
     const details = this.details()?.nativeElement;
     if (details) details.open = false;
+  }
+
+  private normalize(value: string): string {
+    return value
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '')
+      .toLowerCase()
+      .trim();
   }
 }

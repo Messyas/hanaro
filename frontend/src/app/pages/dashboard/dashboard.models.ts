@@ -1,5 +1,8 @@
 export type DashboardMetric = 'usd' | 'qty';
 export type DashboardAnalysis = 'absolute' | 'relative';
+export type DashboardRankingLimit = 5 | 10;
+export type DashboardDataState = 'api' | 'api-empty' | 'loading' | 'mock';
+export type DashboardEvolutionView = 'monthly' | 'weekly';
 
 export interface DashboardFilters {
   year: string;

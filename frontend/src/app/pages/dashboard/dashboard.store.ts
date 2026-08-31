@@ -1,15 +1,45 @@
-import { computed, inject, Injectable, signal } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { computed, effect, inject, Injectable, PLATFORM_ID, signal } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import {
   DashboardAnalysis,
+  DashboardDataState,
   DashboardFilterChip,
   DashboardFilterKey,
   DashboardFilters,
   DashboardKpis,
   DashboardMetric,
   DashboardMultiFilterKey,
+  DashboardRankingLimit,
+  DashboardSnapshot,
   RelativeDashboardKpis,
 } from './dashboard.models';
 import { MockDashboardService } from './mock-dashboard.service';
+
+interface DashboardApiRankingItem {
+  key: string | null;
+  amount: string;
+  record_count: number;
+}
+
+interface DashboardApiSeriesPoint {
+  period: string;
+  actual: string;
+  previous_year: string | null;
+  target: string | null;
+}
+
+interface DashboardApiResponse {
+  metadata: {
+    generated_at: string;
+  };
+  monthly: DashboardApiSeriesPoint[];
+  rankings: {
+    products: DashboardApiRankingItem[];
+    lines: DashboardApiRankingItem[];
+  };
+}
 
 export const INITIAL_DASHBOARD_FILTERS: DashboardFilters = {
   year: '2026',
@@ -24,13 +54,22 @@ export const INITIAL_DASHBOARD_FILTERS: DashboardFilters = {
 @Injectable()
 export class DashboardStore {
   private readonly dataSource = inject(MockDashboardService);
+  private readonly http = inject(HttpClient, { optional: true });
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly canUseApi = isPlatformBrowser(this.platformId);
+  private apiRequestSequence = 0;
 
   readonly filters = signal<DashboardFilters>({ ...INITIAL_DASHBOARD_FILTERS });
   readonly metric = signal<DashboardMetric>('usd');
   readonly analysis = signal<DashboardAnalysis>('absolute');
+  readonly rankingLimit = signal<DashboardRankingLimit>(5);
+  readonly dataState = signal<DashboardDataState>('mock');
+  readonly apiSnapshot = signal<DashboardSnapshot | null>(null);
   readonly monetaryValuesHidden = signal(false);
   readonly options = this.dataSource.options;
-  readonly snapshot = computed(() => this.dataSource.getSnapshot(this.filters()));
+  readonly snapshot = computed(
+    () => this.apiSnapshot() ?? this.dataSource.getSnapshot(this.filters()),
+  );
   readonly hasActiveFilters = computed(() => {
     const filters = this.filters();
     return (Object.keys(INITIAL_DASHBOARD_FILTERS) as DashboardFilterKey[]).some(
@@ -167,8 +206,23 @@ export class DashboardStore {
     }
   }
 
+  setRankingLimit(limit: DashboardRankingLimit): void {
+    this.rankingLimit.set(limit);
+  }
+
   toggleMonetaryValues(): void {
     if (this.metric() === 'usd') this.monetaryValuesHidden.update((hidden) => !hidden);
+  }
+
+  constructor() {
+    effect(() => {
+      void this.loadApiSnapshot(
+        this.filters(),
+        this.metric(),
+        this.analysis(),
+        this.rankingLimit(),
+      );
+    });
   }
 
   private sum(values: readonly (number | null)[]): number {
@@ -206,5 +260,135 @@ export class DashboardStore {
       );
     }
     return current === initial;
+  }
+
+  private async loadApiSnapshot(
+    filters: DashboardFilters,
+    metric: DashboardMetric,
+    analysis: DashboardAnalysis,
+    rankingLimit: DashboardRankingLimit,
+  ): Promise<void> {
+    const requestId = ++this.apiRequestSequence;
+    if (!this.canUseApi || !this.http || metric !== 'usd' || analysis !== 'absolute') {
+      this.apiSnapshot.set(null);
+      this.dataState.set('mock');
+      return;
+    }
+
+    this.dataState.set('loading');
+    try {
+      const response = await firstValueFrom(
+        this.http.get<DashboardApiResponse>('/api/v1/dashboard/scrap', {
+          params: this.apiParams(filters, rankingLimit),
+        }),
+      );
+      if (requestId !== this.apiRequestSequence) return;
+
+      const snapshot = this.mapApiResponse(response);
+      if (this.hasUsableSnapshot(snapshot)) {
+        this.apiSnapshot.set(snapshot);
+        this.dataState.set('api');
+      } else {
+        this.apiSnapshot.set(null);
+        this.dataState.set('api-empty');
+      }
+    } catch {
+      if (requestId !== this.apiRequestSequence) return;
+      this.apiSnapshot.set(null);
+      this.dataState.set('mock');
+    }
+  }
+
+  private apiParams(filters: DashboardFilters, rankingLimit: DashboardRankingLimit): HttpParams {
+    let params = new HttpParams()
+      .set('year', filters.year)
+      .set('currency', 'USD')
+      .set('impact_mode', 'absolute')
+      .set('ranking_limit', String(rankingLimit));
+
+    params = this.appendValues(params, 'products', filters.product);
+    params = this.appendValues(params, 'receipt_departments', filters.line);
+    params = this.appendValues(params, 'divisions', filters.division);
+    if (filters.component !== INITIAL_DASHBOARD_FILTERS.component) {
+      params = params.append('item_types', filters.component);
+    }
+    if (filters.week.length === 1) {
+      const week = Number(filters.week[0].replace(/\D/g, ''));
+      if (Number.isFinite(week) && week > 0) params = params.set('week', String(week));
+    }
+    if (filters.period !== 'ytd') {
+      const month = Number(filters.period) + 1;
+      params = params
+        .set('date_from', `${filters.year}-${String(month).padStart(2, '0')}-01`)
+        .set('date_to', this.monthEndDate(filters.year, month));
+    }
+
+    return params;
+  }
+
+  private appendValues(params: HttpParams, key: string, values: readonly string[]): HttpParams {
+    return values.reduce((nextParams, value) => nextParams.append(key, value), params);
+  }
+
+  private mapApiResponse(response: DashboardApiResponse): DashboardSnapshot {
+    const mock = this.dataSource.getSnapshot(this.filters());
+    const monthlyByIndex = new Map(
+      response.monthly.map((point) => [Number(point.period.slice(5, 7)) - 1, point]),
+    );
+    const monthly = Array.from({ length: 12 }, (_, index) => {
+      const apiPoint = monthlyByIndex.get(index);
+      const mockPoint = mock.monthly[index];
+
+      return {
+        ...mockPoint,
+        month: mockPoint.month,
+        actualUsd: apiPoint ? this.toNumber(apiPoint.actual) : null,
+        previousUsd: apiPoint ? this.toNullableNumber(apiPoint.previous_year) : null,
+        targetUsd: apiPoint ? (this.toNullableNumber(apiPoint.target) ?? 0) : 0,
+      };
+    });
+
+    return {
+      monthly,
+      distribution: response.rankings.products.map((item) => ({
+        label: item.key ?? 'Não classificado',
+        usd: this.toNumber(item.amount),
+        qty: item.record_count,
+      })),
+      relativeDistribution: response.rankings.lines.map((item) => ({
+        label: item.key ?? 'Não classificado',
+        usd: this.toNumber(item.amount),
+        qty: item.record_count,
+        relativeUsd: undefined,
+        relativeQty: undefined,
+      })),
+      lastUpdatedAt: new Intl.DateTimeFormat('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(new Date(response.metadata.generated_at)),
+    };
+  }
+
+  private hasUsableSnapshot(snapshot: DashboardSnapshot): boolean {
+    return (
+      snapshot.monthly.some((point) => (point.actualUsd ?? 0) > 0) &&
+      snapshot.monthly.some((point) => (point.targetUsd ?? 0) > 0) &&
+      snapshot.distribution.length > 0
+    );
+  }
+
+  private monthEndDate(year: string, month: number): string {
+    const date = new Date(Number(year), month, 0);
+    return `${year}-${String(month).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  }
+
+  private toNumber(value: string): number {
+    return Number(value);
+  }
+
+  private toNullableNumber(value: string | null): number | null {
+    return value === null ? null : Number(value);
   }
 }

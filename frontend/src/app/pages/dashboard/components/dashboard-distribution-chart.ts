@@ -113,7 +113,7 @@ export class DashboardDistributionChart {
                   : analysis === 'relative'
                     ? `${value.toLocaleString(DASHBOARD_LOCALES[this.language()], { minimumFractionDigits: 4, maximumFractionDigits: 4 })}%`
                     : metric === 'usd'
-                      ? `US$ ${new Intl.NumberFormat(DASHBOARD_LOCALES[this.language()], { notation: 'compact' }).format(value)}`
+                      ? this.compactCurrency(value)
                       : `${new Intl.NumberFormat(DASHBOARD_LOCALES[this.language()]).format(value)} ${this.copy().units}`,
               },
             };
@@ -130,4 +130,12 @@ export class DashboardDistributionChart {
       ],
     };
   });
+
+  private compactCurrency(value: number): string {
+    const formatted = new Intl.NumberFormat(DASHBOARD_LOCALES[this.language()], {
+      maximumFractionDigits: 1,
+    }).format(value >= 1000 ? value / 1000 : value);
+
+    return value >= 1000 ? `US$ ${formatted}k` : `US$ ${formatted}`;
+  }
 }

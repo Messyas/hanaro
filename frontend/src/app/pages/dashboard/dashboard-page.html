@@ -25,72 +25,88 @@
           }
         </select>
       </label>
-      <app-dashboard-multi-select
-        [label]="text().product"
-        [allLabel]="text().allMasculine"
-        [applyLabel]="text().apply"
-        [selectedPlural]="text().selectedPlural"
-        [options]="store.options.products"
-        [selected]="store.filters().product"
-        (selectionChange)="changeMultiFilter('product', $event)"
-      />
-      <app-dashboard-multi-select
-        [label]="text().line"
-        [allLabel]="text().allFeminine"
-        [applyLabel]="text().apply"
-        [selectedPlural]="text().selectedPlural"
-        [options]="store.options.lines"
-        [selected]="store.filters().line"
-        (selectionChange)="changeMultiFilter('line', $event)"
-      />
-      @if (store.analysis() === 'relative') {
-        <label class="dashboard-field">
-          <span>{{ text().division }}</span>
-          <select [attr.aria-label]="text().division" disabled [title]="text().unavailableRelative">
-            <option>{{ text().allMasculine }}</option>
-          </select>
-        </label>
-        <label class="dashboard-field">
-          <span>{{ text().week }}</span>
-          <select [attr.aria-label]="text().week" disabled [title]="text().unavailableRelative">
-            <option>{{ text().allFeminine }}</option>
-          </select>
-        </label>
-      } @else {
+    </div>
+    @if (advancedFiltersOpen()) {
+      <div class="dashboard-filter-grid dashboard-filter-grid-advanced">
         <app-dashboard-multi-select
-          [label]="text().division"
+          [label]="text().product"
           [allLabel]="text().allMasculine"
           [applyLabel]="text().apply"
           [selectedPlural]="text().selectedPlural"
-          [options]="store.options.divisions"
-          [selected]="store.filters().division"
-          (selectionChange)="changeMultiFilter('division', $event)"
+          [searchLabel]="text().searchOptions"
+          [noOptionsLabel]="text().noFilterOptions"
+          [options]="store.options.products"
+          [selected]="store.filters().product"
+          (selectionChange)="changeMultiFilter('product', $event)"
         />
         <app-dashboard-multi-select
-          [label]="text().week"
+          [label]="text().line"
           [allLabel]="text().allFeminine"
           [applyLabel]="text().apply"
           [selectedPlural]="text().selectedPlural"
-          [options]="store.options.weeks"
-          [selected]="store.filters().week"
-          (selectionChange)="changeMultiFilter('week', $event)"
+          [searchLabel]="text().searchOptions"
+          [noOptionsLabel]="text().noFilterOptions"
+          [options]="store.options.lines"
+          [selected]="store.filters().line"
+          (selectionChange)="changeMultiFilter('line', $event)"
         />
-      }
-      <label class="dashboard-field">
-        <span>{{ text().component }}</span>
-        <select
-          [attr.aria-label]="text().component"
-          [disabled]="store.analysis() === 'relative'"
-          [value]="store.filters().component"
-          (change)="changeFilter('component', $event)"
-        >
-          <option value="Todos">{{ text().allMasculine }}</option>
-          @for (component of store.options.components; track component) {
-            <option [value]="component">{{ component }}</option>
-          }
-        </select>
-      </label>
-    </div>
+        @if (store.analysis() === 'relative') {
+          <label class="dashboard-field">
+            <span>{{ text().division }}</span>
+            <select
+              [attr.aria-label]="text().division"
+              disabled
+              [title]="text().unavailableRelative"
+            >
+              <option>{{ text().allMasculine }}</option>
+            </select>
+          </label>
+          <label class="dashboard-field">
+            <span>{{ text().week }}</span>
+            <select [attr.aria-label]="text().week" disabled [title]="text().unavailableRelative">
+              <option>{{ text().allFeminine }}</option>
+            </select>
+          </label>
+        } @else {
+          <app-dashboard-multi-select
+            [label]="text().division"
+            [allLabel]="text().allMasculine"
+            [applyLabel]="text().apply"
+            [selectedPlural]="text().selectedPlural"
+            [searchLabel]="text().searchOptions"
+            [noOptionsLabel]="text().noFilterOptions"
+            [options]="store.options.divisions"
+            [selected]="store.filters().division"
+            (selectionChange)="changeMultiFilter('division', $event)"
+          />
+          <app-dashboard-multi-select
+            [label]="text().week"
+            [allLabel]="text().allFeminine"
+            [applyLabel]="text().apply"
+            [selectedPlural]="text().selectedPlural"
+            [searchLabel]="text().searchOptions"
+            [noOptionsLabel]="text().noFilterOptions"
+            [options]="store.options.weeks"
+            [selected]="store.filters().week"
+            (selectionChange)="changeMultiFilter('week', $event)"
+          />
+        }
+        <label class="dashboard-field">
+          <span>{{ text().component }}</span>
+          <select
+            [attr.aria-label]="text().component"
+            [disabled]="store.analysis() === 'relative'"
+            [value]="store.filters().component"
+            (change)="changeFilter('component', $event)"
+          >
+            <option value="Todos">{{ text().allMasculine }}</option>
+            @for (component of store.options.components; track component) {
+              <option [value]="component">{{ component }}</option>
+            }
+          </select>
+        </label>
+      </div>
+    }
     <div class="dashboard-filter-footer">
       <div class="dashboard-filter-context">
         @if (store.activeFilterChips().length) {
@@ -111,12 +127,21 @@
           </div>
         }
         <span class="dashboard-data-status"
-          >{{ text().simulatedData }} · {{ text().updated }} {{ lastUpdatedLabel() }}</span
+          >{{ dataStatusLabel() }} · {{ text().updated }} {{ lastUpdatedLabel() }}</span
         >
       </div>
-      <button type="button" [disabled]="!store.hasActiveFilters()" (click)="store.resetFilters()">
-        {{ text().clearSelection }}
-      </button>
+      <div class="dashboard-filter-actions">
+        <button
+          type="button"
+          [attr.aria-expanded]="advancedFiltersOpen()"
+          (click)="toggleAdvancedFilters()"
+        >
+          {{ advancedFiltersOpen() ? text().lessFilters : advancedFiltersLabel() }}
+        </button>
+        <button type="button" [disabled]="!store.hasActiveFilters()" (click)="store.resetFilters()">
+          {{ text().clearSelection }}
+        </button>
+      </div>
     </div>
   </section>
 
@@ -173,60 +198,73 @@
   </section>
 
   @if (store.analysis() === 'absolute') {
-    <section class="scrap-kpi-grid" [attr.aria-label]="text().absoluteSummaryAria">
-      <article class="scrap-kpi-card">
-        <span>{{ store.metric() === 'usd' ? text().ifCostActual : text().qtyActual }}</span>
+    <section class="kpi-summary-panel" [attr.aria-label]="text().absoluteSummaryAria">
+      <div class="kpi-summary-lead">
+        <span>{{ periodLabel() }}</span>
         <strong>{{ formatPrimaryValue(store.kpis().actual) }}</strong>
-        <small>{{ periodLabel() }}</small>
-      </article>
-      <article class="scrap-kpi-card">
-        <span>{{ store.metric() === 'usd' ? text().ifCostTarget : text().qtyTarget }}</span>
-        <strong>{{ formatPrimaryValue(store.kpis().target) }}</strong>
-        <small>{{ text().targetRegistered }} {{ store.filters().year }}</small>
-      </article>
-      <article class="scrap-kpi-card positive">
-        <span>{{ text().targetAchievement }}</span>
-        <strong>{{ formatPercentage(store.kpis().achievement, false) }}</strong>
-        <small>{{ text().aboveTargetIsGood }}</small>
-      </article>
-      <article
-        class="scrap-kpi-card"
-        [class.positive]="store.kpis().variation <= 0"
-        [class.negative]="store.kpis().variation > 0"
-      >
-        <span>{{ store.metric() === 'usd' ? text().ifCostVariation : text().qtyVariation }}</span>
-        <strong>{{ formatPercentage(store.kpis().variation) }}</strong>
-        <small>{{ comparisonLabel() }}</small>
-      </article>
+        <small>{{ store.metric() === 'usd' ? text().ifCostActual : text().qtyActual }}</small>
+      </div>
+      <div class="kpi-summary-metrics">
+        <div class="kpi-summary-metric">
+          <span>{{ store.metric() === 'usd' ? text().ifCostTarget : text().qtyTarget }}</span>
+          <strong>{{ formatPrimaryValue(store.kpis().target) }}</strong>
+          <small>{{ text().targetRegistered }} {{ store.filters().year }}</small>
+        </div>
+        <div class="kpi-summary-metric positive">
+          <span>{{ text().targetAchievement }}</span>
+          <strong>{{ formatPercentage(store.kpis().achievement, false) }}</strong>
+          <small>{{ targetAchievementDeltaLabel() }}</small>
+        </div>
+        <div
+          class="kpi-summary-metric"
+          [class.positive]="targetGapReached()"
+          [class.negative]="!targetGapReached()"
+        >
+          <span>{{ text().targetGapAmount }}</span>
+          <strong>{{ targetGapValueLabel() }}</strong>
+          <small>{{ targetGapHintLabel() }}</small>
+        </div>
+        <div
+          class="kpi-summary-metric"
+          [class.positive]="store.kpis().variation <= 0"
+          [class.negative]="store.kpis().variation > 0"
+        >
+          <span>{{ store.metric() === 'usd' ? text().ifCostVariation : text().qtyVariation }}</span>
+          <strong>{{ formatPercentage(store.kpis().variation) }}</strong>
+          <small>{{ comparisonLabel() }}</small>
+        </div>
+      </div>
     </section>
   } @else {
-    <section class="scrap-kpi-grid" [attr.aria-label]="text().relativeSummaryAria">
-      <article class="scrap-kpi-card" [class.positive]="store.relativeKpis().variation <= 0">
-        <span>{{ store.metric() === 'usd' ? text().ifCostRate : text().qtyRate }}</span>
+    <section class="kpi-summary-panel" [attr.aria-label]="text().relativeSummaryAria">
+      <div class="kpi-summary-lead">
+        <span>{{ periodLabel() }}</span>
         <strong>{{ formatRate(store.relativeKpis().rate) }}</strong>
-        <small>{{ text().lowerIsBetter }}</small>
-      </article>
-      <article class="scrap-kpi-card">
-        <span>{{ store.metric() === 'usd' ? text().ifCostSlice : text().qtySlice }}</span>
-        <strong>{{ formatPrimaryValue(store.relativeKpis().numerator) }}</strong>
-        <small>{{ text().rateNumerator }}</small>
-      </article>
-      <article class="scrap-kpi-card">
-        <span>{{
-          store.metric() === 'usd' ? text().materialAmount : text().producedQuantity
-        }}</span>
-        <strong>{{ formatDenominator(store.relativeKpis().denominator) }}</strong>
-        <small>{{ text().sameRateSlice }}</small>
-      </article>
-      <article
-        class="scrap-kpi-card"
-        [class.positive]="store.relativeKpis().variation <= 0"
-        [class.negative]="store.relativeKpis().variation > 0"
-      >
-        <span>{{ text().rateVariation }}</span>
-        <strong>{{ formatPercentage(store.relativeKpis().variation) }}</strong>
-        <small>{{ comparisonLabel() }}</small>
-      </article>
+        <small>{{ store.metric() === 'usd' ? text().ifCostRate : text().qtyRate }}</small>
+      </div>
+      <div class="kpi-summary-metrics compact">
+        <div class="kpi-summary-metric">
+          <span>{{ store.metric() === 'usd' ? text().ifCostSlice : text().qtySlice }}</span>
+          <strong>{{ formatPrimaryValue(store.relativeKpis().numerator) }}</strong>
+          <small>{{ text().rateNumerator }}</small>
+        </div>
+        <div class="kpi-summary-metric">
+          <span>{{
+            store.metric() === 'usd' ? text().materialAmount : text().producedQuantity
+          }}</span>
+          <strong>{{ formatDenominator(store.relativeKpis().denominator) }}</strong>
+          <small>{{ text().sameRateSlice }}</small>
+        </div>
+        <div
+          class="kpi-summary-metric"
+          [class.positive]="store.relativeKpis().variation <= 0"
+          [class.negative]="store.relativeKpis().variation > 0"
+        >
+          <span>{{ text().rateVariation }}</span>
+          <strong>{{ formatPercentage(store.relativeKpis().variation) }}</strong>
+          <small>{{ comparisonLabel() }}</small>
+        </div>
+      </div>
     </section>
   }
 
@@ -234,39 +272,102 @@
     <article class="panel scrap-performance-panel">
       <div class="panel-header">
         <div>
-          <h3>
-            {{
-              store.analysis() === 'absolute'
-                ? text().monthlyTargetActual
-                : store.metric() === 'usd'
-                  ? text().ifCostRateMonthly
-                  : text().qtyRateMonthly
-            }}
-          </h3>
-          <p>
-            {{
-              store.analysis() === 'relative'
-                ? text().lowerIsBetter
-                : (store.metric() === 'usd' ? 'IF Cost' : 'QTY Scrap') +
-                  ' · ' +
-                  store.filters().year
-            }}
-          </p>
+          <h3>{{ performanceTitle() }}</h3>
+          <p>{{ performanceSubtitle() }}</p>
+        </div>
+        <div class="panel-header-actions">
+          <div class="evolution-view-switch" role="group" [attr.aria-label]="text().evolutionChart">
+            <button
+              type="button"
+              [class.active]="evolutionView() === 'monthly'"
+              [attr.aria-pressed]="evolutionView() === 'monthly'"
+              (click)="selectEvolutionView('monthly')"
+            >
+              {{ text().monthlyView }}
+            </button>
+            <button
+              type="button"
+              [class.active]="evolutionView() === 'weekly'"
+              [attr.aria-pressed]="evolutionView() === 'weekly'"
+              (click)="selectEvolutionView('weekly')"
+            >
+              {{ text().weeklyView }}
+            </button>
+          </div>
+          <button
+            class="chart-filter-button"
+            type="button"
+            [attr.aria-expanded]="evolutionFiltersOpen()"
+            (click)="toggleEvolutionFilters()"
+          >
+            {{ evolutionFiltersLabel() }}
+          </button>
         </div>
       </div>
+      @if (evolutionFiltersOpen()) {
+        <div class="chart-filter-panel" [attr.aria-label]="text().chartFilters">
+          <label class="dashboard-field">
+            <span>{{ text().period }}</span>
+            <select
+              [attr.aria-label]="text().period"
+              [value]="evolutionFilters().period"
+              (change)="changeEvolutionPeriod($event)"
+            >
+              @for (period of store.options.periods; track period.value) {
+                <option [value]="period.value">{{ periodOptionLabel(period.value) }}</option>
+              }
+            </select>
+          </label>
+          <app-dashboard-multi-select
+            [label]="text().product"
+            [allLabel]="text().allMasculine"
+            [applyLabel]="text().apply"
+            [selectedPlural]="text().selectedPlural"
+            [searchLabel]="text().searchOptions"
+            [noOptionsLabel]="text().noFilterOptions"
+            [options]="store.options.products"
+            [selected]="evolutionFilters().product"
+            (selectionChange)="changeEvolutionMultiFilter('product', $event)"
+          />
+          <app-dashboard-multi-select
+            [label]="text().line"
+            [allLabel]="text().allFeminine"
+            [applyLabel]="text().apply"
+            [selectedPlural]="text().selectedPlural"
+            [searchLabel]="text().searchOptions"
+            [noOptionsLabel]="text().noFilterOptions"
+            [options]="store.options.lines"
+            [selected]="evolutionFilters().line"
+            (selectionChange)="changeEvolutionMultiFilter('line', $event)"
+          />
+          <button
+            class="chart-filter-clear"
+            type="button"
+            [disabled]="!evolutionFiltersCount()"
+            (click)="clearEvolutionFilters()"
+          >
+            {{ text().clearChartFilters }}
+          </button>
+        </div>
+      }
       @defer (on viewport) {
-        <app-dashboard-performance-chart
-          [data]="store.snapshot().monthly"
-          [metric]="store.metric()"
-          [analysis]="store.analysis()"
-          [year]="store.filters().year"
-          [language]="language.currentLanguage()"
-          [monetaryValuesHidden]="store.monetaryValuesHidden()"
-        />
+        @if (hasPerformanceData()) {
+          <app-dashboard-performance-chart
+            [data]="performanceData()"
+            [metric]="store.metric()"
+            [analysis]="store.analysis()"
+            [year]="store.filters().year"
+            [language]="language.currentLanguage()"
+            [labels]="performanceLabels()"
+            [monetaryValuesHidden]="store.monetaryValuesHidden()"
+          />
+        } @else {
+          <div class="chart-empty-state">{{ text().noChartData }}</div>
+        }
       } @placeholder {
         <div class="chart-defer-placeholder" aria-hidden="true"></div>
       }
-      @if (store.analysis() === 'absolute') {
+      @if (store.analysis() === 'absolute' && evolutionView() === 'monthly') {
         <div class="period-status" [attr.aria-label]="text().periodStatusAria">
           <span><i class="closed"></i>{{ text().closedMonths }}</span>
           <span><i class="partial"></i>{{ text().partialMonth }}</span>
@@ -292,19 +393,101 @@
             }}
           </p>
         </div>
+        <div class="panel-header-actions">
+          <div
+            class="ranking-limit-switch"
+            role="group"
+            [attr.aria-label]="text().rankingLimitAria"
+          >
+            <button
+              type="button"
+              [class.active]="store.rankingLimit() === 5"
+              [attr.aria-pressed]="store.rankingLimit() === 5"
+              (click)="selectRankingLimit(5)"
+            >
+              {{ text().topFive }}
+            </button>
+            <button
+              type="button"
+              [class.active]="store.rankingLimit() === 10"
+              [attr.aria-pressed]="store.rankingLimit() === 10"
+              (click)="selectRankingLimit(10)"
+            >
+              {{ text().topTen }}
+            </button>
+          </div>
+          <button
+            class="chart-filter-button"
+            type="button"
+            [attr.aria-expanded]="distributionFiltersOpen()"
+            (click)="toggleDistributionFilters()"
+          >
+            {{ distributionFiltersLabel() }}
+          </button>
+        </div>
       </div>
+      @if (distributionFiltersOpen()) {
+        <div
+          class="chart-filter-panel distribution-filter-panel"
+          [attr.aria-label]="text().chartFilters"
+        >
+          <app-dashboard-multi-select
+            [label]="text().product"
+            [allLabel]="text().allMasculine"
+            [applyLabel]="text().apply"
+            [selectedPlural]="text().selectedPlural"
+            [searchLabel]="text().searchOptions"
+            [noOptionsLabel]="text().noFilterOptions"
+            [options]="store.options.products"
+            [selected]="distributionFilters().product"
+            (selectionChange)="changeDistributionMultiFilter('product', $event)"
+          />
+          <app-dashboard-multi-select
+            [label]="text().line"
+            [allLabel]="text().allFeminine"
+            [applyLabel]="text().apply"
+            [selectedPlural]="text().selectedPlural"
+            [searchLabel]="text().searchOptions"
+            [noOptionsLabel]="text().noFilterOptions"
+            [options]="store.options.lines"
+            [selected]="distributionFilters().line"
+            (selectionChange)="changeDistributionMultiFilter('line', $event)"
+          />
+          <label class="dashboard-field">
+            <span>{{ text().component }}</span>
+            <select
+              [attr.aria-label]="text().component"
+              [value]="distributionFilters().component"
+              (change)="changeDistributionComponent($event)"
+            >
+              <option value="Todos">{{ text().allMasculine }}</option>
+              @for (component of store.options.components; track component) {
+                <option [value]="component">{{ component }}</option>
+              }
+            </select>
+          </label>
+          <button
+            class="chart-filter-clear"
+            type="button"
+            [disabled]="!distributionFiltersCount()"
+            (click)="clearDistributionFilters()"
+          >
+            {{ text().clearChartFilters }}
+          </button>
+        </div>
+      }
       @defer (on viewport) {
-        <app-dashboard-distribution-chart
-          [data]="
-            store.analysis() === 'absolute'
-              ? store.snapshot().distribution
-              : store.snapshot().relativeDistribution
-          "
-          [metric]="store.metric()"
-          [analysis]="store.analysis()"
-          [language]="language.currentLanguage()"
-          [monetaryValuesHidden]="store.monetaryValuesHidden()"
-        />
+        @if (hasDistributionData()) {
+          <app-dashboard-distribution-chart
+            [data]="distributionData()"
+            [metric]="store.metric()"
+            [analysis]="store.analysis()"
+            [language]="language.currentLanguage()"
+            [monetaryValuesHidden]="store.monetaryValuesHidden()"
+          />
+        } @else {
+          <div class="chart-empty-state">{{ text().noChartData }}</div>
+        }
       } @placeholder {
         <div class="chart-defer-placeholder" aria-hidden="true"></div>
       }

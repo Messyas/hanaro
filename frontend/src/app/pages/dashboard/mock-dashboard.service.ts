@@ -128,6 +128,11 @@ const BASE_DISTRIBUTION = [
   { label: 'AV', usd: 38_300, qty: 226 },
   { label: 'TV', usd: 31_200, qty: 191 },
   { label: 'MNT', usd: 18_060, qty: 157 },
+  { label: 'SMT', usd: 15_420, qty: 132 },
+  { label: 'IPI', usd: 12_880, qty: 109 },
+  { label: 'FA', usd: 10_340, qty: 96 },
+  { label: 'MFG', usd: 8_920, qty: 82 },
+  { label: 'QA', usd: 6_760, qty: 64 },
 ] as const;
 
 const MATERIAL_AMOUNT_USD = [
@@ -153,6 +158,11 @@ const RELATIVE_DISTRIBUTION = [
   { label: 'G08', usd: 0, qty: 0, relativeUsd: 0.0985, relativeQty: 0.1378 },
   { label: 'C02', usd: 0, qty: 0, relativeUsd: 0.0841, relativeQty: 0.1196 },
   { label: 'Ventito', usd: 0, qty: 0, relativeUsd: 0.0717, relativeQty: 0.1043 },
+  { label: 'A02', usd: 0, qty: 0, relativeUsd: 0.0642, relativeQty: 0.0974 },
+  { label: 'A04', usd: 0, qty: 0, relativeUsd: 0.0576, relativeQty: 0.0881 },
+  { label: 'A01', usd: 0, qty: 0, relativeUsd: 0.0498, relativeQty: 0.0763 },
+  { label: 'C01', usd: 0, qty: 0, relativeUsd: 0.0435, relativeQty: 0.0689 },
+  { label: 'B01', usd: 0, qty: 0, relativeUsd: 0.0379, relativeQty: 0.0612 },
 ] as const;
 
 const FILTER_FACTORS: Partial<Record<keyof DashboardFilters, Record<string, number>>> = {

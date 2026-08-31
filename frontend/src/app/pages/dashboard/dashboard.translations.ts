@@ -15,10 +15,17 @@ export interface DashboardTranslations {
   activeFilters: string;
   removeFilter: string;
   selectedPlural: string;
+  searchOptions: string;
+  noFilterOptions: string;
   apply: string;
   simulatedData: string;
+  apiEmptyData: string;
+  apiData: string;
+  loadingData: string;
   updated: string;
   clearSelection: string;
+  moreFilters: string;
+  lessFilters: string;
   analysisControlsAria: string;
   toggleAnalysisAria: string;
   absoluteImpact: string;
@@ -35,6 +42,13 @@ export interface DashboardTranslations {
   targetRegistered: string;
   targetAchievement: string;
   aboveTargetIsGood: string;
+  targetGapAbove: string;
+  targetGapBelow: string;
+  targetGapOnTrack: string;
+  targetGapAmount: string;
+  targetGapReached: string;
+  targetGapExceeded: string;
+  percentagePoints: string;
   ifCostVariation: string;
   qtyVariation: string;
   sameAccumulated: string;
@@ -50,9 +64,18 @@ export interface DashboardTranslations {
   producedQuantity: string;
   sameRateSlice: string;
   rateVariation: string;
+  evolutionChart: string;
+  chartFilters: string;
+  clearChartFilters: string;
   monthlyTargetActual: string;
+  weeklyTargetActual: string;
   ifCostRateMonthly: string;
+  ifCostRateWeekly: string;
   qtyRateMonthly: string;
+  qtyRateWeekly: string;
+  monthlyView: string;
+  weeklyView: string;
+  currentMonthWeeks: string;
   distributionByProduct: string;
   participationSelectedPeriod: string;
   highestRateLines: string;
@@ -65,12 +88,16 @@ export interface DashboardTranslations {
   actual: string;
   reference: string;
   noData: string;
+  noChartData: string;
   hiddenValue: string;
   units: string;
   performanceAbsoluteAria: string;
   performanceRelativeAria: string;
   distributionAbsoluteAria: string;
   distributionRelativeAria: string;
+  rankingLimitAria: string;
+  topFive: string;
+  topTen: string;
 }
 
 export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations> = {
@@ -89,10 +116,17 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     activeFilters: 'Filtros ativos',
     removeFilter: 'Remover filtro',
     selectedPlural: 'selecionados',
+    searchOptions: 'Buscar',
+    noFilterOptions: 'Nenhuma opção encontrada',
     apply: 'Aplicar',
     simulatedData: 'Dados simulados',
+    apiEmptyData: 'Dados simulados · API sem dados disponíveis',
+    apiData: 'Dados da API',
+    loadingData: 'Atualizando dados',
     updated: 'atualizados',
     clearSelection: 'Limpar seleção',
+    moreFilters: 'Mais filtros',
+    lessFilters: 'Menos filtros',
     analysisControlsAria: 'Controles de análise',
     toggleAnalysisAria: 'Alternar tipo de análise',
     absoluteImpact: 'Impacto absoluto',
@@ -109,6 +143,13 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     targetRegistered: 'Meta cadastrada para',
     targetAchievement: 'Atingimento do target',
     aboveTargetIsGood: 'Acima de 100% é favorável',
+    targetGapAbove: 'acima da meta mínima',
+    targetGapBelow: 'faltam para a meta mínima',
+    targetGapOnTrack: 'Na meta mínima',
+    targetGapAmount: 'Quanto falta para a meta',
+    targetGapReached: 'Meta alcançada',
+    targetGapExceeded: 'Acima do target definido',
+    percentagePoints: 'p.p.',
     ifCostVariation: 'Variação do IF Cost',
     qtyVariation: 'Variação da QTY Scrap',
     sameAccumulated: 'Mesmo acumulado de',
@@ -124,9 +165,18 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     producedQuantity: 'Quantidade produzida',
     sameRateSlice: 'Mesmo recorte da taxa',
     rateVariation: 'Variação da taxa',
+    evolutionChart: 'Evolução do scrap',
+    chartFilters: 'Filtros',
+    clearChartFilters: 'Limpar filtros do gráfico',
     monthlyTargetActual: 'Target × realizado mensal',
+    weeklyTargetActual: 'Target × realizado semanal',
     ifCostRateMonthly: 'Scrap Rate de IF Cost por mês',
+    ifCostRateWeekly: 'Scrap Rate de IF Cost por semana',
     qtyRateMonthly: 'Scrap Rate por quantidade por mês',
+    qtyRateWeekly: 'Scrap Rate por quantidade por semana',
+    monthlyView: 'Mensal',
+    weeklyView: 'Semanal',
+    currentMonthWeeks: 'Semanas do período selecionado',
     distributionByProduct: 'Distribuição por produto / área',
     participationSelectedPeriod: 'Participação no período selecionado',
     highestRateLines: 'Linhas com maior taxa',
@@ -139,12 +189,16 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     actual: 'Realizado',
     reference: 'Referência',
     noData: 'Sem dado',
+    noChartData: 'Sem dados para os filtros selecionados',
     hiddenValue: 'Valor oculto',
     units: 'unidades',
     performanceAbsoluteAria: 'IF Cost mensal comparando realizado, referência e target',
     performanceRelativeAria: 'Scrap Rate mensal comparando o ano atual e o anterior',
     distributionAbsoluteAria: 'Distribuição do scrap por produto ou área',
     distributionRelativeAria: 'Linhas com maior Scrap Rate',
+    rankingLimitAria: 'Quantidade de itens exibidos no ranking',
+    topFive: 'Top 5',
+    topTen: 'Top 10',
   },
   en: {
     filtersAria: 'Dashboard filters',
@@ -161,10 +215,17 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     activeFilters: 'Active filters',
     removeFilter: 'Remove filter',
     selectedPlural: 'selected',
+    searchOptions: 'Search',
+    noFilterOptions: 'No options found',
     apply: 'Apply',
     simulatedData: 'Simulated data',
+    apiEmptyData: 'Simulated data · API has no available data',
+    apiData: 'API data',
+    loadingData: 'Updating data',
     updated: 'updated',
     clearSelection: 'Clear selection',
+    moreFilters: 'More filters',
+    lessFilters: 'Fewer filters',
     analysisControlsAria: 'Analysis controls',
     toggleAnalysisAria: 'Switch analysis type',
     absoluteImpact: 'Absolute impact',
@@ -181,6 +242,13 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     targetRegistered: 'Target registered for',
     targetAchievement: 'Target achievement',
     aboveTargetIsGood: 'Above 100% is favorable',
+    targetGapAbove: 'above the minimum target',
+    targetGapBelow: 'remaining to the minimum target',
+    targetGapOnTrack: 'At the minimum target',
+    targetGapAmount: 'Remaining to target',
+    targetGapReached: 'Target reached',
+    targetGapExceeded: 'Above the defined target',
+    percentagePoints: 'p.p.',
     ifCostVariation: 'IF Cost variation',
     qtyVariation: 'QTY Scrap variation',
     sameAccumulated: 'Same accumulated period in',
@@ -196,9 +264,18 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     producedQuantity: 'Produced quantity',
     sameRateSlice: 'Same rate selection',
     rateVariation: 'Rate variation',
+    evolutionChart: 'Scrap evolution',
+    chartFilters: 'Filters',
+    clearChartFilters: 'Clear chart filters',
     monthlyTargetActual: 'Monthly target × actual',
+    weeklyTargetActual: 'Weekly target × actual',
     ifCostRateMonthly: 'Monthly IF Cost Scrap Rate',
+    ifCostRateWeekly: 'Weekly IF Cost Scrap Rate',
     qtyRateMonthly: 'Monthly quantity Scrap Rate',
+    qtyRateWeekly: 'Weekly quantity Scrap Rate',
+    monthlyView: 'Monthly',
+    weeklyView: 'Weekly',
+    currentMonthWeeks: 'Weeks in the selected period',
     distributionByProduct: 'Distribution by product / area',
     participationSelectedPeriod: 'Share in the selected period',
     highestRateLines: 'Lines with the highest rate',
@@ -211,12 +288,16 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     actual: 'Actual',
     reference: 'Reference',
     noData: 'No data',
+    noChartData: 'No data for the selected filters',
     hiddenValue: 'Hidden value',
     units: 'units',
     performanceAbsoluteAria: 'Monthly IF Cost comparing actual, reference, and target',
     performanceRelativeAria: 'Monthly Scrap Rate comparing the current and previous years',
     distributionAbsoluteAria: 'Scrap distribution by product or area',
     distributionRelativeAria: 'Lines with the highest Scrap Rate',
+    rankingLimitAria: 'Number of ranking items displayed',
+    topFive: 'Top 5',
+    topTen: 'Top 10',
   },
   ko: {
     filtersAria: '대시보드 필터',
@@ -233,10 +314,17 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     activeFilters: '활성 필터',
     removeFilter: '필터 제거',
     selectedPlural: '개 선택',
+    searchOptions: '검색',
+    noFilterOptions: '옵션을 찾을 수 없음',
     apply: '적용',
     simulatedData: '시뮬레이션 데이터',
+    apiEmptyData: '시뮬레이션 데이터 · API 사용 가능 데이터 없음',
+    apiData: 'API 데이터',
+    loadingData: '데이터 업데이트 중',
     updated: '업데이트',
     clearSelection: '선택 지우기',
+    moreFilters: '필터 더보기',
+    lessFilters: '필터 줄이기',
     analysisControlsAria: '분석 제어',
     toggleAnalysisAria: '분석 유형 전환',
     absoluteImpact: '절대 영향',
@@ -253,6 +341,13 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     targetRegistered: '목표 등록 연도',
     targetAchievement: '목표 달성률',
     aboveTargetIsGood: '100% 이상이면 양호',
+    targetGapAbove: '최소 목표 초과',
+    targetGapBelow: '최소 목표까지 남음',
+    targetGapOnTrack: '최소 목표 달성',
+    targetGapAmount: '목표까지 남은 값',
+    targetGapReached: '목표 달성',
+    targetGapExceeded: '설정 목표 초과',
+    percentagePoints: 'p.p.',
     ifCostVariation: 'IF Cost 변동',
     qtyVariation: 'QTY Scrap 변동',
     sameAccumulated: '동일 누적 기간',
@@ -268,9 +363,18 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     producedQuantity: '생산 수량',
     sameRateSlice: '동일 비율 범위',
     rateVariation: '비율 변동',
+    evolutionChart: '스크랩 추이',
+    chartFilters: '필터',
+    clearChartFilters: '차트 필터 지우기',
     monthlyTargetActual: '월별 목표 × 실적',
+    weeklyTargetActual: '주별 목표 × 실적',
     ifCostRateMonthly: '월별 IF Cost Scrap Rate',
+    ifCostRateWeekly: '주별 IF Cost Scrap Rate',
     qtyRateMonthly: '월별 수량 Scrap Rate',
+    qtyRateWeekly: '주별 수량 Scrap Rate',
+    monthlyView: '월별',
+    weeklyView: '주별',
+    currentMonthWeeks: '선택 기간의 주차',
     distributionByProduct: '제품 / 영역별 분포',
     participationSelectedPeriod: '선택 기간 비중',
     highestRateLines: '비율이 높은 라인',
@@ -283,12 +387,16 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     actual: '실적',
     reference: '기준',
     noData: '데이터 없음',
+    noChartData: '선택한 필터에 대한 데이터 없음',
     hiddenValue: '숨겨진 값',
     units: '개',
     performanceAbsoluteAria: '월별 IF Cost 실적, 기준 및 목표 비교',
     performanceRelativeAria: '현재 연도와 전년도의 월별 Scrap Rate 비교',
     distributionAbsoluteAria: '제품 또는 영역별 Scrap 분포',
     distributionRelativeAria: 'Scrap Rate가 높은 라인',
+    rankingLimitAria: '랭킹 표시 항목 수',
+    topFive: '상위 5',
+    topTen: '상위 10',
   },
 };
 
