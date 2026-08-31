@@ -78,6 +78,94 @@ class IngestionRun(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
+class ScrapAutomationExecution(Base):
+    """Lifecycle of a Smart Office run, including failures before ingestion."""
+
+    __tablename__ = "scrap_automation_executions"
+    __table_args__ = (
+        Index("ix_scrap_automation_execution_started", "started_at", "id"),
+        Index("ix_scrap_automation_execution_status_started", "status", "started_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default_factory=uuid.uuid4, init=False)
+    execution_id: Mapped[uuid.UUID] = mapped_column(unique=True, index=True)
+    correlation_id: Mapped[str] = mapped_column(String(100), index=True)
+    report_name: Mapped[str] = mapped_column(String(120))
+    mode: Mapped[str] = mapped_column(String(40))
+    status: Mapped[str] = mapped_column(String(20), index=True)
+    query_date_from: Mapped[date] = mapped_column(Date)
+    query_date_to: Mapped[date] = mapped_column(Date)
+    processing_date: Mapped[date] = mapped_column(Date)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    source_system: Mapped[str] = mapped_column(String(20), default="GERP")
+    trigger: Mapped[str] = mapped_column(String(20), default="SCHEDULED")
+    current_step: Mapped[str | None] = mapped_column(String(40), default=None)
+    organization_parameter: Mapped[str] = mapped_column(String(80), default="ALL")
+    organizations_found: Mapped[list[str]] = mapped_column(JSON_TYPE, default_factory=list)
+    timezone: Mapped[str] = mapped_column(String(64), default="America/Manaus")
+    gerp_request_id: Mapped[str | None] = mapped_column(String(100), index=True, default=None)
+    source_file_name: Mapped[str | None] = mapped_column(String(255), default=None)
+    source_file_sha256: Mapped[str | None] = mapped_column(String(64), default=None)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    records_received: Mapped[int] = mapped_column(Integer, default=0)
+    records_accepted: Mapped[int] = mapped_column(Integer, default=0)
+    records_rejected: Mapped[int] = mapped_column(Integer, default=0)
+    snapshot_status: Mapped[str] = mapped_column(String(30), default="NOT_PUBLISHED")
+    failure_category: Mapped[str | None] = mapped_column(String(80), index=True, default=None)
+    failure_code: Mapped[str | None] = mapped_column(String(100), default=None)
+    failure_message: Mapped[str | None] = mapped_column(Text, default=None)
+    retry_count: Mapped[int] = mapped_column(Integer, default=0)
+    ingestion_run_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("scrap_ingestion_runs.id", ondelete="SET NULL"), index=True, default=None
+    )
+
+
+class ScrapExecutionStep(Base):
+    __tablename__ = "scrap_execution_steps"
+    __table_args__ = (
+        UniqueConstraint("execution_id", "step_code", "attempt", name="uq_scrap_execution_step_attempt"),
+        Index("ix_scrap_execution_step_timeline", "execution_id", "sequence", "attempt", "started_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default_factory=uuid.uuid4, init=False)
+    execution_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("scrap_automation_executions.id", ondelete="CASCADE"), index=True
+    )
+    step_code: Mapped[str] = mapped_column(String(40))
+    sequence: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(20))
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    attempt: Mapped[int] = mapped_column(Integer, default=1)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    duration_ms: Mapped[int | None] = mapped_column(Integer, default=None)
+    message: Mapped[str | None] = mapped_column(String(2000), default=None)
+    error_code: Mapped[str | None] = mapped_column(String(100), default=None)
+    metadata_: Mapped[dict[str, Any]] = mapped_column("metadata", JSON_TYPE, default_factory=dict)
+
+
+class ScrapExecutionNotification(Base):
+    """Idempotent technical-notification outbox for actionable failures."""
+
+    __tablename__ = "scrap_execution_notifications"
+    __table_args__ = (UniqueConstraint("execution_id", "failure_code", name="uq_scrap_execution_notification"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default_factory=uuid.uuid4, init=False)
+    execution_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("scrap_automation_executions.id", ondelete="CASCADE"), index=True
+    )
+    failure_code: Mapped[str] = mapped_column(String(100))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    status: Mapped[str] = mapped_column(String(20), default="PENDING")
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    last_error: Mapped[str | None] = mapped_column(String(1000), default=None)
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+
+
 class IngestionSourceFile(Base):
     __tablename__ = "scrap_ingestion_source_files"
     __table_args__ = (

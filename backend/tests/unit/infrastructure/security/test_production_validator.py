@@ -33,9 +33,6 @@ class TestProductionSecurityValidator:
             "SESSION_SECURE_COOKIES": True,
             "SESSION_TIMEOUT_MINUTES": 30,
             "CSRF_ENABLED": True,
-            "ADMIN_ENABLED": True,
-            "ADMIN_USERNAME": "secure_admin_user",
-            "ADMIN_PASSWORD": "very_secure_admin_password_123",
             "PRODUCTION_SECURITY_VALIDATION_ENABLED": True,
             # Redis settings
             "CACHE_REDIS_HOST": "localhost",
@@ -105,14 +102,6 @@ class TestProductionSecurityValidator:
 
             assert "SECRET_KEY" in str(exc_info.value)
             assert "insecure" in str(exc_info.value).lower()
-
-    def test_admin_disabled_does_not_check_credentials(self):
-        """Test that disabled admin doesn't trigger credential checks."""
-        settings = self.create_mock_settings(ADMIN_ENABLED=False, ADMIN_USERNAME="admin", ADMIN_PASSWORD="weak")
-        validator = ProductionSecurityValidator(settings)
-
-        # Should not raise any exceptions for admin credentials
-        validator.validate_production_security()
 
     def test_default_database_password_raises_error(self):
         """Test that default database password raises critical error."""
@@ -242,40 +231,12 @@ class TestProductionSecurityValidator:
         assert len(timeout_warnings) > 0
         assert len(csrf_warnings) > 0
 
-    def test_weak_admin_credentials_logs_warning(self, caplog):
-        """Test that weak admin credentials log warnings."""
-        settings = self.create_mock_settings(ADMIN_USERNAME="admin", ADMIN_PASSWORD="123456")
-        validator = ProductionSecurityValidator(settings)
-
-        validator.validate_production_security()
-
-        # Check for admin credential warnings
-        warning_logs = [record for record in caplog.records if record.levelname == "WARNING"]
-
-        username_warnings = [log for log in warning_logs if "Admin username" in log.message and "predictable" in log.message]
-        password_warnings = [log for log in warning_logs if "Admin password" in log.message]
-
-        assert len(username_warnings) > 0
-        assert len(password_warnings) > 0
-
     def test_convenience_function(self):
         """Test the convenience function validate_production_security."""
         settings = self.create_mock_settings(SECRET_KEY="insecure")
 
         with pytest.raises(ProductionSecurityError):
             validate_production_security(settings)
-
-    def test_no_admin_credentials_skips_admin_checks(self, caplog):
-        """Test that missing admin credentials skip admin checks."""
-        settings = self.create_mock_settings(ADMIN_USERNAME="", ADMIN_PASSWORD="")
-        validator = ProductionSecurityValidator(settings)
-
-        validator.validate_production_security()
-
-        # Should not have admin credential warnings
-        warning_logs = [record for record in caplog.records if record.levelname == "WARNING"]
-        admin_warnings = [log for log in warning_logs if "Admin username" in log.message or "Admin password" in log.message]
-        assert len(admin_warnings) == 0
 
     def test_redis_ssl_with_external_host(self, caplog):
         """Test that external Redis without SSL logs warning."""

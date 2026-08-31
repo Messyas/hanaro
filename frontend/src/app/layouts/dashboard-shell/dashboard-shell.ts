@@ -95,6 +95,12 @@ export class DashboardShell {
         label: t.navDashboard,
       },
       {
+        path: '/execucoes',
+        icon: 'clock',
+        label: t.navExecutions,
+        requiresAuthentication: true,
+      },
+      {
         path: '/relatorios',
         icon: 'chart-bar',
         label: t.navReports,

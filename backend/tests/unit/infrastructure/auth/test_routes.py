@@ -5,8 +5,6 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 import pytest_asyncio
 from crudauth import Principal
-from crudauth.oauth import OAuthState
-from fastapi import status
 from httpx import ASGITransport, AsyncClient
 
 from src.infrastructure.auth.dependencies import get_current_principal, get_optional_principal
@@ -100,136 +98,16 @@ async def test_refresh_csrf_success(async_client, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_oauth_google_login_success(async_client, monkeypatch):
-    mock_provider = MagicMock()
-    mock_provider.get_authorization_url.return_value = {
-        "url": "https://accounts.google.com/oauth",
-        "state": "state_123",
-        "code_verifier": "verifier_123",
-    }
-    mock_storage = MagicMock()
-    mock_storage.create = AsyncMock()
-
-    monkeypatch.setattr("src.infrastructure.auth.routes.oauth_providers", {"google": mock_provider})
-    monkeypatch.setattr("src.infrastructure.auth.routes.oauth_state_storage", mock_storage)
-
-    resp = await async_client.get("/api/v1/auth/oauth/google?redirect_uri=/dashboard")
-    assert resp.status_code == 200
-    assert resp.json() == {"url": "https://accounts.google.com/oauth"}
-
-
-@pytest.mark.asyncio
-async def test_oauth_google_login_error(async_client, monkeypatch):
-    mock_provider = MagicMock()
-    mock_provider.get_authorization_url.side_effect = RuntimeError("OAuth failure")
-
-    monkeypatch.setattr("src.infrastructure.auth.routes.oauth_providers", {"google": mock_provider})
-
-    resp = await async_client.get("/api/v1/auth/oauth/google")
-    assert resp.status_code == 500
-    assert resp.json()["detail"] == "Failed to initiate Google login"
-
-
-@pytest.mark.asyncio
-async def test_oauth_google_callback_invalid_state(async_client, monkeypatch):
-    mock_storage = MagicMock()
-    mock_storage.get = AsyncMock(return_value=None)
-    monkeypatch.setattr("src.infrastructure.auth.routes.oauth_state_storage", mock_storage)
-
-    # JSON format
-    resp_json = await async_client.get("/api/v1/auth/oauth/callback/google?code=c1&state=invalid&response_format=json")
-    assert resp_json.status_code == 400
-
-    # Redirect format
-    resp_redirect = await async_client.get(
-        "/api/v1/auth/oauth/callback/google?code=c1&state=invalid&response_format=redirect",
-        follow_redirects=False,
-    )
-    assert resp_redirect.status_code == status.HTTP_302_FOUND
-    assert "invalid_state" in resp_redirect.headers["location"]
-
-
-@pytest.mark.asyncio
-async def test_oauth_google_callback_provider_mismatch(async_client, monkeypatch):
-    state_obj = OAuthState(state="s1", provider="github", redirect_to="/", code_verifier="v1")
-    mock_storage = MagicMock()
-    mock_storage.get = AsyncMock(return_value=state_obj)
-    monkeypatch.setattr("src.infrastructure.auth.routes.oauth_state_storage", mock_storage)
-
-    # JSON format
-    resp_json = await async_client.get("/api/v1/auth/oauth/callback/google?code=c1&state=s1&response_format=json")
-    assert resp_json.status_code == 400
-
-    # Redirect format
-    resp_redirect = await async_client.get(
-        "/api/v1/auth/oauth/callback/google?code=c1&state=s1&response_format=redirect",
-        follow_redirects=False,
-    )
-    assert resp_redirect.status_code == status.HTTP_302_FOUND
-    assert "provider_mismatch" in resp_redirect.headers["location"]
-
-
-@pytest.mark.asyncio
-async def test_oauth_google_callback_success(async_client, monkeypatch):
-    state_obj = OAuthState(state="s1", provider="google", redirect_to="/welcome", code_verifier="v1")
-    mock_storage = MagicMock()
-    mock_storage.get = AsyncMock(return_value=state_obj)
-    mock_storage.delete = AsyncMock()
-    monkeypatch.setattr("src.infrastructure.auth.routes.oauth_state_storage", mock_storage)
-
-    mock_provider = MagicMock()
-    mock_provider.exchange_code = AsyncMock(return_value={"access_token": "token_1"})
-    mock_provider.get_user_info = AsyncMock(return_value={"email": "u@g.com"})
-    mock_provider.process_user_info = AsyncMock(return_value={"email": "u@g.com"})
-    monkeypatch.setattr("src.infrastructure.auth.routes.oauth_providers", {"google": mock_provider})
-
-    mock_account_service = MagicMock()
-    mock_account_service.get_or_create_user = AsyncMock(return_value=({"id": 1, "username": "guser", "email": "u@g.com"}, True))
-    monkeypatch.setattr("src.infrastructure.auth.routes.oauth_account_service", mock_account_service)
-
-    mock_auth = MagicMock()
-    mock_auth.repo.user_id.return_value = 1
-    mock_auth.repo.get.side_effect = lambda user, key: user.get(key)
-    mock_auth.sessions.create_session = AsyncMock(return_value=("sess_1", "csrf_1"))
-    mock_auth.sessions.set_session_cookies = MagicMock()
-    monkeypatch.setattr("src.infrastructure.auth.routes.crud_auth", mock_auth)
-
-    # JSON format
-    resp_json = await async_client.get("/api/v1/auth/oauth/callback/google?code=c1&state=s1&response_format=json")
-    assert resp_json.status_code == 200
-    assert resp_json.json()["success"] is True
-
-    # Redirect format
-    resp_redirect = await async_client.get(
-        "/api/v1/auth/oauth/callback/google?code=c1&state=s1&response_format=redirect",
-        follow_redirects=False,
-    )
-    assert resp_redirect.status_code == status.HTTP_302_FOUND
-    assert resp_redirect.headers["location"] == "/welcome"
-
-
-@pytest.mark.asyncio
-async def test_oauth_google_callback_exception(async_client, monkeypatch):
-    state_obj = OAuthState(state="s1", provider="google", redirect_to="/", code_verifier="v1")
-    mock_storage = MagicMock()
-    mock_storage.get = AsyncMock(return_value=state_obj)
-    monkeypatch.setattr("src.infrastructure.auth.routes.oauth_state_storage", mock_storage)
-
-    mock_provider = MagicMock()
-    mock_provider.exchange_code.side_effect = RuntimeError("Code exchange error")
-    monkeypatch.setattr("src.infrastructure.auth.routes.oauth_providers", {"google": mock_provider})
-
-    # JSON format
-    resp_json = await async_client.get("/api/v1/auth/oauth/callback/google?code=c1&state=s1&response_format=json")
-    assert resp_json.status_code == 500
-
-    # Redirect format
-    resp_redirect = await async_client.get(
-        "/api/v1/auth/oauth/callback/google?code=c1&state=s1&response_format=redirect",
-        follow_redirects=False,
-    )
-    assert resp_redirect.status_code == status.HTTP_302_FOUND
-    assert "oauth_error" in resp_redirect.headers["location"]
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/api/v1/auth/oauth/google",
+        "/api/v1/auth/oauth/callback/google?code=test&state=test",
+    ],
+)
+async def test_external_authentication_routes_are_not_registered(async_client, path):
+    resp = await async_client.get(path)
+    assert resp.status_code == 404
 
 
 @pytest.mark.asyncio
@@ -268,7 +146,6 @@ async def test_check_auth_route_authenticated(async_client, mock_principal, monk
         "job_title": "Operadora de produção",
         "profile_image_url": None,
         "is_superuser": False,
-        "oauth_provider": None,
     }
     monkeypatch.setattr("src.infrastructure.auth.routes.crud_users", mock_crud)
 

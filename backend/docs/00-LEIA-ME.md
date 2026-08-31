@@ -60,7 +60,7 @@ e migrações são aplicáveis quando existe persistência própria.
 - [ ] Aplicar autorização por objeto no serviço, independentemente da visibilidade da ação no frontend.
 - [ ] Levantar exceções de domínio de `modules/common/exceptions.py`.
 - [ ] Registrar eventos com `infrastructure.logging.get_logger`; `print` fica fora do código da aplicação.
-- [ ] Excluir de logs senha, cookie, CSRF, API key, token OAuth, segredo e payload pessoal.
+- [ ] Excluir de logs senha, cookie, CSRF, API key, segredo e payload pessoal.
 - [ ] Encerrar recursos com `async with`; aplicar `finally` aos recursos sem context manager.
 - [ ] Atualizar `src/interfaces/api/v1/__init__.py` ao adicionar um router.
 - [ ] Atualizar `src/modules/__init__.py` ao adicionar um modelo SQLAlchemy.

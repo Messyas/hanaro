@@ -54,21 +54,24 @@
   --app-border-strong: #d5d0cb;
   --app-card-border: #e5e0db;
 
-  /* Utilitários */
+  /* Utilitários e Cores Semânticas — Light */
   --app-overlay: rgb(26 26 26 / 42%);
   --app-scrollbar: #d5d0cb;
   --app-chart-grid: #e5e0db;
-  --app-success: #059669;
-  --app-success-soft: #e7f8f2;
-  --app-danger: #ef4444;
-  --app-blue: #2563eb;
-  --app-blue-soft: #eaf2ff;
-  --app-green: #059669;
-  --app-green-soft: #e7f8f2;
-  --app-orange: #ff9d5c;
-  --app-orange-soft: #fff0e7;
-  --app-violet: #b26ee6;
-  --app-violet-soft: #f5eaff;
+  --app-success: #15803d;
+  --app-success-soft: rgb(34 197 94 / 14%);
+  --app-danger: #a50034;
+  --app-danger-soft: rgb(165 0 52 / 10%);
+  --app-warning: #b45309;
+  --app-warning-soft: rgb(245 158 11 / 14%);
+  --app-blue: #1d4ed8;
+  --app-blue-soft: rgb(59 130 246 / 14%);
+  --app-green: #15803d;
+  --app-green-soft: rgb(34 197 94 / 14%);
+  --app-orange: #c2410c;
+  --app-orange-soft: rgb(245 158 11 / 14%);
+  --app-violet: #7e22ce;
+  --app-violet-soft: rgb(178 110 230 / 14%);
   --app-shadow-card: 0 1px 3px rgb(26 26 26 / 4%);
   --app-shadow-brand: 0 5px 14px rgb(165 0 52 / 16%);
   --app-shadow-action: 0 5px 14px rgb(165 0 52 / 18%);
@@ -94,10 +97,15 @@
   --mat-sys-on-surface-variant: var(--app-text-secondary);
   --mat-sys-outline: var(--app-text-subtle);
   --mat-sys-outline-variant: var(--app-border);
+
+  color-scheme: light;
+  accent-color: var(--brand-primary);
 }
 
 /* ─── 🌙 LG Dark Theme (OLED Black) ───────────────────────────────── */
 :root[data-theme='dark'] {
+  color-scheme: dark;
+  accent-color: var(--brand-primary);
   /* Brand — carmim vibrante para brilhar no escuro */
   --brand-primary: #e7194a;
   --brand-primary-hover: #d11442;
@@ -139,24 +147,24 @@
   --app-border-strong: #364257;
   --app-card-border: #404040;
 
-  /* Utilitários */
+  /* Utilitários e Cores Semânticas — Dark (Translúcidos, elegantes e com alto contraste OLED) */
   --app-overlay: rgb(0 0 0 / 72%);
   --app-scrollbar: #404040;
   --app-chart-grid: #404040;
-  --app-success: #059669;
-  --app-success-soft: #e7f8f2;
-  --app-danger: #ef4444;
-  --app-danger-soft: #fef2f2;
+  --app-success: #22c55e;
+  --app-success-soft: rgb(34 197 94 / 15%);
+  --app-danger: #e7194a;
+  --app-danger-soft: rgb(231 25 74 / 15%);
   --app-warning: #f59e0b;
-  --app-warning-soft: #fffbeb;
-  --app-blue: #2563eb;
-  --app-blue-soft: #eaf2ff;
-  --app-green: #059669;
-  --app-green-soft: #e7f8f2;
-  --app-orange: #ff9d5c;
-  --app-orange-soft: #fff0e7;
+  --app-warning-soft: rgb(245 158 11 / 15%);
+  --app-blue: #3b82f6;
+  --app-blue-soft: rgb(59 130 246 / 15%);
+  --app-green: #22c55e;
+  --app-green-soft: rgb(34 197 94 / 15%);
+  --app-orange: #f59e0b;
+  --app-orange-soft: rgb(245 158 11 / 15%);
   --app-violet: #b26ee6;
-  --app-violet-soft: #f5eaff;
+  --app-violet-soft: rgb(178 110 230 / 15%);
   --app-shadow-card: 0 1px 4px rgb(0 0 0 / 32%);
   --app-shadow-brand: 0 5px 14px rgb(231 25 74 / 20%);
   --app-shadow-action: 0 8px 20px rgb(0 0 0 / 36%);

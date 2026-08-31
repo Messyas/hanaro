@@ -40,7 +40,8 @@ do proxy em `deploy/nginx/default.conf.template`.
       esta stack. Restrinja `--forwarded-allow-ips` se outra carga for anexada.
 - [ ] Aplicar CSP, HSTS, `nosniff`, política de frames, referrer e permissions no
       proxy que responde pelo frontend.
-- [ ] Manter documentação OpenAPI e SQLAdmin indisponíveis publicamente.
+- [ ] Manter a documentação OpenAPI indisponível publicamente em produção,
+  salvo quando protegida por superusuário.
 
 ## CORS quando houver outra origem
 
@@ -61,7 +62,7 @@ O startup rejeita uma política CORS com credenciais e wildcard.
 - `csrf_token`: cookie legível pelo Angular.
 - `X-CSRF-Token`: header enviado automaticamente pelo `HttpClient` em escritas.
 - URLs relativas: permitem que cookies e XSRF permaneçam same-origin.
-- Tokens OAuth: permanecem no backend; o navegador recebe uma sessão local.
+- Credenciais locais: são enviadas somente ao endpoint de login; o navegador recebe uma sessão local.
 
 ## Testes de aceitação
 
