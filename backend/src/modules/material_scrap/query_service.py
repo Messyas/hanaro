@@ -18,7 +18,7 @@ from .enums import (
     ToBeCountedFilter,
     TrendGroupBy,
 )
-from .models import DailyExchangeRate, IngestionRun, ScrapDashboardAggregate, ScrapTransaction
+from .models import DailyExchangeRate, IngestionRun, ScrapDashboardAggregate, ScrapOccurrence, ScrapTransaction
 from .projection import UNMAPPED_DIMENSION
 from .schemas import (
     ScrapBreakdownItem,
@@ -110,17 +110,17 @@ def _aggregate_filter_conditions(filters: ScrapFilters) -> list[ColumnElement[bo
 
 def _active_query(*columns: Any) -> Select[Any]:
     statement: Select[Any] = select(*columns) if columns else select(ScrapTransaction)
-    return statement.join(IngestionRun, IngestionRun.id == ScrapTransaction.run_id).where(
-        IngestionRun.is_active.is_(True),
-        IngestionRun.status == IngestionStatus.COMPLETED.value,
+    return statement.join(
+        ScrapOccurrence, ScrapOccurrence.current_transaction_id == ScrapTransaction.id
+    ).where(
+        ScrapOccurrence.status == "ACTIVE",
     )
 
 
 def _active_aggregate_query(*columns: Any) -> Select[Any]:
     statement: Select[Any] = select(*columns) if columns else select(ScrapDashboardAggregate)
-    return statement.join(IngestionRun, IngestionRun.id == ScrapDashboardAggregate.run_id).where(
-        IngestionRun.is_active.is_(True),
-        IngestionRun.status == IngestionStatus.COMPLETED.value,
+    return statement.join(ScrapOccurrence, ScrapOccurrence.id == ScrapDashboardAggregate.occurrence_id).where(
+        ScrapOccurrence.status == "ACTIVE",
     )
 
 
@@ -144,7 +144,14 @@ async def list_scrap(
     sort_by: ScrapSortField,
     sort_order: SortOrder,
 ) -> ScrapPage:
-    statement = _apply_filters(_active_query(ScrapTransaction), filters)
+    statement = _apply_filters(
+        _active_query(
+            ScrapTransaction,
+            ScrapOccurrence.id.label("occurrence_id"),
+            ScrapOccurrence.status.label("occurrence_status"),
+        ),
+        filters,
+    )
     if search and search.strip():
         term = search.strip()
         statement = statement.where(
@@ -172,14 +179,23 @@ async def list_scrap(
     statement = (
         statement.order_by(
             order_function(sort_columns[sort_by]),
-            asc(ScrapTransaction.source_line),
+            asc(ScrapTransaction.id),
         )
         .offset((page - 1) * page_size)
         .limit(page_size)
     )
-    items = list((await db.execute(statement)).scalars().all())
+    rows = (await db.execute(statement)).all()
     return ScrapPage(
-        items=[ScrapItem.model_validate(item) for item in items],
+        items=[
+            ScrapItem.model_validate(transaction).model_copy(
+                update={
+                    "occurrence_id": occurrence_id,
+                    "current_transaction_id": transaction.id,
+                    "occurrence_status": occurrence_status,
+                }
+            )
+            for transaction, occurrence_id, occurrence_status in rows
+        ],
         page=page,
         page_size=page_size,
         total_items=total_items,
@@ -236,7 +252,8 @@ async def get_summary(db: AsyncSession, filters: ScrapFilters) -> ScrapSummary:
         select(DailyExchangeRate.brl_per_usd, IngestionRun.ingestion_finished_at)
         .join(IngestionRun, IngestionRun.exchange_rate_id == DailyExchangeRate.id)
         .join(ScrapTransaction, ScrapTransaction.run_id == IngestionRun.id)
-        .where(IngestionRun.is_active.is_(True), IngestionRun.status == IngestionStatus.COMPLETED.value)
+        .join(ScrapOccurrence, ScrapOccurrence.current_transaction_id == ScrapTransaction.id)
+        .where(ScrapOccurrence.status == "ACTIVE", IngestionRun.status == IngestionStatus.COMPLETED.value)
         .order_by(IngestionRun.ingestion_finished_at.desc())
         .limit(1)
     )

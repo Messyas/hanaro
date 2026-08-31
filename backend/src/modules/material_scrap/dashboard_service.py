@@ -11,8 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 
 from .dashboard_cache import DashboardResponseCache
-from .enums import DashboardCurrency, ImpactMode, IngestionStatus
-from .models import IngestionRun, ScrapDashboardAggregate, ScrapDashboardState, ScrapTarget
+from .enums import DashboardCurrency, ImpactMode
+from .models import ScrapDashboardAggregate, ScrapDashboardState, ScrapOccurrence, ScrapTarget
 from .projection import UNMAPPED_DIMENSION
 from .query_service import ScrapFilters, _aggregate_filter_conditions
 from .schemas import (
@@ -48,10 +48,9 @@ class ScrapDashboardService:
         return (
             select(*columns)
             .select_from(ScrapDashboardAggregate)
-            .join(IngestionRun, IngestionRun.id == ScrapDashboardAggregate.run_id)
+            .join(ScrapOccurrence, ScrapOccurrence.id == ScrapDashboardAggregate.occurrence_id)
             .where(
-                IngestionRun.is_active.is_(True),
-                IngestionRun.status == IngestionStatus.COMPLETED.value,
+                ScrapOccurrence.status == "ACTIVE",
             )
         )
 

@@ -325,6 +325,8 @@ class ScrapItem(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
+    occurrence_id: uuid.UUID | None = None
+    current_transaction_id: uuid.UUID | None = None
     source_line: int
     organization_code: str
     account_code: str
@@ -365,6 +367,7 @@ class ScrapItem(BaseModel):
     content_hash: str
     quality_flags: list[str]
     derivation_provenance: dict[str, Any]
+    occurrence_status: str = "ACTIVE"
 
 
 class ScrapPage(BaseModel):

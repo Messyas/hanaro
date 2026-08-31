@@ -43,6 +43,31 @@ participam de índices ou colunas limitadas são validadas antes de chegar ao
 banco. Campos extras são rejeitados e todo decimal canônico deve ser string
 JSON.
 
+## Identidade estavel e reconciliacao
+
+A migration `20260831_07` introduz `scrap_occurrences` como a identidade de
+negocio estavel, `scrap_occurrence_observations` para registrar cada execucao
+que observou uma ocorrencia e `scrap_reconciliation_partitions` para serializar
+publicacoes concorrentes por `organization_code + transaction_date`.
+
+`record_key` v1 e SHA-256 de organizacao, data da transacao, conta, item,
+ordem de producao, referencia, quantidade e valor BRL. Textos sao NFKC,
+aparados, com espacos normalizados e em maiusculas; `null` e string vazia
+continuam distintos, codigos preservam zeros a esquerda e decimais usam
+`Decimal`, nunca `float`. `content_hash` permanece o hash do contrato completo
+da versao e portanto pode mudar sem mudar a ocorrencia.
+
+Linhas repetidas indistinguiveis usam um `identity_slot` persistente por
+`record_key`, que expressa multiplicidade sem usar a linha de origem como
+identidade. Linhas com o mesmo nucleo de identidade e conteudo semantico
+diferente falham com `OCCURRENCE_IDENTITY_COLLISION` e preservam o ultimo
+estado valido publicado.
+
+Uma nova consulta completa reconcilia somente as particoes cobertas. Conteudo
+igual cria apenas uma observacao; conteudo alterado cria uma nova
+`ScrapTransaction` imutavel; uma ocorrencia ausente passa a `NOT_PRESENT`.
+Outras datas e organizacoes nao sao alteradas e a publicacao e atomica.
+
 ## Read model e cache
 
 O dashboard não agrega `scrap_transactions` durante a requisição. O worker usa
@@ -93,6 +118,12 @@ de escrita exige `X-API-Key` com permissão `material_scrap:create`.
 Exemplos: `?organizations=NWK&account_aliases=D-DIRECT`,
 `?to_be_counted=true|false|unmapped`, e
 `?date_from=2026-08-01&date_to=2026-08-31`.
+
+`GET /api/v1/scrap` preserva `id` como UUID da transacao atual por
+compatibilidade e acrescenta `occurrence_id`, `current_transaction_id` e
+`occurrence_status`. Consumidores novos devem usar `occurrence_id` como a
+referencia estavel; `id` permanece temporariamente como campo legado para esse
+fim.
 
 O endpoint completo aceita `year`, `currency=BRL|USD`,
 `impact_mode=absolute|signed`, `week=1..53`, `ranking_limit=1..20` e os filtros

@@ -61,6 +61,9 @@ async def test_listing_filters_search_pagination_and_allowlist(scrap_client: Asy
     assert body["total_pages"] == 2
     assert len(body["items"]) == 2
     assert body["items"][0]["issue_amount_brl"].startswith("-")
+    assert body["items"][0]["occurrence_id"]
+    assert body["items"][0]["current_transaction_id"] == body["items"][0]["id"]
+    assert body["items"][0]["occurrence_status"] == "ACTIVE"
 
     unmapped = await scrap_client.get("/api/v1/scrap", params={"to_be_counted": "unmapped"})
     assert unmapped.json()["total_items"] == 6

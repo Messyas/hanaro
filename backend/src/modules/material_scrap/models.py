@@ -227,6 +227,7 @@ class ScrapTransaction(Base):
         Index("ix_scrap_transaction_to_be_counted", "to_be_counted"),
         Index("ix_scrap_transaction_date_organization", "transaction_date", "organization_code"),
         Index("ix_scrap_transaction_date_division", "transaction_date", "division"),
+        Index("ix_scrap_transaction_occurrence_content", "occurrence_id", "content_hash"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default_factory=uuid.uuid4, init=False)
@@ -271,6 +272,70 @@ class ScrapTransaction(Base):
     item_type: Mapped[str | None] = mapped_column(String(40), default=None)
     to_be_counted: Mapped[bool | None] = mapped_column(Boolean, default=None)
     content_hash: Mapped[str] = mapped_column(String(64), index=True, default="")
+    occurrence_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("scrap_occurrences.id", ondelete="RESTRICT"), index=True, default=None
+    )
+
+
+class ScrapOccurrence(Base):
+    """Stable business identity; a future ScrapReview belongs to this entity."""
+
+    __tablename__ = "scrap_occurrences"
+    __table_args__ = (
+        UniqueConstraint("record_key_version", "record_key", "identity_slot", name="uq_scrap_occurrence_record_key"),
+        Index("ix_scrap_occurrence_partition_status", "organization_code", "transaction_date", "status"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default_factory=uuid.uuid4, init=False)
+    record_key: Mapped[str] = mapped_column(String(64))
+    record_key_version: Mapped[str] = mapped_column(String(20))
+    identity_slot: Mapped[int] = mapped_column(Integer)
+    organization_code: Mapped[str] = mapped_column(String(40))
+    transaction_date: Mapped[date] = mapped_column(Date)
+    first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    status: Mapped[str] = mapped_column(String(30), default="ACTIVE")
+    current_transaction_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey(
+            "scrap_transactions.id",
+            name="fk_scrap_occurrence_current_transaction",
+            ondelete="RESTRICT",
+            use_alter=True,
+        ),
+        unique=True,
+        default=None,
+    )
+
+
+class ScrapOccurrenceObservation(Base):
+    """One authoritative observation of an occurrence in one ingestion run."""
+
+    __tablename__ = "scrap_occurrence_observations"
+    __table_args__ = (
+        UniqueConstraint("run_id", "occurrence_id", name="uq_scrap_occurrence_observation_run"),
+        UniqueConstraint("run_id", "source_row_number", name="uq_scrap_occurrence_observation_source_row"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default_factory=uuid.uuid4, init=False)
+    run_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scrap_ingestion_runs.id", ondelete="CASCADE"), index=True)
+    occurrence_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scrap_occurrences.id", ondelete="RESTRICT"), index=True)
+    transaction_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scrap_transactions.id", ondelete="RESTRICT"), index=True)
+    source_line: Mapped[int] = mapped_column("source_row_number", Integer)
+    content_hash: Mapped[str] = mapped_column(String(64))
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class ScrapReconciliationPartition(Base):
+    """Lockable authoritative partition used to serialize concurrent snapshots."""
+
+    __tablename__ = "scrap_reconciliation_partitions"
+    __table_args__ = (UniqueConstraint("organization_code", "transaction_date", name="uq_scrap_reconciliation_partition"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default_factory=uuid.uuid4, init=False)
+    organization_code: Mapped[str] = mapped_column(String(40))
+    transaction_date: Mapped[date] = mapped_column(Date)
 
 
 class ScrapDashboardAggregate(Base):
@@ -278,21 +343,7 @@ class ScrapDashboardAggregate(Base):
 
     __tablename__ = "scrap_dashboard_aggregates"
     __table_args__ = (
-        UniqueConstraint(
-            "run_id",
-            "transaction_date",
-            "organization_code",
-            "receipt_department",
-            "department",
-            "product",
-            "division",
-            "item_type",
-            "account_code",
-            "account_alias",
-            "item_code",
-            "to_be_counted_key",
-            name="uq_scrap_dashboard_aggregate_grain",
-        ),
+        UniqueConstraint("occurrence_id", name="uq_scrap_dashboard_aggregate_occurrence"),
         Index("ix_scrap_dashboard_run_date", "run_id", "transaction_date"),
         Index("ix_scrap_dashboard_date_product", "transaction_date", "product"),
         Index("ix_scrap_dashboard_date_line", "transaction_date", "receipt_department"),
@@ -320,6 +371,9 @@ class ScrapDashboardAggregate(Base):
     issue_amount_brl_abs: Mapped[Decimal] = mapped_column(Numeric(24, 2))
     amount_usd: Mapped[Decimal] = mapped_column(Numeric(24, 6))
     amount_usd_abs: Mapped[Decimal] = mapped_column(Numeric(24, 6))
+    occurrence_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("scrap_occurrences.id", ondelete="CASCADE"), index=True
+    )
 
 
 class ScrapDashboardState(Base):
