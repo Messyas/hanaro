@@ -127,6 +127,10 @@
   background: var(--brand-primary-soft);
 }
 .dashboard-filter-footer button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
   border: 0;
   background: transparent;
   color: var(--brand-primary);
@@ -268,9 +272,12 @@
   color: var(--brand-primary-contrast);
 }
 
-.chart-filter-button,
-.chart-filter-clear {
+.chart-filter-button {
+  display: inline-flex;
   min-height: 2rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
   border: 1px solid var(--app-border);
   border-radius: 0.62rem;
   background: var(--app-surface);
@@ -288,15 +295,10 @@
   outline-offset: 1px;
 }
 
-.chart-filter-clear {
-  align-self: end;
-  border: 0;
-  background: transparent;
-}
-
-.chart-filter-clear:disabled {
-  cursor: default;
-  opacity: 0.42;
+.chart-filter-button ui-icon,
+.dashboard-filter-actions ui-icon {
+  width: 0.85rem;
+  height: 0.85rem;
 }
 
 .mask-values-button {
@@ -420,29 +422,6 @@
   z-index: 9;
 }
 
-.chart-filter-panel {
-  position: relative;
-  z-index: 15;
-  display: grid;
-  grid-template-columns: minmax(7rem, 0.75fr) repeat(2, minmax(8rem, 1fr)) auto;
-  gap: 0.65rem;
-  align-items: end;
-  margin-top: 0.9rem;
-  border: 1px solid var(--app-border-soft);
-  border-radius: 0.75rem;
-  background: color-mix(in srgb, var(--app-surface-muted) 44%, transparent);
-  padding: 0.8rem;
-}
-
-.distribution-filter-panel {
-  grid-template-columns: 1fr;
-  align-items: stretch;
-}
-
-.distribution-filter-panel .chart-filter-clear {
-  justify-self: end;
-}
-
 .period-status {
   display: flex;
   align-items: center;
@@ -535,15 +514,6 @@
     width: 100%;
     flex-wrap: wrap;
   }
-  .chart-filter-panel {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .distribution-filter-panel {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .chart-filter-clear {
-    justify-self: end;
-  }
   .dashboard-filter-footer {
     flex-direction: column;
   }
@@ -583,21 +553,11 @@
   }
   .panel-header-actions,
   .evolution-view-switch,
-  .chart-filter-button,
-  .chart-filter-clear {
+  .chart-filter-button {
     width: 100%;
   }
   .evolution-view-switch button {
     flex: 1;
-  }
-  .chart-filter-panel {
-    grid-template-columns: 1fr;
-  }
-  .distribution-filter-panel {
-    grid-template-columns: 1fr;
-  }
-  .chart-filter-clear {
-    justify-self: stretch;
   }
   .analysis-controls {
     width: 100%;

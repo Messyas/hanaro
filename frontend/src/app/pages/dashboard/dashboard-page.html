@@ -134,7 +134,8 @@
           [attr.aria-expanded]="advancedFiltersOpen()"
           (click)="toggleAdvancedFilters()"
         >
-          {{ advancedFiltersOpen() ? text().lessFilters : advancedFiltersLabel() }}
+          <ui-icon name="filter" />
+          <span>{{ advancedFiltersOpen() ? text().lessFilters : advancedFiltersLabel() }}</span>
         </button>
         <button type="button" [disabled]="!store.hasActiveFilters()" (click)="store.resetFilters()">
           {{ text().clearSelection }}
@@ -298,12 +299,18 @@
             [attr.aria-expanded]="evolutionFiltersOpen()"
             (click)="toggleEvolutionFilters()"
           >
-            {{ evolutionFiltersLabel() }}
+            <ui-icon name="filter" />
+            <span>{{ evolutionFiltersLabel() }}</span>
           </button>
         </div>
       </div>
       @if (evolutionFiltersOpen()) {
-        <div class="chart-filter-panel" [attr.aria-label]="text().chartFilters">
+        <app-dashboard-chart-filter-panel
+          [label]="text().chartFilters"
+          [clearLabel]="text().clearChartFilters"
+          [clearDisabled]="!evolutionFiltersCount()"
+          (clear)="clearEvolutionFilters()"
+        >
           <label class="dashboard-field">
             <span>{{ text().period }}</span>
             <select
@@ -338,15 +345,7 @@
             [selected]="evolutionFilters().line"
             (selectionChange)="changeEvolutionMultiFilter('line', $event)"
           />
-          <button
-            class="chart-filter-clear"
-            type="button"
-            [disabled]="!evolutionFiltersCount()"
-            (click)="clearEvolutionFilters()"
-          >
-            {{ text().clearChartFilters }}
-          </button>
-        </div>
+        </app-dashboard-chart-filter-panel>
       }
       @defer (on viewport) {
         @if (hasPerformanceData()) {
@@ -420,14 +419,18 @@
             [attr.aria-expanded]="distributionFiltersOpen()"
             (click)="toggleDistributionFilters()"
           >
-            {{ distributionFiltersLabel() }}
+            <ui-icon name="filter" />
+            <span>{{ distributionFiltersLabel() }}</span>
           </button>
         </div>
       </div>
       @if (distributionFiltersOpen()) {
-        <div
-          class="chart-filter-panel distribution-filter-panel"
-          [attr.aria-label]="text().chartFilters"
+        <app-dashboard-chart-filter-panel
+          [label]="text().chartFilters"
+          [clearLabel]="text().clearChartFilters"
+          [clearDisabled]="!distributionFiltersCount()"
+          variant="distribution"
+          (clear)="clearDistributionFilters()"
         >
           <app-dashboard-multi-select
             [label]="text().product"
@@ -464,15 +467,7 @@
               }
             </select>
           </label>
-          <button
-            class="chart-filter-clear"
-            type="button"
-            [disabled]="!distributionFiltersCount()"
-            (click)="clearDistributionFilters()"
-          >
-            {{ text().clearChartFilters }}
-          </button>
-        </div>
+        </app-dashboard-chart-filter-panel>
       }
       @defer (on viewport) {
         @if (hasDistributionData()) {

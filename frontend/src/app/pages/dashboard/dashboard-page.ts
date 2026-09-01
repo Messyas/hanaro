@@ -3,6 +3,7 @@ import { LanguageService } from '../../i18n/language.service';
 import { UiIcon } from '../../ui-icon';
 import { DashboardPerformanceChart } from './components/dashboard-performance-chart';
 import { DashboardDistributionChart } from './components/dashboard-distribution-chart';
+import { DashboardChartFilterPanel } from './components/dashboard-chart-filter-panel';
 import { DashboardMultiSelect } from './components/dashboard-multi-select';
 import {
   DashboardAnalysis,
@@ -80,7 +81,13 @@ const COMPONENT_FACTORS: Record<string, number> = {
 
 @Component({
   selector: 'app-dashboard-page',
-  imports: [UiIcon, DashboardPerformanceChart, DashboardDistributionChart, DashboardMultiSelect],
+  imports: [
+    UiIcon,
+    DashboardPerformanceChart,
+    DashboardDistributionChart,
+    DashboardChartFilterPanel,
+    DashboardMultiSelect,
+  ],
   providers: [DashboardStore],
   templateUrl: './dashboard-page.html',
   styleUrl: './dashboard-page.css',
