@@ -302,6 +302,15 @@ class ProfileImageSettings(BaseSettings):
     PROFILE_IMAGE_MAX_DIMENSION: int = config("PROFILE_IMAGE_MAX_DIMENSION", default=4096, cast=int)
 
 
+class ScrapReviewImageSettings(BaseSettings):
+    """Private normalized image storage for Scrap review evidence."""
+
+    SCRAP_REVIEW_IMAGE_DIR: str = config("SCRAP_REVIEW_IMAGE_DIR", default="data/scrap-review-images")
+    SCRAP_REVIEW_IMAGE_MAX_BYTES: int = config("SCRAP_REVIEW_IMAGE_MAX_BYTES", default=10 * 1024 * 1024, cast=int)
+    SCRAP_REVIEW_IMAGE_MAX_DIMENSION: int = config("SCRAP_REVIEW_IMAGE_MAX_DIMENSION", default=8192, cast=int)
+    SCRAP_REVIEW_MAX_ATTACHMENTS: int = config("SCRAP_REVIEW_MAX_ATTACHMENTS", default=8, cast=int)
+
+
 class SecuritySettings(BaseSettings):
     """Security validation settings."""
 
@@ -423,6 +432,7 @@ class Settings(
     AppSettings,
     AdminSettings,
     ProfileImageSettings,
+    ScrapReviewImageSettings,
     SecuritySettings,
     LoggingSettings,
     NotificationSettings,

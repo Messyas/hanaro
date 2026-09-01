@@ -15,6 +15,8 @@ from .enums import (
     ExecutionStepCode,
     ExecutionStepStatus,
     ImpactMode,
+    ScrapReviewBulkStatus,
+    ScrapReviewStatus,
 )
 
 
@@ -368,6 +370,15 @@ class ScrapItem(BaseModel):
     quality_flags: list[str]
     derivation_provenance: dict[str, Any]
     occurrence_status: str = "ACTIVE"
+    review_id: uuid.UUID | None = None
+    review_status: ScrapReviewStatus | None = None
+    defect_type_id: uuid.UUID | None = None
+    defect_type_name: str | None = None
+    responsible_user_id: int | None = None
+    responsible_name: str | None = None
+    reviewed_at: datetime | None = None
+    review_updated_at: datetime | None = None
+    attachment_count: int = 0
 
 
 class ScrapPage(BaseModel):
@@ -390,6 +401,104 @@ class ScrapFilterOptions(BaseModel):
     item_codes: list[str]
     account_aliases: list[str]
     periods: list[str]
+
+
+class ScrapDefectTypeCreate(ContractModel):
+    code: str = Field(min_length=1, max_length=50, pattern=r"^[A-Za-z0-9][A-Za-z0-9_-]*$")
+    name: str = Field(min_length=1, max_length=120)
+    description: str | None = Field(default=None, max_length=2000)
+    display_order: int = Field(default=0, ge=0, le=10_000)
+
+
+class ScrapDefectTypeUpdate(ContractModel):
+    name: str | None = Field(default=None, min_length=1, max_length=120)
+    description: str | None = Field(default=None, max_length=2000)
+    display_order: int | None = Field(default=None, ge=0, le=10_000)
+    is_active: bool | None = None
+
+    @model_validator(mode="after")
+    def require_change(self) -> "ScrapDefectTypeUpdate":
+        if not self.model_fields_set:
+            raise ValueError("at least one field must be provided")
+        return self
+
+
+class ScrapDefectTypeRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    code: str
+    name: str
+    description: str | None
+    display_order: int
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class ScrapReviewWrite(ContractModel):
+    defect_type_id: uuid.UUID | None = None
+    title: str = Field(default="", max_length=200)
+    description: str = Field(default="", max_length=20_000)
+    expected_version: int | None = Field(default=None, ge=1)
+
+
+class ScrapReviewAttachmentRead(BaseModel):
+    id: uuid.UUID
+    original_filename: str
+    content_type: str
+    size_bytes: int
+    width: int
+    height: int
+    position: int
+    created_at: datetime
+    url: str
+
+
+class ScrapReviewRead(BaseModel):
+    id: uuid.UUID
+    occurrence_id: uuid.UUID
+    status: ScrapReviewStatus
+    defect_type: ScrapDefectTypeRead | None
+    responsible_user_id: int
+    responsible_name: str
+    title: str
+    description: str
+    version: int
+    source_review_id: uuid.UUID | None
+    bulk_operation_id: uuid.UUID | None
+    reviewed_at: datetime | None
+    created_at: datetime
+    updated_at: datetime
+    attachments: list[ScrapReviewAttachmentRead]
+
+
+class ScrapReviewBulkCreate(ContractModel):
+    reference_review_id: uuid.UUID
+    occurrence_ids: list[uuid.UUID] = Field(min_length=1, max_length=500)
+    copy_attachments: bool = False
+
+    @field_validator("occurrence_ids")
+    @classmethod
+    def unique_occurrences(cls, value: list[uuid.UUID]) -> list[uuid.UUID]:
+        if len(set(value)) != len(value):
+            raise ValueError("occurrence_ids must be unique")
+        return value
+
+
+class ScrapReviewBulkSkipped(BaseModel):
+    occurrence_id: uuid.UUID
+    reason: Literal["NOT_ACTIVE", "ALREADY_REVIEWED"]
+
+
+class ScrapReviewBulkResult(BaseModel):
+    operation_id: uuid.UUID
+    status: ScrapReviewBulkStatus
+    requested_count: int
+    created_count: int
+    skipped_count: int
+    created_occurrence_ids: list[uuid.UUID]
+    skipped: list[ScrapReviewBulkSkipped]
 
 
 class ScrapSummary(BaseModel):

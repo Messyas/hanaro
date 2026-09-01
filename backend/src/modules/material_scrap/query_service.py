@@ -1,4 +1,5 @@
 import math
+import uuid
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
@@ -13,12 +14,23 @@ from .enums import (
     BreakdownGroupBy,
     BreakdownMetric,
     IngestionStatus,
+    ScrapReviewFilterStatus,
+    ScrapReviewStatus,
     ScrapSortField,
     SortOrder,
     ToBeCountedFilter,
     TrendGroupBy,
 )
-from .models import DailyExchangeRate, IngestionRun, ScrapDashboardAggregate, ScrapOccurrence, ScrapTransaction
+from .models import (
+    DailyExchangeRate,
+    IngestionRun,
+    ScrapDashboardAggregate,
+    ScrapDefectType,
+    ScrapOccurrence,
+    ScrapReview,
+    ScrapReviewAttachment,
+    ScrapTransaction,
+)
 from .projection import UNMAPPED_DIMENSION
 from .schemas import (
     ScrapBreakdownItem,
@@ -141,15 +153,48 @@ async def list_scrap(
     page_size: int,
     sort_by: ScrapSortField,
     sort_order: SortOrder,
+    review_status: ScrapReviewFilterStatus | None = None,
+    defect_type_ids: list[uuid.UUID] | None = None,
+    responsible_user_ids: list[int] | None = None,
 ) -> ScrapPage:
+    attachment_counts = (
+        select(
+            ScrapReviewAttachment.review_id.label("review_id"),
+            func.count(ScrapReviewAttachment.id).label("attachment_count"),
+        )
+        .group_by(ScrapReviewAttachment.review_id)
+        .subquery()
+    )
     statement = _apply_filters(
-        _active_query(
+        select(
             ScrapTransaction,
             ScrapOccurrence.id.label("occurrence_id"),
             ScrapOccurrence.status.label("occurrence_status"),
-        ),
+            ScrapReview.id.label("review_id"),
+            ScrapReview.status.label("review_status"),
+            ScrapReview.defect_type_id.label("defect_type_id"),
+            ScrapDefectType.name.label("defect_type_name"),
+            ScrapReview.responsible_user_id.label("responsible_user_id"),
+            ScrapReview.responsible_name.label("responsible_name"),
+            ScrapReview.reviewed_at.label("reviewed_at"),
+            ScrapReview.updated_at.label("review_updated_at"),
+            func.coalesce(attachment_counts.c.attachment_count, 0).label("attachment_count"),
+        )
+        .join(ScrapOccurrence, ScrapOccurrence.current_transaction_id == ScrapTransaction.id)
+        .outerjoin(ScrapReview, ScrapReview.occurrence_id == ScrapOccurrence.id)
+        .outerjoin(ScrapDefectType, ScrapDefectType.id == ScrapReview.defect_type_id)
+        .outerjoin(attachment_counts, attachment_counts.c.review_id == ScrapReview.id)
+        .where(ScrapOccurrence.status == "ACTIVE"),
         filters,
     )
+    if review_status == ScrapReviewFilterStatus.UNREVIEWED:
+        statement = statement.where(ScrapReview.id.is_(None))
+    elif review_status is not None:
+        statement = statement.where(ScrapReview.status == review_status.value)
+    if defect_type_ids:
+        statement = statement.where(ScrapReview.defect_type_id.in_(defect_type_ids))
+    if responsible_user_ids:
+        statement = statement.where(ScrapReview.responsible_user_id.in_(responsible_user_ids))
     if search and search.strip():
         term = search.strip()
         statement = statement.where(
@@ -190,9 +235,31 @@ async def list_scrap(
                     "occurrence_id": occurrence_id,
                     "current_transaction_id": transaction.id,
                     "occurrence_status": occurrence_status,
+                    "review_id": review_id,
+                    "review_status": ScrapReviewStatus(item_review_status) if item_review_status else None,
+                    "defect_type_id": defect_type_id,
+                    "defect_type_name": defect_type_name,
+                    "responsible_user_id": responsible_user_id,
+                    "responsible_name": responsible_name,
+                    "reviewed_at": reviewed_at,
+                    "review_updated_at": review_updated_at,
+                    "attachment_count": int(attachment_count),
                 }
             )
-            for transaction, occurrence_id, occurrence_status in rows
+            for (
+                transaction,
+                occurrence_id,
+                occurrence_status,
+                review_id,
+                item_review_status,
+                defect_type_id,
+                defect_type_name,
+                responsible_user_id,
+                responsible_name,
+                reviewed_at,
+                review_updated_at,
+                attachment_count,
+            ) in rows
         ],
         page=page,
         page_size=page_size,

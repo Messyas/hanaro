@@ -45,6 +45,10 @@ x-backend-environment: &backend-environment
   PROFILE_IMAGE_DIR: /app/backend/data/profile-images
   PROFILE_IMAGE_MAX_BYTES: ${PROFILE_IMAGE_MAX_BYTES:-5242880}
   PROFILE_IMAGE_MAX_DIMENSION: ${PROFILE_IMAGE_MAX_DIMENSION:-4096}
+  SCRAP_REVIEW_IMAGE_DIR: /app/backend/data/scrap-review-images
+  SCRAP_REVIEW_IMAGE_MAX_BYTES: ${SCRAP_REVIEW_IMAGE_MAX_BYTES:-10485760}
+  SCRAP_REVIEW_IMAGE_MAX_DIMENSION: ${SCRAP_REVIEW_IMAGE_MAX_DIMENSION:-8192}
+  SCRAP_REVIEW_MAX_ATTACHMENTS: ${SCRAP_REVIEW_MAX_ATTACHMENTS:-8}
 
 services:
   frontend:
@@ -127,6 +131,9 @@ services:
       - type: volume
         source: profile_images
         target: /app/backend/data/profile-images
+      - type: volume
+        source: scrap_review_images
+        target: /app/backend/data/scrap-review-images
     depends_on:
       postgres:
         condition: service_healthy
@@ -376,3 +383,4 @@ volumes:
   sonarqube_logs:
   sonar_scanner_cache:
   profile_images:
+  scrap_review_images:

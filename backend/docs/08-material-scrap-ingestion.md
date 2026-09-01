@@ -108,6 +108,12 @@ de escrita exige `X-API-Key` com permissão `material_scrap:create`.
 - `POST /api/v1/scrap/ingestions` (assíncrono, retorna `task_id`)
 - `GET /api/v1/scrap`
 - `GET /api/v1/scrap/filters`
+- `GET /api/v1/scrap/review-types`
+- `POST/PATCH /api/v1/scrap/review-types` (superusuario)
+- `GET/PUT /api/v1/scrap/reviews/{occurrence_id}`
+- `POST /api/v1/scrap/reviews/{occurrence_id}/finalize`
+- `POST /api/v1/scrap/reviews/bulk`
+- `POST/GET/DELETE /api/v1/scrap/reviews/by-id/{review_id}/attachments/...`
 - `GET /api/v1/dashboard/scrap` (contrato completo para a tela)
 - `GET /api/v1/dashboard/scrap/summary`
 - `GET /api/v1/dashboard/scrap/trend?group_by=day|week|month`
@@ -124,6 +130,28 @@ compatibilidade e acrescenta `occurrence_id`, `current_transaction_id` e
 `occurrence_status`. Consumidores novos devem usar `occurrence_id` como a
 referencia estavel; `id` permanece temporariamente como campo legado para esse
 fim.
+
+## Analises das ocorrencias
+
+Cada analise pertence a uma `ScrapOccurrence`, nunca a uma versao de
+`ScrapTransaction`. O usuario autenticado e sempre o responsavel: o backend nao
+aceita atribuicao de outro usuario e preserva nome e ID para auditoria.
+Rascunhos aceitam campos incompletos; a finalizacao exige classificacao ativa,
+titulo e descricao e torna a analise imutavel.
+
+Classificacoes ficam em `scrap_defect_types` e sao administradas por
+superusuarios. Evidencias JPEG, PNG e WebP sao decodificadas, normalizadas para
+WebP e armazenadas de forma privada; somente metadados ficam no banco. O limite
+padrao e oito imagens de entrada de ate 10 MiB por analise.
+
+A criacao em massa recebe ate 500 `occurrence_id`, clona uma analise finalizada
+e registra `source_review_id` e `bulk_operation_id`. Ocorrencias inativas ou que
+ja possuem analise sao ignoradas e retornadas com o motivo, sem sobrescrita.
+Imagens so sao copiadas quando `copy_attachments=true`.
+
+`GET /api/v1/scrap` acrescenta o resumo da analise e aceita
+`review_status=UNREVIEWED|DRAFT|REVIEWED`, `defect_type_ids` e
+`responsible_user_ids`.
 
 O endpoint completo aceita `year`, `currency=BRL|USD`,
 `impact_mode=absolute|signed`, `week=1..53`, `ranking_limit=1..20` e os filtros

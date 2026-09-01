@@ -278,7 +278,7 @@ class ScrapTransaction(Base):
 
 
 class ScrapOccurrence(Base):
-    """Stable business identity; a future ScrapReview belongs to this entity."""
+    """Stable business identity to which analyst reviews belong."""
 
     __tablename__ = "scrap_occurrences"
     __table_args__ = (
@@ -307,6 +307,107 @@ class ScrapOccurrence(Base):
         unique=True,
         default=None,
     )
+
+
+class ScrapDefectType(Base):
+    """Administrator-managed classification used by Scrap reviews."""
+
+    __tablename__ = "scrap_defect_types"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default_factory=uuid.uuid4, init=False)
+    code: Mapped[str] = mapped_column(String(50), unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(120))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    description: Mapped[str | None] = mapped_column(Text, default=None)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    display_order: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class ScrapReview(Base):
+    """One user-authored analysis for one stable Scrap occurrence."""
+
+    __tablename__ = "scrap_reviews"
+    __table_args__ = (
+        CheckConstraint("status IN ('DRAFT', 'REVIEWED')", name="ck_scrap_review_status"),
+        CheckConstraint("version >= 1", name="ck_scrap_review_version"),
+        Index("ix_scrap_review_status_updated", "status", "updated_at"),
+        Index("ix_scrap_review_responsible_status", "responsible_user_id", "status"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default_factory=uuid.uuid4, init=False)
+    occurrence_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("scrap_occurrences.id", ondelete="RESTRICT"), unique=True, index=True
+    )
+    responsible_user_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT"), index=True)
+    responsible_name: Mapped[str] = mapped_column(String(120))
+    status: Mapped[str] = mapped_column(String(20))
+    title: Mapped[str] = mapped_column(String(200))
+    description: Mapped[str] = mapped_column(Text)
+    version: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    defect_type_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("scrap_defect_types.id", ondelete="RESTRICT"), index=True, default=None
+    )
+    source_review_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("scrap_reviews.id", ondelete="RESTRICT"), index=True, default=None
+    )
+    bulk_operation_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey(
+            "scrap_review_bulk_operations.id",
+            name="fk_scrap_review_bulk_operation",
+            ondelete="RESTRICT",
+            use_alter=True,
+        ),
+        index=True,
+        default=None,
+    )
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+
+
+class ScrapReviewAttachment(Base):
+    """Metadata for one private, normalized image attached to a review."""
+
+    __tablename__ = "scrap_review_attachments"
+    __table_args__ = (
+        UniqueConstraint("storage_key", name="uq_scrap_review_attachment_storage_key"),
+        UniqueConstraint("review_id", "position", name="uq_scrap_review_attachment_position"),
+        CheckConstraint("size_bytes > 0", name="ck_scrap_review_attachment_size"),
+        CheckConstraint("width > 0 AND height > 0", name="ck_scrap_review_attachment_dimensions"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default_factory=uuid.uuid4, init=False)
+    review_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scrap_reviews.id", ondelete="CASCADE"), index=True)
+    storage_key: Mapped[str] = mapped_column(String(64))
+    original_filename: Mapped[str] = mapped_column(String(255))
+    content_type: Mapped[str] = mapped_column(String(40))
+    size_bytes: Mapped[int] = mapped_column(Integer)
+    width: Mapped[int] = mapped_column(Integer)
+    height: Mapped[int] = mapped_column(Integer)
+    position: Mapped[int] = mapped_column(Integer)
+    uploaded_by_user_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT"), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class ScrapReviewBulkOperation(Base):
+    """Audit record for reviews cloned from one finalized reference."""
+
+    __tablename__ = "scrap_review_bulk_operations"
+    __table_args__ = (CheckConstraint("status = 'COMPLETED'", name="ck_scrap_review_bulk_status"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default_factory=uuid.uuid4, init=False)
+    reference_review_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("scrap_reviews.id", ondelete="RESTRICT"), index=True
+    )
+    created_by_user_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT"), index=True)
+    status: Mapped[str] = mapped_column(String(20))
+    requested_count: Mapped[int] = mapped_column(Integer)
+    created_count: Mapped[int] = mapped_column(Integer)
+    skipped_count: Mapped[int] = mapped_column(Integer)
+    copy_attachments: Mapped[bool] = mapped_column(Boolean)
+    selection_snapshot: Mapped[dict[str, Any]] = mapped_column(JSON_TYPE)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
 
 class ScrapOccurrenceObservation(Base):
