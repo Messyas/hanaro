@@ -1,6 +1,7 @@
 import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subject, Subscription, debounceTime, distinctUntilChanged } from 'rxjs';
+import { LanguageService } from '../../i18n/language.service';
 import { ListFilterDateRange } from '../../shared/list-filters/list-filter-date-range';
 import { ListFilterInput } from '../../shared/list-filters/list-filter-input';
 import { ListFilterPopover } from '../../shared/list-filters/list-filter-popover';
@@ -44,6 +45,8 @@ export class ScrapBasePage implements OnInit {
   private readonly searchSubject = new Subject<string>();
   private listRequest: Subscription | null = null;
 
+  readonly language = inject(LanguageService);
+  readonly t = computed(() => this.language.translations());
   readonly pageSizes = PAGE_SIZES;
   readonly dateFrom = signal('');
   readonly dateTo = signal('');
@@ -58,25 +61,25 @@ export class ScrapBasePage implements OnInit {
   readonly data = signal<ScrapPage | null>(null);
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
-  readonly tableColumns = [
-    'Data',
-    'Organização',
-    'Item',
-    'Descrição',
-    'Ordem',
-    'Quantidade',
-    'Valor BRL',
-    'Valor USD',
-    'Ocorrência',
-  ] as const;
-  readonly sortOptions: readonly ListFilterSelectOption[] = [
-    { value: 'transaction_date', label: 'Data da transação' },
-    { value: 'organization_code', label: 'Organização' },
-    { value: 'item_code', label: 'Código do item' },
-    { value: 'issue_quantity', label: 'Quantidade' },
-    { value: 'issue_amount_brl', label: 'Valor (BRL)' },
-    { value: 'amount_usd', label: 'Valor (USD)' },
-  ];
+  readonly tableColumns = computed(() => [
+    this.t().scrapColDate,
+    this.t().scrapColOrganization,
+    this.t().scrapColItem,
+    this.t().scrapColDescription,
+    this.t().scrapColOrder,
+    this.t().scrapColQuantity,
+    this.t().scrapColAmountBrl,
+    this.t().scrapColAmountUsd,
+    this.t().scrapColOccurrence,
+  ]);
+  readonly sortOptions = computed<readonly ListFilterSelectOption[]>(() => [
+    { value: 'transaction_date', label: this.t().scrapSortTransactionDate },
+    { value: 'organization_code', label: this.t().scrapSortOrganization },
+    { value: 'item_code', label: this.t().scrapSortItemCode },
+    { value: 'issue_quantity', label: this.t().scrapSortQuantity },
+    { value: 'issue_amount_brl', label: this.t().scrapSortAmountBrl },
+    { value: 'amount_usd', label: this.t().scrapSortAmountUsd },
+  ]);
 
   readonly dateRangeError = computed(() => {
     return Boolean(this.dateFrom() && this.dateTo() && this.dateTo() < this.dateFrom());
@@ -98,12 +101,6 @@ export class ScrapBasePage implements OnInit {
         this.page.set(1);
         this.loadScrap();
       });
-    const cachedPage = this.scrapBaseService.getCached(this.buildFilters());
-    if (cachedPage) {
-      this.data.set(cachedPage);
-      return;
-    }
-
     this.loadScrap();
   }
 
@@ -124,9 +121,7 @@ export class ScrapBasePage implements OnInit {
           this.loading.set(false);
         },
         error: (err: { error?: { detail?: string }; message?: string }) => {
-          this.error.set(
-            err.error?.detail || err.message || 'Não foi possível carregar a base de scrap.',
-          );
+          this.error.set(err.error?.detail || err.message || this.t().scrapErrorTitle);
           this.loading.set(false);
         },
       });
@@ -199,8 +194,18 @@ export class ScrapBasePage implements OnInit {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency }).format(Number(value));
   }
 
+  formatTransactionDate(value: string): string {
+    const [year, month, day] = value.split('-');
+    return year && month && day ? `${day}/${month}/${year}` : value;
+  }
+
   formatOccurrenceStatus(status: string): string {
-    return status === 'ACTIVE' ? 'Ativa' : status.replaceAll('_', ' ');
+    return status === 'ACTIVE' ? this.t().scrapOccurrenceActive : status.replaceAll('_', ' ');
+  }
+
+  calendarLocale(): string {
+    const language = this.language.currentLanguage();
+    return language === 'pt' ? 'pt-BR' : language === 'ko' ? 'ko-KR' : 'en-US';
   }
 
   private buildFilters(): ScrapFilterParams {

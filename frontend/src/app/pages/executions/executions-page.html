@@ -85,14 +85,6 @@
         />
 
         <!-- 2. Status (Custom Select) -->
-        <app-list-filter-select
-          [(value)]="statusFilter"
-          [options]="sharedStatusOptions()"
-          [label]="t().executionsStatus"
-          [ariaLabel]="t().executionsStatus"
-          (changed)="onStatusChanged($event)"
-        />
-
         <!-- 3. Datas (Inicial e Final Customizadas com Validação Temporal) -->
         <app-list-filter-date-range
           [(from)]="dateFrom"
@@ -103,172 +95,15 @@
           [clearLabel]="t().calendarClear"
           [todayLabel]="t().calendarToday"
           (changed)="onDateRangeChanged()"
-        >
-          <!-- Data Inicial -->
-          <div class="filter-field">
-            <label>{{ t().executionsDateFrom }}</label>
-            <div
-              class="custom-datepicker-anchor date-from-anchor"
-              (click)="$event.stopPropagation()"
-            >
-              <div class="datepicker-input-wrapper">
-                <input
-                  class="input-control datepicker-input"
-                  [class.input-invalid]="dateRangeError()"
-                  type="text"
-                  placeholder="YYYY/MM/DD"
-                  [value]="formatDateSlash(dateFrom())"
-                  (input)="onDateFromChange($event)"
-                  (click)="toggleDateFromPicker($event)"
-                />
-                <button
-                  type="button"
-                  class="datepicker-icon-btn"
-                  [class.active]="dateFromPickerOpen()"
-                  (click)="toggleDateFromPicker($event)"
-                  aria-label="Abrir calendário"
-                >
-                  <ui-icon name="calendar" />
-                </button>
-              </div>
+        />
 
-              @if (dateFromPickerOpen()) {
-                <div class="custom-calendar-popup" role="dialog" (click)="$event.stopPropagation()">
-                  <div class="calendar-header">
-                    <button type="button" class="cal-nav-btn" (click)="prevMonthFrom($event)">
-                      <ui-icon name="chevron-left" />
-                    </button>
-                    <span class="cal-month-title">{{ getMonthYearLabel(viewDateFrom()) }}</span>
-                    <button type="button" class="cal-nav-btn" (click)="nextMonthFrom($event)">
-                      <ui-icon name="chevron-right" />
-                    </button>
-                  </div>
-
-                  <div class="calendar-weekdays">
-                    @for (w of getWeekdayLabels(); track w) {
-                      <span class="cal-weekday">{{ w }}</span>
-                    }
-                  </div>
-
-                  <div class="calendar-days-grid">
-                    @for (
-                      day of getCalendarDays(viewDateFrom(), dateFrom(), undefined, dateTo());
-                      track day.dateStr
-                    ) {
-                      <button
-                        type="button"
-                        class="cal-day-btn"
-                        [class.current-month]="day.isCurrentMonth"
-                        [class.other-month]="!day.isCurrentMonth"
-                        [class.today]="day.isToday"
-                        [class.selected]="day.isSelected"
-                        [class.disabled]="day.isDisabled"
-                        [disabled]="day.isDisabled"
-                        (click)="selectDayFrom(day.dateStr)"
-                      >
-                        <span>{{ day.dayNumber }}</span>
-                      </button>
-                    }
-                  </div>
-
-                  <div class="calendar-footer">
-                    <button type="button" class="cal-action-btn" (click)="clearDateFromInput()">
-                      {{ t().calendarClear }}
-                    </button>
-                    <button
-                      type="button"
-                      class="cal-action-btn cal-today-btn"
-                      (click)="setTodayFrom()"
-                    >
-                      {{ t().calendarToday }}
-                    </button>
-                  </div>
-                </div>
-              }
-            </div>
-          </div>
-
-          <!-- Data Final -->
-          <div class="filter-field">
-            <label>{{ t().executionsDateTo }}</label>
-            <div class="custom-datepicker-anchor date-to-anchor" (click)="$event.stopPropagation()">
-              <div class="datepicker-input-wrapper">
-                <input
-                  class="input-control datepicker-input"
-                  [class.input-invalid]="dateRangeError()"
-                  type="text"
-                  placeholder="YYYY/MM/DD"
-                  [value]="formatDateSlash(dateTo())"
-                  (input)="onDateToChange($event)"
-                  (click)="toggleDateToPicker($event)"
-                />
-                <button
-                  type="button"
-                  class="datepicker-icon-btn"
-                  [class.active]="dateToPickerOpen()"
-                  (click)="toggleDateToPicker($event)"
-                  aria-label="Abrir calendário"
-                >
-                  <ui-icon name="calendar" />
-                </button>
-              </div>
-
-              @if (dateToPickerOpen()) {
-                <div class="custom-calendar-popup" role="dialog" (click)="$event.stopPropagation()">
-                  <div class="calendar-header">
-                    <button type="button" class="cal-nav-btn" (click)="prevMonthTo($event)">
-                      <ui-icon name="chevron-left" />
-                    </button>
-                    <span class="cal-month-title">{{ getMonthYearLabel(viewDateTo()) }}</span>
-                    <button type="button" class="cal-nav-btn" (click)="nextMonthTo($event)">
-                      <ui-icon name="chevron-right" />
-                    </button>
-                  </div>
-
-                  <div class="calendar-weekdays">
-                    @for (w of getWeekdayLabels(); track w) {
-                      <span class="cal-weekday">{{ w }}</span>
-                    }
-                  </div>
-
-                  <div class="calendar-days-grid">
-                    @for (
-                      day of getCalendarDays(viewDateTo(), dateTo(), dateFrom(), undefined);
-                      track day.dateStr
-                    ) {
-                      <button
-                        type="button"
-                        class="cal-day-btn"
-                        [class.current-month]="day.isCurrentMonth"
-                        [class.other-month]="!day.isCurrentMonth"
-                        [class.today]="day.isToday"
-                        [class.selected]="day.isSelected"
-                        [class.disabled]="day.isDisabled"
-                        [disabled]="day.isDisabled"
-                        (click)="selectDayTo(day.dateStr)"
-                      >
-                        <span>{{ day.dayNumber }}</span>
-                      </button>
-                    }
-                  </div>
-
-                  <div class="calendar-footer">
-                    <button type="button" class="cal-action-btn" (click)="clearDateToInput()">
-                      {{ t().calendarClear }}
-                    </button>
-                    <button
-                      type="button"
-                      class="cal-action-btn cal-today-btn"
-                      (click)="setTodayTo()"
-                    >
-                      {{ t().calendarToday }}
-                    </button>
-                  </div>
-                </div>
-              }
-            </div>
-          </div>
-        </app-list-filter-date-range>
+        <app-list-filter-select
+          [(value)]="statusFilter"
+          [options]="sharedStatusOptions()"
+          [label]="t().executionsStatus"
+          [ariaLabel]="t().executionsStatus"
+          (changed)="onStatusChanged($event)"
+        />
 
         <!-- Alerta de Inconsistência Temporal -->
         @if (dateRangeError()) {

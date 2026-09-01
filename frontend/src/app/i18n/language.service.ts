@@ -169,6 +169,45 @@ export interface AppTranslations {
   executionsStepSnapshotPublication: string;
   executionsStepPending: string;
   executionsStepSkipped: string;
+  scrapBaseTitle: string;
+  scrapOccurrencesTitle: string;
+  scrapTotalLabel: string;
+  scrapFilterButton: string;
+  scrapFilterTitle: string;
+  scrapClearFilters: string;
+  scrapApplyFilters: string;
+  scrapSearchLabel: string;
+  scrapSearchPlaceholder: string;
+  scrapDateFrom: string;
+  scrapDateTo: string;
+  scrapOrganizations: string;
+  scrapOrganizationsPlaceholder: string;
+  scrapDateRangeError: string;
+  scrapSortBy: string;
+  scrapSortAriaLabel: string;
+  scrapSortTransactionDate: string;
+  scrapSortOrganization: string;
+  scrapSortItemCode: string;
+  scrapSortQuantity: string;
+  scrapSortAmountBrl: string;
+  scrapSortAmountUsd: string;
+  scrapSortDescending: string;
+  scrapSortAscending: string;
+  scrapLoading: string;
+  scrapErrorTitle: string;
+  scrapRetry: string;
+  scrapEmptyTitle: string;
+  scrapEmptyDesc: string;
+  scrapColDate: string;
+  scrapColOrganization: string;
+  scrapColItem: string;
+  scrapColDescription: string;
+  scrapColOrder: string;
+  scrapColQuantity: string;
+  scrapColAmountBrl: string;
+  scrapColAmountUsd: string;
+  scrapColOccurrence: string;
+  scrapOccurrenceActive: string;
 }
 
 const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
@@ -332,6 +371,45 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     executionsStepSnapshotPublication: 'Publicação do Snapshot',
     executionsStepPending: 'Pendente',
     executionsStepSkipped: 'Ignorado',
+    scrapBaseTitle: 'Base de Scrap',
+    scrapOccurrencesTitle: 'Ocorrências de scrap',
+    scrapTotalLabel: 'TOTAL:',
+    scrapFilterButton: 'Filtrar',
+    scrapFilterTitle: 'Filtros da base',
+    scrapClearFilters: 'Limpar filtros',
+    scrapApplyFilters: 'Aplicar',
+    scrapSearchLabel: 'Buscar',
+    scrapSearchPlaceholder: 'Item, descrição, ordem ou ocorrência',
+    scrapDateFrom: 'Data inicial',
+    scrapDateTo: 'Data final',
+    scrapOrganizations: 'Organizações',
+    scrapOrganizationsPlaceholder: 'Ex.: NWK, NW1',
+    scrapDateRangeError: 'A data final não pode ser anterior à data inicial.',
+    scrapSortBy: 'Ordenar por',
+    scrapSortAriaLabel: 'Ordenar base de scrap',
+    scrapSortTransactionDate: 'Data da transação',
+    scrapSortOrganization: 'Organização',
+    scrapSortItemCode: 'Código do item',
+    scrapSortQuantity: 'Quantidade',
+    scrapSortAmountBrl: 'Valor (BRL)',
+    scrapSortAmountUsd: 'Valor (USD)',
+    scrapSortDescending: 'Decrescente',
+    scrapSortAscending: 'Crescente',
+    scrapLoading: 'Carregando ocorrências de scrap',
+    scrapErrorTitle: 'Não foi possível carregar a base',
+    scrapRetry: 'Tentar novamente',
+    scrapEmptyTitle: 'Nenhuma ocorrência encontrada',
+    scrapEmptyDesc: 'Ajuste os filtros ou aguarde a publicação de uma nova execução.',
+    scrapColDate: 'DATA',
+    scrapColOrganization: 'ORGANIZAÇÃO',
+    scrapColItem: 'ITEM',
+    scrapColDescription: 'DESCRIÇÃO',
+    scrapColOrder: 'ORDEM',
+    scrapColQuantity: 'QUANTIDADE',
+    scrapColAmountBrl: 'VALOR BRL',
+    scrapColAmountUsd: 'VALOR USD',
+    scrapColOccurrence: 'OCORRÊNCIA',
+    scrapOccurrenceActive: 'Ativa',
   },
   en: {
     navDashboard: 'Dashboard',
@@ -492,6 +570,45 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     executionsStepSnapshotPublication: 'Snapshot Publication',
     executionsStepPending: 'Pending',
     executionsStepSkipped: 'Skipped',
+    scrapBaseTitle: 'Scrap Base',
+    scrapOccurrencesTitle: 'Scrap occurrences',
+    scrapTotalLabel: 'TOTAL:',
+    scrapFilterButton: 'Filter',
+    scrapFilterTitle: 'Scrap filters',
+    scrapClearFilters: 'Clear filters',
+    scrapApplyFilters: 'Apply',
+    scrapSearchLabel: 'Search',
+    scrapSearchPlaceholder: 'Item, description, order or occurrence',
+    scrapDateFrom: 'Start date',
+    scrapDateTo: 'End date',
+    scrapOrganizations: 'Organizations',
+    scrapOrganizationsPlaceholder: 'E.g. NWK, NW1',
+    scrapDateRangeError: 'End date cannot be before start date.',
+    scrapSortBy: 'Sort by',
+    scrapSortAriaLabel: 'Sort scrap base',
+    scrapSortTransactionDate: 'Transaction date',
+    scrapSortOrganization: 'Organization',
+    scrapSortItemCode: 'Item code',
+    scrapSortQuantity: 'Quantity',
+    scrapSortAmountBrl: 'Amount (BRL)',
+    scrapSortAmountUsd: 'Amount (USD)',
+    scrapSortDescending: 'Descending',
+    scrapSortAscending: 'Ascending',
+    scrapLoading: 'Loading scrap occurrences',
+    scrapErrorTitle: 'Unable to load scrap base',
+    scrapRetry: 'Try again',
+    scrapEmptyTitle: 'No occurrences found',
+    scrapEmptyDesc: 'Adjust the filters or wait for a new execution to be published.',
+    scrapColDate: 'DATE',
+    scrapColOrganization: 'ORGANIZATION',
+    scrapColItem: 'ITEM',
+    scrapColDescription: 'DESCRIPTION',
+    scrapColOrder: 'ORDER',
+    scrapColQuantity: 'QUANTITY',
+    scrapColAmountBrl: 'AMOUNT BRL',
+    scrapColAmountUsd: 'AMOUNT USD',
+    scrapColOccurrence: 'OCCURRENCE',
+    scrapOccurrenceActive: 'Active',
   },
   ko: {
     navDashboard: '대시보드',
@@ -652,6 +769,45 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     executionsStepSnapshotPublication: '스냅샷 게시',
     executionsStepPending: '대기 중',
     executionsStepSkipped: '건너뜀',
+    scrapBaseTitle: '스크랩 데이터',
+    scrapOccurrencesTitle: '스크랩 발생 내역',
+    scrapTotalLabel: '총:',
+    scrapFilterButton: '필터',
+    scrapFilterTitle: '스크랩 필터',
+    scrapClearFilters: '필터 지우기',
+    scrapApplyFilters: '적용',
+    scrapSearchLabel: '검색',
+    scrapSearchPlaceholder: '품목, 설명, 작업 지시 또는 발생 내역',
+    scrapDateFrom: '시작일',
+    scrapDateTo: '종료일',
+    scrapOrganizations: '조직',
+    scrapOrganizationsPlaceholder: '예: NWK, NW1',
+    scrapDateRangeError: '종료일은 시작일보다 이전일 수 없습니다.',
+    scrapSortBy: '정렬 기준',
+    scrapSortAriaLabel: '스크랩 데이터 정렬',
+    scrapSortTransactionDate: '거래일',
+    scrapSortOrganization: '조직',
+    scrapSortItemCode: '품목 코드',
+    scrapSortQuantity: '수량',
+    scrapSortAmountBrl: '금액 (BRL)',
+    scrapSortAmountUsd: '금액 (USD)',
+    scrapSortDescending: '내림차순',
+    scrapSortAscending: '오름차순',
+    scrapLoading: '스크랩 발생 내역을 불러오는 중',
+    scrapErrorTitle: '스크랩 데이터를 불러올 수 없습니다',
+    scrapRetry: '다시 시도',
+    scrapEmptyTitle: '발생 내역이 없습니다',
+    scrapEmptyDesc: '필터를 조정하거나 새 실행이 게시될 때까지 기다리세요.',
+    scrapColDate: '날짜',
+    scrapColOrganization: '조직',
+    scrapColItem: '품목',
+    scrapColDescription: '설명',
+    scrapColOrder: '작업 지시',
+    scrapColQuantity: '수량',
+    scrapColAmountBrl: '금액 BRL',
+    scrapColAmountUsd: '금액 USD',
+    scrapColOccurrence: '발생',
+    scrapOccurrenceActive: '활성',
   },
 };
 

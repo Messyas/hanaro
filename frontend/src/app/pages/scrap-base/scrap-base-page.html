@@ -1,82 +1,85 @@
 <section class="scrap-base-page list-page page-stack" aria-labelledby="scrap-base-title">
   <header>
-    <h1 class="page-title" id="scrap-base-title">Base de Scrap</h1>
+    <h1 class="page-title" id="scrap-base-title">{{ t().scrapBaseTitle }}</h1>
   </header>
 
   <app-list-panel
-    title="Ocorrências de scrap"
-    [meta]="data() ? 'TOTAL: ' + data()!.total_items : ''"
+    [title]="t().scrapOccurrencesTitle"
+    [meta]="data() ? t().scrapTotalLabel + ' ' + data()!.total_items : ''"
   >
     <div list-actions class="list-actions">
-      <app-delayed-progress-spinner [active]="loading()" ariaLabel="Consultando a base de scrap" />
+      <app-delayed-progress-spinner [active]="loading()" [ariaLabel]="t().scrapLoading" />
       <app-list-filter-popover
         [(open)]="filterOpen"
         [activeCount]="activeFiltersCount()"
-        triggerLabel="Filtrar"
-        title="Filtros da base"
-        clearLabel="Limpar filtros"
-        applyLabel="Aplicar"
+        [triggerLabel]="t().scrapFilterButton"
+        [title]="t().scrapFilterTitle"
+        [clearLabel]="t().scrapClearFilters"
+        [applyLabel]="t().scrapApplyFilters"
         (cleared)="clearFilters()"
         (applied)="loadScrap()"
       >
         <app-list-filter-input
           [(value)]="searchText"
-          label="Buscar"
-          placeholder="Item, descrição, ordem ou ocorrência"
+          [label]="t().scrapSearchLabel"
+          [placeholder]="t().scrapSearchPlaceholder"
           type="search"
           (changed)="onSearchInput($event)"
         />
         <app-list-filter-date-range
           [(from)]="dateFrom"
           [(to)]="dateTo"
-          fromLabel="Data inicial"
-          toLabel="Data final"
+          [fromLabel]="t().scrapDateFrom"
+          [toLabel]="t().scrapDateTo"
+          [locale]="calendarLocale()"
+          [clearLabel]="t().calendarClear"
+          [todayLabel]="t().calendarToday"
           (changed)="onDateChange()"
         />
         <app-list-filter-input
           [(value)]="organization"
-          label="Organizações"
-          placeholder="Ex.: NWK, NW1"
+          [label]="t().scrapOrganizations"
+          [placeholder]="t().scrapOrganizationsPlaceholder"
           (changed)="onOrganizationChange()"
         />
         @if (dateRangeError()) {
-          <app-inline-alert message="A data final não pode ser anterior à data inicial." />
+          <app-inline-alert [message]="t().scrapDateRangeError" />
         }
       </app-list-filter-popover>
 
-      <span class="sort-label">Ordenar por</span>
+      <span class="sort-label">{{ t().scrapSortBy }}</span>
       <app-list-filter-select
         class="sort-field-select"
         [(value)]="sortBy"
-        [options]="sortOptions"
-        ariaLabel="Ordenar base de scrap"
+        [options]="sortOptions()"
+        [ariaLabel]="t().scrapSortAriaLabel"
         (changed)="onSortChange($event)"
       />
       <button type="button" class="btn btn-secondary sort-order-button" (click)="toggleSortOrder()">
-        {{ sortOrder() === 'desc' ? 'Decrescente' : 'Crescente' }}
+        {{ sortOrder() === 'desc' ? t().scrapSortDescending : t().scrapSortAscending }}
       </button>
     </div>
 
     @if (loading() && (!data() || data()!.items.length === 0)) {
       <app-list-table-skeleton
-        [columns]="tableColumns"
+        [columns]="tableColumns()"
         [rows]="6"
         minWidth="64rem"
-        loadingLabel="Carregando ocorrências de scrap"
+        [loadingLabel]="t().scrapLoading"
       />
     } @else if (error() && (!data() || data()!.items.length === 0)) {
       <app-list-feedback
         kind="error"
-        title="Não foi possível carregar a base"
+        [title]="t().scrapErrorTitle"
         [message]="error()!"
-        retryLabel="Tentar novamente"
+        [retryLabel]="t().scrapRetry"
         (retried)="loadScrap()"
       />
     } @else if (!data() || data()!.items.length === 0) {
       <app-list-feedback
         kind="empty"
-        title="Nenhuma ocorrência encontrada"
-        message="Ajuste os filtros ou aguarde a publicação de uma nova execução."
+        [title]="t().scrapEmptyTitle"
+        [message]="t().scrapEmptyDesc"
       />
     } @else {
       @if (error()) {
@@ -86,21 +89,21 @@
         <table class="list-table scrap-table">
           <thead>
             <tr>
-              <th>Data</th>
-              <th>Organização</th>
-              <th>Item</th>
-              <th>Descrição</th>
-              <th>Ordem</th>
-              <th class="align-right">Quantidade</th>
-              <th class="align-right">Valor BRL</th>
-              <th class="align-right">Valor USD</th>
-              <th class="align-center">Ocorrência</th>
+              <th>{{ t().scrapColDate }}</th>
+              <th>{{ t().scrapColOrganization }}</th>
+              <th>{{ t().scrapColItem }}</th>
+              <th>{{ t().scrapColDescription }}</th>
+              <th>{{ t().scrapColOrder }}</th>
+              <th class="align-right">{{ t().scrapColQuantity }}</th>
+              <th class="align-right">{{ t().scrapColAmountBrl }}</th>
+              <th class="align-right">{{ t().scrapColAmountUsd }}</th>
+              <th class="align-center">{{ t().scrapColOccurrence }}</th>
             </tr>
           </thead>
           <tbody>
             @for (item of data()!.items; track item.id) {
               <tr>
-                <td>{{ item.transaction_date }}</td>
+                <td>{{ formatTransactionDate(item.transaction_date) }}</td>
                 <td>{{ item.organization_code }}</td>
                 <td>
                   <span class="item-code">{{ item.item_code }}</span>

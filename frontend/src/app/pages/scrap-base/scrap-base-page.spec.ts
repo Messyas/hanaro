@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Subject, of } from 'rxjs';
 import { vi } from 'vitest';
+import { LanguageService } from '../../i18n/language.service';
 import { ScrapPage } from './scrap-base.models';
 import { ScrapBasePage } from './scrap-base-page';
 import { ScrapBaseService } from './scrap-base.service';
@@ -8,7 +9,7 @@ import { ScrapBaseService } from './scrap-base.service';
 describe('ScrapBasePage', () => {
   let component: ScrapBasePage;
   let fixture: ComponentFixture<ScrapBasePage>;
-  let service: { list: ReturnType<typeof vi.fn>; getCached: ReturnType<typeof vi.fn> };
+  let service: { list: ReturnType<typeof vi.fn> };
 
   const page: ScrapPage = {
     items: [
@@ -41,12 +42,12 @@ describe('ScrapBasePage', () => {
   beforeEach(async () => {
     service = {
       list: vi.fn().mockReturnValue(of(page)),
-      getCached: vi.fn().mockReturnValue(null),
     };
     await TestBed.configureTestingModule({
       imports: [ScrapBasePage],
       providers: [{ provide: ScrapBaseService, useValue: service }],
     }).compileComponents();
+    TestBed.inject(LanguageService).setLanguage('pt');
     fixture = TestBed.createComponent(ScrapBasePage);
     component = fixture.componentInstance;
     fixture.detectChanges();
@@ -63,6 +64,7 @@ describe('ScrapBasePage', () => {
     expect(element.querySelector('h1')?.textContent).toContain('Base de Scrap');
     expect(element.querySelectorAll('.scrap-table tbody tr')).toHaveLength(1);
     expect(element.textContent).toContain('ITEM-001');
+    expect(element.textContent).toContain('30/08/2026');
     expect(element.textContent).toContain('Ativa');
   });
 
@@ -106,15 +108,32 @@ describe('ScrapBasePage', () => {
     expect(element.querySelector('.list-table-frame')?.getAttribute('aria-busy')).toBe('false');
   });
 
-  it('uses the cached default result on return without requesting data again', async () => {
+  it('requests current data again when the page is reopened', async () => {
     service.list.mockClear();
-    service.getCached.mockReturnValue(page);
 
-    const cachedFixture = TestBed.createComponent(ScrapBasePage);
-    cachedFixture.detectChanges();
-    await cachedFixture.whenStable();
+    const reopenedFixture = TestBed.createComponent(ScrapBasePage);
+    reopenedFixture.detectChanges();
+    await reopenedFixture.whenStable();
 
-    expect(service.list).not.toHaveBeenCalled();
-    expect(cachedFixture.nativeElement.querySelectorAll('.scrap-table tbody tr')).toHaveLength(1);
+    expect(service.list).toHaveBeenCalledOnce();
+    expect(reopenedFixture.nativeElement.querySelectorAll('.scrap-table tbody tr')).toHaveLength(1);
+  });
+
+  it('translates table columns and occurrence badges when the language changes', async () => {
+    TestBed.inject(LanguageService).setLanguage('en');
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const element = fixture.nativeElement as HTMLElement;
+    expect(element.querySelector('h1')?.textContent).toContain('Scrap Base');
+    expect(element.textContent).toContain('ORGANIZATION');
+    expect(element.textContent).toContain('Active');
+    expect(component.calendarLocale()).toBe('en-US');
+  });
+
+  it('uses the Korean locale in the shared date range calendar', () => {
+    TestBed.inject(LanguageService).setLanguage('ko');
+
+    expect(component.calendarLocale()).toBe('ko-KR');
   });
 });
