@@ -397,9 +397,7 @@ class ScrapReviewBulkOperation(Base):
     __table_args__ = (CheckConstraint("status = 'COMPLETED'", name="ck_scrap_review_bulk_status"),)
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default_factory=uuid.uuid4, init=False)
-    reference_review_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("scrap_reviews.id", ondelete="RESTRICT"), index=True
-    )
+    reference_review_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scrap_reviews.id", ondelete="RESTRICT"), index=True)
     created_by_user_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT"), index=True)
     status: Mapped[str] = mapped_column(String(20))
     requested_count: Mapped[int] = mapped_column(Integer)

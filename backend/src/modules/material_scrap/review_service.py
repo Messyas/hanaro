@@ -150,9 +150,7 @@ async def update_defect_type(
 
 
 async def get_review_for_occurrence(db: AsyncSession, occurrence_id: uuid.UUID) -> ScrapReviewRead:
-    review = (
-        await db.execute(select(ScrapReview).where(ScrapReview.occurrence_id == occurrence_id))
-    ).scalar_one_or_none()
+    review = (await db.execute(select(ScrapReview).where(ScrapReview.occurrence_id == occurrence_id))).scalar_one_or_none()
     if review is None:
         raise ScrapReviewNotFoundError("Review not found")
     return await _read_review(db, review)
@@ -190,9 +188,7 @@ async def save_review_draft(
     user_id = int(current_user["id"])
     responsible_name = str(current_user.get("name") or current_user.get("username") or f"User {user_id}")[:120]
     review = (
-        await db.execute(
-            select(ScrapReview).where(ScrapReview.occurrence_id == occurrence_id).with_for_update()
-        )
+        await db.execute(select(ScrapReview).where(ScrapReview.occurrence_id == occurrence_id).with_for_update())
     ).scalar_one_or_none()
     now = _now()
     if review is None:
@@ -233,9 +229,7 @@ async def finalize_review(
     expected_version: int | None,
 ) -> ScrapReviewRead:
     review = (
-        await db.execute(
-            select(ScrapReview).where(ScrapReview.occurrence_id == occurrence_id).with_for_update()
-        )
+        await db.execute(select(ScrapReview).where(ScrapReview.occurrence_id == occurrence_id).with_for_update())
     ).scalar_one_or_none()
     if review is None:
         raise ScrapReviewNotFoundError("Draft review not found")
@@ -263,9 +257,7 @@ async def assert_review_accepts_attachment(
     *,
     max_attachments: int,
 ) -> ScrapReview:
-    review = (
-        await db.execute(select(ScrapReview).where(ScrapReview.id == review_id).with_for_update())
-    ).scalar_one_or_none()
+    review = (await db.execute(select(ScrapReview).where(ScrapReview.id == review_id).with_for_update())).scalar_one_or_none()
     if review is None:
         raise ScrapReviewNotFoundError("Review not found")
     _assert_owner(review, int(current_user["id"]))
@@ -291,9 +283,7 @@ async def add_review_attachment(
     current_user: dict[str, Any],
 ) -> ScrapReviewAttachmentRead:
     max_position = (
-        await db.execute(
-            select(func.max(ScrapReviewAttachment.position)).where(ScrapReviewAttachment.review_id == review.id)
-        )
+        await db.execute(select(func.max(ScrapReviewAttachment.position)).where(ScrapReviewAttachment.review_id == review.id))
     ).scalar_one()
     attachment = ScrapReviewAttachment(
         review_id=review.id,
@@ -331,9 +321,7 @@ async def delete_review_attachment(
     attachment_id: uuid.UUID,
     current_user: dict[str, Any],
 ) -> ScrapReviewAttachment:
-    review = (
-        await db.execute(select(ScrapReview).where(ScrapReview.id == review_id).with_for_update())
-    ).scalar_one_or_none()
+    review = (await db.execute(select(ScrapReview).where(ScrapReview.id == review_id).with_for_update())).scalar_one_or_none()
     if review is None:
         raise ScrapReviewNotFoundError("Review not found")
     _assert_owner(review, int(current_user["id"]))

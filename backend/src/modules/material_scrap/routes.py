@@ -40,31 +40,6 @@ from .execution_service import (
     update_step,
 )
 from .query_service import ScrapFilters, get_breakdown, get_filter_options, get_summary, get_trend, list_scrap
-from .schemas import (
-    AutomationExecutionStart,
-    DashboardResponse,
-    ExecutionDetail,
-    ExecutionFailure,
-    ExecutionPage,
-    ExecutionStepUpdate,
-    IngestionAccepted,
-    MaterialScrapPayload,
-    ScrapBreakdownItem,
-    ScrapFilterOptions,
-    ScrapDefectTypeCreate,
-    ScrapDefectTypeRead,
-    ScrapDefectTypeUpdate,
-    ScrapPage,
-    ScrapReviewAttachmentRead,
-    ScrapReviewBulkCreate,
-    ScrapReviewBulkResult,
-    ScrapReviewRead,
-    ScrapReviewWrite,
-    ScrapSummary,
-    ScrapTargetRead,
-    ScrapTargetUpsert,
-    ScrapTrendPoint,
-)
 from .review_image import ALLOWED_IMAGE_CONTENT_TYPES, ScrapReviewImageValidationError
 from .review_service import (
     ScrapReviewConflictError,
@@ -82,6 +57,31 @@ from .review_service import (
     list_defect_types,
     save_review_draft,
     update_defect_type,
+)
+from .schemas import (
+    AutomationExecutionStart,
+    DashboardResponse,
+    ExecutionDetail,
+    ExecutionFailure,
+    ExecutionPage,
+    ExecutionStepUpdate,
+    IngestionAccepted,
+    MaterialScrapPayload,
+    ScrapBreakdownItem,
+    ScrapDefectTypeCreate,
+    ScrapDefectTypeRead,
+    ScrapDefectTypeUpdate,
+    ScrapFilterOptions,
+    ScrapPage,
+    ScrapReviewAttachmentRead,
+    ScrapReviewBulkCreate,
+    ScrapReviewBulkResult,
+    ScrapReviewRead,
+    ScrapReviewWrite,
+    ScrapSummary,
+    ScrapTargetRead,
+    ScrapTargetUpsert,
+    ScrapTrendPoint,
 )
 from .tasks import enqueue_execution_notification, enqueue_material_scrap
 
