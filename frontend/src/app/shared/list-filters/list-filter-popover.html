@@ -1,0 +1,41 @@
+<div class="filter-popover-anchor">
+  <button
+    class="btn btn-secondary filter-trigger-btn"
+    [class.active]="open() || activeCount() > 0"
+    type="button"
+    (click)="toggle($event)"
+    aria-haspopup="dialog"
+    [attr.aria-expanded]="open()"
+  >
+    <ui-icon name="filter" />
+    <span>{{ triggerLabel() }}</span>
+    @if (activeCount() > 0) {
+      <span class="filter-badge">{{ activeCount() }}</span>
+    }
+  </button>
+
+  @if (open()) {
+    <div
+      class="filter-popover-panel"
+      role="dialog"
+      aria-modal="false"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="popover-header">
+        <div class="popover-title-group">
+          <ui-icon name="filter" /><strong>{{ title() }}</strong>
+        </div>
+        @if (activeCount() > 0) {
+          <button type="button" class="popover-clear-btn" (click)="clear()">
+            {{ clearLabel() }}
+          </button>
+        }
+      </div>
+      <div class="popover-body"><ng-content /></div>
+      <div class="popover-footer">
+        <button type="button" class="btn btn-ghost" (click)="clear()">{{ clearLabel() }}</button>
+        <button type="button" class="btn btn-primary" (click)="apply()">{{ applyLabel() }}</button>
+      </div>
+    </div>
+  }
+</div>

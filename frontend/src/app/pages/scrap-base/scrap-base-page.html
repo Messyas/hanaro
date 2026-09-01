@@ -1,0 +1,129 @@
+<section class="scrap-base-page list-page page-stack" aria-labelledby="scrap-base-title">
+  <header>
+    <h1 class="page-title" id="scrap-base-title">Base de Scrap</h1>
+  </header>
+
+  <app-list-panel
+    title="Ocorrências de scrap"
+    [meta]="data() ? 'TOTAL: ' + data()!.total_items : ''"
+  >
+    <div list-actions class="list-actions">
+      <app-list-filter-popover
+        [(open)]="filterOpen"
+        [activeCount]="activeFiltersCount()"
+        triggerLabel="Filtrar"
+        title="Filtros da base"
+        clearLabel="Limpar filtros"
+        applyLabel="Aplicar"
+        (cleared)="clearFilters()"
+        (applied)="loadScrap()"
+      >
+        <app-list-filter-input
+          [(value)]="searchText"
+          label="Buscar"
+          placeholder="Item, descrição, ordem ou ocorrência"
+          type="search"
+          (changed)="onSearchInput($event)"
+        />
+        <app-list-filter-date-range
+          [(from)]="dateFrom"
+          [(to)]="dateTo"
+          fromLabel="Data inicial"
+          toLabel="Data final"
+          (changed)="onDateChange()"
+        />
+        <app-list-filter-input
+          [(value)]="organization"
+          label="Organizações"
+          placeholder="Ex.: NWK, NW1"
+          (changed)="onOrganizationChange()"
+        />
+        @if (dateRangeError()) {
+          <app-inline-alert message="A data final não pode ser anterior à data inicial." />
+        }
+      </app-list-filter-popover>
+
+      <span class="sort-label">Ordenar por</span>
+      <app-list-filter-select
+        class="sort-field-select"
+        [(value)]="sortBy"
+        [options]="sortOptions"
+        ariaLabel="Ordenar base de scrap"
+        (changed)="onSortChange($event)"
+      />
+      <button type="button" class="btn btn-secondary sort-order-button" (click)="toggleSortOrder()">
+        {{ sortOrder() === 'desc' ? 'Decrescente' : 'Crescente' }}
+      </button>
+    </div>
+
+    @if (loading()) {
+      <app-list-feedback kind="loading" message="Carregando ocorrências…" />
+    } @else if (error()) {
+      <app-list-feedback
+        kind="error"
+        title="Não foi possível carregar a base"
+        [message]="error()!"
+        retryLabel="Tentar novamente"
+        (retried)="loadScrap()"
+      />
+    } @else if (!data() || data()!.items.length === 0) {
+      <app-list-feedback
+        kind="empty"
+        title="Nenhuma ocorrência encontrada"
+        message="Ajuste os filtros ou aguarde a publicação de uma nova execução."
+      />
+    } @else {
+      <div class="list-table-frame">
+        <table class="list-table scrap-table">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Organização</th>
+              <th>Item</th>
+              <th>Descrição</th>
+              <th>Ordem</th>
+              <th class="align-right">Quantidade</th>
+              <th class="align-right">Valor BRL</th>
+              <th class="align-right">Valor USD</th>
+              <th class="align-center">Ocorrência</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of data()!.items; track item.id) {
+              <tr>
+                <td>{{ item.transaction_date }}</td>
+                <td>{{ item.organization_code }}</td>
+                <td>
+                  <span class="item-code">{{ item.item_code }}</span>
+                </td>
+                <td class="description-cell" [title]="item.item_description || ''">
+                  {{ item.item_description || '—' }}
+                </td>
+                <td>{{ item.work_order || '—' }}</td>
+                <td class="align-right">{{ formatNumber(item.issue_quantity) }}</td>
+                <td class="align-right">{{ formatCurrency(item.issue_amount_brl, 'BRL') }}</td>
+                <td class="align-right">{{ formatCurrency(item.amount_usd, 'USD') }}</td>
+                <td class="align-center">
+                  <app-status-badge
+                    [label]="formatOccurrenceStatus(item.occurrence_status)"
+                    [tone]="item.occurrence_status === 'ACTIVE' ? 'success' : 'neutral'"
+                  />
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <app-list-pagination
+        [page]="page()"
+        [totalPages]="data()!.total_pages"
+        [pageSize]="pageSize()"
+        [pageSizes]="pageSizes"
+        (pageSizeChanged)="onPageSizeChange($event)"
+        (previous)="previousPage()"
+        (next)="nextPage()"
+      />
+    }
+  </app-list-panel>
+</section>

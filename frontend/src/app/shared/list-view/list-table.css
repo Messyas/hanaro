@@ -1,0 +1,62 @@
+.list-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+  padding-bottom: 2.5rem;
+}
+
+.list-table-frame {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--app-border-soft);
+  border-radius: 0.6rem;
+}
+
+.list-table {
+  width: 100%;
+  min-width: var(--list-table-min-width, 68rem);
+  border-collapse: collapse;
+  color: var(--app-text);
+  font-size: 0.875rem;
+  text-align: left;
+}
+
+.list-table th {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--app-card-border);
+  background: var(--app-surface-muted);
+  color: var(--app-text-muted-detail);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.list-table td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--app-divider);
+  color: var(--app-text);
+  vertical-align: middle;
+}
+
+.list-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.list-table tbody tr {
+  transition: background-color 120ms ease;
+}
+
+.list-table tbody tr:hover {
+  background: var(--app-surface-muted);
+}
+
+.list-table .align-right {
+  text-align: right;
+}
+
+.list-table .align-center {
+  text-align: center;
+}

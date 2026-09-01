@@ -12,6 +12,19 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { LanguageService } from '../../i18n/language.service';
+import { ListFilterDateRange } from '../../shared/list-filters/list-filter-date-range';
+import { ListFilterInput } from '../../shared/list-filters/list-filter-input';
+import { ListFilterPopover } from '../../shared/list-filters/list-filter-popover';
+import {
+  ListFilterSelect,
+  ListFilterSelectOption,
+} from '../../shared/list-filters/list-filter-select';
+import { InlineAlert } from '../../shared/list-view/inline-alert/inline-alert';
+import { ListFeedback } from '../../shared/list-view/list-feedback/list-feedback';
+import { ListPagination } from '../../shared/list-view/list-pagination/list-pagination';
+import { ListPanel } from '../../shared/list-view/list-panel/list-panel';
+import { StatusBadge } from '../../shared/list-view/status-badge/status-badge';
+import type { StatusBadgeTone } from '../../shared/list-view/status-badge/status-badge';
 import { UiIcon } from '../../ui-icon';
 import {
   AutomationExecutionStatus,
@@ -41,7 +54,19 @@ export interface CalendarDay {
 
 @Component({
   selector: 'app-executions-page',
-  imports: [DecimalPipe, UiIcon],
+  imports: [
+    DecimalPipe,
+    InlineAlert,
+    ListFeedback,
+    ListFilterDateRange,
+    ListFilterInput,
+    ListFilterPopover,
+    ListFilterSelect,
+    ListPagination,
+    ListPanel,
+    StatusBadge,
+    UiIcon,
+  ],
   templateUrl: './executions-page.html',
   styleUrl: './executions-page.css',
   host: {
@@ -72,8 +97,6 @@ export class ExecutionsPage implements OnInit {
 
   // Popovers e Dropdowns customizados
   readonly filterOpen = signal<boolean>(false);
-  readonly statusDropdownOpen = signal<boolean>(false);
-  readonly pageSizeDropdownOpen = signal<boolean>(false);
   readonly dateFromPickerOpen = signal<boolean>(false);
   readonly dateToPickerOpen = signal<boolean>(false);
   readonly viewDateFrom = signal<Date>(new Date());
@@ -97,6 +120,9 @@ export class ExecutionsPage implements OnInit {
     { value: 'QUEUED' },
     { value: 'CANCELLED' },
   ];
+  readonly sharedStatusOptions = computed<readonly ListFilterSelectOption[]>(() =>
+    this.statusOptions.map(({ value }) => ({ value, label: this.getStatusOptionLabel(value) })),
+  );
 
   readonly activeFiltersCount = computed(() => {
     let count = 0;
@@ -135,12 +161,6 @@ export class ExecutionsPage implements OnInit {
     if (this.filterOpen() && target && !target.closest('.filter-popover-anchor')) {
       this.closeFilterPopover();
     }
-    if (this.statusDropdownOpen() && target && !target.closest('.status-select-anchor')) {
-      this.statusDropdownOpen.set(false);
-    }
-    if (this.pageSizeDropdownOpen() && target && !target.closest('.pagination-size-select')) {
-      this.pageSizeDropdownOpen.set(false);
-    }
     if (this.dateFromPickerOpen() && target && !target.closest('.date-from-anchor')) {
       this.dateFromPickerOpen.set(false);
     }
@@ -153,10 +173,6 @@ export class ExecutionsPage implements OnInit {
     if (this.dateFromPickerOpen() || this.dateToPickerOpen()) {
       this.dateFromPickerOpen.set(false);
       this.dateToPickerOpen.set(false);
-    } else if (this.statusDropdownOpen()) {
-      this.statusDropdownOpen.set(false);
-    } else if (this.pageSizeDropdownOpen()) {
-      this.pageSizeDropdownOpen.set(false);
     } else if (this.filterOpen()) {
       this.closeFilterPopover();
     } else if (this.selectedExecutionId()) {
@@ -167,31 +183,24 @@ export class ExecutionsPage implements OnInit {
   toggleFilterPopover(event?: Event): void {
     if (event) event.stopPropagation();
     this.filterOpen.update((v) => !v);
-    this.statusDropdownOpen.set(false);
     this.dateFromPickerOpen.set(false);
     this.dateToPickerOpen.set(false);
   }
 
   closeFilterPopover(): void {
     this.filterOpen.set(false);
-    this.statusDropdownOpen.set(false);
-    this.dateFromPickerOpen.set(false);
-    this.dateToPickerOpen.set(false);
-  }
-
-  // Custom Select Methods
-  toggleStatusDropdown(event?: Event): void {
-    if (event) event.stopPropagation();
-    this.statusDropdownOpen.update((v) => !v);
     this.dateFromPickerOpen.set(false);
     this.dateToPickerOpen.set(false);
   }
 
   selectStatus(value: AutomationExecutionStatus | ''): void {
     this.statusFilter.set(value);
-    this.statusDropdownOpen.set(false);
     this.page.set(1);
     this.loadExecutions();
+  }
+
+  onStatusChanged(value: string): void {
+    this.selectStatus(value as AutomationExecutionStatus | '');
   }
 
   getStatusOptionLabel(value: AutomationExecutionStatus | ''): string {
@@ -199,15 +208,9 @@ export class ExecutionsPage implements OnInit {
     return this.formatStatus(value);
   }
 
-  togglePageSizeDropdown(event?: Event): void {
-    if (event) event.stopPropagation();
-    this.pageSizeDropdownOpen.update((v) => !v);
-  }
-
   selectPageSize(size: number): void {
     this.pageSize.set(size);
     this.savePageSize(size);
-    this.pageSizeDropdownOpen.set(false);
     this.page.set(1);
     this.loadExecutions();
   }
@@ -224,6 +227,11 @@ export class ExecutionsPage implements OnInit {
     if (lang === 'pt') return ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
     if (lang === 'ko') return ['일', '월', '화', '수', '목', '금', '토'];
     return ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+  }
+
+  calendarLocale(): string {
+    const language = this.language.currentLanguage();
+    return language === 'pt' ? 'pt-BR' : language === 'ko' ? 'ko-KR' : 'en-US';
   }
 
   getCalendarDays(
@@ -337,7 +345,6 @@ export class ExecutionsPage implements OnInit {
     const next = !this.dateFromPickerOpen();
     this.dateFromPickerOpen.set(next);
     this.dateToPickerOpen.set(false);
-    this.statusDropdownOpen.set(false);
     if (next && this.dateFrom() && this.isValidIsoDateString(this.dateFrom())) {
       const parsed = new Date(this.dateFrom() + 'T00:00:00');
       if (!isNaN(parsed.getTime())) this.viewDateFrom.set(parsed);
@@ -349,7 +356,6 @@ export class ExecutionsPage implements OnInit {
     const next = !this.dateToPickerOpen();
     this.dateToPickerOpen.set(next);
     this.dateFromPickerOpen.set(false);
-    this.statusDropdownOpen.set(false);
     if (next && this.dateTo() && this.isValidIsoDateString(this.dateTo())) {
       const parsed = new Date(this.dateTo() + 'T00:00:00');
       if (!isNaN(parsed.getTime())) this.viewDateTo.set(parsed);
@@ -501,8 +507,19 @@ export class ExecutionsPage implements OnInit {
     }
   }
 
+  onDateRangeChanged(): void {
+    if (!this.dateRangeError()) {
+      this.page.set(1);
+      this.loadExecutions();
+    }
+  }
+
   onSearchInput(event: Event): void {
     const value = (event.target as HTMLInputElement).value;
+    this.searchSubject.next(value);
+  }
+
+  onSharedSearch(value: string): void {
     this.searchSubject.next(value);
   }
 
@@ -666,6 +683,19 @@ export class ExecutionsPage implements OnInit {
     }
   }
 
+  getStatusBadgeTone(status: AutomationExecutionStatus): StatusBadgeTone {
+    switch (status) {
+      case 'COMPLETED':
+        return 'success';
+      case 'FAILED':
+      case 'CANCELLED':
+        return 'danger';
+      case 'RUNNING':
+      case 'QUEUED':
+        return 'warning';
+    }
+  }
+
   formatSnapshotStatus(status: AutomationSnapshotStatus): string {
     const t = this.t();
     switch (status) {
@@ -694,6 +724,18 @@ export class ExecutionsPage implements OnInit {
         return 'badge badge-neutral';
       default:
         return 'badge badge-neutral';
+    }
+  }
+
+  getSnapshotBadgeTone(status: AutomationSnapshotStatus): StatusBadgeTone {
+    switch (status) {
+      case 'PUBLISHED':
+        return 'success';
+      case 'NOT_PUBLISHED':
+        return 'neutral';
+      case 'UNCHANGED_REPLAY':
+      case 'PRESERVED_PREVIOUS':
+        return 'info';
     }
   }
 

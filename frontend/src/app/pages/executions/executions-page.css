@@ -20,6 +20,14 @@
   gap: 0.75rem;
 }
 
+.execution-list-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
 .btn {
   display: inline-flex;
   align-items: center;
@@ -84,45 +92,8 @@
 }
 
 /* ─── Cards ────────────────────────────────────────────────────────── */
-.panel-card {
-  background: var(--app-surface);
-  border: 1px solid var(--app-card-border);
-  border-radius: 0.85rem;
-  padding: 1.25rem;
-  box-shadow: var(--app-shadow-card);
-}
 
 /* ─── Table Section & Integrated Filter Header ─────────────────────── */
-.section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 1rem;
-  margin-bottom: 1.25rem;
-}
-
-.section-header-left {
-  display: flex;
-  align-items: baseline;
-  gap: 0.85rem;
-  flex-wrap: wrap;
-}
-
-.section-header-left h2 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  line-height: 1.75rem;
-  margin: 0;
-  color: var(--app-page-title);
-}
-
-.section-header-right {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
 
 /* ─── Active Filter Pills ──────────────────────────────────────────── */
 .active-filters-bar {
@@ -395,142 +366,6 @@
 }
 
 /* ─── Custom Select Component ──────────────────────────────────────── */
-.custom-select-anchor {
-  position: relative;
-  width: 100%;
-}
-
-.custom-select-trigger {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.825rem;
-  font-weight: 500;
-  border-radius: 0.45rem;
-  border: 1px solid var(--app-card-border);
-  background: var(--app-surface);
-  color: var(--app-text);
-  cursor: pointer;
-  text-align: left;
-  transition: all 150ms ease;
-}
-
-.custom-select-trigger:hover {
-  border-color: var(--brand-primary-border);
-}
-
-.custom-select-trigger.open,
-.custom-select-trigger:focus-visible {
-  outline: none;
-  border-color: var(--brand-primary);
-  box-shadow: 0 0 0 2px var(--app-focus-ring);
-}
-
-.custom-select-trigger ui-icon {
-  width: 0.85rem;
-  height: 0.85rem;
-  color: var(--app-text-muted-detail);
-  transition:
-    transform 150ms ease,
-    color 150ms ease;
-  flex-shrink: 0;
-}
-
-.custom-select-trigger ui-icon.rotated {
-  transform: rotate(180deg);
-  color: var(--brand-primary);
-}
-
-.custom-select-menu {
-  position: absolute;
-  top: calc(100% + 0.35rem);
-  left: 0;
-  right: 0;
-  z-index: 60;
-  background: var(--app-surface);
-  border: 1px solid var(--app-card-border);
-  border-radius: 0.5rem;
-  padding: 0.3rem;
-  box-shadow:
-    0 10px 25px -4px rgb(0 0 0 / 35%),
-    0 4px 10px -2px rgb(0 0 0 / 25%);
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  animation: selectMenuFade 120ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes selectMenuFade {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.custom-select-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  padding: 0.45rem 0.65rem;
-  font-size: 0.825rem;
-  font-weight: 500;
-  border-radius: 0.35rem;
-  border: none;
-  background: transparent;
-  color: var(--app-text);
-  cursor: pointer;
-  text-align: left;
-  transition:
-    background-color 120ms ease,
-    color 120ms ease;
-}
-
-.custom-select-item:hover {
-  background: var(--brand-primary-soft);
-  color: var(--brand-primary);
-}
-
-.custom-select-item.selected {
-  background: var(--brand-primary-soft);
-  color: var(--brand-primary);
-  font-weight: 600;
-}
-
-.selected-indicator {
-  width: 0.4rem;
-  height: 0.4rem;
-  border-radius: 50%;
-  background: var(--brand-primary);
-}
-
-/* Pagination Custom Size Select */
-.pagination-size-select {
-  width: auto;
-  min-width: 4.5rem;
-}
-
-.size-trigger {
-  height: 2rem;
-  padding: 0 0.55rem;
-  font-size: 0.8rem;
-  gap: 0.35rem;
-  box-sizing: border-box;
-}
-
-.size-menu {
-  bottom: calc(100% + 0.35rem);
-  top: auto;
-  min-width: 4.5rem;
-}
-
 /* ─── Custom Datepicker Component ─────────────────────────────────── */
 .custom-datepicker-anchor {
   position: relative;
@@ -752,30 +587,9 @@
   border-color: transparent !important;
 }
 
-.filter-error-alert {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.5rem 0.75rem;
-  border-radius: 0.45rem;
-  background: var(--alert-error-bg);
-  border: 1px solid var(--alert-error-border);
-  color: var(--alert-error-text);
-  font-size: 0.775rem;
-  font-weight: 500;
-  margin-top: 0.6rem;
-  animation: calendarPopupFade 120ms ease;
-}
-
-.filter-error-alert ui-icon {
-  width: 0.9rem;
-  height: 0.9rem;
-  flex-shrink: 0;
-}
-
 .input-control.input-invalid {
-  border-color: var(--alert-error-border);
-  background-color: var(--alert-error-bg);
+  border-color: color-mix(in srgb, var(--app-danger) 28%, transparent);
+  background-color: var(--app-danger-soft);
 }
 
 .popover-footer {
@@ -793,49 +607,6 @@
 .popover-footer .btn {
   padding: 0.4rem 0.75rem;
   font-size: 0.8rem;
-}
-
-.table-responsive {
-  width: 100%;
-  overflow-x: auto;
-  border-radius: 0.6rem;
-  border: 1px solid var(--app-border-soft);
-}
-
-.executions-table {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: left;
-  font-size: 0.875rem;
-}
-
-.executions-table th {
-  padding: 0.85rem 1rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--app-text-muted-detail);
-  background: var(--app-surface-muted);
-  border-bottom: 1px solid var(--app-card-border);
-  white-space: nowrap;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-}
-
-.executions-table th.align-right,
-.executions-table td.align-right {
-  text-align: right;
-}
-
-.executions-table th.align-center,
-.executions-table td.align-center {
-  text-align: center;
-}
-
-.executions-table td {
-  padding: 0.85rem 1rem;
-  border-bottom: 1px solid var(--app-divider);
-  color: var(--app-text);
-  vertical-align: middle;
 }
 
 .executions-table tbody tr.clickable-row {
@@ -910,45 +681,6 @@
 }
 
 /* ─── Pagination ───────────────────────────────────────────────────── */
-.pagination-container {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-top: 1.25rem;
-  font-size: 0.875rem;
-  color: var(--app-text-secondary);
-}
-
-.pagination-controls {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.btn-pagination-nav {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  min-width: 2rem;
-  min-height: 2rem;
-  max-width: 2rem;
-  max-height: 2rem;
-  padding: 0 !important;
-  border-radius: 50% !important;
-  aspect-ratio: 1 / 1;
-  box-sizing: border-box;
-  flex-shrink: 0;
-}
-
-.btn-pagination-nav ui-icon {
-  width: 0.95rem;
-  height: 0.95rem;
-}
-
 /* ─── States ───────────────────────────────────────────────────────── */
 .loading-container,
 .empty-container,
@@ -1184,12 +916,6 @@
 
 /* ─── Responsive Adjustments ───────────────────────────────────────── */
 @media (max-width: 640px) {
-  .section-header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.75rem;
-  }
-
   .header-actions {
     flex-wrap: wrap;
     justify-content: space-between;

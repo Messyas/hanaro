@@ -21,6 +21,13 @@ export const routes: Routes = [
           import('./pages/executions/executions-page').then((module) => module.ExecutionsPage),
       },
       {
+        path: 'base-de-scrap',
+        title: 'Base de Scrap',
+        canActivate: [authenticatedGuard],
+        loadComponent: () =>
+          import('./pages/scrap-base/scrap-base-page').then((module) => module.ScrapBasePage),
+      },
+      {
         path: 'relatorios',
         title: 'Relatórios',
         canActivate: [authenticatedGuard],

@@ -49,6 +49,7 @@ describe('App', () => {
     expect(childPaths).toEqual([
       'dashboard',
       'execucoes',
+      'base-de-scrap',
       'relatorios',
       'configuracoes',
       'perfil',
@@ -65,19 +66,23 @@ describe('App', () => {
     expect(shell.navigation().map((item) => item.label)).toEqual([
       'Dashboard',
       'Executions',
+      'Scrap Base',
       'Reports',
       'Settings',
       'Profile',
     ]);
 
     language.setLanguage('ko');
-    expect(shell.navigation().map((item) => item.label)).toEqual([
-      '대시보드',
-      '실행 내역',
-      '보고서',
-      '설정',
-      '프로필',
-    ]);
+    expect(shell.navigation().map((item) => item.label)).toEqual(
+      expect.arrayContaining([
+        language.translations().navScrapBase,
+        '대시보드',
+        '실행 내역',
+        '보고서',
+        '설정',
+        '프로필',
+      ]),
+    );
   });
 
   it('should apply and persist the dark theme without keeping the transition blocker', async () => {

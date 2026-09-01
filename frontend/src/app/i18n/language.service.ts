@@ -12,6 +12,7 @@ export interface LanguageOption {
 export interface AppTranslations {
   navDashboard: string;
   navExecutions: string;
+  navScrapBase: string;
   navReports: string;
   navSettings: string;
   navProfile: string;
@@ -174,6 +175,7 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
   pt: {
     navDashboard: 'Dashboard',
     navExecutions: 'Execuções',
+    navScrapBase: 'Base de Scrap',
     navReports: 'Relatórios',
     navSettings: 'Configurações',
     navProfile: 'Perfil',
@@ -334,6 +336,7 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
   en: {
     navDashboard: 'Dashboard',
     navExecutions: 'Executions',
+    navScrapBase: 'Scrap Base',
     navReports: 'Reports',
     navSettings: 'Settings',
     navProfile: 'Profile',
@@ -493,6 +496,7 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
   ko: {
     navDashboard: '대시보드',
     navExecutions: '실행 내역',
+    navScrapBase: '스크랩 데이터',
     navReports: '보고서',
     navSettings: '설정',
     navProfile: '프로필',
