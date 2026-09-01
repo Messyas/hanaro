@@ -110,9 +110,7 @@ def _aggregate_filter_conditions(filters: ScrapFilters) -> list[ColumnElement[bo
 
 def _active_query(*columns: Any) -> Select[Any]:
     statement: Select[Any] = select(*columns) if columns else select(ScrapTransaction)
-    return statement.join(
-        ScrapOccurrence, ScrapOccurrence.current_transaction_id == ScrapTransaction.id
-    ).where(
+    return statement.join(ScrapOccurrence, ScrapOccurrence.current_transaction_id == ScrapTransaction.id).where(
         ScrapOccurrence.status == "ACTIVE",
     )
 

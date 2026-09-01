@@ -175,9 +175,7 @@ class OccurrenceIdentityCollisionError(ValueError):
     code = "OCCURRENCE_IDENTITY_COLLISION"
 
 
-async def _lock_partition(
-    db: AsyncSession, organization_code: str, transaction_date: date
-) -> ScrapReconciliationPartition:
+async def _lock_partition(db: AsyncSession, organization_code: str, transaction_date: date) -> ScrapReconciliationPartition:
     statement = select(ScrapReconciliationPartition).where(
         ScrapReconciliationPartition.organization_code == organization_code,
         ScrapReconciliationPartition.transaction_date == transaction_date,
@@ -187,9 +185,7 @@ async def _lock_partition(
         return partition
     try:
         async with db.begin_nested():
-            candidate = ScrapReconciliationPartition(
-                organization_code=organization_code, transaction_date=transaction_date
-            )
+            candidate = ScrapReconciliationPartition(organization_code=organization_code, transaction_date=transaction_date)
             db.add(candidate)
             await db.flush()
     except IntegrityError:
@@ -311,9 +307,7 @@ async def _reconcile_partition(
                 observed_at=now,
             )
         )
-        replacement_facts.append(
-            build_dashboard_projection(occurrence_id=occurrence.id, run_id=run.id, record=record)
-        )
+        replacement_facts.append(build_dashboard_projection(occurrence_id=occurrence.id, run_id=run.id, record=record))
 
     absent_ids = [occurrence.id for occurrence in active_before if occurrence.id not in observed_ids]
     if absent_ids:

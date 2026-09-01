@@ -102,7 +102,7 @@ async def ingest_material_scrap(payload: MaterialScrapPayload, db: AsyncSession)
                 db,
                 read_count=len(payload.records),
                 rejected_count=len(payload.records),
-            error_message=getattr(error, "code", type(error).__name__),
+                error_message=getattr(error, "code", type(error).__name__),
             )
         await link_ingestion_result(payload, db, ingestion_run_id=None, is_replay=False, failed=error)
         logger.exception(

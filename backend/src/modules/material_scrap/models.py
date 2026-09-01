@@ -371,9 +371,7 @@ class ScrapDashboardAggregate(Base):
     issue_amount_brl_abs: Mapped[Decimal] = mapped_column(Numeric(24, 2))
     amount_usd: Mapped[Decimal] = mapped_column(Numeric(24, 6))
     amount_usd_abs: Mapped[Decimal] = mapped_column(Numeric(24, 6))
-    occurrence_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("scrap_occurrences.id", ondelete="CASCADE"), index=True
-    )
+    occurrence_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scrap_occurrences.id", ondelete="CASCADE"), index=True)
 
 
 class ScrapDashboardState(Base):
