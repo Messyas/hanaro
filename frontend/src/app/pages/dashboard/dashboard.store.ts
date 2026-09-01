@@ -10,6 +10,7 @@ import {
   DashboardFilters,
   DashboardKpis,
   DashboardMetric,
+  DashboardMonthlyPoint,
   DashboardMultiFilterKey,
   DashboardRankingLimit,
   DashboardSnapshot,
@@ -35,6 +36,7 @@ interface DashboardApiResponse {
     generated_at: string;
   };
   monthly: DashboardApiSeriesPoint[];
+  weekly?: DashboardApiSeriesPoint[];
   rankings: {
     products: DashboardApiRankingItem[];
     lines: DashboardApiRankingItem[];
@@ -366,6 +368,7 @@ export class DashboardStore {
 
     return {
       monthly,
+      weekly: (response.weekly ?? []).map((point) => this.mapApiWeeklyPoint(point)),
       distribution: response.rankings.products.map((item) => ({
         label: item.key ?? 'Não classificado',
         usd: this.toNumber(item.amount),
@@ -385,6 +388,27 @@ export class DashboardStore {
         minute: '2-digit',
       }).format(new Date(response.metadata.generated_at)),
     };
+  }
+
+  private mapApiWeeklyPoint(point: DashboardApiSeriesPoint): DashboardMonthlyPoint {
+    return {
+      month: this.weekLabel(point.period),
+      actualUsd: this.toNumber(point.actual),
+      previousUsd: this.toNullableNumber(point.previous_year),
+      targetUsd: this.toNullableNumber(point.target) ?? 0,
+      actualQty: null,
+      previousQty: null,
+      targetQty: 0,
+      materialAmountUsd: 0,
+      previousMaterialAmountUsd: 0,
+      productionQty: 0,
+      previousProductionQty: 0,
+    };
+  }
+
+  private weekLabel(period: string): string {
+    const match = period.match(/W(\d{1,2})$/);
+    return match ? `W${match[1]}` : period;
   }
 
   private hasUsableSnapshot(snapshot: DashboardSnapshot): boolean {

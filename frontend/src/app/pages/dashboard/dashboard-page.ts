@@ -129,7 +129,7 @@ export class DashboardPage {
     return this.evolutionView() === 'monthly' ? this.monthlyPerformanceData() : this.weeklyData();
   });
   readonly performanceLabels = computed(() => {
-    if (this.evolutionView() === 'weekly') return this.weeklyLabels();
+    if (this.evolutionView() === 'weekly') return this.weeklyData().map((point) => point.month);
     const period = this.evolutionFilters().period;
     return period === INITIAL_EVOLUTION_FILTERS.period ? null : [this.periodOptionLabel(period)];
   });
@@ -453,6 +453,9 @@ export class DashboardPage {
   private buildWeeklyData(
     points: readonly DashboardMonthlyPoint[],
   ): readonly DashboardMonthlyPoint[] {
+    const apiWeekly = this.apiWeeklyData();
+    if (apiWeekly.length) return apiWeekly;
+
     const source = this.selectedWeeklySourcePoint(points);
     const weights = [0.18, 0.2, 0.22, 0.19, 0.21];
 
@@ -470,6 +473,25 @@ export class DashboardPage {
       productionQty: Math.round(source.productionQty * weight),
       previousProductionQty: Math.round(source.previousProductionQty * weight),
     }));
+  }
+
+  private apiWeeklyData(): readonly DashboardMonthlyPoint[] {
+    const snapshot = this.store.snapshot();
+    const globalPeriod = this.store.filters().period;
+    const chartPeriod = this.evolutionFilters().period;
+
+    if (
+      this.store.dataState() !== 'api' ||
+      globalPeriod === INITIAL_DASHBOARD_FILTERS.period ||
+      chartPeriod !== globalPeriod ||
+      !snapshot.weekly.length
+    ) {
+      return [];
+    }
+
+    return snapshot.weekly.map((point) =>
+      this.scaleEvolutionPoint(point, this.evolutionScaleFactor(this.evolutionFilters())),
+    );
   }
 
   private selectedWeeklySourcePoint(
