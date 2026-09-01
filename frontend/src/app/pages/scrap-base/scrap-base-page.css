@@ -17,6 +17,11 @@
   min-width: 15rem;
 }
 
+.table-refresh-error {
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
 .btn {
   display: inline-flex;
   align-items: center;

@@ -65,6 +65,7 @@
       }
 
       <!-- Botão Disparador do Filtro + Popover Flutuante -->
+      <app-delayed-progress-spinner [active]="loading()" ariaLabel="Consultando execuções" />
       <app-list-filter-popover
         [(open)]="filterOpen"
         [activeCount]="activeFiltersCount()"
@@ -276,9 +277,14 @@
       </app-list-filter-popover>
     </div>
 
-    @if (loading()) {
-      <app-list-feedback kind="loading" [message]="t().executionsLoading" />
-    } @else if (error()) {
+    @if (loading() && (!data() || data()!.items.length === 0)) {
+      <app-list-table-skeleton
+        [columns]="tableColumns()"
+        [rows]="5"
+        minWidth="68rem"
+        [loadingLabel]="t().executionsLoading"
+      />
+    } @else if (error() && (!data() || data()!.items.length === 0)) {
       <app-list-feedback
         kind="error"
         [title]="t().executionsErrorTitle"
@@ -293,7 +299,10 @@
         [message]="t().executionsEmptyDesc"
       />
     } @else {
-      <div class="list-table-frame">
+      @if (error()) {
+        <app-inline-alert class="table-refresh-error" [message]="error()!" />
+      }
+      <div class="list-table-frame" [attr.aria-busy]="loading()">
         <table class="list-table executions-table">
           <thead>
             <tr>

@@ -1,6 +1,6 @@
 import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
+import { Subject, Subscription, debounceTime, distinctUntilChanged } from 'rxjs';
 import { ListFilterDateRange } from '../../shared/list-filters/list-filter-date-range';
 import { ListFilterInput } from '../../shared/list-filters/list-filter-input';
 import { ListFilterPopover } from '../../shared/list-filters/list-filter-popover';
@@ -9,9 +9,11 @@ import {
   ListFilterSelectOption,
 } from '../../shared/list-filters/list-filter-select';
 import { InlineAlert } from '../../shared/list-view/inline-alert/inline-alert';
+import { DelayedProgressSpinner } from '../../shared/list-view/delayed-progress-spinner/delayed-progress-spinner';
 import { ListFeedback } from '../../shared/list-view/list-feedback/list-feedback';
 import { ListPagination } from '../../shared/list-view/list-pagination/list-pagination';
 import { ListPanel } from '../../shared/list-view/list-panel/list-panel';
+import { ListTableSkeleton } from '../../shared/list-view/list-table-skeleton/list-table-skeleton';
 import { StatusBadge } from '../../shared/list-view/status-badge/status-badge';
 import { ScrapFilterParams, ScrapPage, ScrapSortField, SortOrder } from './scrap-base.models';
 import { ScrapBaseService } from './scrap-base.service';
@@ -22,6 +24,7 @@ const PAGE_SIZES = [25, 50, 100, 200] as const;
   selector: 'app-scrap-base-page',
   imports: [
     InlineAlert,
+    DelayedProgressSpinner,
     ListFeedback,
     ListFilterDateRange,
     ListFilterInput,
@@ -29,6 +32,7 @@ const PAGE_SIZES = [25, 50, 100, 200] as const;
     ListFilterSelect,
     ListPagination,
     ListPanel,
+    ListTableSkeleton,
     StatusBadge,
   ],
   templateUrl: './scrap-base-page.html',
@@ -38,6 +42,7 @@ export class ScrapBasePage implements OnInit {
   private readonly scrapBaseService = inject(ScrapBaseService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly searchSubject = new Subject<string>();
+  private listRequest: Subscription | null = null;
 
   readonly pageSizes = PAGE_SIZES;
   readonly dateFrom = signal('');
@@ -53,6 +58,17 @@ export class ScrapBasePage implements OnInit {
   readonly data = signal<ScrapPage | null>(null);
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
+  readonly tableColumns = [
+    'Data',
+    'Organização',
+    'Item',
+    'Descrição',
+    'Ordem',
+    'Quantidade',
+    'Valor BRL',
+    'Valor USD',
+    'Ocorrência',
+  ] as const;
   readonly sortOptions: readonly ListFilterSelectOption[] = [
     { value: 'transaction_date', label: 'Data da transação' },
     { value: 'organization_code', label: 'Organização' },
@@ -82,26 +98,38 @@ export class ScrapBasePage implements OnInit {
         this.page.set(1);
         this.loadScrap();
       });
+    const cachedPage = this.scrapBaseService.getCached(this.buildFilters());
+    if (cachedPage) {
+      this.data.set(cachedPage);
+      return;
+    }
+
     this.loadScrap();
   }
 
   loadScrap(): void {
     if (this.dateRangeError()) return;
 
+    const filters = this.buildFilters();
+
+    this.listRequest?.unsubscribe();
     this.loading.set(true);
     this.error.set(null);
-    this.scrapBaseService.list(this.buildFilters()).subscribe({
-      next: (page) => {
-        this.data.set(page);
-        this.loading.set(false);
-      },
-      error: (err: { error?: { detail?: string }; message?: string }) => {
-        this.error.set(
-          err.error?.detail || err.message || 'Não foi possível carregar a base de scrap.',
-        );
-        this.loading.set(false);
-      },
-    });
+    this.listRequest = this.scrapBaseService
+      .list(filters)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (page) => {
+          this.data.set(page);
+          this.loading.set(false);
+        },
+        error: (err: { error?: { detail?: string }; message?: string }) => {
+          this.error.set(
+            err.error?.detail || err.message || 'Não foi possível carregar a base de scrap.',
+          );
+          this.loading.set(false);
+        },
+      });
   }
 
   onSearchInput(value: string): void {
@@ -145,7 +173,6 @@ export class ScrapBasePage implements OnInit {
     this.organization.set('');
     this.searchText.set('');
     this.searchQuery.set('');
-    this.searchSubject.next('');
     this.page.set(1);
     this.loadScrap();
   }

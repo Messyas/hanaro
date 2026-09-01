@@ -1,0 +1,15 @@
+:host {
+  display: none;
+}
+
+:host.is-visible {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 2.6rem;
+}
+
+mat-progress-spinner {
+  --mdc-circular-progress-active-indicator-color: var(--brand-primary);
+}

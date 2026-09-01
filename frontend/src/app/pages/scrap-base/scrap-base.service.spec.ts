@@ -38,5 +38,16 @@ describe('ScrapBaseService', () => {
     expect(request.request.params.get('search')).toBe('linha inicial');
     expect(request.request.params.get('sort_by')).toBe('item_code');
     request.flush(page);
+
+    expect(
+      service.getCached({
+        organizations: ['NWK', 'NW1'],
+        search: 'linha inicial',
+        page: 1,
+        page_size: 50,
+        sort_by: 'item_code',
+        sort_order: 'asc',
+      }),
+    ).toEqual(page);
   });
 });

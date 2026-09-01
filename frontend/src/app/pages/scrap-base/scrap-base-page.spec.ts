@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { of } from 'rxjs';
+import { Subject, of } from 'rxjs';
 import { vi } from 'vitest';
 import { ScrapPage } from './scrap-base.models';
 import { ScrapBasePage } from './scrap-base-page';
@@ -8,7 +8,7 @@ import { ScrapBaseService } from './scrap-base.service';
 describe('ScrapBasePage', () => {
   let component: ScrapBasePage;
   let fixture: ComponentFixture<ScrapBasePage>;
-  let service: { list: ReturnType<typeof vi.fn> };
+  let service: { list: ReturnType<typeof vi.fn>; getCached: ReturnType<typeof vi.fn> };
 
   const page: ScrapPage = {
     items: [
@@ -39,7 +39,10 @@ describe('ScrapBasePage', () => {
   };
 
   beforeEach(async () => {
-    service = { list: vi.fn().mockReturnValue(of(page)) };
+    service = {
+      list: vi.fn().mockReturnValue(of(page)),
+      getCached: vi.fn().mockReturnValue(null),
+    };
     await TestBed.configureTestingModule({
       imports: [ScrapBasePage],
       providers: [{ provide: ScrapBaseService, useValue: service }],
@@ -82,5 +85,36 @@ describe('ScrapBasePage', () => {
     expect(component.organization()).toBe('');
     expect(component.searchQuery()).toBe('');
     expect(component.page()).toBe(1);
+  });
+
+  it('keeps current rows visible while filters refresh in the background', async () => {
+    const refreshRequest = new Subject<ScrapPage>();
+    service.list.mockReturnValueOnce(refreshRequest);
+
+    component.onSortChange('item_code');
+    await fixture.whenStable();
+
+    const element = fixture.nativeElement as HTMLElement;
+    expect(element.querySelectorAll('.scrap-table tbody tr')).toHaveLength(1);
+    expect(element.querySelector('.list-table-frame')?.getAttribute('aria-busy')).toBe('true');
+    expect(element.querySelector('app-list-table-skeleton')).toBeNull();
+
+    refreshRequest.next(page);
+    refreshRequest.complete();
+    await fixture.whenStable();
+
+    expect(element.querySelector('.list-table-frame')?.getAttribute('aria-busy')).toBe('false');
+  });
+
+  it('uses the cached default result on return without requesting data again', async () => {
+    service.list.mockClear();
+    service.getCached.mockReturnValue(page);
+
+    const cachedFixture = TestBed.createComponent(ScrapBasePage);
+    cachedFixture.detectChanges();
+    await cachedFixture.whenStable();
+
+    expect(service.list).not.toHaveBeenCalled();
+    expect(cachedFixture.nativeElement.querySelectorAll('.scrap-table tbody tr')).toHaveLength(1);
   });
 });

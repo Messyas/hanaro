@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { of, throwError } from 'rxjs';
+import { Subject, of, throwError } from 'rxjs';
 import { vi } from 'vitest';
 import { ExecutionDetail, ExecutionPage } from './executions.models';
 import { ExecutionsPage } from './executions-page';
@@ -122,6 +122,25 @@ describe('ExecutionsPage', () => {
     expect(mockExecutionsService.list).toHaveBeenCalledWith(
       expect.objectContaining({ status: 'FAILED', page: 1 }),
     );
+  });
+
+  it('should preserve table rows while filtered data refreshes', async () => {
+    const refreshRequest = new Subject<ExecutionPage>();
+    mockExecutionsService.list.mockReturnValueOnce(refreshRequest);
+
+    component.selectStatus('FAILED');
+    await fixture.whenStable();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelectorAll('.executions-table tbody tr')).toHaveLength(1);
+    expect(compiled.querySelector('.list-table-frame')?.getAttribute('aria-busy')).toBe('true');
+    expect(compiled.querySelector('app-list-table-skeleton')).toBeNull();
+
+    refreshRequest.next(mockPageData);
+    refreshRequest.complete();
+    await fixture.whenStable();
+
+    expect(compiled.querySelector('.list-table-frame')?.getAttribute('aria-busy')).toBe('false');
   });
 
   it('should open detail modal when a row is clicked and close on escape or close button', () => {

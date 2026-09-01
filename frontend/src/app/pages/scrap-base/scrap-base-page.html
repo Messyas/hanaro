@@ -8,6 +8,7 @@
     [meta]="data() ? 'TOTAL: ' + data()!.total_items : ''"
   >
     <div list-actions class="list-actions">
+      <app-delayed-progress-spinner [active]="loading()" ariaLabel="Consultando a base de scrap" />
       <app-list-filter-popover
         [(open)]="filterOpen"
         [activeCount]="activeFiltersCount()"
@@ -56,9 +57,14 @@
       </button>
     </div>
 
-    @if (loading()) {
-      <app-list-feedback kind="loading" message="Carregando ocorrências…" />
-    } @else if (error()) {
+    @if (loading() && (!data() || data()!.items.length === 0)) {
+      <app-list-table-skeleton
+        [columns]="tableColumns"
+        [rows]="6"
+        minWidth="64rem"
+        loadingLabel="Carregando ocorrências de scrap"
+      />
+    } @else if (error() && (!data() || data()!.items.length === 0)) {
       <app-list-feedback
         kind="error"
         title="Não foi possível carregar a base"
@@ -73,7 +79,10 @@
         message="Ajuste os filtros ou aguarde a publicação de uma nova execução."
       />
     } @else {
-      <div class="list-table-frame">
+      @if (error()) {
+        <app-inline-alert class="table-refresh-error" [message]="error()!" />
+      }
+      <div class="list-table-frame" [attr.aria-busy]="loading()">
         <table class="list-table scrap-table">
           <thead>
             <tr>

@@ -10,7 +10,7 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
+import { Subject, Subscription, debounceTime, distinctUntilChanged } from 'rxjs';
 import { LanguageService } from '../../i18n/language.service';
 import { ListFilterDateRange } from '../../shared/list-filters/list-filter-date-range';
 import { ListFilterInput } from '../../shared/list-filters/list-filter-input';
@@ -20,9 +20,11 @@ import {
   ListFilterSelectOption,
 } from '../../shared/list-filters/list-filter-select';
 import { InlineAlert } from '../../shared/list-view/inline-alert/inline-alert';
+import { DelayedProgressSpinner } from '../../shared/list-view/delayed-progress-spinner/delayed-progress-spinner';
 import { ListFeedback } from '../../shared/list-view/list-feedback/list-feedback';
 import { ListPagination } from '../../shared/list-view/list-pagination/list-pagination';
 import { ListPanel } from '../../shared/list-view/list-panel/list-panel';
+import { ListTableSkeleton } from '../../shared/list-view/list-table-skeleton/list-table-skeleton';
 import { StatusBadge } from '../../shared/list-view/status-badge/status-badge';
 import type { StatusBadgeTone } from '../../shared/list-view/status-badge/status-badge';
 import { UiIcon } from '../../ui-icon';
@@ -57,6 +59,7 @@ export interface CalendarDay {
   imports: [
     DecimalPipe,
     InlineAlert,
+    DelayedProgressSpinner,
     ListFeedback,
     ListFilterDateRange,
     ListFilterInput,
@@ -64,6 +67,7 @@ export interface CalendarDay {
     ListFilterSelect,
     ListPagination,
     ListPanel,
+    ListTableSkeleton,
     StatusBadge,
     UiIcon,
   ],
@@ -79,6 +83,7 @@ export class ExecutionsPage implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly isBrowser = isPlatformBrowser(this.platformId);
   private readonly searchSubject = new Subject<string>();
+  private listRequest: Subscription | null = null;
 
   readonly language = inject(LanguageService);
   readonly t = computed(() => this.language.translations());
@@ -136,6 +141,19 @@ export class ExecutionsPage implements OnInit {
   readonly data = signal<ExecutionPage | null>(null);
   readonly loading = signal<boolean>(false);
   readonly error = signal<string | null>(null);
+  readonly tableColumns = computed(() => [
+    this.t().executionsColProcess,
+    this.t().executionsColOrigin,
+    this.t().executionsColTrigger,
+    this.t().executionsColStart,
+    this.t().executionsColEnd,
+    this.t().executionsColDuration,
+    this.t().executionsColReceived,
+    this.t().executionsColValid,
+    this.t().executionsColRejected,
+    this.t().executionsColSnapshot,
+    this.t().executionsColStatus,
+  ]);
 
   // Estado do detalhe
   readonly selectedExecutionId = signal<string | null>(null);
@@ -431,17 +449,21 @@ export class ExecutionsPage implements OnInit {
     if (this.statusFilter()) params.status = this.statusFilter() as AutomationExecutionStatus;
     if (this.searchQuery().trim()) params.search = this.searchQuery().trim();
 
-    this.executionsService.list(params).subscribe({
-      next: (result) => {
-        this.data.set(result);
-        this.loading.set(false);
-      },
-      error: (err: { error?: { detail?: string }; message?: string }) => {
-        const message = err.error?.detail || err.message || 'Erro ao carregar dados do servidor.';
-        this.error.set(message);
-        this.loading.set(false);
-      },
-    });
+    this.listRequest?.unsubscribe();
+    this.listRequest = this.executionsService
+      .list(params)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (result) => {
+          this.data.set(result);
+          this.loading.set(false);
+        },
+        error: (err: { error?: { detail?: string }; message?: string }) => {
+          const message = err.error?.detail || err.message || 'Erro ao carregar dados do servidor.';
+          this.error.set(message);
+          this.loading.set(false);
+        },
+      });
   }
 
   refresh(): void {
@@ -453,7 +475,6 @@ export class ExecutionsPage implements OnInit {
     this.dateTo.set('');
     this.statusFilter.set('');
     this.searchQuery.set('');
-    this.searchSubject.next('');
     this.page.set(1);
     this.loadExecutions();
   }
@@ -461,7 +482,6 @@ export class ExecutionsPage implements OnInit {
   clearSearch(event?: Event): void {
     if (event) event.stopPropagation();
     this.searchQuery.set('');
-    this.searchSubject.next('');
     this.page.set(1);
     this.loadExecutions();
   }
