@@ -1,33 +1,31 @@
 <div class="scrap-dashboard">
   <section class="dashboard-filter-panel" [attr.aria-label]="text().filtersAria">
-    <div class="dashboard-filter-grid">
-      <label class="dashboard-field">
-        <span>{{ text().year }}</span>
-        <select
-          [attr.aria-label]="text().year"
-          [value]="store.filters().year"
-          (change)="changeFilter('year', $event)"
-        >
-          @for (year of store.options.years; track year) {
-            <option [value]="year">{{ year }}</option>
-          }
-        </select>
-      </label>
-      <label class="dashboard-field">
-        <span>{{ text().period }}</span>
-        <select
-          [attr.aria-label]="text().period"
-          [value]="store.filters().period"
-          (change)="changeFilter('period', $event)"
-        >
-          @for (period of store.options.periods; track period.value) {
-            <option [value]="period.value">{{ periodOptionLabel(period.value) }}</option>
-          }
-        </select>
-      </label>
-    </div>
     @if (advancedFiltersOpen()) {
       <div class="dashboard-filter-grid dashboard-filter-grid-advanced">
+        <label class="dashboard-field">
+          <span>{{ text().year }}</span>
+          <select
+            [attr.aria-label]="text().year"
+            [value]="store.filters().year"
+            (change)="changeFilter('year', $event)"
+          >
+            @for (year of store.options.years; track year) {
+              <option [value]="year">{{ year }}</option>
+            }
+          </select>
+        </label>
+        <label class="dashboard-field">
+          <span>{{ text().period }}</span>
+          <select
+            [attr.aria-label]="text().period"
+            [value]="store.filters().period"
+            (change)="changeFilter('period', $event)"
+          >
+            @for (period of store.options.periods; track period.value) {
+              <option [value]="period.value">{{ periodOptionLabel(period.value) }}</option>
+            }
+          </select>
+        </label>
         <app-dashboard-multi-select
           [label]="text().product"
           [allLabel]="text().allMasculine"

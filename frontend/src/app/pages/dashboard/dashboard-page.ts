@@ -129,6 +129,8 @@ export class DashboardPage {
   readonly advancedFiltersCount = computed(() => {
     const filters = this.store.filters();
     return (
+      (filters.year === INITIAL_DASHBOARD_FILTERS.year ? 0 : 1) +
+      (filters.period === INITIAL_DASHBOARD_FILTERS.period ? 0 : 1) +
       filters.product.length +
       filters.line.length +
       filters.division.length +
@@ -359,6 +361,8 @@ export class DashboardPage {
 
   filterChipLabel(key: string): string {
     const labels: Record<string, string> = {
+      year: this.text().year,
+      period: this.text().period,
       product: this.text().product,
       line: this.text().line,
       division: this.text().division,

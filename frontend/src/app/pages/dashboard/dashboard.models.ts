@@ -19,7 +19,7 @@ export type DashboardMultiFilterKey = 'product' | 'line' | 'division' | 'week';
 export type DashboardSingleFilterKey = Exclude<DashboardFilterKey, DashboardMultiFilterKey>;
 
 export interface DashboardFilterChip {
-  key: DashboardMultiFilterKey | 'component';
+  key: DashboardFilterKey;
   label: string;
   values: readonly string[];
 }

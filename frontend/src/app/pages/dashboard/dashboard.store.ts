@@ -79,6 +79,22 @@ export class DashboardStore {
   readonly activeFilterChips = computed<readonly DashboardFilterChip[]>(() => {
     const filters = this.filters();
     return [
+      {
+        key: 'year',
+        label: 'Ano',
+        values: filters.year === INITIAL_DASHBOARD_FILTERS.year ? [] : [filters.year],
+      },
+      {
+        key: 'period',
+        label: 'Período',
+        values:
+          filters.period === INITIAL_DASHBOARD_FILTERS.period
+            ? []
+            : [
+                this.options.periods.find((period) => period.value === filters.period)?.label ??
+                  filters.period,
+              ],
+      },
       { key: 'product', label: 'Produto', values: filters.product },
       { key: 'line', label: 'Linha', values: filters.line },
       { key: 'division', label: 'Divisão', values: filters.division },
@@ -181,7 +197,7 @@ export class DashboardStore {
     this.filters.update((filters) => ({ ...filters, [key]: value }));
   }
 
-  clearFilter(key: DashboardMultiFilterKey | 'component'): void {
+  clearFilter(key: DashboardFilterKey): void {
     this.setFilter(key, INITIAL_DASHBOARD_FILTERS[key]);
   }
 
