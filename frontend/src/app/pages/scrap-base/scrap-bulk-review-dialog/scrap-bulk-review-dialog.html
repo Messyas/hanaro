@@ -1,0 +1,201 @@
+<div class="modal-backdrop" (click)="close()">
+  <div
+    class="bulk-dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="bulk-dialog-title"
+    (click)="$event.stopPropagation()"
+  >
+    <header class="dialog-header">
+      <div class="header-title-group">
+        <h3 id="bulk-dialog-title" class="dialog-title">{{ t().scrapBulkTitle }}</h3>
+        <span class="selected-badge">
+          {{ selectedOccurrenceIds().length }} {{ t().scrapBulkItemsSelected }}
+        </span>
+      </div>
+      <button
+        type="button"
+        class="btn btn-ghost close-btn"
+        (click)="close()"
+        aria-label="Fechar diálogo"
+      >
+        <ui-icon name="x" />
+      </button>
+    </header>
+
+    <div class="dialog-body">
+      @if (bulkResult(); as result) {
+        <!-- Tela de Resultado do Lote -->
+        <div class="result-container">
+          <div class="result-card success-card">
+            <span class="result-icon success-icon"><ui-icon name="check" /></span>
+            <div class="result-info">
+              <strong>{{ t().scrapBulkSuccessSummary }}</strong>
+              <span class="result-number">{{ result.created_count }}</span>
+            </div>
+          </div>
+
+          @if (result.skipped_count > 0) {
+            <div class="result-card skipped-card">
+              <span class="result-icon warning-icon"><ui-icon name="x" /></span>
+              <div class="result-info">
+                <strong>{{ t().scrapBulkSkippedSummary }}</strong>
+                <span class="result-number">{{ result.skipped_count }}</span>
+              </div>
+            </div>
+
+            <div class="skipped-details">
+              <h5>Itens não processados:</h5>
+              <ul class="skipped-list">
+                @for (skip of result.skipped; track skip.occurrence_id) {
+                  <li class="skipped-item">
+                    <span class="skip-id font-mono">{{ skip.occurrence_id.slice(0, 8) }}...</span>
+                    <span class="skip-reason">{{ translateSkipReason(skip.reason) }}</span>
+                  </li>
+                }
+              </ul>
+            </div>
+          }
+        </div>
+      } @else {
+        <!-- Tela de Configuração do Lote -->
+        @if (error()) {
+          <app-inline-alert [message]="error()!" />
+        }
+
+        <!-- Seção de Relatório de Referência -->
+        <section class="dialog-section">
+          <label class="section-label">{{ t().scrapBulkSelectReference }}</label>
+
+          @if (selectedReferenceReview(); as ref) {
+            <div class="reference-selected-card">
+              <div class="reference-header">
+                <div class="reference-info">
+                  <span class="reference-defect-tag">{{
+                    ref.defect_type?.name || 'Sem tipo'
+                  }}</span>
+                  <strong class="reference-title">{{ ref.title }}</strong>
+                </div>
+                <button
+                  type="button"
+                  class="btn btn-ghost btn-sm"
+                  (click)="clearReference()"
+                  aria-label="Trocar relatório de referência"
+                >
+                  <ui-icon name="x" />
+                  <span>Trocar</span>
+                </button>
+              </div>
+              <p class="reference-desc">{{ ref.description }}</p>
+              @if (ref.attachments.length > 0) {
+                <span class="reference-attachments-tag">
+                  <ui-icon name="image" />
+                  <span>{{ ref.attachments.length }} foto(s)</span>
+                </span>
+              }
+            </div>
+          } @else {
+            <div class="reference-picker">
+              <!-- Seção de Modelos Salvos -->
+              <div class="templates-selection-container">
+                @if (templates().length > 0) {
+                  <span class="sub-section-label">{{ t().scrapTemplatesButton }}</span>
+                  <div class="template-choice-list" role="list">
+                    @for (tpl of templates(); track tpl.id) {
+                      <button
+                        type="button"
+                        class="template-choice-item"
+                        (click)="selectTemplate(tpl)"
+                      >
+                        <div class="tpl-choice-header">
+                          <span class="defect-badge">{{ tpl.defect_type?.name || 'Padrão' }}</span>
+                          <ui-icon name="heart-filled" class="tpl-heart-icon" />
+                        </div>
+                        <strong class="tpl-choice-name">{{ tpl.name }}</strong>
+                        <p class="tpl-choice-desc">{{ tpl.description }}</p>
+                      </button>
+                    }
+                  </div>
+                } @else {
+                  <div class="no-templates-card">
+                    <div class="no-templates-icon">
+                      <ui-icon name="heart" />
+                    </div>
+                    <strong class="no-templates-title">{{ t().scrapTemplatesEmptyTitle }}</strong>
+                    <p class="no-templates-hint">{{ t().scrapTemplatesEmptyHint }}</p>
+                  </div>
+                }
+              </div>
+
+              <!-- Busca de ocorrência finalizada como fallback -->
+              <div class="manual-search-container">
+                <span class="sub-section-label">Ou buscar por ocorrência finalizada:</span>
+                <div class="search-input-wrapper">
+                  <input
+                    type="search"
+                    class="form-control"
+                    [placeholder]="t().scrapBulkSearchPlaceholder"
+                    (input)="onSearchInput($event)"
+                  />
+                </div>
+
+                <div class="candidate-list" role="list">
+                  @if (searching()) {
+                    <div class="candidate-loading">Buscando relatórios finalizados...</div>
+                  } @else if (candidateOccurrences().length === 0) {
+                    <div class="candidate-empty">Nenhum relatório finalizado encontrado.</div>
+                  } @else {
+                    @for (item of candidateOccurrences(); track item.id) {
+                      <button
+                        type="button"
+                        class="candidate-item"
+                        (click)="selectReferenceOccurrence(item)"
+                      >
+                        <span class="item-code">{{ item.item_code }}</span>
+                        <span class="candidate-desc">{{ item.item_description || '—' }}</span>
+                        <span class="candidate-defect">{{
+                          item.defect_type_name || 'Revisado'
+                        }}</span>
+                      </button>
+                    }
+                  }
+                </div>
+              </div>
+            </div>
+          }
+        </section>
+
+        <!-- Opção de Copiar Anexos -->
+        <section class="dialog-section copy-attachments-section">
+          <label class="checkbox-label">
+            <input
+              type="checkbox"
+              [checked]="copyAttachments()"
+              (change)="toggleCopyAttachments()"
+            />
+            <span class="checkbox-text">{{ t().scrapBulkCopyAttachments }}</span>
+          </label>
+          <p class="checkbox-warning">{{ t().scrapBulkCopyAttachmentsWarning }}</p>
+        </section>
+      }
+    </div>
+
+    <footer class="dialog-footer">
+      @if (bulkResult()) {
+        <button type="button" class="btn btn-primary" (click)="close()">Concluir</button>
+      } @else {
+        <button type="button" class="btn btn-ghost" (click)="close()" [disabled]="isSubmitting()">
+          {{ t().cancel }}
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          [disabled]="!selectedReferenceReview() || isSubmitting()"
+          (click)="executeBulk()"
+        >
+          {{ isSubmitting() ? t().scrapBulkApplying : t().scrapBulkApplyButton }}
+        </button>
+      }
+    </footer>
+  </div>
+</div>

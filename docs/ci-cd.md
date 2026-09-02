@@ -15,7 +15,7 @@ No ambiente `production`, mantenha somente:
 
 ## Variáveis no Render
 
-Sincronize `render.yaml` como Blueprint e configure, no painel do serviço `hanaro-api`:
+Sincronize `.github/deploy/render.yaml` como Blueprint e configure, no painel do serviço `hanaro-api`:
 
 - `DATABASE_URL`: URL Aiven PostgreSQL no formato `postgresql+asyncpg://USUARIO:SENHA@HOST:PORT/defaultdb?ssl=require`. Uma URL Aiven com `postgresql://` e `sslmode=require` também é normalizada automaticamente.
 - `REDIS_URL`: URL Aiven Valkey com TLS, por exemplo `rediss://avnadmin:SENHA@HOST:PORT/0`.

@@ -101,6 +101,12 @@ export class DashboardShell {
         requiresAuthentication: true,
       },
       {
+        path: '/base-de-scrap',
+        icon: 'folder',
+        label: t.navScrapBase,
+        requiresAuthentication: true,
+      },
+      {
         path: '/relatorios',
         icon: 'chart-bar',
         label: t.navReports,

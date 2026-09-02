@@ -1,0 +1,14 @@
+<article class="panel-card">
+  <header class="section-header">
+    <div class="section-header-left">
+      <h2>{{ title() }}</h2>
+      @if (meta()) {
+        <span class="meta-label">{{ meta() }}</span>
+      }
+    </div>
+    <div class="section-header-right">
+      <ng-content select="[list-actions]" />
+    </div>
+  </header>
+  <ng-content />
+</article>

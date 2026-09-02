@@ -1,0 +1,89 @@
+<form class="review-form-container" (submit)="$event.preventDefault()">
+  <!-- Tipo de Defeito -->
+  <div class="form-group">
+    <label class="form-label" for="defect-type-select">
+      {{ t().scrapFieldDefectType }}
+      <span class="required-star">*</span>
+    </label>
+    @if (defectTypes().length === 0) {
+      <div class="no-types-warning" role="alert">
+        <ui-icon name="x" />
+        <span>{{ t().scrapNoDefectTypes }}</span>
+      </div>
+    } @else {
+      <app-list-filter-select
+        id="defect-type-select"
+        [value]="reviewModel().defectTypeId"
+        [options]="defectTypeOptions()"
+        [label]="t().scrapFieldDefectType"
+        [ariaLabel]="t().scrapFieldDefectTypePlaceholder"
+        (changed)="onDefectTypeChanged($event)"
+      />
+    }
+  </div>
+
+  <!-- Responsável (Somente Leitura) -->
+  <div class="form-group">
+    <label class="form-label" for="responsible-name-input">
+      {{ t().scrapFieldResponsible }}
+    </label>
+    <div class="readonly-input-wrapper">
+      <input
+        id="responsible-name-input"
+        type="text"
+        class="form-control"
+        [value]="responsibleName()"
+        readonly
+        tabindex="-1"
+      />
+    </div>
+  </div>
+
+  <!-- Título -->
+  <div class="form-group">
+    <label class="form-label" for="review-title-input">
+      {{ t().scrapFieldTitle }}
+      <span class="required-star">*</span>
+    </label>
+    <input
+      id="review-title-input"
+      type="text"
+      class="form-control"
+      [formField]="reviewForm.title"
+      [placeholder]="t().scrapFieldTitlePlaceholder"
+      (input)="onTitleInput($event)"
+    />
+  </div>
+
+  <!-- Descrição e Causa Raiz -->
+  <div class="form-group">
+    <div class="form-label-row">
+      <label class="form-label" for="review-desc-input">
+        {{ t().scrapFieldDescription }}
+        <span class="required-star">*</span>
+      </label>
+      <span class="char-counter" [class.char-counter-limit]="charCount() >= 20000">
+        {{ charCount() }} / 20.000 {{ t().scrapCharCount }}
+      </span>
+    </div>
+    <textarea
+      id="review-desc-input"
+      class="form-control form-textarea"
+      [formField]="reviewForm.description"
+      [placeholder]="t().scrapFieldDescriptionPlaceholder"
+      rows="6"
+      (input)="onDescriptionInput($event)"
+    ></textarea>
+  </div>
+
+  <!-- Seção de Evidências Fotográficas -->
+  <div class="form-group">
+    <app-scrap-review-attachments
+      [attachments]="review()?.attachments || []"
+      [readOnly]="readOnly()"
+      [uploading]="uploading()"
+      (filesSelected)="filesSelected.emit($event)"
+      (attachmentDeleted)="attachmentDeleted.emit($event)"
+    />
+  </div>
+</form>

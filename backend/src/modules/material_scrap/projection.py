@@ -59,48 +59,28 @@ class _ProjectionKey(NamedTuple):
 
 
 def build_dashboard_projection(
-    run_id: uuid.UUID,
-    records: list[CanonicalScrapRecord],
-) -> list[ScrapDashboardAggregate]:
-    """Collapse canonical rows to the supported dashboard-filter grain."""
-    grouped: dict[_ProjectionKey, _Totals] = {}
-    for record in records:
-        key = _ProjectionKey(
-            record.transaction_date,
-            record.organization_code,
-            _dimension(record.receipt_department),
-            _dimension(record.department),
-            _dimension(record.product),
-            _dimension(record.division),
-            _dimension(record.item_type),
-            _dimension(record.account_code),
-            _dimension(record.account_alias),
-            _dimension(record.item_code),
-            _counted_key(record.to_be_counted),
-        )
-        grouped.setdefault(key, _Totals()).add(record)
-
-    return [
-        ScrapDashboardAggregate(
-            run_id=run_id,
-            transaction_date=key.transaction_date,
-            organization_code=key.organization_code,
-            receipt_department=key.receipt_department,
-            department=key.department,
-            product=key.product,
-            division=key.division,
-            item_type=key.item_type,
-            account_code=key.account_code,
-            account_alias=key.account_alias,
-            item_code=key.item_code,
-            to_be_counted_key=key.to_be_counted_key,
-            record_count=totals.record_count,
-            issue_quantity=totals.issue_quantity,
-            issue_quantity_abs=totals.issue_quantity_abs,
-            issue_amount_brl=totals.issue_amount_brl,
-            issue_amount_brl_abs=totals.issue_amount_brl_abs,
-            amount_usd=totals.amount_usd,
-            amount_usd_abs=totals.amount_usd_abs,
-        )
-        for key, totals in grouped.items()
-    ]
+    *, occurrence_id: uuid.UUID, run_id: uuid.UUID, record: CanonicalScrapRecord
+) -> ScrapDashboardAggregate:
+    """Create the current dashboard fact for exactly one stable occurrence."""
+    return ScrapDashboardAggregate(
+        occurrence_id=occurrence_id,
+        run_id=run_id,
+        transaction_date=record.transaction_date,
+        organization_code=record.organization_code,
+        receipt_department=_dimension(record.receipt_department),
+        department=_dimension(record.department),
+        product=_dimension(record.product),
+        division=_dimension(record.division),
+        item_type=_dimension(record.item_type),
+        account_code=_dimension(record.account_code),
+        account_alias=_dimension(record.account_alias),
+        item_code=_dimension(record.item_code),
+        to_be_counted_key=_counted_key(record.to_be_counted),
+        record_count=1,
+        issue_quantity=record.issue_quantity,
+        issue_quantity_abs=abs(record.issue_quantity),
+        issue_amount_brl=record.issue_amount_brl,
+        issue_amount_brl_abs=abs(record.issue_amount_brl),
+        amount_usd=record.amount_usd,
+        amount_usd_abs=abs(record.amount_usd),
+    )
