@@ -1,6 +1,8 @@
 import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, Subscription, debounceTime, distinctUntilChanged } from 'rxjs';
+import { AuthService } from '../../core/auth/auth.service';
 import { LanguageService } from '../../i18n/language.service';
 import { ListFilterDateRange } from '../../shared/list-filters/list-filter-date-range';
 import { ListFilterInput } from '../../shared/list-filters/list-filter-input';
@@ -9,23 +11,38 @@ import {
   ListFilterSelect,
   ListFilterSelectOption,
 } from '../../shared/list-filters/list-filter-select';
-import { InlineAlert } from '../../shared/list-view/inline-alert/inline-alert';
 import { DelayedProgressSpinner } from '../../shared/list-view/delayed-progress-spinner/delayed-progress-spinner';
+import { InlineAlert } from '../../shared/list-view/inline-alert/inline-alert';
 import { ListFeedback } from '../../shared/list-view/list-feedback/list-feedback';
 import { ListPagination } from '../../shared/list-view/list-pagination/list-pagination';
 import { ListPanel } from '../../shared/list-view/list-panel/list-panel';
 import { ListTableSkeleton } from '../../shared/list-view/list-table-skeleton/list-table-skeleton';
 import { StatusBadge } from '../../shared/list-view/status-badge/status-badge';
-import { ScrapFilterParams, ScrapPage, ScrapSortField, SortOrder } from './scrap-base.models';
+import { UiIcon } from '../../ui-icon';
+import {
+  ScrapFilterParams,
+  ScrapListItem,
+  ScrapPage,
+  ScrapReviewFilterStatus,
+  ScrapSortField,
+  SortOrder,
+} from './scrap-base.models';
 import { ScrapBaseService } from './scrap-base.service';
+import { ScrapBulkReviewDialog } from './scrap-bulk-review-dialog/scrap-bulk-review-dialog';
+import { ScrapReviewDrawer } from './scrap-review-drawer/scrap-review-drawer';
+import { ScrapDefectType, ScrapReview, ScrapReviewBulkResult } from './scrap-review.models';
+import { ScrapReviewService } from './scrap-review.service';
+import { ScrapReviewTemplate } from './scrap-template.models';
+import { ScrapTemplatePopover } from './scrap-template-popover/scrap-template-popover';
+import { ScrapTemplateService } from './scrap-template.service';
 
 const PAGE_SIZES = [25, 50, 100, 200] as const;
 
 @Component({
   selector: 'app-scrap-base-page',
   imports: [
-    InlineAlert,
     DelayedProgressSpinner,
+    InlineAlert,
     ListFeedback,
     ListFilterDateRange,
     ListFilterInput,
@@ -34,20 +51,32 @@ const PAGE_SIZES = [25, 50, 100, 200] as const;
     ListPagination,
     ListPanel,
     ListTableSkeleton,
+    ScrapBulkReviewDialog,
+    ScrapReviewDrawer,
+    ScrapTemplatePopover,
     StatusBadge,
+    UiIcon,
   ],
   templateUrl: './scrap-base-page.html',
   styleUrl: './scrap-base-page.css',
 })
 export class ScrapBasePage implements OnInit {
   private readonly scrapBaseService = inject(ScrapBaseService);
+  private readonly reviewService = inject(ScrapReviewService);
+  private readonly templateService = inject(ScrapTemplateService);
+  private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
+
   private readonly searchSubject = new Subject<string>();
   private listRequest: Subscription | null = null;
 
   readonly language = inject(LanguageService);
   readonly t = computed(() => this.language.translations());
   readonly pageSizes = PAGE_SIZES;
+
+  // Filtros existentes
   readonly dateFrom = signal('');
   readonly dateTo = signal('');
   readonly organization = signal('');
@@ -58,42 +87,141 @@ export class ScrapBasePage implements OnInit {
   readonly sortBy = signal<ScrapSortField>('transaction_date');
   readonly sortOrder = signal<SortOrder>('desc');
   readonly filterOpen = signal(false);
+
+  // Novos filtros de análise
+  readonly reviewStatusFilter = signal<ScrapReviewFilterStatus | ''>('');
+  readonly defectTypeFilter = signal('');
+  readonly responsibleFilter = signal<'mine' | ''>('');
+  readonly defectTypes = signal<ScrapDefectType[]>([]);
+
+  // Estado da listagem
   readonly data = signal<ScrapPage | null>(null);
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
-  readonly tableColumns = computed(() => [
-    this.t().scrapColDate,
-    this.t().scrapColOrganization,
-    this.t().scrapColItem,
-    this.t().scrapColDescription,
-    this.t().scrapColOrder,
-    this.t().scrapColQuantity,
-    this.t().scrapColAmountBrl,
-    this.t().scrapColAmountUsd,
-    this.t().scrapColOccurrence,
-  ]);
+
+  // Modo de seleção e IDs selecionados
+  readonly selectionMode = signal(false);
+  readonly selectedOccurrenceIds = signal<Set<string>>(new Set());
+
+  // Drawer de análise e referência em massa
+  readonly openedOccurrenceId = signal<string | null>(null);
+  readonly selectedOccurrenceForDrawer = signal<ScrapListItem | null>(null);
+  readonly activeReferenceReview = signal<ScrapReview | null>(null);
+  readonly showBulkDialog = signal(false);
+
+  // Modelos de revisão salvos (Templates)
+  readonly templates = computed(() => this.templateService.templates());
+  readonly templatesLoading = computed(() => this.templateService.loading());
+  readonly isTemplatePopoverOpen = signal(false);
+  readonly activeTemplate = signal<ScrapReviewTemplate | null>(null);
+
+  readonly selectedCount = computed(() => this.selectedOccurrenceIds().size);
+
+  readonly isAllPageSelected = computed(() => {
+    const items = this.data()?.items || [];
+    const eligible = items.filter((item) => item.occurrence_id !== null);
+    if (eligible.length === 0) return false;
+    const selected = this.selectedOccurrenceIds();
+    return eligible.every((item) => selected.has(item.occurrence_id!));
+  });
+
+  readonly tableColumns = computed(() => {
+    const cols = [];
+    if (this.selectionMode()) {
+      cols.push('');
+    }
+    cols.push(
+      this.t().scrapColDate,
+      this.t().scrapColOrganization,
+      this.t().scrapColItem,
+      this.t().scrapColDescription,
+      this.t().scrapColOrder,
+      this.t().scrapColQuantity,
+      this.t().scrapColAmountUsd,
+      this.t().scrapColDefectType,
+      this.t().scrapColReviewStatus,
+      this.t().scrapColResponsible,
+      this.t().scrapColAction,
+    );
+    return cols;
+  });
+
   readonly sortOptions = computed<readonly ListFilterSelectOption[]>(() => [
     { value: 'transaction_date', label: this.t().scrapSortTransactionDate },
     { value: 'organization_code', label: this.t().scrapSortOrganization },
     { value: 'item_code', label: this.t().scrapSortItemCode },
     { value: 'issue_quantity', label: this.t().scrapSortQuantity },
-    { value: 'issue_amount_brl', label: this.t().scrapSortAmountBrl },
     { value: 'amount_usd', label: this.t().scrapSortAmountUsd },
+  ]);
+
+  readonly reviewStatusOptions = computed<readonly ListFilterSelectOption[]>(() => [
+    { value: '', label: this.t().scrapReviewStatusAll },
+    { value: 'UNREVIEWED', label: this.t().scrapReviewStatusUnreviewed },
+    { value: 'DRAFT', label: this.t().scrapReviewStatusDraft },
+    { value: 'REVIEWED', label: this.t().scrapReviewStatusReviewed },
+  ]);
+
+  readonly defectTypeOptions = computed<readonly ListFilterSelectOption[]>(() => {
+    const list: ListFilterSelectOption[] = [
+      { value: '', label: this.t().scrapFilterDefectTypeAll },
+    ];
+    for (const dt of this.defectTypes()) {
+      list.push({ value: dt.id, label: dt.name });
+    }
+    return list;
+  });
+
+  readonly responsibleOptions = computed<readonly ListFilterSelectOption[]>(() => [
+    { value: '', label: this.t().scrapFilterResponsibleAll },
+    { value: 'mine', label: this.t().scrapFilterResponsibleMine },
   ]);
 
   readonly dateRangeError = computed(() => {
     return Boolean(this.dateFrom() && this.dateTo() && this.dateTo() < this.dateFrom());
   });
+
   readonly activeFiltersCount = computed(() => {
     return [
       this.dateFrom(),
       this.dateTo(),
       this.organization().trim(),
       this.searchText().trim(),
+      this.reviewStatusFilter(),
+      this.defectTypeFilter(),
+      this.responsibleFilter(),
     ].filter(Boolean).length;
   });
 
   ngOnInit(): void {
+    // Carregar catálogo de tipos
+    this.reviewService
+      .getDefectTypes(false)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (types) => this.defectTypes.set(types),
+        error: () => this.defectTypes.set([]),
+      });
+
+    // Carregar templates favoritos
+    this.templateService.loadTemplates().pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
+
+    // Se navegou trazendo uma referência selecionada (ex: vindo de /relatorios)
+    const navState = history.state?.referenceReview as ScrapReview | undefined;
+    if (navState) {
+      this.activeReferenceReview.set(navState);
+      this.selectionMode.set(true);
+    }
+
+    // Monitorar parâmetro da rota de revisão /base-de-scrap/revisao/:occurrenceId
+    this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      const occurrenceId = params.get('occurrenceId');
+      if (occurrenceId) {
+        this.openedOccurrenceId.set(occurrenceId);
+      } else {
+        this.openedOccurrenceId.set(null);
+      }
+    });
+
     this.searchSubject
       .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
       .subscribe((search) => {
@@ -101,6 +229,7 @@ export class ScrapBasePage implements OnInit {
         this.page.set(1);
         this.loadScrap();
       });
+
     this.loadScrap();
   }
 
@@ -119,12 +248,180 @@ export class ScrapBasePage implements OnInit {
         next: (page) => {
           this.data.set(page);
           this.loading.set(false);
+
+          // Se há um occurrenceId aberto, localiza o item na página para passar ao drawer
+          const currentOccId = this.openedOccurrenceId();
+          if (currentOccId) {
+            const found = page.items.find((i) => i.occurrence_id === currentOccId);
+            if (found) {
+              this.selectedOccurrenceForDrawer.set(found);
+            }
+          }
         },
         error: (err: { error?: { detail?: string }; message?: string }) => {
           this.error.set(err.error?.detail || err.message || this.t().scrapErrorTitle);
           this.loading.set(false);
         },
       });
+  }
+
+  toggleSelectionMode(): void {
+    const nextMode = !this.selectionMode();
+    this.selectionMode.set(nextMode);
+    if (!nextMode) {
+      this.clearSelection();
+    }
+  }
+
+  toggleSelectAllOnPage(): void {
+    const items = this.data()?.items || [];
+    const eligible = items.filter((item) => item.occurrence_id !== null);
+    const selected = new Set(this.selectedOccurrenceIds());
+
+    if (this.isAllPageSelected()) {
+      for (const item of eligible) {
+        selected.delete(item.occurrence_id!);
+      }
+    } else {
+      for (const item of eligible) {
+        selected.add(item.occurrence_id!);
+      }
+    }
+
+    this.selectedOccurrenceIds.set(selected);
+  }
+
+  toggleItemSelection(occurrenceId: string | null, event: Event): void {
+    event.stopPropagation();
+    if (!occurrenceId) return;
+
+    const selected = new Set(this.selectedOccurrenceIds());
+    if (selected.has(occurrenceId)) {
+      selected.delete(occurrenceId);
+    } else {
+      if (selected.size >= 500) {
+        alert('O limite máximo de seleção para operação em lote é de 500 itens.');
+        return;
+      }
+      selected.add(occurrenceId);
+    }
+    this.selectedOccurrenceIds.set(selected);
+  }
+
+  clearSelection(): void {
+    this.selectedOccurrenceIds.set(new Set());
+  }
+
+  openReview(item: ScrapListItem): void {
+    if (!item.occurrence_id) return;
+    this.selectedOccurrenceForDrawer.set(item);
+    this.openedOccurrenceId.set(item.occurrence_id);
+    this.router.navigate(['/base-de-scrap/revisao', item.occurrence_id], {
+      queryParamsHandling: 'preserve',
+    });
+  }
+
+  openReviewForFirstSelected(): void {
+    const firstId = Array.from(this.selectedOccurrenceIds())[0];
+    if (!firstId) return;
+    const found = this.data()?.items.find((i) => i.occurrence_id === firstId);
+    if (found) {
+      this.openReview(found);
+    } else {
+      this.openedOccurrenceId.set(firstId);
+      this.router.navigate(['/base-de-scrap/revisao', firstId], {
+        queryParamsHandling: 'preserve',
+      });
+    }
+  }
+
+  openBulkDialog(): void {
+    if (this.selectedCount() < 1) return;
+    this.showBulkDialog.set(true);
+  }
+
+  closeBulkDialog(): void {
+    this.showBulkDialog.set(false);
+  }
+
+  onBulkCompleted(result: ScrapReviewBulkResult): void {
+    // Remove os IDs criados com sucesso da seleção atual
+    const currentSelected = new Set(this.selectedOccurrenceIds());
+    for (const createdId of result.created_occurrence_ids) {
+      currentSelected.delete(createdId);
+    }
+    this.selectedOccurrenceIds.set(currentSelected);
+
+    // Se aplicou a referência, pode desativar
+    this.activeReferenceReview.set(null);
+    this.loadScrap();
+  }
+
+  removeActiveReference(): void {
+    this.activeReferenceReview.set(null);
+  }
+
+  toggleTemplatePopover(event: Event): void {
+    event.stopPropagation();
+    this.isTemplatePopoverOpen.update((v) => !v);
+  }
+
+  onUseTemplate(template: ScrapReviewTemplate): void {
+    this.activeTemplate.set(template);
+    this.selectionMode.set(true);
+    if (this.selectedCount() >= 1) {
+      this.openBulkDialog();
+    }
+  }
+
+  onDeleteTemplate(templateId: string): void {
+    this.templateService
+      .deleteTemplate(templateId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe();
+  }
+
+  removeActiveTemplate(): void {
+    this.activeTemplate.set(null);
+  }
+
+  closeDrawer(): void {
+    this.openedOccurrenceId.set(null);
+    this.selectedOccurrenceForDrawer.set(null);
+    this.router.navigate(['/base-de-scrap'], {
+      queryParamsHandling: 'preserve',
+    });
+  }
+
+  onReviewSaved(review: ScrapReview): void {
+    // Atualiza a ocorrência na lista localmente sem reload
+    const currentData = this.data();
+    if (currentData) {
+      const updatedItems = currentData.items.map((item) => {
+        if (item.occurrence_id === review.occurrence_id) {
+          return {
+            ...item,
+            review_id: review.id,
+            review_status: review.status,
+            defect_type_id: review.defect_type?.id || null,
+            defect_type_name: review.defect_type?.name || null,
+            responsible_user_id: review.responsible_user_id,
+            responsible_name: review.responsible_name,
+            reviewed_at: review.reviewed_at,
+            review_updated_at: review.updated_at,
+            attachment_count: review.attachments.length,
+          };
+        }
+        return item;
+      });
+      this.data.set({ ...currentData, items: updatedItems });
+    }
+  }
+
+  onUseAsReference(review: ScrapReview): void {
+    this.activeReferenceReview.set(review);
+    this.selectionMode.set(true);
+    this.closeDrawer();
   }
 
   onSearchInput(value: string): void {
@@ -156,6 +453,24 @@ export class ScrapBasePage implements OnInit {
     this.loadScrap();
   }
 
+  onReviewStatusFilterChange(value: string): void {
+    this.reviewStatusFilter.set(value as ScrapReviewFilterStatus | '');
+    this.page.set(1);
+    this.loadScrap();
+  }
+
+  onDefectTypeFilterChange(value: string): void {
+    this.defectTypeFilter.set(value);
+    this.page.set(1);
+    this.loadScrap();
+  }
+
+  onResponsibleFilterChange(value: string): void {
+    this.responsibleFilter.set(value as 'mine' | '');
+    this.page.set(1);
+    this.loadScrap();
+  }
+
   toggleSortOrder(): void {
     this.sortOrder.update((order) => (order === 'asc' ? 'desc' : 'asc'));
     this.page.set(1);
@@ -168,6 +483,9 @@ export class ScrapBasePage implements OnInit {
     this.organization.set('');
     this.searchText.set('');
     this.searchQuery.set('');
+    this.reviewStatusFilter.set('');
+    this.defectTypeFilter.set('');
+    this.responsibleFilter.set('');
     this.page.set(1);
     this.loadScrap();
   }
@@ -190,8 +508,10 @@ export class ScrapBasePage implements OnInit {
     return new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 }).format(Number(value));
   }
 
-  formatCurrency(value: string, currency: 'BRL' | 'USD'): string {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency }).format(Number(value));
+  formatCurrency(value: string): string {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'USD' }).format(
+      Number(value),
+    );
   }
 
   formatTransactionDate(value: string): string {
@@ -199,8 +519,16 @@ export class ScrapBasePage implements OnInit {
     return year && month && day ? `${day}/${month}/${year}` : value;
   }
 
-  formatOccurrenceStatus(status: string): string {
-    return status === 'ACTIVE' ? this.t().scrapOccurrenceActive : status.replaceAll('_', ' ');
+  formatReviewStatus(status: ScrapListItem['review_status']): string {
+    if (status === 'REVIEWED') return this.t().scrapReviewStatusReviewed;
+    if (status === 'DRAFT') return this.t().scrapReviewStatusDraft;
+    return this.t().scrapReviewStatusUnreviewed;
+  }
+
+  reviewStatusTone(status: ScrapListItem['review_status']): 'success' | 'warning' | 'neutral' {
+    if (status === 'REVIEWED') return 'success';
+    if (status === 'DRAFT') return 'warning';
+    return 'neutral';
   }
 
   calendarLocale(): string {
@@ -214,6 +542,10 @@ export class ScrapBasePage implements OnInit {
       .map((value) => value.trim())
       .filter(Boolean);
 
+    const currentUser = this.authService.user();
+    const responsibleIds =
+      this.responsibleFilter() === 'mine' && currentUser?.id ? [currentUser.id] : undefined;
+
     return {
       page: this.page(),
       page_size: this.pageSize(),
@@ -223,6 +555,9 @@ export class ScrapBasePage implements OnInit {
       ...(this.dateTo() ? { date_to: this.dateTo() } : {}),
       ...(organizations.length ? { organizations } : {}),
       ...(this.searchQuery() ? { search: this.searchQuery() } : {}),
+      ...(this.reviewStatusFilter() ? { review_status: this.reviewStatusFilter() as any } : {}),
+      ...(this.defectTypeFilter() ? { defect_type_ids: [this.defectTypeFilter()] } : {}),
+      ...(responsibleIds ? { responsible_user_ids: responsibleIds } : {}),
     };
   }
 }

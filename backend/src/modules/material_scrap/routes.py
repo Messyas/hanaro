@@ -50,11 +50,14 @@ from .review_service import (
     assert_review_accepts_attachment,
     create_bulk_reviews,
     create_defect_type,
+    create_review_template,
     delete_review_attachment,
+    delete_review_template,
     finalize_review,
     get_review_attachment,
     get_review_for_occurrence,
     list_defect_types,
+    list_review_templates,
     save_review_draft,
     update_defect_type,
 )
@@ -77,6 +80,8 @@ from .schemas import (
     ScrapReviewBulkCreate,
     ScrapReviewBulkResult,
     ScrapReviewRead,
+    ScrapReviewTemplateCreate,
+    ScrapReviewTemplateRead,
     ScrapReviewWrite,
     ScrapSummary,
     ScrapTargetRead,
@@ -322,6 +327,38 @@ async def update_scrap_review_type(
     try:
         return await update_defect_type(db, defect_type_id, command)
     except (ScrapReviewNotFoundError, ScrapReviewConflictError) as error:
+        raise _review_http_exception(error) from error
+
+
+@scrap_router.get("/reviews/templates", response_model=list[ScrapReviewTemplateRead])
+async def read_scrap_review_templates(
+    db: AsyncSessionDep,
+    current_user: CurrentUserDep,
+) -> list[ScrapReviewTemplateRead]:
+    return await list_review_templates(db, int(current_user["id"]))
+
+
+@scrap_router.post("/reviews/templates", response_model=ScrapReviewTemplateRead, status_code=status.HTTP_201_CREATED)
+async def create_scrap_review_template(
+    command: ScrapReviewTemplateCreate,
+    db: AsyncSessionDep,
+    current_user: CurrentUserDep,
+) -> ScrapReviewTemplateRead:
+    try:
+        return await create_review_template(db, command, current_user)
+    except (ScrapReviewValidationError, ScrapReviewNotFoundError) as error:
+        raise _review_http_exception(error) from error
+
+
+@scrap_router.delete("/reviews/templates/{template_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_scrap_review_template(
+    template_id: uuid.UUID,
+    db: AsyncSessionDep,
+    current_user: CurrentUserDep,
+) -> None:
+    try:
+        await delete_review_template(db, template_id, current_user)
+    except (ScrapReviewNotFoundError, ScrapReviewPermissionError) as error:
         raise _review_http_exception(error) from error
 
 

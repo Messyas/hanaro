@@ -1,0 +1,143 @@
+<div class="review-attachments-container">
+  <div class="attachments-header">
+    <label class="attachments-label">
+      {{ t().scrapAttachmentsTitle }}
+      <span class="count-badge">({{ totalCount() }}/8)</span>
+    </label>
+  </div>
+
+  @if (activeError()) {
+    <div class="attachments-error" role="alert">
+      <ui-icon name="x" />
+      <span>{{ activeError() }}</span>
+    </div>
+  }
+
+  @if (canAddMore()) {
+    <div
+      class="dropzone"
+      [class.drag-over]="isDragOver()"
+      (click)="triggerFileInput()"
+      (dragover)="onDragOver($event)"
+      (dragleave)="onDragLeave($event)"
+      (drop)="onDrop($event)"
+      tabindex="0"
+      role="button"
+      [attr.aria-label]="t().scrapAttachmentsHint"
+      (keydown.enter)="triggerFileInput()"
+      (keydown.space)="triggerFileInput()"
+    >
+      <input
+        #fileInput
+        type="file"
+        class="hidden-file-input"
+        accept="image/jpeg,image/png,image/webp"
+        multiple
+        (change)="onFilesChosen($event)"
+        tabindex="-1"
+      />
+      <div class="dropzone-content">
+        <span class="dropzone-icon"><ui-icon name="image" /></span>
+        <span class="dropzone-text">{{ t().scrapAttachmentsHint }}</span>
+      </div>
+    </div>
+  }
+
+  <!-- Grid de Miniaturas -->
+  @if (attachments().length > 0 || localItems().length > 0) {
+    <div class="thumbnails-grid" role="list" aria-label="Lista de evidências fotográficas">
+      <!-- Anexos já persistidos no servidor -->
+      @for (att of attachments(); track att.id) {
+        <div class="thumbnail-card" role="listitem">
+          <button
+            type="button"
+            class="thumbnail-btn"
+            (click)="openLightbox(att.url, att.original_filename)"
+            [attr.aria-label]="t().scrapAttachmentView + ': ' + att.original_filename"
+          >
+            <img
+              [src]="att.url"
+              [alt]="att.original_filename"
+              loading="lazy"
+              class="thumbnail-img"
+            />
+          </button>
+          <div class="thumbnail-meta">
+            <span class="thumbnail-name" [title]="att.original_filename">{{
+              att.original_filename
+            }}</span>
+            <span class="thumbnail-size">{{ formatFileSize(att.size_bytes) }}</span>
+          </div>
+          @if (!readOnly()) {
+            <button
+              type="button"
+              class="thumbnail-remove-btn"
+              (click)="removePersistedAttachment(att)"
+              [attr.aria-label]="t().scrapAttachmentRemove + ': ' + att.original_filename"
+              [title]="t().scrapAttachmentRemove"
+            >
+              <ui-icon name="trash" />
+            </button>
+          }
+        </div>
+      }
+
+      <!-- Anexos locais / fila de envio -->
+      @for (item of localItems(); track item.id) {
+        <div class="thumbnail-card pending-card" role="listitem">
+          <button
+            type="button"
+            class="thumbnail-btn"
+            (click)="openLightbox(item.url, item.name)"
+            [attr.aria-label]="t().scrapAttachmentView + ': ' + item.name"
+          >
+            <img [src]="item.url" [alt]="item.name" class="thumbnail-img" />
+          </button>
+          <div class="thumbnail-meta">
+            <span class="thumbnail-name" [title]="item.name">{{ item.name }}</span>
+            <span class="thumbnail-size">{{ formatFileSize(item.sizeBytes) }}</span>
+          </div>
+          @if (!readOnly()) {
+            <button
+              type="button"
+              class="thumbnail-remove-btn"
+              (click)="removeLocalItem(item)"
+              [attr.aria-label]="t().scrapAttachmentRemove + ': ' + item.name"
+              [title]="t().scrapAttachmentRemove"
+            >
+              <ui-icon name="x" />
+            </button>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Lightbox Modal -->
+  @if (lightboxItem(); as item) {
+    <div
+      class="lightbox-backdrop"
+      (click)="closeLightbox()"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-label]="item.name"
+    >
+      <div class="lightbox-dialog" (click)="$event.stopPropagation()">
+        <header class="lightbox-header">
+          <span class="lightbox-title">{{ item.name }}</span>
+          <button
+            type="button"
+            class="btn btn-ghost lightbox-close"
+            (click)="closeLightbox()"
+            aria-label="Fechar visualização"
+          >
+            <ui-icon name="x" />
+          </button>
+        </header>
+        <div class="lightbox-body">
+          <img [src]="item.url" [alt]="item.name" class="lightbox-image" />
+        </div>
+      </div>
+    </div>
+  }
+</div>

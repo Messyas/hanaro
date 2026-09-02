@@ -128,6 +128,13 @@ services:
       - type: bind
         source: ./backend/scripts
         target: /app/backend/scripts
+      - type: bind
+        source: ./automation
+        target: /app/automation
+      - type: bind
+        source: ./backend/pyproject.toml
+        target: /app/backend/pyproject.toml
+        read_only: true
       - type: volume
         source: profile_images
         target: /app/backend/data/profile-images

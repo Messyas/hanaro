@@ -208,6 +208,112 @@ export interface AppTranslations {
   scrapColAmountUsd: string;
   scrapColOccurrence: string;
   scrapOccurrenceActive: string;
+
+  // Scrap Review & Bulk & Reports
+  scrapReviewStatusAll: string;
+  scrapReviewStatusUnreviewed: string;
+  scrapReviewStatusDraft: string;
+  scrapReviewStatusReviewed: string;
+
+  scrapColDefectType: string;
+  scrapColReviewStatus: string;
+  scrapColResponsible: string;
+  scrapColAction: string;
+
+  scrapSelectMode: string;
+  scrapCancelSelection: string;
+  scrapSelectedCount: string;
+  scrapClearSelection: string;
+  scrapSelectAllPage: string;
+  scrapApplyReference: string;
+  scrapCreateReview: string;
+  scrapActionOpen: string;
+  scrapActionView: string;
+  scrapNoOccurrenceIdTooltip: string;
+
+  scrapFilterReviewStatus: string;
+  scrapFilterDefectType: string;
+  scrapFilterDefectTypeAll: string;
+  scrapFilterResponsible: string;
+  scrapFilterResponsibleAll: string;
+  scrapFilterResponsibleMine: string;
+
+  scrapDrawerContext: string;
+  scrapDrawerSummaryTitle: string;
+  scrapDrawerFormTitle: string;
+  scrapFieldDefectType: string;
+  scrapFieldDefectTypePlaceholder: string;
+  scrapFieldResponsible: string;
+  scrapFieldTitle: string;
+  scrapFieldTitlePlaceholder: string;
+  scrapFieldDescription: string;
+  scrapFieldDescriptionPlaceholder: string;
+  scrapCharCount: string;
+  scrapNoDefectTypes: string;
+
+  scrapActionSaveDraft: string;
+  scrapActionSaving: string;
+  scrapActionFinalize: string;
+  scrapActionFinalizing: string;
+  scrapActionPreview: string;
+  scrapActionEdit: string;
+  scrapActionUseReference: string;
+  scrapDiscardChangesConfirm: string;
+  scrapFinalizeConfirmTitle: string;
+  scrapFinalizeConfirmMessage: string;
+  scrapConflictError: string;
+  scrapReloadReview: string;
+  scrapReadOnlyNotice: string;
+  scrapDraftNotice: string;
+  scrapPreviewNotice: string;
+  scrapCreatedFromReference: string;
+  scrapReferenceSelectedBanner: string;
+  scrapRemoveReference: string;
+  scrapSelectReferenceMode: string;
+
+  scrapTemplatesButton: string;
+  scrapTemplatesCount: string;
+  scrapTemplatesEmptyTitle: string;
+  scrapTemplatesEmptyHint: string;
+  scrapActionSaveAsTemplate: string;
+  scrapActionRemoveTemplate: string;
+  scrapTemplateNameLabel: string;
+  scrapTemplateNamePlaceholder: string;
+  scrapTemplateCreatedSuccess: string;
+  scrapTemplateRemovedSuccess: string;
+  scrapApplyTemplate: string;
+  scrapUseThisTemplate: string;
+  scrapSaveAsTemplateCheckbox: string;
+
+  scrapAttachmentsTitle: string;
+  scrapAttachmentsHint: string;
+  scrapAttachmentUploadError: string;
+  scrapAttachmentTypeError: string;
+  scrapAttachmentSizeError: string;
+  scrapAttachmentMaxError: string;
+  scrapAttachmentDeleteConfirm: string;
+  scrapAttachmentRetry: string;
+  scrapAttachmentRemove: string;
+  scrapAttachmentView: string;
+
+  scrapBulkTitle: string;
+  scrapBulkItemsSelected: string;
+  scrapBulkSelectReference: string;
+  scrapBulkSearchPlaceholder: string;
+  scrapBulkCopyAttachments: string;
+  scrapBulkCopyAttachmentsWarning: string;
+  scrapBulkApplyButton: string;
+  scrapBulkApplying: string;
+  scrapBulkSuccessSummary: string;
+  scrapBulkSkippedSummary: string;
+  scrapBulkReasonNotActive: string;
+  scrapBulkReasonAlreadyReviewed: string;
+
+  reportsTitle: string;
+  reportsSubtitle: string;
+  reportsEmptyTitle: string;
+  reportsEmptyDesc: string;
+  reportsSearchPlaceholder: string;
 }
 
 const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
@@ -410,6 +516,120 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     scrapColAmountUsd: 'VALOR USD',
     scrapColOccurrence: 'OCORRÊNCIA',
     scrapOccurrenceActive: 'Ativa',
+
+    scrapReviewStatusAll: 'Todos',
+    scrapReviewStatusUnreviewed: 'Não analisado',
+    scrapReviewStatusDraft: 'Rascunho',
+    scrapReviewStatusReviewed: 'Revisado',
+
+    scrapColDefectType: 'TIPO DE SCRAP',
+    scrapColReviewStatus: 'STATUS ANÁLISE',
+    scrapColResponsible: 'RESPONSÁVEL / DATA',
+    scrapColAction: 'AÇÃO',
+
+    scrapSelectMode: 'Selecionar itens',
+    scrapCancelSelection: 'Cancelar seleção',
+    scrapSelectedCount: 'selecionados',
+    scrapClearSelection: 'Limpar seleção',
+    scrapSelectAllPage: 'Selecionar visíveis',
+    scrapApplyReference: 'Aplicar relatório de referência',
+    scrapCreateReview: 'Criar análise',
+    scrapActionOpen: 'Abrir análise',
+    scrapActionView: 'Ver relatório',
+    scrapNoOccurrenceIdTooltip: 'Ocorrência sem identificador estável para análise',
+
+    scrapFilterReviewStatus: 'Status da análise',
+    scrapFilterDefectType: 'Tipo de scrap',
+    scrapFilterDefectTypeAll: 'Todos os tipos',
+    scrapFilterResponsible: 'Responsável',
+    scrapFilterResponsibleAll: 'Todos os responsáveis',
+    scrapFilterResponsibleMine: 'Meus relatórios',
+
+    scrapDrawerContext: 'Análise de scrap',
+    scrapDrawerSummaryTitle: 'Resumo da ocorrência',
+    scrapDrawerFormTitle: 'Formulário de análise',
+    scrapFieldDefectType: 'Tipo de scrap',
+    scrapFieldDefectTypePlaceholder: 'Selecione o tipo de scrap',
+    scrapFieldResponsible: 'Responsável',
+    scrapFieldTitle: 'Título da análise',
+    scrapFieldTitlePlaceholder: 'Resumo breve do defeito ou causa',
+    scrapFieldDescription: 'Descrição e causa raiz',
+    scrapFieldDescriptionPlaceholder:
+      'Descreva a ocorrência, causas identificadas e ações tomadas...',
+    scrapCharCount: 'caracteres',
+    scrapNoDefectTypes: 'Nenhum tipo de scrap ativo foi cadastrado. Procure um administrador.',
+
+    scrapActionSaveDraft: 'Salvar rascunho',
+    scrapActionSaving: 'Salvando...',
+    scrapActionFinalize: 'Finalizar relatório',
+    scrapActionFinalizing: 'Finalizando...',
+    scrapActionPreview: 'Visualizar relatório',
+    scrapActionEdit: 'Voltar para edição',
+    scrapActionUseReference: 'Usar como referência',
+    scrapDiscardChangesConfirm:
+      'Existem alterações não salvas. Deseja realmente fechar e descartar as alterações?',
+    scrapFinalizeConfirmTitle: 'Finalizar análise',
+    scrapFinalizeConfirmMessage:
+      'Após a finalização, este relatório se tornará somente leitura e não poderá mais ser alterado ou ter fotos removidas. Deseja continuar?',
+    scrapConflictError:
+      'Este relatório foi alterado em outra sessão. Recarregue a versão mais recente antes de continuar.',
+    scrapReloadReview: 'Recarregar relatório',
+    scrapReadOnlyNotice: 'Relatório finalizado em',
+    scrapDraftNotice: 'Rascunho — não finalizado',
+    scrapPreviewNotice: 'Pré-visualização — ainda não finalizado',
+    scrapCreatedFromReference: 'Criado a partir de outro relatório',
+    scrapReferenceSelectedBanner: 'Referência selecionada:',
+    scrapRemoveReference: 'Remover referência',
+    scrapSelectReferenceMode:
+      'Modo de aplicação em lote ativo. Selecione as ocorrências na tabela abaixo e clique em Aplicar referência.',
+
+    scrapTemplatesButton: 'Modelos Salvos',
+    scrapTemplatesCount: 'Modelos Salvos',
+    scrapTemplatesEmptyTitle: 'Nenhum modelo salvo ainda',
+    scrapTemplatesEmptyHint:
+      'Finalize uma análise com boa justificativa e clique no coração ❤️ para salvá-la como modelo reutilizável.',
+    scrapActionSaveAsTemplate: 'Salvar como modelo favorito',
+    scrapActionRemoveTemplate: 'Remover modelo dos favoritos',
+    scrapTemplateNameLabel: 'Nome do Modelo',
+    scrapTemplateNamePlaceholder: 'Ex: Oxidação em placa SMT',
+    scrapTemplateCreatedSuccess: 'Modelo salvo com sucesso!',
+    scrapTemplateRemovedSuccess: 'Modelo removido dos favoritos.',
+    scrapApplyTemplate: 'Aplicar Modelo',
+    scrapUseThisTemplate: 'Usar este modelo',
+    scrapSaveAsTemplateCheckbox: 'Salvar esta análise como modelo favorito (❤️) para o futuro',
+
+    scrapAttachmentsTitle: 'Evidências e fotos',
+    scrapAttachmentsHint:
+      'Arraste imagens ou clique para selecionar. Aceita JPEG, PNG e WebP (máx. 10MB por foto, limite de 8 fotos).',
+    scrapAttachmentUploadError: 'Erro no envio da imagem',
+    scrapAttachmentTypeError: 'Formato não suportado. Utilize apenas JPEG, PNG ou WebP.',
+    scrapAttachmentSizeError: 'A imagem excede o limite máximo de 10 MB.',
+    scrapAttachmentMaxError: 'Limite de 8 imagens atingido para esta análise.',
+    scrapAttachmentDeleteConfirm: 'Deseja excluir esta foto da análise?',
+    scrapAttachmentRetry: 'Tentar novamente',
+    scrapAttachmentRemove: 'Remover foto',
+    scrapAttachmentView: 'Visualizar foto',
+
+    scrapBulkTitle: 'Criar relatórios em massa',
+    scrapBulkItemsSelected: 'ocorrência(s) selecionada(s) para aplicação.',
+    scrapBulkSelectReference: 'Selecione um relatório finalizado como referência:',
+    scrapBulkSearchPlaceholder: 'Buscar por item, título ou descrição...',
+    scrapBulkCopyAttachments: 'Copiar imagens da referência',
+    scrapBulkCopyAttachmentsWarning:
+      'Atenção: Copiar fotos replica as mesmas evidências visuais para todos os itens selecionados.',
+    scrapBulkApplyButton: 'Criar relatórios',
+    scrapBulkApplying: 'Processando lote...',
+    scrapBulkSuccessSummary: 'Relatórios criados com sucesso:',
+    scrapBulkSkippedSummary: 'Itens ignorados:',
+    scrapBulkReasonNotActive: 'Item inativo no período',
+    scrapBulkReasonAlreadyReviewed: 'Item já possui análise prévia',
+
+    reportsTitle: 'Relatórios de Scrap',
+    reportsSubtitle: 'Catálogo de ocorrências revisadas e análises de causa raiz finalizadas.',
+    reportsEmptyTitle: 'Nenhum relatório finalizado encontrado',
+    reportsEmptyDesc:
+      'Quando as ocorrências da Base de Scrap forem finalizadas, seus relatórios aparecerão aqui.',
+    reportsSearchPlaceholder: 'Buscar relatórios por item, código ou descrição...',
   },
   en: {
     navDashboard: 'Dashboard',
@@ -609,6 +829,119 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     scrapColAmountUsd: 'AMOUNT USD',
     scrapColOccurrence: 'OCCURRENCE',
     scrapOccurrenceActive: 'Active',
+
+    scrapReviewStatusAll: 'All',
+    scrapReviewStatusUnreviewed: 'Unreviewed',
+    scrapReviewStatusDraft: 'Draft',
+    scrapReviewStatusReviewed: 'Reviewed',
+
+    scrapColDefectType: 'SCRAP TYPE',
+    scrapColReviewStatus: 'REVIEW STATUS',
+    scrapColResponsible: 'RESPONSIBLE / DATE',
+    scrapColAction: 'ACTION',
+
+    scrapSelectMode: 'Select items',
+    scrapCancelSelection: 'Cancel selection',
+    scrapSelectedCount: 'selected',
+    scrapClearSelection: 'Clear selection',
+    scrapSelectAllPage: 'Select visible',
+    scrapApplyReference: 'Apply reference report',
+    scrapCreateReview: 'Create review',
+    scrapActionOpen: 'Open review',
+    scrapActionView: 'View report',
+    scrapNoOccurrenceIdTooltip: 'Occurrence has no stable identifier for review',
+
+    scrapFilterReviewStatus: 'Review status',
+    scrapFilterDefectType: 'Scrap type',
+    scrapFilterDefectTypeAll: 'All types',
+    scrapFilterResponsible: 'Responsible',
+    scrapFilterResponsibleAll: 'All users',
+    scrapFilterResponsibleMine: 'My reports',
+
+    scrapDrawerContext: 'Scrap review',
+    scrapDrawerSummaryTitle: 'Occurrence summary',
+    scrapDrawerFormTitle: 'Review form',
+    scrapFieldDefectType: 'Scrap type',
+    scrapFieldDefectTypePlaceholder: 'Select scrap type',
+    scrapFieldResponsible: 'Responsible',
+    scrapFieldTitle: 'Review title',
+    scrapFieldTitlePlaceholder: 'Brief defect or cause summary',
+    scrapFieldDescription: 'Description and root cause',
+    scrapFieldDescriptionPlaceholder:
+      'Describe the occurrence, identified causes and corrective actions...',
+    scrapCharCount: 'characters',
+    scrapNoDefectTypes: 'No active scrap types registered. Please contact an administrator.',
+
+    scrapActionSaveDraft: 'Save draft',
+    scrapActionSaving: 'Saving...',
+    scrapActionFinalize: 'Finalize report',
+    scrapActionFinalizing: 'Finalizing...',
+    scrapActionPreview: 'Preview report',
+    scrapActionEdit: 'Back to edit',
+    scrapActionUseReference: 'Use as reference',
+    scrapDiscardChangesConfirm:
+      'There are unsaved changes. Do you really want to close and discard your changes?',
+    scrapFinalizeConfirmTitle: 'Finalize review',
+    scrapFinalizeConfirmMessage:
+      'After finalization, this report becomes read-only and can no longer be modified or have photos removed. Do you want to proceed?',
+    scrapConflictError:
+      'This report was modified in another session. Please reload the latest version before continuing.',
+    scrapReloadReview: 'Reload report',
+    scrapReadOnlyNotice: 'Report finalized on',
+    scrapDraftNotice: 'Draft — not finalized',
+    scrapPreviewNotice: 'Preview — not finalized',
+    scrapCreatedFromReference: 'Created from another report',
+    scrapReferenceSelectedBanner: 'Selected reference:',
+    scrapRemoveReference: 'Remove reference',
+    scrapSelectReferenceMode:
+      'Bulk mode active. Select occurrences in the table below and click Apply reference.',
+
+    scrapTemplatesButton: 'Saved Templates',
+    scrapTemplatesCount: 'Saved Templates',
+    scrapTemplatesEmptyTitle: 'No saved templates yet',
+    scrapTemplatesEmptyHint:
+      'Finalize a review and click the heart ❤️ icon to save it as a reusable template.',
+    scrapActionSaveAsTemplate: 'Save as favorite template',
+    scrapActionRemoveTemplate: 'Remove template from favorites',
+    scrapTemplateNameLabel: 'Template Name',
+    scrapTemplateNamePlaceholder: 'E.g., SMT board oxidation',
+    scrapTemplateCreatedSuccess: 'Template saved successfully!',
+    scrapTemplateRemovedSuccess: 'Template removed from favorites.',
+    scrapApplyTemplate: 'Apply Template',
+    scrapUseThisTemplate: 'Use this template',
+    scrapSaveAsTemplateCheckbox: 'Save this review as a favorite template (❤️) for the future',
+
+    scrapAttachmentsTitle: 'Evidence and photos',
+    scrapAttachmentsHint:
+      'Drag images or click to select. Accepts JPEG, PNG, and WebP (max 10MB per photo, limit of 8 photos).',
+    scrapAttachmentUploadError: 'Failed to upload image',
+    scrapAttachmentTypeError: 'Unsupported format. Use only JPEG, PNG, or WebP.',
+    scrapAttachmentSizeError: 'Image exceeds the maximum 10 MB limit.',
+    scrapAttachmentMaxError: 'Limit of 8 images reached for this review.',
+    scrapAttachmentDeleteConfirm: 'Do you want to delete this photo from the review?',
+    scrapAttachmentRetry: 'Retry',
+    scrapAttachmentRemove: 'Remove photo',
+    scrapAttachmentView: 'View photo',
+
+    scrapBulkTitle: 'Bulk create reports',
+    scrapBulkItemsSelected: 'occurrence(s) selected for application.',
+    scrapBulkSelectReference: 'Select a finalized report as reference:',
+    scrapBulkSearchPlaceholder: 'Search by item, title, or description...',
+    scrapBulkCopyAttachments: 'Copy images from reference',
+    scrapBulkCopyAttachmentsWarning:
+      'Warning: Copying photos replicates the same visual evidence to all selected items.',
+    scrapBulkApplyButton: 'Create reports',
+    scrapBulkApplying: 'Processing bulk...',
+    scrapBulkSuccessSummary: 'Reports created successfully:',
+    scrapBulkSkippedSummary: 'Items skipped:',
+    scrapBulkReasonNotActive: 'Item inactive during period',
+    scrapBulkReasonAlreadyReviewed: 'Item already reviewed',
+
+    reportsTitle: 'Scrap Reports',
+    reportsSubtitle: 'Catalog of reviewed occurrences and finalized root cause analyses.',
+    reportsEmptyTitle: 'No finalized reports found',
+    reportsEmptyDesc: 'When scrap occurrences are finalized, their reports will appear here.',
+    reportsSearchPlaceholder: 'Search reports by item, code or description...',
   },
   ko: {
     navDashboard: '대시보드',
@@ -808,6 +1141,115 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     scrapColAmountUsd: '금액 USD',
     scrapColOccurrence: '발생',
     scrapOccurrenceActive: '활성',
+
+    scrapReviewStatusAll: '전체',
+    scrapReviewStatusUnreviewed: '미검토',
+    scrapReviewStatusDraft: '초안',
+    scrapReviewStatusReviewed: '검토 완료',
+
+    scrapColDefectType: '스크랩 유형',
+    scrapColReviewStatus: '검토 상태',
+    scrapColResponsible: '담당자 / 일자',
+    scrapColAction: '작업',
+
+    scrapSelectMode: '항목 선택',
+    scrapCancelSelection: '선택 취소',
+    scrapSelectedCount: '선택됨',
+    scrapClearSelection: '선택 해제',
+    scrapSelectAllPage: '현재 페이지 전체 선택',
+    scrapApplyReference: '기준 보고서 일괄 적용',
+    scrapCreateReview: '검토 작성',
+    scrapActionOpen: '검토 열기',
+    scrapActionView: '보고서 보기',
+    scrapNoOccurrenceIdTooltip: '검토용 식별자가 없는 항목입니다',
+
+    scrapFilterReviewStatus: '검토 상태',
+    scrapFilterDefectType: '스크랩 유형',
+    scrapFilterDefectTypeAll: '모든 유형',
+    scrapFilterResponsible: '담당자',
+    scrapFilterResponsibleAll: '모든 사용자',
+    scrapFilterResponsibleMine: '내 보고서',
+
+    scrapDrawerContext: '스크랩 분석',
+    scrapDrawerSummaryTitle: '발생 요약',
+    scrapDrawerFormTitle: '분석 양식',
+    scrapFieldDefectType: '스크랩 유형',
+    scrapFieldDefectTypePlaceholder: '스크랩 유형을 선택하세요',
+    scrapFieldResponsible: '담당자',
+    scrapFieldTitle: '분석 제목',
+    scrapFieldTitlePlaceholder: '불량 요약 제목',
+    scrapFieldDescription: '원인 및 설명',
+    scrapFieldDescriptionPlaceholder: '발생 경위, 확인된 원인 및 조치 사항을 작성하세요...',
+    scrapCharCount: '자',
+    scrapNoDefectTypes: '등록된 스크랩 유형이 없습니다. 관리자에게 문의하세요.',
+
+    scrapActionSaveDraft: '초안 저장',
+    scrapActionSaving: '저장 중...',
+    scrapActionFinalize: '보고서 완료',
+    scrapActionFinalizing: '완료 처리 중...',
+    scrapActionPreview: '보고서 미리보기',
+    scrapActionEdit: '편집으로 돌아가기',
+    scrapActionUseReference: '기준 보고서로 사용',
+    scrapDiscardChangesConfirm: '저장되지 않은 변경사항이 있습니다. 닫으시겠습니까?',
+    scrapFinalizeConfirmTitle: '분석 완료 확정',
+    scrapFinalizeConfirmMessage:
+      '완료 후에는 읽기 전용으로 전환되어 수정하거나 이미지를 삭제할 수 없습니다. 계속하시겠습니까?',
+    scrapConflictError: '다른 세션에서 보고서가 수정되었습니다. 최신 버전을 다시 불러오세요.',
+    scrapReloadReview: '보고서 다시 불러오기',
+    scrapReadOnlyNotice: '보고서 완료 일시:',
+    scrapDraftNotice: '초안 — 미완료',
+    scrapPreviewNotice: '미리보기 — 아직 완료되지 않음',
+    scrapCreatedFromReference: '다른 보고서를 기반으로 생성됨',
+    scrapReferenceSelectedBanner: '선택된 기준 보고서:',
+    scrapRemoveReference: '기준 해제',
+    scrapSelectReferenceMode: '일괄 적용 모드 활성화됨. 아래 목록에서 대상을 선택 후 적용하세요.',
+
+    scrapTemplatesButton: '저장된 템플릿',
+    scrapTemplatesCount: '저장된 템플릿',
+    scrapTemplatesEmptyTitle: '아직 저장된 템플릿이 없습니다',
+    scrapTemplatesEmptyHint:
+      '분석을 완료하고 하트 ❤️ 아이콘을 눌러 재사용 가능한 템플릿으로 저장하세요.',
+    scrapActionSaveAsTemplate: '즐겨찾기 템플릿으로 저장',
+    scrapActionRemoveTemplate: '즐겨찾기에서 템플릿 제거',
+    scrapTemplateNameLabel: '템플릿 이름',
+    scrapTemplateNamePlaceholder: '예: SMT 기판 산화 결함',
+    scrapTemplateCreatedSuccess: '템플릿이 성공적으로 저장되었습니다!',
+    scrapTemplateRemovedSuccess: '즐겨찾기에서 템플릿이 삭제되었습니다.',
+    scrapApplyTemplate: '템플릿 적용',
+    scrapUseThisTemplate: '이 템플릿 사용',
+    scrapSaveAsTemplateCheckbox: '이 분석을 향후 사용을 위해 즐겨찾기 템플릿(❤️)으로 저장',
+
+    scrapAttachmentsTitle: '증빙 사진 및 첨부파일',
+    scrapAttachmentsHint:
+      '이미지를 끌어다 놓거나 클릭하여 선택하세요. JPEG, PNG, WebP 지원 (장당 최대 10MB, 최대 8장).',
+    scrapAttachmentUploadError: '이미지 업로드 실패',
+    scrapAttachmentTypeError: '지원되지 않는 형식입니다. JPEG, PNG, WebP만 가능합니다.',
+    scrapAttachmentSizeError: '이미지 용량이 10MB를 초과합니다.',
+    scrapAttachmentMaxError: '최대 8장까지 등록할 수 있습니다.',
+    scrapAttachmentDeleteConfirm: '이 사진을 삭제하시겠습니까?',
+    scrapAttachmentRetry: '다시 시도',
+    scrapAttachmentRemove: '사진 삭제',
+    scrapAttachmentView: '사진 확대',
+
+    scrapBulkTitle: '보고서 일괄 생성',
+    scrapBulkItemsSelected: '건의 발생 항목이 선택되었습니다.',
+    scrapBulkSelectReference: '기준으로 사용할 완료된 보고서를 선택하세요:',
+    scrapBulkSearchPlaceholder: '품번, 제목 또는 설명으로 검색...',
+    scrapBulkCopyAttachments: '기준 보고서의 이미지도 복사',
+    scrapBulkCopyAttachmentsWarning:
+      '주의: 사진을 복사하면 모든 선택 항목에 동일한 사진이 복제됩니다.',
+    scrapBulkApplyButton: '보고서 생성',
+    scrapBulkApplying: '일괄 처리 중...',
+    scrapBulkSuccessSummary: '생성 성공:',
+    scrapBulkSkippedSummary: '제외된 항목:',
+    scrapBulkReasonNotActive: '비활성 상태 항목',
+    scrapBulkReasonAlreadyReviewed: '이미 분석 완료된 항목',
+
+    reportsTitle: '스크랩 보고서',
+    reportsSubtitle: '완료된 스크랩 불량 분석 및 원인 보고서 목록입니다.',
+    reportsEmptyTitle: '완료된 보고서가 없습니다',
+    reportsEmptyDesc: '스크랩 분석이 완료되면 이곳에 보고서가 등록됩니다.',
+    reportsSearchPlaceholder: '품번, 코드 또는 설명으로 보고서 검색...',
   },
 };
 

@@ -473,6 +473,28 @@ class ScrapReviewRead(BaseModel):
     attachments: list[ScrapReviewAttachmentRead]
 
 
+class ScrapReviewTemplateCreate(ContractModel):
+    name: str = Field(min_length=1, max_length=150)
+    title: str = Field(default="", max_length=200)
+    description: str = Field(default="", max_length=20_000)
+    defect_type_id: uuid.UUID | None = None
+    source_review_id: uuid.UUID | None = None
+
+
+class ScrapReviewTemplateRead(BaseModel):
+    id: uuid.UUID
+    name: str
+    title: str
+    description: str
+    defect_type_id: uuid.UUID | None
+    defect_type: ScrapDefectTypeRead | None = None
+    created_by_user_id: int
+    source_review_id: uuid.UUID | None
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+
 class ScrapReviewBulkCreate(ContractModel):
     reference_review_id: uuid.UUID
     occurrence_ids: list[uuid.UUID] = Field(min_length=1, max_length=500)

@@ -10,7 +10,15 @@ export const serverRoutes: ServerRoute[] = [
     renderMode: RenderMode.Client,
   },
   {
+    path: 'base-de-scrap/revisao/:occurrenceId',
+    renderMode: RenderMode.Client,
+  },
+  {
     path: 'relatorios',
+    renderMode: RenderMode.Client,
+  },
+  {
+    path: 'relatorios/:occurrenceId',
     renderMode: RenderMode.Client,
   },
   {

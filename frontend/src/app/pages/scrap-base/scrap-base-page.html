@@ -1,7 +1,99 @@
 <section class="scrap-base-page list-page page-stack" aria-labelledby="scrap-base-title">
-  <header>
+  <header class="page-header">
     <h1 class="page-title" id="scrap-base-title">{{ t().scrapBaseTitle }}</h1>
+    <div class="header-action-group">
+      <!-- Botão e Popover de Modelos Salvos -->
+      <div class="template-popover-anchor">
+        <button
+          type="button"
+          class="btn btn-secondary template-menu-btn"
+          (click)="toggleTemplatePopover($event)"
+          aria-haspopup="dialog"
+          [attr.aria-expanded]="isTemplatePopoverOpen()"
+        >
+          <ui-icon name="heart-filled" class="template-btn-icon" />
+          <span>{{ t().scrapTemplatesButton }}</span>
+          <span class="template-count-chip">{{ templates().length }}</span>
+        </button>
+
+        <app-scrap-template-popover
+          [open]="isTemplatePopoverOpen()"
+          (openChange)="isTemplatePopoverOpen.set($event)"
+          [templates]="templates()"
+          [loading]="templatesLoading()"
+          (useTemplate)="onUseTemplate($event)"
+          (deleteTemplate)="onDeleteTemplate($event)"
+        />
+      </div>
+
+      <!-- Botão de Selecionar Itens -->
+      <button type="button" class="btn btn-primary select-mode-btn" (click)="toggleSelectionMode()">
+        <ui-icon [name]="selectionMode() ? 'x' : 'check'" />
+        <span>{{ selectionMode() ? t().scrapCancelSelection : t().scrapSelectMode }}</span>
+      </button>
+    </div>
   </header>
+
+  <!-- Banner de Modelo Ativo para Aplicação em Lote -->
+  @if (activeTemplate(); as tpl) {
+    <div class="reference-active-banner template-active-banner" role="status">
+      <div class="banner-content">
+        <ui-icon name="heart-filled" class="template-banner-icon" />
+        <span class="banner-title">Modelo selecionado:</span>
+        <strong class="banner-ref-title">{{ tpl.name }}</strong>
+        <span class="banner-hint">({{ t().scrapSelectReferenceMode }})</span>
+      </div>
+      <div class="banner-actions">
+        <button
+          type="button"
+          class="btn btn-primary btn-sm"
+          (click)="openBulkDialog()"
+          [disabled]="selectedCount() < 1"
+        >
+          <ui-icon name="check" />
+          <span>{{ t().scrapApplyTemplate }}</span>
+        </button>
+        <button
+          type="button"
+          class="btn btn-ghost btn-sm"
+          (click)="removeActiveTemplate()"
+          [title]="t().scrapRemoveReference"
+        >
+          <ui-icon name="x" />
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- Banner de Referência Ativa para Aplicação em Lote -->
+  @if (activeReferenceReview(); as ref) {
+    <div class="reference-active-banner" role="status">
+      <div class="banner-content">
+        <ui-icon name="copy" />
+        <span class="banner-title">{{ t().scrapReferenceSelectedBanner }}</span>
+        <strong class="banner-ref-title">{{ ref.title }}</strong>
+        <span class="banner-hint">({{ t().scrapSelectReferenceMode }})</span>
+      </div>
+      <div class="banner-actions">
+        <button
+          type="button"
+          class="btn btn-secondary btn-sm"
+          (click)="openBulkDialog()"
+          [disabled]="selectedCount() < 1"
+        >
+          {{ t().scrapApplyReference }}
+        </button>
+        <button
+          type="button"
+          class="btn btn-ghost btn-sm"
+          (click)="removeActiveReference()"
+          [title]="t().scrapRemoveReference"
+        >
+          <ui-icon name="x" />
+        </button>
+      </div>
+    </div>
+  }
 
   <app-list-panel
     [title]="t().scrapOccurrencesTitle"
@@ -9,6 +101,8 @@
   >
     <div list-actions class="list-actions">
       <app-delayed-progress-spinner [active]="loading()" [ariaLabel]="t().scrapLoading" />
+
+      <!-- Popover de Filtros Integrado -->
       <app-list-filter-popover
         [(open)]="filterOpen"
         [activeCount]="activeFiltersCount()"
@@ -42,6 +136,32 @@
           [placeholder]="t().scrapOrganizationsPlaceholder"
           (changed)="onOrganizationChange()"
         />
+
+        <!-- Novos Filtros da Análise -->
+        <app-list-filter-select
+          [value]="reviewStatusFilter()"
+          [options]="reviewStatusOptions()"
+          [label]="t().scrapFilterReviewStatus"
+          [ariaLabel]="t().scrapFilterReviewStatus"
+          (changed)="onReviewStatusFilterChange($event)"
+        />
+
+        <app-list-filter-select
+          [value]="defectTypeFilter()"
+          [options]="defectTypeOptions()"
+          [label]="t().scrapFilterDefectType"
+          [ariaLabel]="t().scrapFilterDefectType"
+          (changed)="onDefectTypeFilterChange($event)"
+        />
+
+        <app-list-filter-select
+          [value]="responsibleFilter()"
+          [options]="responsibleOptions()"
+          [label]="t().scrapFilterResponsible"
+          [ariaLabel]="t().scrapFilterResponsible"
+          (changed)="onResponsibleFilterChange($event)"
+        />
+
         @if (dateRangeError()) {
           <app-inline-alert [message]="t().scrapDateRangeError" />
         }
@@ -60,11 +180,54 @@
       </button>
     </div>
 
+    <!-- Barra de Ações de Seleção Flutuante/Fixa -->
+    @if (selectionMode() && selectedCount() > 0) {
+      <div class="selection-action-bar" role="toolbar" aria-label="Ações para itens selecionados">
+        <div class="selection-info">
+          <span class="selection-count-badge">{{ selectedCount() }}</span>
+          <span class="selection-label">{{ t().scrapSelectedCount }}</span>
+          <button type="button" class="btn btn-ghost btn-sm" (click)="clearSelection()">
+            {{ t().scrapClearSelection }}
+          </button>
+        </div>
+
+        <div class="selection-buttons">
+          @if (selectedCount() === 1) {
+            <button
+              type="button"
+              class="btn btn-primary btn-sm"
+              (click)="openReviewForFirstSelected()"
+            >
+              <ui-icon name="plus" />
+              <span>{{ t().scrapCreateReview }}</span>
+            </button>
+          } @else if (selectedCount() >= 2) {
+            @if (templates().length > 0 || activeTemplate() || activeReferenceReview()) {
+              <button type="button" class="btn btn-primary btn-sm" (click)="openBulkDialog()">
+                <ui-icon name="heart-filled" />
+                <span>{{ t().scrapApplyTemplate }}</span>
+              </button>
+            } @else {
+              <button
+                type="button"
+                class="btn btn-secondary btn-sm"
+                (click)="openReviewForFirstSelected()"
+              >
+                <ui-icon name="heart" />
+                <span>Analisar 1º Item e Criar Modelo</span>
+              </button>
+            }
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Estados de Carga / Erro / Vazio -->
     @if (loading() && (!data() || data()!.items.length === 0)) {
       <app-list-table-skeleton
         [columns]="tableColumns()"
         [rows]="6"
-        minWidth="64rem"
+        minWidth="100%"
         [loadingLabel]="t().scrapLoading"
       />
     } @else if (error() && (!data() || data()!.items.length === 0)) {
@@ -89,20 +252,48 @@
         <table class="list-table scrap-table">
           <thead>
             <tr>
+              @if (selectionMode()) {
+                <th class="checkbox-col align-center">
+                  <input
+                    type="checkbox"
+                    [checked]="isAllPageSelected()"
+                    (change)="toggleSelectAllOnPage()"
+                    [attr.aria-label]="t().scrapSelectAllPage"
+                  />
+                </th>
+              }
               <th>{{ t().scrapColDate }}</th>
               <th>{{ t().scrapColOrganization }}</th>
               <th>{{ t().scrapColItem }}</th>
               <th>{{ t().scrapColDescription }}</th>
               <th>{{ t().scrapColOrder }}</th>
               <th class="align-right">{{ t().scrapColQuantity }}</th>
-              <th class="align-right">{{ t().scrapColAmountBrl }}</th>
               <th class="align-right">{{ t().scrapColAmountUsd }}</th>
-              <th class="align-center">{{ t().scrapColOccurrence }}</th>
+              <th>{{ t().scrapColDefectType }}</th>
+              <th class="align-center">{{ t().scrapColReviewStatus }}</th>
+              <th>{{ t().scrapColResponsible }}</th>
+              <th class="align-center">{{ t().scrapColAction }}</th>
             </tr>
           </thead>
           <tbody>
-            @for (item of data()!.items; track item.id) {
-              <tr>
+            @for (item of data()!.items; track item.occurrence_id ?? item.id) {
+              <tr
+                class="clickable-row"
+                [class.selected-row]="selectedOccurrenceIds().has(item.occurrence_id!)"
+                (click)="item.occurrence_id ? openReview(item) : null"
+              >
+                @if (selectionMode()) {
+                  <td class="checkbox-col align-center" (click)="$event.stopPropagation()">
+                    <input
+                      type="checkbox"
+                      [checked]="selectedOccurrenceIds().has(item.occurrence_id!)"
+                      [disabled]="item.occurrence_id === null"
+                      [title]="item.occurrence_id === null ? t().scrapNoOccurrenceIdTooltip : ''"
+                      (change)="toggleItemSelection(item.occurrence_id, $event)"
+                      [attr.aria-label]="'Selecionar ocorrência ' + item.item_code"
+                    />
+                  </td>
+                }
                 <td>{{ formatTransactionDate(item.transaction_date) }}</td>
                 <td>{{ item.organization_code }}</td>
                 <td>
@@ -113,13 +304,52 @@
                 </td>
                 <td>{{ item.work_order || '—' }}</td>
                 <td class="align-right">{{ formatNumber(item.issue_quantity) }}</td>
-                <td class="align-right">{{ formatCurrency(item.issue_amount_brl, 'BRL') }}</td>
-                <td class="align-right">{{ formatCurrency(item.amount_usd, 'USD') }}</td>
+                <td class="align-right font-semibold">{{ formatCurrency(item.amount_usd) }}</td>
+                <td class="defect-cell">{{ item.defect_type_name || '—' }}</td>
                 <td class="align-center">
                   <app-status-badge
-                    [label]="formatOccurrenceStatus(item.occurrence_status)"
-                    [tone]="item.occurrence_status === 'ACTIVE' ? 'success' : 'neutral'"
+                    [label]="formatReviewStatus(item.review_status)"
+                    [tone]="reviewStatusTone(item.review_status)"
                   />
+                </td>
+                <td>
+                  <div class="responsible-cell">
+                    @if (item.responsible_name) {
+                      <span class="resp-name">{{ item.responsible_name }}</span>
+                      @if (item.reviewed_at) {
+                        <span class="resp-date">{{ formatTransactionDate(item.reviewed_at) }}</span>
+                      }
+                    } @else {
+                      <span class="text-muted">—</span>
+                    }
+                  </div>
+                </td>
+                <td class="align-center action-col" (click)="$event.stopPropagation()">
+                  @if (item.occurrence_id) {
+                    <button
+                      type="button"
+                      class="btn btn-ghost btn-sm action-btn"
+                      (click)="openReview(item)"
+                      [attr.aria-label]="
+                        (item.review_status === 'REVIEWED'
+                          ? t().scrapActionView
+                          : t().scrapActionOpen) +
+                        ' ' +
+                        item.item_code
+                      "
+                    >
+                      <ui-icon [name]="item.review_status === 'REVIEWED' ? 'eye' : 'plus'" />
+                      <span class="action-text">{{
+                        item.review_status === 'REVIEWED'
+                          ? t().scrapActionView
+                          : t().scrapActionOpen
+                      }}</span>
+                    </button>
+                  } @else {
+                    <span class="unavail-indicator" [title]="t().scrapNoOccurrenceIdTooltip">
+                      —
+                    </span>
+                  }
                 </td>
               </tr>
             }
@@ -132,10 +362,35 @@
         [totalPages]="data()!.total_pages"
         [pageSize]="pageSize()"
         [pageSizes]="pageSizes"
+        [pageLabel]="t().executionsPaginationPage"
+        [ofLabel]="t().executionsPaginationOf"
+        [perPageLabel]="t().executionsPaginationPerPage"
         (pageSizeChanged)="onPageSizeChange($event)"
         (previous)="previousPage()"
         (next)="nextPage()"
       />
     }
   </app-list-panel>
+
+  <!-- Drawer Lateral de Revisão -->
+  @if (openedOccurrenceId()) {
+    <app-scrap-review-drawer
+      [occurrenceId]="openedOccurrenceId()"
+      [occurrence]="selectedOccurrenceForDrawer()"
+      (closed)="closeDrawer()"
+      (reviewSaved)="onReviewSaved($event)"
+      (useAsReference)="onUseAsReference($event)"
+    />
+  }
+
+  <!-- Modal de Operação em Massa -->
+  @if (showBulkDialog()) {
+    <app-scrap-bulk-review-dialog
+      [selectedOccurrenceIds]="[...selectedOccurrenceIds()]"
+      [preselectedReference]="activeReferenceReview()"
+      [preselectedTemplate]="activeTemplate()"
+      (closed)="closeBulkDialog()"
+      (bulkCompleted)="onBulkCompleted($event)"
+    />
+  }
 </section>

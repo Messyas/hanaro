@@ -28,8 +28,22 @@ export const routes: Routes = [
           import('./pages/scrap-base/scrap-base-page').then((module) => module.ScrapBasePage),
       },
       {
+        path: 'base-de-scrap/revisao/:occurrenceId',
+        title: 'Análise de Scrap',
+        canActivate: [authenticatedGuard],
+        loadComponent: () =>
+          import('./pages/scrap-base/scrap-base-page').then((module) => module.ScrapBasePage),
+      },
+      {
         path: 'relatorios',
         title: 'Relatórios',
+        canActivate: [authenticatedGuard],
+        loadComponent: () =>
+          import('./pages/reports/reports-page').then((module) => module.ReportsPage),
+      },
+      {
+        path: 'relatorios/:occurrenceId',
+        title: 'Relatório de Scrap',
         canActivate: [authenticatedGuard],
         loadComponent: () =>
           import('./pages/reports/reports-page').then((module) => module.ReportsPage),

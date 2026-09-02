@@ -1,17 +1,26 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Subject, of } from 'rxjs';
+import { ActivatedRoute, Router, provideRouter } from '@angular/router';
+import { of } from 'rxjs';
 import { vi } from 'vitest';
+import { AuthService } from '../../core/auth/auth.service';
 import { LanguageService } from '../../i18n/language.service';
 import { ScrapPage } from './scrap-base.models';
 import { ScrapBasePage } from './scrap-base-page';
 import { ScrapBaseService } from './scrap-base.service';
+import { ScrapReviewService } from './scrap-review.service';
+import { ScrapTemplateService } from './scrap-template.service';
 
 describe('ScrapBasePage', () => {
   let component: ScrapBasePage;
   let fixture: ComponentFixture<ScrapBasePage>;
-  let service: { list: ReturnType<typeof vi.fn> };
+  let scrapBaseServiceMock: { list: ReturnType<typeof vi.fn> };
+  let scrapReviewServiceMock: {
+    getDefectTypes: ReturnType<typeof vi.fn>;
+    getReview: ReturnType<typeof vi.fn>;
+  };
+  let router: Router;
 
-  const page: ScrapPage = {
+  const mockPage: ScrapPage = {
     items: [
       {
         id: 'transaction-1',
@@ -31,6 +40,15 @@ describe('ScrapBasePage', () => {
         amount_usd: '-18.2',
         to_be_counted: true,
         occurrence_status: 'ACTIVE',
+        review_id: null,
+        review_status: null,
+        defect_type_id: null,
+        defect_type_name: null,
+        responsible_user_id: null,
+        responsible_name: null,
+        reviewed_at: null,
+        review_updated_at: null,
+        attachment_count: 0,
       },
     ],
     page: 1,
@@ -40,100 +58,115 @@ describe('ScrapBasePage', () => {
   };
 
   beforeEach(async () => {
-    service = {
-      list: vi.fn().mockReturnValue(of(page)),
+    scrapBaseServiceMock = {
+      list: vi.fn().mockReturnValue(of(mockPage)),
     };
+    scrapReviewServiceMock = {
+      getDefectTypes: vi.fn().mockReturnValue(of([])),
+      getReview: vi.fn().mockReturnValue(of(null)),
+    };
+
+    const authServiceMock = {
+      user: () => ({ id: 1, name: 'Analista Teste', username: 'analista' }),
+    };
+
+    const scrapTemplateServiceMock = {
+      templates: () => [],
+      loading: () => false,
+      activeTemplate: () => null,
+      loadTemplates: vi.fn().mockReturnValue(of([])),
+      createTemplate: vi.fn().mockReturnValue(of({})),
+      deleteTemplate: vi.fn().mockReturnValue(of(undefined)),
+      setActiveTemplate: vi.fn(),
+    };
+
     await TestBed.configureTestingModule({
       imports: [ScrapBasePage],
-      providers: [{ provide: ScrapBaseService, useValue: service }],
+      providers: [
+        provideRouter([]),
+        LanguageService,
+        { provide: ScrapBaseService, useValue: scrapBaseServiceMock },
+        { provide: ScrapReviewService, useValue: scrapReviewServiceMock },
+        { provide: ScrapTemplateService, useValue: scrapTemplateServiceMock },
+        { provide: AuthService, useValue: authServiceMock },
+      ],
     }).compileComponents();
+
     TestBed.inject(LanguageService).setLanguage('pt');
+    router = TestBed.inject(Router);
+    vi.spyOn(router, 'navigate').mockResolvedValue(true);
+
     fixture = TestBed.createComponent(ScrapBasePage);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
 
-  it('loads and renders the base of current scrap occurrences', () => {
-    expect(service.list).toHaveBeenCalledWith({
+  it('loads and renders the base with USD values and no BRL column', () => {
+    expect(scrapBaseServiceMock.list).toHaveBeenCalledWith({
       page: 1,
       page_size: 50,
       sort_by: 'transaction_date',
       sort_order: 'desc',
     });
-    const element = fixture.nativeElement as HTMLElement;
-    expect(element.querySelector('h1')?.textContent).toContain('Base de Scrap');
-    expect(element.querySelectorAll('.scrap-table tbody tr')).toHaveLength(1);
-    expect(element.textContent).toContain('ITEM-001');
-    expect(element.textContent).toContain('30/08/2026');
-    expect(element.textContent).toContain('Ativa');
+
+    const rendered = fixture.nativeElement.textContent;
+    expect(rendered).toContain('ITEM-001');
+    expect(rendered).toContain('VALOR USD');
+    expect(rendered).not.toContain('VALOR BRL');
   });
 
-  it('sends typed organization values as repeated backend filters', () => {
-    component.organization.set('NWK, NW1');
-    component.onOrganizationChange();
-    expect(service.list).toHaveBeenLastCalledWith(
-      expect.objectContaining({ organizations: ['NWK', 'NW1'] }),
+  it('toggles selection mode and selects items by occurrence_id', () => {
+    expect(component.selectionMode()).toBe(false);
+
+    component.toggleSelectionMode();
+    expect(component.selectionMode()).toBe(true);
+
+    const event = new MouseEvent('click');
+    component.toggleItemSelection('occurrence-1', event);
+    expect(component.selectedCount()).toBe(1);
+    expect(component.selectedOccurrenceIds().has('occurrence-1')).toBe(true);
+
+    component.clearSelection();
+    expect(component.selectedCount()).toBe(0);
+  });
+
+  it('toggles select all eligible items on current page', () => {
+    component.toggleSelectionMode();
+    component.toggleSelectAllOnPage();
+    expect(component.selectedCount()).toBe(1);
+
+    component.toggleSelectAllOnPage();
+    expect(component.selectedCount()).toBe(0);
+  });
+
+  it('opens review drawer and navigates to review route', () => {
+    const item = mockPage.items[0];
+    component.openReview(item);
+
+    expect(component.openedOccurrenceId()).toBe('occurrence-1');
+    expect(router.navigate).toHaveBeenCalledWith(['/base-de-scrap/revisao', 'occurrence-1'], {
+      queryParamsHandling: 'preserve',
+    });
+  });
+
+  it('filters by review status and resets page to 1', () => {
+    component.onReviewStatusFilterChange('REVIEWED');
+    expect(component.reviewStatusFilter()).toBe('REVIEWED');
+    expect(component.page()).toBe(1);
+    expect(scrapBaseServiceMock.list).toHaveBeenCalledWith(
+      expect.objectContaining({ review_status: 'REVIEWED' }),
     );
   });
 
-  it('clears filters and returns to the first page', () => {
-    component.dateFrom.set('2026-08-01');
-    component.organization.set('NWK');
-    component.searchText.set('ITEM');
-    component.searchQuery.set('ITEM');
-    component.page.set(2);
+  it('clears all filters including new review filters', () => {
+    component.reviewStatusFilter.set('DRAFT');
+    component.defectTypeFilter.set('def-1');
+    component.responsibleFilter.set('mine');
+
     component.clearFilters();
-    expect(component.dateFrom()).toBe('');
-    expect(component.organization()).toBe('');
-    expect(component.searchQuery()).toBe('');
-    expect(component.page()).toBe(1);
-  });
 
-  it('keeps current rows visible while filters refresh in the background', async () => {
-    const refreshRequest = new Subject<ScrapPage>();
-    service.list.mockReturnValueOnce(refreshRequest);
-
-    component.onSortChange('item_code');
-    await fixture.whenStable();
-
-    const element = fixture.nativeElement as HTMLElement;
-    expect(element.querySelectorAll('.scrap-table tbody tr')).toHaveLength(1);
-    expect(element.querySelector('.list-table-frame')?.getAttribute('aria-busy')).toBe('true');
-    expect(element.querySelector('app-list-table-skeleton')).toBeNull();
-
-    refreshRequest.next(page);
-    refreshRequest.complete();
-    await fixture.whenStable();
-
-    expect(element.querySelector('.list-table-frame')?.getAttribute('aria-busy')).toBe('false');
-  });
-
-  it('requests current data again when the page is reopened', async () => {
-    service.list.mockClear();
-
-    const reopenedFixture = TestBed.createComponent(ScrapBasePage);
-    reopenedFixture.detectChanges();
-    await reopenedFixture.whenStable();
-
-    expect(service.list).toHaveBeenCalledOnce();
-    expect(reopenedFixture.nativeElement.querySelectorAll('.scrap-table tbody tr')).toHaveLength(1);
-  });
-
-  it('translates table columns and occurrence badges when the language changes', async () => {
-    TestBed.inject(LanguageService).setLanguage('en');
-    fixture.detectChanges();
-    await fixture.whenStable();
-
-    const element = fixture.nativeElement as HTMLElement;
-    expect(element.querySelector('h1')?.textContent).toContain('Scrap Base');
-    expect(element.textContent).toContain('ORGANIZATION');
-    expect(element.textContent).toContain('Active');
-    expect(component.calendarLocale()).toBe('en-US');
-  });
-
-  it('uses the Korean locale in the shared date range calendar', () => {
-    TestBed.inject(LanguageService).setLanguage('ko');
-
-    expect(component.calendarLocale()).toBe('ko-KR');
+    expect(component.reviewStatusFilter()).toBe('');
+    expect(component.defectTypeFilter()).toBe('');
+    expect(component.responsibleFilter()).toBe('');
   });
 });

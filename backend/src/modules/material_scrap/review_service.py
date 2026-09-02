@@ -14,6 +14,7 @@ from .models import (
     ScrapReview,
     ScrapReviewAttachment,
     ScrapReviewBulkOperation,
+    ScrapReviewTemplate,
 )
 from .review_image import ScrapReviewImageStorage, StoredScrapReviewImage
 from .schemas import (
@@ -25,6 +26,8 @@ from .schemas import (
     ScrapReviewBulkResult,
     ScrapReviewBulkSkipped,
     ScrapReviewRead,
+    ScrapReviewTemplateCreate,
+    ScrapReviewTemplateRead,
     ScrapReviewWrite,
 )
 
@@ -465,3 +468,110 @@ async def create_bulk_reviews(
         created_occurrence_ids=eligible,
         skipped=skipped,
     )
+
+
+async def list_review_templates(
+    db: AsyncSession,
+    user_id: int | None = None,
+) -> list[ScrapReviewTemplateRead]:
+    statement = (
+        select(ScrapReviewTemplate)
+        .where(ScrapReviewTemplate.is_active.is_(True))
+        .order_by(ScrapReviewTemplate.name, ScrapReviewTemplate.created_at.desc())
+    )
+    templates = list((await db.execute(statement)).scalars().all())
+    result: list[ScrapReviewTemplateRead] = []
+    for t in templates:
+        defect_type = None
+        if t.defect_type_id:
+            defect_type = await db.get(ScrapDefectType, t.defect_type_id)
+        result.append(
+            ScrapReviewTemplateRead(
+                id=t.id,
+                name=t.name,
+                title=t.title,
+                description=t.description,
+                defect_type_id=t.defect_type_id,
+                defect_type=ScrapDefectTypeRead.model_validate(defect_type) if defect_type else None,
+                created_by_user_id=t.created_by_user_id,
+                source_review_id=t.source_review_id,
+                is_active=t.is_active,
+                created_at=t.created_at,
+                updated_at=t.updated_at,
+            )
+        )
+    return result
+
+
+async def create_review_template(
+    db: AsyncSession,
+    command: ScrapReviewTemplateCreate,
+    current_user: dict[str, Any],
+) -> ScrapReviewTemplateRead:
+    now = _now()
+    user_id = int(current_user["id"])
+
+    title = command.title
+    description = command.description
+    defect_type_id = command.defect_type_id
+    if command.source_review_id:
+        review = await db.get(ScrapReview, command.source_review_id)
+        if review:
+            if not title:
+                title = review.title
+            if not description:
+                description = review.description
+            if defect_type_id is None:
+                defect_type_id = review.defect_type_id
+
+    template = ScrapReviewTemplate(
+        name=command.name.strip(),
+        title=title.strip(),
+        description=description.strip(),
+        created_by_user_id=user_id,
+        created_at=now,
+        updated_at=now,
+        defect_type_id=defect_type_id,
+        source_review_id=command.source_review_id,
+        is_active=True,
+    )
+    db.add(template)
+    await db.commit()
+    await db.refresh(template)
+
+    defect_type = None
+    if template.defect_type_id:
+        defect_type = await db.get(ScrapDefectType, template.defect_type_id)
+
+    return ScrapReviewTemplateRead(
+        id=template.id,
+        name=template.name,
+        title=template.title,
+        description=template.description,
+        defect_type_id=template.defect_type_id,
+        defect_type=ScrapDefectTypeRead.model_validate(defect_type) if defect_type else None,
+        created_by_user_id=template.created_by_user_id,
+        source_review_id=template.source_review_id,
+        is_active=template.is_active,
+        created_at=template.created_at,
+        updated_at=template.updated_at,
+    )
+
+
+async def delete_review_template(
+    db: AsyncSession,
+    template_id: uuid.UUID,
+    current_user: dict[str, Any],
+) -> None:
+    template = await db.get(ScrapReviewTemplate, template_id)
+    if template is None or not template.is_active:
+        raise ScrapReviewNotFoundError(f"Template {template_id} not found")
+
+    user_id = int(current_user["id"])
+    is_admin = bool(current_user.get("is_superuser"))
+    if template.created_by_user_id != user_id and not is_admin:
+        raise ScrapReviewPermissionError("Only the template author or an admin can remove this template")
+
+    template.is_active = False
+    template.updated_at = _now()
+    await db.commit()
