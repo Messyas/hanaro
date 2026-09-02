@@ -3,6 +3,7 @@ export type DashboardAnalysis = 'absolute' | 'relative';
 export type DashboardRankingLimit = 5 | 10;
 export type DashboardDataState = 'api' | 'api-empty' | 'loading' | 'mock';
 export type DashboardEvolutionView = 'monthly' | 'weekly';
+export type DashboardComparison = 'ytd' | 'yoy' | 'mom';
 
 export interface DashboardFilters {
   year: string;

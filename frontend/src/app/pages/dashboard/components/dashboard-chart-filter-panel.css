@@ -6,17 +6,53 @@
 .chart-filter-panel {
   position: relative;
   z-index: 15;
-  display: grid;
-  grid-template-columns: minmax(7rem, 0.75fr) repeat(2, minmax(8rem, 1fr)) auto;
-  gap: 0.65rem;
-  align-items: end;
   border: 1px solid var(--app-border-soft);
   border-radius: 0.75rem;
   background: color-mix(in srgb, var(--app-surface-muted) 44%, transparent);
-  padding: 0.8rem;
+  padding: 0.75rem;
 }
 
-.chart-filter-panel.distribution-filter-panel {
+.chart-filter-panel-header {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--app-border-soft);
+  padding-bottom: 0.65rem;
+}
+
+.chart-filter-panel-header > div {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.chart-filter-panel-header span {
+  color: var(--app-text);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.chart-filter-panel-header small {
+  overflow: hidden;
+  color: var(--app-text-subtle);
+  font-size: 0.66rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chart-filter-panel-fields {
+  display: grid;
+  grid-template-columns: minmax(7rem, 0.75fr) repeat(2, minmax(8rem, 1fr));
+  gap: 0.65rem;
+  align-items: end;
+  padding-top: 0.7rem;
+}
+
+.distribution-filter-panel .chart-filter-panel-fields {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: stretch;
 }
@@ -54,7 +90,7 @@
 }
 
 @media (max-width: 760px) {
-  .chart-filter-panel {
+  .chart-filter-panel-fields {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -64,8 +100,13 @@
 }
 
 @media (max-width: 480px) {
-  .chart-filter-panel,
-  .chart-filter-panel.distribution-filter-panel {
+  .chart-filter-panel-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .chart-filter-panel-fields,
+  .distribution-filter-panel .chart-filter-panel-fields {
     grid-template-columns: 1fr;
   }
 

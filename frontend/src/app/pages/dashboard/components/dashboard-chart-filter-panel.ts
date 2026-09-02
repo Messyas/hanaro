@@ -12,22 +12,33 @@ export type DashboardChartFilterPanelVariant = 'default' | 'distribution';
       [class.distribution-filter-panel]="variant() === 'distribution'"
       [attr.aria-label]="label()"
     >
-      <ng-content />
-      <button
-        class="chart-filter-clear"
-        type="button"
-        [disabled]="clearDisabled()"
-        (click)="clear.emit()"
-      >
-        <ui-icon name="x" />
-        <span>{{ clearLabel() }}</span>
-      </button>
+      <header class="chart-filter-panel-header">
+        <div>
+          <span>{{ label() }}</span>
+          @if (summary()) {
+            <small>{{ summary() }}</small>
+          }
+        </div>
+        <button
+          class="chart-filter-clear"
+          type="button"
+          [disabled]="clearDisabled()"
+          (click)="clear.emit()"
+        >
+          <ui-icon name="x" />
+          <span>{{ clearLabel() }}</span>
+        </button>
+      </header>
+      <div class="chart-filter-panel-fields">
+        <ng-content />
+      </div>
     </div>
   `,
   styleUrl: './dashboard-chart-filter-panel.css',
 })
 export class DashboardChartFilterPanel {
   readonly label = input.required<string>();
+  readonly summary = input('');
   readonly clearLabel = input.required<string>();
   readonly clearDisabled = input(false);
   readonly variant = input<DashboardChartFilterPanelVariant>('default');

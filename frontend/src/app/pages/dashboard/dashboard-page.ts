@@ -7,13 +7,12 @@ import { DashboardChartFilterPanel } from './components/dashboard-chart-filter-p
 import { DashboardMultiSelect } from './components/dashboard-multi-select';
 import {
   DashboardAnalysis,
+  DashboardComparison,
   DashboardDistributionItem,
   DashboardEvolutionView,
   DashboardMetric,
   DashboardMonthlyPoint,
-  DashboardMultiFilterKey,
   DashboardRankingLimit,
-  DashboardSingleFilterKey,
 } from './dashboard.models';
 import { DashboardStore, INITIAL_DASHBOARD_FILTERS } from './dashboard.store';
 import {
@@ -79,6 +78,8 @@ const COMPONENT_FACTORS: Record<string, number> = {
   Chassis: 0.1,
 };
 
+const COMPARISON_OPTIONS: readonly DashboardComparison[] = ['ytd', 'yoy', 'mom'];
+
 @Component({
   selector: 'app-dashboard-page',
   imports: [
@@ -95,7 +96,6 @@ const COMPONENT_FACTORS: Record<string, number> = {
 export class DashboardPage {
   readonly store = inject(DashboardStore);
   readonly language = inject(LanguageService);
-  readonly advancedFiltersOpen = signal(false);
   readonly evolutionFiltersOpen = signal(false);
   readonly distributionFiltersOpen = signal(false);
   readonly evolutionView = signal<DashboardEvolutionView>('monthly');
@@ -107,6 +107,7 @@ export class DashboardPage {
   readonly locale = computed(() => DASHBOARD_LOCALES[this.language.currentLanguage()]);
   readonly months = computed(() => DASHBOARD_MONTHS[this.language.currentLanguage()]);
   readonly weeklyLabels = computed(() => this.store.options.weeks);
+  readonly comparisonOptions = COMPARISON_OPTIONS;
   readonly evolutionFiltersCount = computed(() => {
     const filters = this.evolutionFilters();
     return (
@@ -132,18 +133,6 @@ export class DashboardPage {
     if (this.evolutionView() === 'weekly') return this.weeklyData().map((point) => point.month);
     const period = this.evolutionFilters().period;
     return period === INITIAL_EVOLUTION_FILTERS.period ? null : [this.periodOptionLabel(period)];
-  });
-  readonly advancedFiltersCount = computed(() => {
-    const filters = this.store.filters();
-    return (
-      (filters.year === INITIAL_DASHBOARD_FILTERS.year ? 0 : 1) +
-      (filters.period === INITIAL_DASHBOARD_FILTERS.period ? 0 : 1) +
-      filters.product.length +
-      filters.line.length +
-      filters.division.length +
-      filters.week.length +
-      (filters.component === INITIAL_DASHBOARD_FILTERS.component ? 0 : 1)
-    );
   });
   readonly distributionData = computed(() => {
     return this.buildDistributionData();
@@ -179,14 +168,6 @@ export class DashboardPage {
     });
   });
 
-  changeFilter(key: DashboardSingleFilterKey, event: Event): void {
-    this.store.setFilter(key, (event.target as HTMLSelectElement).value);
-  }
-
-  changeMultiFilter(key: DashboardMultiFilterKey, values: readonly string[]): void {
-    this.store.setFilter(key, values);
-  }
-
   selectMetric(metric: DashboardMetric): void {
     this.store.setMetric(metric);
   }
@@ -199,12 +180,12 @@ export class DashboardPage {
     this.store.setRankingLimit(limit);
   }
 
-  selectEvolutionView(view: DashboardEvolutionView): void {
-    this.evolutionView.set(view);
+  selectComparison(event: Event): void {
+    this.store.setComparison((event.target as HTMLSelectElement).value as DashboardComparison);
   }
 
-  toggleAdvancedFilters(): void {
-    this.advancedFiltersOpen.update((open) => !open);
+  selectEvolutionView(view: DashboardEvolutionView): void {
+    this.evolutionView.set(view);
   }
 
   toggleEvolutionFilters(): void {
@@ -251,11 +232,6 @@ export class DashboardPage {
     this.distributionFilters.set({ ...INITIAL_DISTRIBUTION_FILTERS });
   }
 
-  advancedFiltersLabel(): string {
-    const count = this.advancedFiltersCount();
-    return count > 0 ? `${this.text().moreFilters} (${count})` : this.text().moreFilters;
-  }
-
   evolutionFiltersLabel(): string {
     const count = this.evolutionFiltersCount();
     return count > 0 ? `${this.text().chartFilters} (${count})` : this.text().chartFilters;
@@ -264,6 +240,53 @@ export class DashboardPage {
   distributionFiltersLabel(): string {
     const count = this.distributionFiltersCount();
     return count > 0 ? `${this.text().chartFilters} (${count})` : this.text().chartFilters;
+  }
+
+  evolutionFilterSummary(): string {
+    const filters = this.evolutionFilters();
+    return [
+      `${this.text().period}: ${this.periodOptionLabel(filters.period)}`,
+      `${this.text().product}: ${this.selectionSummary(filters.product, this.text().allMasculine)}`,
+      `${this.text().line}: ${this.selectionSummary(filters.line, this.text().allFeminine)}`,
+    ].join(' · ');
+  }
+
+  distributionFilterSummary(): string {
+    const filters = this.distributionFilters();
+    return [
+      `${this.text().product}: ${this.selectionSummary(filters.product, this.text().allMasculine)}`,
+      `${this.text().line}: ${this.selectionSummary(filters.line, this.text().allFeminine)}`,
+      `${this.text().component}: ${filters.component}`,
+    ].join(' · ');
+  }
+
+  comparisonOptionLabel(option: DashboardComparison): string {
+    const labels: Record<DashboardComparison, string> = {
+      ytd: this.text().compareYtd,
+      yoy: this.text().compareYoy,
+      mom: this.text().compareMom,
+    };
+    return labels[option];
+  }
+
+  summaryHeadline(): string {
+    if (this.store.analysis() === 'relative') return this.text().summaryRelative;
+    return this.targetGapReached()
+      ? this.text().summaryOnTarget
+      : this.text().summaryNeedsAttention;
+  }
+
+  summaryDetail(): string {
+    const variation =
+      this.store.analysis() === 'relative'
+        ? this.store.relativeKpis().variation
+        : this.store.kpis().variation;
+
+    return `${this.text().comparisonReference}: ${this.comparisonLabel()} · ${this.formatPercentage(variation)}`;
+  }
+
+  summaryMetricLabel(): string {
+    return this.store.metric() === 'usd' ? 'IF Cost' : 'QTY Scrap';
   }
 
   performanceTitle(): string {
@@ -362,39 +385,23 @@ export class DashboardPage {
     return Number(this.store.filters().year) - 1;
   }
 
-  filterChipValue(values: readonly string[]): string {
-    return values.length > 2 ? `${values.length} ${this.text().selectedPlural}` : values.join(', ');
-  }
-
-  filterChipLabel(key: string): string {
-    const labels: Record<string, string> = {
-      year: this.text().year,
-      period: this.text().period,
-      product: this.text().product,
-      line: this.text().line,
-      division: this.text().division,
-      week: this.text().week,
-      component: this.text().component,
-    };
-    return labels[key] ?? key;
-  }
-
   periodOptionLabel(value: string): string {
     return value === 'ytd' ? this.accumulatedLabel() : this.months()[Number(value)];
   }
 
   periodLabel(): string {
     const selected = this.store.filters().period;
-    return selected === 'ytd' ? this.accumulatedLabel() : this.months()[Number(selected)];
+    if (selected !== 'ytd') return this.months()[Number(selected)];
+    return this.store.comparison() === 'ytd'
+      ? this.accumulatedLabel()
+      : this.months()[this.currentComparisonMonthIndex()];
   }
 
   comparisonLabel(): string {
-    const selected = this.store.filters().period;
-    if (selected === 'ytd') return `${this.text().sameAccumulated} ${this.previousYear()}`;
-    const monthIndex = Number(selected);
-    return monthIndex > 0
-      ? this.months()[monthIndex - 1]
-      : `${this.text().sameMonth} ${this.previousYear()}`;
+    const comparison = this.store.comparison();
+    if (comparison === 'ytd') return `${this.text().sameAccumulated} ${this.previousYear()}`;
+    if (comparison === 'mom') return this.previousMonthLabel();
+    return `${this.text().sameMonth} ${this.previousYear()}`;
   }
 
   lastUpdatedLabel(): string {
@@ -412,11 +419,44 @@ export class DashboardPage {
     return this.text().simulatedData;
   }
 
+  performanceEmptyStateHint(): string {
+    return this.store.analysis() === 'relative'
+      ? this.text().noRelativeDataHint
+      : this.text().noChartDataHint;
+  }
+
+  distributionEmptyStateHint(): string {
+    if (this.store.analysis() === 'relative') return this.text().noRelativeDataHint;
+    return this.distributionFiltersCount() > 0
+      ? this.text().noChartDataHint
+      : this.text().noChartData;
+  }
+
   private accumulatedLabel(): string {
     const language = this.language.currentLanguage();
     if (language === 'en') return 'YTD';
     if (language === 'ko') return '누계';
     return 'Acumulado';
+  }
+
+  private currentComparisonMonthIndex(): number {
+    const selected = this.store.filters().period;
+    if (selected !== 'ytd') return Number(selected);
+
+    const points = this.store.snapshot().monthly;
+    for (let index = points.length - 1; index >= 0; index -= 1) {
+      const point = points[index];
+      if (point.actualUsd !== null || point.actualQty !== null) return index;
+    }
+
+    return 0;
+  }
+
+  private previousMonthLabel(): string {
+    const monthIndex = this.currentComparisonMonthIndex();
+    return monthIndex > 0
+      ? this.months()[monthIndex - 1]
+      : `${this.text().sameMonth} ${this.previousYear()}`;
   }
 
   private targetGapValue(): number {
@@ -557,5 +597,11 @@ export class DashboardPage {
   private selectedLocalFactor(values: readonly string[], factors: Record<string, number>): number {
     if (!values.length) return 1;
     return values.reduce((sum, value) => sum + (factors[value] ?? 0), 0) || 1;
+  }
+
+  private selectionSummary(values: readonly string[], allLabel: string): string {
+    if (!values.length) return allLabel;
+    if (values.length === 1) return values[0];
+    return `${values.length} ${this.text().selectedPlural}`;
   }
 }

@@ -15,6 +15,7 @@ export interface DashboardTranslations {
   activeFilters: string;
   removeFilter: string;
   selectedPlural: string;
+  currentSelection: string;
   searchOptions: string;
   noFilterOptions: string;
   apply: string;
@@ -31,8 +32,18 @@ export interface DashboardTranslations {
   absoluteImpact: string;
   relativeEfficiency: string;
   metricGroupAria: string;
+  compareWith: string;
+  compareYtd: string;
+  compareYoy: string;
+  compareMom: string;
   showValues: string;
   hideValues: string;
+  executiveReading: string;
+  comparisonReference: string;
+  summaryOnTarget: string;
+  summaryNeedsAttention: string;
+  summaryRelative: string;
+  summaryDetail: string;
   absoluteSummaryAria: string;
   relativeSummaryAria: string;
   ifCostActual: string;
@@ -89,6 +100,9 @@ export interface DashboardTranslations {
   reference: string;
   noData: string;
   noChartData: string;
+  noChartDataTitle: string;
+  noChartDataHint: string;
+  noRelativeDataHint: string;
   hiddenValue: string;
   units: string;
   performanceAbsoluteAria: string;
@@ -116,6 +130,7 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     activeFilters: 'Filtros ativos',
     removeFilter: 'Remover filtro',
     selectedPlural: 'selecionados',
+    currentSelection: 'Seleção atual',
     searchOptions: 'Buscar',
     noFilterOptions: 'Nenhuma opção encontrada',
     apply: 'Aplicar',
@@ -132,8 +147,18 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     absoluteImpact: 'Impacto absoluto',
     relativeEfficiency: 'Eficiência relativa',
     metricGroupAria: 'Métrica exibida',
+    compareWith: 'Comparar com',
+    compareYtd: 'YTD anterior',
+    compareYoy: 'Mesmo mês ano anterior',
+    compareMom: 'Mês anterior',
     showValues: 'Exibir valores',
     hideValues: 'Ocultar valores',
+    executiveReading: 'Leitura executiva',
+    comparisonReference: 'Referência',
+    summaryOnTarget: 'Resultado dentro da meta planejada',
+    summaryNeedsAttention: 'Resultado acima da meta planejada',
+    summaryRelative: 'Eficiência relativa do recorte atual',
+    summaryDetail: 'Variação calculada contra a referência selecionada',
     absoluteSummaryAria: 'Resumo de Material Scrap',
     relativeSummaryAria: 'Resumo de eficiência relativa',
     ifCostActual: 'IF Cost realizado',
@@ -190,6 +215,10 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     reference: 'Referência',
     noData: 'Sem dado',
     noChartData: 'Sem dados para os filtros selecionados',
+    noChartDataTitle: 'Sem dados neste recorte',
+    noChartDataHint: 'Ajuste os filtros locais ou troque a visão para conferir outro agrupamento.',
+    noRelativeDataHint:
+      'A taxa depende de denominador compatível; quando ele faltar, o gráfico fica indisponível.',
     hiddenValue: 'Valor oculto',
     units: 'unidades',
     performanceAbsoluteAria: 'IF Cost mensal comparando realizado, referência e target',
@@ -215,6 +244,7 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     activeFilters: 'Active filters',
     removeFilter: 'Remove filter',
     selectedPlural: 'selected',
+    currentSelection: 'Current selection',
     searchOptions: 'Search',
     noFilterOptions: 'No options found',
     apply: 'Apply',
@@ -231,8 +261,18 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     absoluteImpact: 'Absolute impact',
     relativeEfficiency: 'Relative efficiency',
     metricGroupAria: 'Displayed metric',
+    compareWith: 'Compare with',
+    compareYtd: 'Previous YTD',
+    compareYoy: 'Same month previous year',
+    compareMom: 'Previous month',
     showValues: 'Show values',
     hideValues: 'Hide values',
+    executiveReading: 'Executive reading',
+    comparisonReference: 'Reference',
+    summaryOnTarget: 'Result within the planned target',
+    summaryNeedsAttention: 'Result above the planned target',
+    summaryRelative: 'Relative efficiency for the current selection',
+    summaryDetail: 'Variation calculated against the selected reference',
     absoluteSummaryAria: 'Material Scrap summary',
     relativeSummaryAria: 'Relative efficiency summary',
     ifCostActual: 'Actual IF Cost',
@@ -289,6 +329,10 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     reference: 'Reference',
     noData: 'No data',
     noChartData: 'No data for the selected filters',
+    noChartDataTitle: 'No data in this selection',
+    noChartDataHint: 'Adjust the local filters or switch views to check another grouping.',
+    noRelativeDataHint:
+      'The rate depends on a compatible denominator; when it is missing, the chart is unavailable.',
     hiddenValue: 'Hidden value',
     units: 'units',
     performanceAbsoluteAria: 'Monthly IF Cost comparing actual, reference, and target',
@@ -314,6 +358,7 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     activeFilters: '활성 필터',
     removeFilter: '필터 제거',
     selectedPlural: '개 선택',
+    currentSelection: '현재 선택',
     searchOptions: '검색',
     noFilterOptions: '옵션을 찾을 수 없음',
     apply: '적용',
@@ -330,8 +375,18 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     absoluteImpact: '절대 영향',
     relativeEfficiency: '상대 효율',
     metricGroupAria: '표시 지표',
+    compareWith: '비교 기준',
+    compareYtd: '전년 누계',
+    compareYoy: '전년 동일 월',
+    compareMom: '전월',
     showValues: '값 표시',
     hideValues: '값 숨기기',
+    executiveReading: '경영 요약',
+    comparisonReference: '기준',
+    summaryOnTarget: '계획 목표 범위 내 결과',
+    summaryNeedsAttention: '계획 목표를 초과한 결과',
+    summaryRelative: '현재 선택 범위의 상대 효율',
+    summaryDetail: '선택한 기준 대비 변동',
     absoluteSummaryAria: 'Material Scrap 요약',
     relativeSummaryAria: '상대 효율 요약',
     ifCostActual: '실제 IF Cost',
@@ -388,6 +443,9 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     reference: '기준',
     noData: '데이터 없음',
     noChartData: '선택한 필터에 대한 데이터 없음',
+    noChartDataTitle: '선택 범위에 데이터 없음',
+    noChartDataHint: '로컬 필터를 조정하거나 다른 보기로 확인하세요.',
+    noRelativeDataHint: '비율은 호환되는 분모가 필요하며, 없으면 차트를 사용할 수 없습니다.',
     hiddenValue: '숨겨진 값',
     units: '개',
     performanceAbsoluteAria: '월별 IF Cost 실적, 기준 및 목표 비교',
