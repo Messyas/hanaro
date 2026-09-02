@@ -1,3 +1,4 @@
+import json
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
@@ -5,7 +6,16 @@ from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from .enums import DashboardCurrency, ImpactMode
+from .enums import (
+    AutomationExecutionStatus,
+    AutomationMode,
+    AutomationSnapshotStatus,
+    AutomationTrigger,
+    DashboardCurrency,
+    ExecutionStepCode,
+    ExecutionStepStatus,
+    ImpactMode,
+)
 
 
 class ContractModel(BaseModel):
@@ -188,6 +198,127 @@ class IngestionAccepted(BaseModel):
     task_id: str
     execution_id: uuid.UUID
     status: Literal["QUEUED"] = "QUEUED"
+
+
+class AutomationExecutionStart(ContractModel):
+    execution_id: uuid.UUID
+    correlation_id: str | None = Field(default=None, min_length=1, max_length=100)
+    source_system: Literal["GERP"] = "GERP"
+    report_name: Literal["Other Account Transaction Text Download"]
+    trigger: AutomationTrigger = AutomationTrigger.SCHEDULED
+    mode: AutomationMode
+    organization_parameter: str = Field(default="ALL", min_length=1, max_length=80)
+    query_date_from: date
+    query_date_to: date
+    processing_date: date
+    timezone: Literal["America/Manaus"] = "America/Manaus"
+    gerp_request_id: str | None = Field(default=None, max_length=100)
+    started_at: datetime | None = None
+
+    @field_validator("query_date_to")
+    @classmethod
+    def validate_window(cls, value: date, info: Any) -> date:
+        if (date_from := info.data.get("query_date_from")) and value < date_from:
+            raise ValueError("query_date_to must not be before query_date_from")
+        return value
+
+    @field_validator("started_at")
+    @classmethod
+    def validate_started_at(cls, value: datetime | None) -> datetime | None:
+        if value is not None and value.tzinfo is None:
+            raise ValueError("started_at must include timezone information")
+        return value
+
+
+class ExecutionStepUpdate(ContractModel):
+    attempt: int = Field(default=1, ge=1, le=100)
+    status: ExecutionStepStatus
+    started_at: datetime | None = None
+    finished_at: datetime | None = None
+    message: str | None = Field(default=None, max_length=2000)
+    error_code: str | None = Field(default=None, max_length=100)
+    metadata: dict[str, Any] = Field(default_factory=dict, max_length=50)
+
+    @field_validator("started_at", "finished_at")
+    @classmethod
+    def validate_timestamp(cls, value: datetime | None) -> datetime | None:
+        if value is not None and value.tzinfo is None:
+            raise ValueError("step timestamps must include timezone information")
+        return value
+
+    @model_validator(mode="after")
+    def validate_metadata(self) -> "ExecutionStepUpdate":
+        encoded = json.dumps(self.metadata, default=str)
+        forbidden = {"password", "secret", "token", "cookie", "authorization"}
+        if len(encoded) > 10_000 or any(key.lower() in forbidden for key in self.metadata):
+            raise ValueError("metadata contains forbidden data or exceeds 10 KB")
+        return self
+
+
+class ExecutionFailure(ContractModel):
+    failure_category: str = Field(min_length=1, max_length=80)
+    failure_code: str = Field(min_length=1, max_length=100)
+    failure_message: str = Field(min_length=1, max_length=2000)
+    step_code: ExecutionStepCode
+    notify_developers: bool = True
+
+
+class ExecutionStepRead(BaseModel):
+    step_code: ExecutionStepCode
+    sequence: int
+    attempt: int
+    status: ExecutionStepStatus
+    started_at: datetime
+    finished_at: datetime | None
+    duration_ms: int | None
+    message: str | None
+    error_code: str | None
+    metadata: dict[str, Any]
+
+
+class ExecutionListItem(BaseModel):
+    id: uuid.UUID
+    execution_id: uuid.UUID
+    correlation_id: str
+    source_system: str
+    report_name: str
+    trigger: AutomationTrigger
+    mode: AutomationMode
+    status: AutomationExecutionStatus
+    current_step: ExecutionStepCode | None
+    query_date_from: date
+    query_date_to: date
+    organization_parameter: str
+    organizations_found: list[str]
+    gerp_request_id: str | None
+    started_at: datetime
+    finished_at: datetime | None
+    duration_ms: int | None
+    records_received: int
+    records_accepted: int
+    records_rejected: int
+    snapshot_status: AutomationSnapshotStatus
+    failure_category: str | None
+
+
+class ExecutionDetail(ExecutionListItem):
+    processing_date: date
+    timezone: str
+    source_file_name: str | None
+    source_file_sha256: str | None
+    failure_code: str | None
+    failure_message: str | None
+    retry_count: int
+    ingestion_run_id: uuid.UUID | None
+    steps: list[ExecutionStepRead]
+
+
+class ExecutionPage(BaseModel):
+    items: list[ExecutionListItem]
+    page: int
+    page_size: int
+    total_items: int
+    total_pages: int
 
 
 class ScrapItem(BaseModel):

@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...infrastructure.logging import get_logger
 from . import repository
+from .execution_service import ensure_execution_from_payload, link_ingestion_result
 from .schemas import CanonicalScrapRecord, IngestionResult, MaterialScrapPayload
 
 
@@ -84,37 +85,43 @@ def validate_canonical_batch(payload: MaterialScrapPayload) -> None:
 
 async def ingest_material_scrap(payload: MaterialScrapPayload, db: AsyncSession) -> IngestionResult:
     """Validate and atomically publish one logical Material Scrap snapshot."""
-    validate_canonical_batch(payload)
-    replay = await repository.find_completed_replay(payload, db)
-    if replay is not None:
-        return IngestionResult(
-            run_id=replay.id,
-            execution_id=replay.execution_id,
-            status=replay.status,
-            read_count=replay.read_count,
-            accepted_count=replay.accepted_count,
-            rejected_count=replay.rejected_count,
-            is_replay=True,
-        )
-
-    run = await repository.create_pending_run(payload, db)
-    await repository.mark_processing(run, db)
-    run_id = run.id
-    execution_id = run.execution_id
+    await ensure_execution_from_payload(payload, db)
     try:
+        validate_canonical_batch(payload)
+        replay = await repository.find_completed_replay(payload, db)
+        if replay is not None:
+            result = IngestionResult(
+                run_id=replay.id,
+                execution_id=payload.execution.execution_id,
+                status=replay.status,
+                read_count=replay.read_count,
+                accepted_count=replay.accepted_count,
+                rejected_count=replay.rejected_count,
+                is_replay=True,
+            )
+            await link_ingestion_result(payload, db, ingestion_run_id=replay.id, is_replay=True)
+            return result
+
+        run = await repository.create_pending_run(payload, db)
+        await repository.mark_processing(run, db)
+        run_id = run.id
+        execution_id = run.execution_id
         await repository.publish_snapshot(run, payload.records, db)
     except Exception as error:
+        # A validation error may happen before an ingestion row exists.
         await db.rollback()
-        await repository.mark_failed(
-            run_id,
-            db,
-            read_count=len(payload.records),
-            rejected_count=len(payload.records),
-            error_message=type(error).__name__,
-        )
+        if "run_id" in locals():
+            await repository.mark_failed(
+                run_id,
+                db,
+                read_count=len(payload.records),
+                rejected_count=len(payload.records),
+                error_message=type(error).__name__,
+            )
+        await link_ingestion_result(payload, db, ingestion_run_id=None, is_replay=False, failed=error)
         logger.exception(
             "material_scrap_ingestion_failed",
-            extra={"run_id": str(run_id), "execution_id": str(execution_id)},
+            extra={"run_id": str(locals().get("run_id", "")), "execution_id": str(payload.execution.execution_id)},
         )
         raise
 
@@ -123,11 +130,13 @@ async def ingest_material_scrap(payload: MaterialScrapPayload, db: AsyncSession)
         extra={"run_id": str(run.id), "accepted_count": run.accepted_count},
     )
 
-    return IngestionResult(
+    result = IngestionResult(
         run_id=run.id,
-        execution_id=run.execution_id,
+        execution_id=payload.execution.execution_id,
         status=run.status,
         read_count=run.read_count,
         accepted_count=run.accepted_count,
         rejected_count=run.rejected_count,
     )
+    await link_ingestion_result(payload, db, ingestion_run_id=run.id, is_replay=False)
+    return result

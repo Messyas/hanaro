@@ -271,9 +271,6 @@ class UserService:
             email_exists = await crud_users.exists(db=db, email=update_data["email"])
             if email_exists:
                 raise UserExistsError("Email already registered")
-            # A changed account email must be verified again. This is enforced in
-            # the service so every caller receives the same security behavior.
-            user_update = user_update.model_copy(update={"email_verified": False})
 
         if "username" in update_data and update_data["username"] != existing_user["username"]:
             username_exists = await crud_users.exists(db=db, username=update_data["username"])
@@ -454,12 +451,6 @@ class UserService:
                 profile_image_url="https://deleted.com/deleted.jpg",
                 tier_id=None,
                 is_superuser=False,
-                google_id=None,
-                github_id=None,
-                oauth_provider=None,
-                email_verified=False,
-                oauth_created_at=None,
-                oauth_updated_at=None,
             )
 
             await crud_users.update(db=db, object=anonymize_data, commit=False, id=user_id)

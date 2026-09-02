@@ -12,8 +12,6 @@ def generate_unique_user_data(prefix: str = "user") -> dict:
     return {
         "username": f"{prefix}_user_{timestamp}_{random_suffix}",
         "email": f"{prefix}_{timestamp}_{random_suffix}@example.com",
-        "oauth_provider": random.choice(["google", "github"]),
-        "oauth_id": f"oauth_{timestamp}_{random_suffix}",
         "first_name": f"First{random_suffix}",
         "last_name": f"Last{random_suffix}",
         "is_active": True,
@@ -25,18 +23,6 @@ def generate_superuser_data(prefix: str = "admin") -> dict:
     """Generate superuser data for testing."""
     data = generate_unique_user_data(prefix)
     data.update({"is_superuser": True, "username": f"admin_{data['username']}"})
-    return data
-
-
-def generate_oauth_user_data(provider: str = "google", prefix: str = "oauth") -> dict:
-    """Generate OAuth user data for specific provider."""
-    data = generate_unique_user_data(prefix)
-    data.update(
-        {
-            "oauth_provider": provider,
-            "oauth_id": f"{provider}_{int(datetime.now().timestamp())}",
-        }
-    )
     return data
 
 

@@ -1,118 +1,39 @@
-# Checklist: autenticação e autorização
+# Autenticacao e autorizacao
 
-O padrão de autenticação do backend é o `crudauth`, com sessão em cookie, CSRF,
-lockout progressivo e armazenamento Redis ou memória. Toda autenticação passa
-por esse fluxo; o frontend apenas utiliza a sessão emitida pelo backend.
+O backend usa `crudauth` com sessao em cookie para contas locais provisionadas.
+O unico login suportado e `username` e senha; nao ha OAuth nem login social.
 
-## Modelo de acesso da aplicação
+| Uso | Dependencia no backend |
+| --- | --- |
+| Dashboard/TV publico | nenhuma |
+| Valores de filtro publico | nenhuma (`GET /api/v1/scrap/filters`) |
+| Relatorio detalhado | `CurrentUserDep` (`GET /api/v1/scrap`) |
+| Escrita administrativa | `CurrentSuperUserDep` |
+| Ingestao do robo | `require_material_scrap_ingestion_key` e cabecalho `X-API-Key` |
 
-| Superfície | Dependência | Requisitos |
-| --- | --- | --- |
-| Dashboard público | nenhuma | `GET`, dados não pessoais e schema mínimo |
-| Modo TV | nenhuma | somente leitura, sem sessão e sem controles administrativos |
-| Perfil/preferências | `CurrentUserDep` | usuário derivado da sessão e CSRF em escritas |
-| Administração | `CurrentSuperUserDep` | autorização explícita e evento auditável |
+As dependencias de sessao recarregam o usuario persistido e rejeitam conta
+apagada, sessao invalida e CSRF ausente em metodos inseguros. Guards do Angular
+sao apenas experiencia de uso: toda decisao de acesso deve existir na rota ou
+servico do backend.
 
-Rotas públicas são uma decisão por caso de uso, não um padrão do módulo inteiro.
-Cada consulta pública define campos, limites, cache e rate limit próprios. O modo
-TV usa endpoints dedicados para impedir que futuras alterações em endpoints
-autenticados exponham dados pessoais.
+## Provisionamento inicial
 
-## Dependências obrigatórias
-
-Escolha explicitamente uma:
-
-- Rota pública: nenhuma dependência de usuário, após revisão de abuso/rate limit.
-- Usuário opcional: `OptionalUserDep`.
-- Usuário autenticado: `CurrentUserDep`.
-- Apenas administrador: `CurrentSuperUserDep`.
-- Metadados da sessão: `Depends(get_current_principal)`.
-
-Importe os aliases de `src/infrastructure/dependencies.py`. As implementações em
-`src/infrastructure/auth/dependencies.py` já:
-
-- validam a sessão com `auth.current_user()`;
-- aplicam CSRF em métodos inseguros;
-- recarregam o usuário filtrando `is_deleted=False`;
-- levantam `UnauthorizedException` (`401`) e `ForbiddenException` (`403`).
-
-## Checklist por endpoint protegido
-
-- [ ] Definir quem pode chamar a função (`CurrentUserDep` ou `CurrentSuperUserDep`).
-- [ ] Verificar autorização por objeto: proprietário, tenant e estado do recurso.
-- [ ] Derivar o ID do ator exclusivamente de `current_user["id"]`.
-- [ ] Negar por padrão; exceções de acesso devem ser explícitas e testadas.
-- [ ] Verificar autorização também em leitura, exportação, busca e contagem.
-- [ ] Derivar `is_superuser`, role, tier e permissões do estado persistido no servidor.
-- [ ] Usar resposta uniforme para “não existe” e “pertence a outro usuário” quando houver risco de enumeração.
-- [ ] Revalidar privilégio no backend para cada ação sensível.
-- [ ] Aplicar rate limit a login, recuperação, convite, exportação, cobrança e geração de chaves.
-
-Exemplo de regra por objeto no serviço:
-
-```python
-resource = await crud_widgets.get(db=db, id=widget_id)
-if resource is None:
-    raise ResourceNotFoundError("Widget not found")
-if resource["owner_id"] != current_user["id"] and not current_user.get("is_superuser"):
-    raise PermissionDeniedError("Access denied")
-```
-
-Sempre que possível, filtre por `id` e `owner_id` na própria query para reduzir
-risco de BOLA e condições de corrida.
-
-## Senhas, sessões e chaves
-
-- [ ] Gerar hash de senha exclusivamente com `crudauth.get_password_hash(password=...)`.
-- [ ] Para login, manter `crud_auth.authenticate_password(...)`; ele inclui verificação endurecida e lockout.
-- [ ] Criar/revogar sessões com `crud_auth.sessions.create_session(...)` e `.revoke(...)`.
-- [ ] Definir cookies com `.set_session_cookies(...)` e limpar com `.clear_session_cookies(...)`.
-- [ ] Manter `SESSION_SECURE_COOKIES=true` e `CSRF_ENABLED=true` fora de testes HTTP locais.
-- [ ] Manter session ID restrito ao cookie de sessão, fora de JSON, URL e logs.
-- [ ] Persistir senha e API key somente como hash; access tokens seguem armazenamento criptografado e retenção mínima quando forem necessários.
-- [ ] Gerar segredo aleatório com `secrets.token_urlsafe()` ou `secrets.token_bytes()`.
-- [ ] Comparar segredo derivado com `hmac.compare_digest()`.
-- [ ] Centralizar geração e validação de API keys em `APIKeyService`.
-- [ ] Exibir uma nova API key apenas uma vez e persistir somente hash + prefixo indexado.
-- [ ] Manter o modo TV sem cookie de sessão.
-- [ ] Dimensionar a sessão de perfil para o turno de trabalho; estações
-      compartilhadas exigem logout explícito e sessão não persistente.
-- [ ] Integrar um IdP corporativo por OIDC quando ele estiver disponível; ao
-      concluir o callback, criar a mesma sessão local usada pelo login atual.
-
-## OAuth
-
-- [ ] Reutilizar provider, `OAuthState` e PKCE existentes.
-- [ ] Validar `state`, provider e `code_verifier` antes da troca do código.
-- [ ] Consumir/remover o state após uso e respeitar TTL.
-- [ ] Restringir redirect pós-login a destinos internos presentes em allowlist.
-- [ ] Validar payload do provedor como entrada não confiável.
-- [ ] Usar timeout e TLS ao chamar o provedor.
-- [ ] Converter credenciais do provedor em sessão local e omitir access/refresh tokens das respostas.
-- [ ] Excluir código, token, state e perfil completo de logs e mensagens de erro.
-
-## Testes específicos
-
-- [ ] Ausência, expiração, revogação e adulteração do cookie retornam `401`.
-- [ ] Usuário soft-deleted não autentica.
-- [ ] Usuário comum em função administrativa recebe `403`.
-- [ ] Usuário A não lê, altera, remove nem lista recurso de B.
-- [ ] Alterar `owner_id`, `user_id`, role ou `is_superuser` no payload não eleva privilégio.
-- [ ] Métodos POST/PATCH/PUT/DELETE sem CSRF válido falham quando usam sessão.
-- [ ] Login inválido não revela se username/email existe.
-- [ ] Repetidas falhas de login acionam `429` e `Retry-After`.
-- [ ] Logout revoga sessão e remove cookies.
-- [ ] OAuth rejeita state ausente/reutilizado, provider divergente e redirect externo.
-- [ ] API key inválida, expirada, inativa ou sem permissão falha.
-- [ ] Comparação de API key ocorre por hash e resposta de listagem não contém a chave.
+Nao existe interface SQLAdmin nem credenciais administrativas separadas das
+contas do sistema. Para inicializar uma base local, defina temporariamente
+`ADMIN_NAME`, `ADMIN_EMAIL`, `ADMIN_USERNAME` e `ADMIN_PASSWORD` e execute:
 
 ```bash
-uv run pytest tests/unit/infrastructure/auth -q
-uv run pytest tests/integration/auth -q
-uv run pytest tests/unit/modules/api_keys -q
-uv run pytest tests/integration/api/v1/<modulo> -q
+python -m scripts.setup_initial_data
 ```
 
-Referências: [FastAPI Security](https://fastapi.tiangolo.com/tutorial/security/),
-[OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html)
-e [OWASP Authorization Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html).
+O script cria o tier inicial e um superusuario local. Depois, use esse usuario
+para entrar normalmente e gerenciar as contas pelos fluxos protegidos. Os valores
+de bootstrap nao devem ser versionados nem mantidos como segredo de runtime.
+
+## Rate limit
+
+Quando `RATE_LIMITER_ENABLED=true`, `RateLimiterMiddleware` aplica antes de cada
+request o limite padrao por IP de cliente. As respostas limitadas retornam `429`
+e `Retry-After`; os cabecalhos `X-RateLimit-*` sao adicionados quando a contagem
+esta disponivel. Politicas por tier existem para rotas que incluam explicitamente
+`check_rate_limit`; o middleware global nao infere usuario da sessao.

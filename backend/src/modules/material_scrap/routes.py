@@ -1,28 +1,48 @@
-from datetime import date
+import uuid
+from datetime import UTC, date, datetime, time
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from pydantic import StringConstraints
 
-from ...infrastructure.dependencies import AsyncSessionDep, CurrentSuperUserDep
+from ...infrastructure.dependencies import AsyncSessionDep, CurrentSuperUserDep, CurrentUserDep
 from .dependencies import (
     ScrapDashboardServiceDep,
     ScrapTargetServiceDep,
     require_material_scrap_ingestion_key,
 )
 from .enums import (
+    AutomationExecutionStatus,
+    AutomationMode,
+    AutomationSnapshotStatus,
+    AutomationTrigger,
     BreakdownGroupBy,
     BreakdownMetric,
     DashboardCurrency,
+    ExecutionSortField,
+    ExecutionStepCode,
     ImpactMode,
     ScrapSortField,
     SortOrder,
     ToBeCountedFilter,
     TrendGroupBy,
 )
+from .execution_service import (
+    ensure_execution_from_payload,
+    get_execution_detail,
+    list_executions,
+    mark_execution_failed,
+    start_execution,
+    update_step,
+)
 from .query_service import ScrapFilters, get_breakdown, get_filter_options, get_summary, get_trend, list_scrap
 from .schemas import (
+    AutomationExecutionStart,
     DashboardResponse,
+    ExecutionDetail,
+    ExecutionFailure,
+    ExecutionPage,
+    ExecutionStepUpdate,
     IngestionAccepted,
     MaterialScrapPayload,
     ScrapBreakdownItem,
@@ -33,7 +53,7 @@ from .schemas import (
     ScrapTargetUpsert,
     ScrapTrendPoint,
 )
-from .tasks import enqueue_material_scrap
+from .tasks import enqueue_execution_notification, enqueue_material_scrap
 
 scrap_router = APIRouter(tags=["Material Scrap"])
 dashboard_router = APIRouter(tags=["Material Scrap Dashboard"])
@@ -85,15 +105,121 @@ ScrapFiltersDep = Annotated[ScrapFilters, Depends(build_filters)]
 )
 async def create_scrap_ingestion(
     payload: MaterialScrapPayload,
+    db: AsyncSessionDep,
     _: Annotated[int, Depends(require_material_scrap_ingestion_key)],
 ) -> IngestionAccepted:
-    task_id = await enqueue_material_scrap(payload)
+    # The execution is created before queueing so queue/worker failures remain observable.
+    await ensure_execution_from_payload(payload, db)
+    try:
+        task_id = await enqueue_material_scrap(payload)
+    except Exception as error:
+        await mark_execution_failed(
+            payload.execution.execution_id,
+            ExecutionFailure(
+                failure_category="QUEUE",
+                failure_code=type(error).__name__,
+                failure_message="Unable to enqueue Material Scrap ingestion",
+                step_code=ExecutionStepCode.JSON_VALIDATION,
+            ),
+            db,
+        )
+        raise HTTPException(status_code=503, detail="Unable to queue Material Scrap ingestion") from error
     return IngestionAccepted(task_id=task_id, execution_id=payload.execution.execution_id)
+
+
+@scrap_router.post("/executions", response_model=ExecutionDetail, status_code=status.HTTP_201_CREATED)
+async def create_automation_execution(
+    command: AutomationExecutionStart,
+    db: AsyncSessionDep,
+    _: Annotated[int, Depends(require_material_scrap_ingestion_key)],
+) -> ExecutionDetail:
+    execution = await start_execution(command, db)
+    return await get_execution_detail(execution.execution_id, db)
+
+
+@scrap_router.put("/executions/{execution_id}/steps/{step_code}", response_model=ExecutionDetail)
+async def update_automation_execution_step(
+    command: ExecutionStepUpdate,
+    db: AsyncSessionDep,
+    _: Annotated[int, Depends(require_material_scrap_ingestion_key)],
+    execution_id: uuid.UUID,
+    step_code: ExecutionStepCode,
+) -> ExecutionDetail:
+    await update_step(execution_id, step_code, command, db)
+    return await get_execution_detail(execution_id, db)
+
+
+@scrap_router.post("/executions/{execution_id}/fail", response_model=ExecutionDetail)
+async def fail_automation_execution(
+    command: ExecutionFailure,
+    db: AsyncSessionDep,
+    _: Annotated[int, Depends(require_material_scrap_ingestion_key)],
+    execution_id: uuid.UUID,
+) -> ExecutionDetail:
+    _execution, notification_id = await mark_execution_failed(execution_id, command, db)
+    if notification_id is not None:
+        try:
+            await enqueue_execution_notification(str(notification_id))
+        except Exception:
+            # The outbox record is durable and can be retried by operations; a
+            # notification-broker outage must not change the recorded failure.
+            pass
+    return await get_execution_detail(execution_id, db)
+
+
+@scrap_router.get("/executions", response_model=ExecutionPage)
+async def read_automation_executions(
+    db: AsyncSessionDep,
+    _: CurrentUserDep,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    status_filter: AutomationExecutionStatus | None = Query(default=None, alias="status"),
+    mode: AutomationMode | None = None,
+    trigger: AutomationTrigger | None = None,
+    snapshot_status: AutomationSnapshotStatus | None = None,
+    failure_category: str | None = Query(default=None, max_length=80),
+    execution_id: uuid.UUID | None = None,
+    gerp_request_id: str | None = Query(default=None, max_length=100),
+    search: str | None = Query(default=None, max_length=200),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=25, ge=1, le=100),
+    sort_by: ExecutionSortField = ExecutionSortField.STARTED_AT,
+    sort_order: SortOrder = SortOrder.DESC,
+) -> ExecutionPage:
+    if date_from and date_to and date_to < date_from:
+        raise HTTPException(status_code=422, detail="date_to must not be before date_from")
+    return await list_executions(
+        db,
+        page=page,
+        page_size=page_size,
+        date_from=datetime.combine(date_from, time.min, tzinfo=UTC) if date_from else None,
+        date_to=datetime.combine(date_to, time.max, tzinfo=UTC) if date_to else None,
+        status_filter=status_filter,
+        mode=mode.value if mode else None,
+        trigger=trigger.value if trigger else None,
+        snapshot_status=snapshot_status,
+        failure_category=failure_category,
+        execution_id=execution_id,
+        gerp_request_id=gerp_request_id,
+        search=search,
+        sort_by=sort_by,
+        sort_order=sort_order,
+    )
+
+
+@scrap_router.get("/executions/{execution_id}", response_model=ExecutionDetail)
+async def read_automation_execution(
+    execution_id: uuid.UUID,
+    db: AsyncSessionDep,
+    _: CurrentUserDep,
+) -> ExecutionDetail:
+    return await get_execution_detail(execution_id, db)
 
 
 @scrap_router.get("", response_model=ScrapPage)
 async def read_scrap(
     db: AsyncSessionDep,
+    _: CurrentUserDep,
     filters: ScrapFiltersDep,
     search: str | None = Query(default=None, max_length=200),
     page: int = Query(default=1, ge=1),

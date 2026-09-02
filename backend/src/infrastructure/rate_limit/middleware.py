@@ -4,7 +4,7 @@ from typing import Any, cast
 from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import Response
+from starlette.responses import JSONResponse, Response
 
 from ...modules.rate_limit.crud import crud_rate_limits
 from ...modules.rate_limit.schemas import RateLimitSelect
@@ -12,6 +12,7 @@ from ...modules.tier.crud import crud_tiers
 from ...modules.tier.schemas import TierSelect
 from ..config import get_settings
 from ..database import async_session
+from ..database.session import local_session
 from ..logging import get_logger
 from .exceptions import RateLimitException
 from .provider import increment_and_check
@@ -181,7 +182,13 @@ async def check_rate_limit(
 
 
 class RateLimiterMiddleware(BaseHTTPMiddleware):
-    """Middleware for applying rate limits to all requests."""
+    """Apply the default per-client rate limit before every request.
+
+    Route dependencies can still request tier-specific policies through
+    :func:`check_rate_limit`. Middleware runs before route dependencies, so its
+    global safeguard deliberately uses the client IP rather than attempting to
+    infer an authenticated user from a session cookie.
+    """
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         """Process a request through the middleware.
@@ -193,7 +200,17 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
         Returns:
             The response from the next middleware or handler.
         """
-        response = await call_next(request)
+        try:
+            async with local_session() as db:
+                await _check_rate_limit(request, db)
+        except RateLimitException as error:
+            response = JSONResponse(
+                status_code=error.status_code,
+                content={"detail": error.detail},
+                headers=error.headers,
+            )
+        else:
+            response = await call_next(request)
 
         if hasattr(request.state, "rate_limit_headers"):
             for key, value in request.state.rate_limit_headers.items():

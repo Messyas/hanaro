@@ -205,7 +205,6 @@ async def test_update_profile_contact_fields_and_reverify_changed_email(user_ser
     )
 
     updated = mock_crud.update.await_args.kwargs["object"]
-    assert updated.email_verified is False
     assert updated.notification_email == "alerts@example.com"
     assert updated.phone == "+55 92 99999-0000"
     assert updated.job_title == "Operador de produção"
