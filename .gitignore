@@ -173,3 +173,12 @@ src/.env
 # Graphify
 graphify-out/
 .graphify/
+
+# Codex & Agents
+.codex/
+.agents/skills/
+.agents/hooks/
+.impeccable/
+.github/skills/impeccable/
+.github/agents/
+.github/hooks/

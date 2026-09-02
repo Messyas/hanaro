@@ -3,6 +3,7 @@
 @import '@angular/cdk/overlay-prebuilt.css';
 @import 'tailwindcss';
 @import './app/theme/hanaro.theme.css';
+@import './app/shared/list-view/list-table.css';
 @import './app/app.css';
 
 :root {

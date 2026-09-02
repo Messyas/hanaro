@@ -1,0 +1,253 @@
+<div class="modal-backdrop" (click)="onBackdropClick()">
+  <div
+    #drawerDialog
+    class="detail-drawer"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="drawer-review-title"
+    (click)="$event.stopPropagation()"
+  >
+    <!-- Cabeçalho do Drawer -->
+    <header class="drawer-header">
+      <div class="drawer-title-group">
+        <span class="meta-label">{{ t().scrapDrawerContext }}</span>
+        <div class="title-row">
+          <h3 id="drawer-review-title">
+            {{ occurrence()?.item_code || 'Ocorrência' }}
+            @if (occurrence()?.organization_code) {
+              <span class="org-tag">({{ occurrence()!.organization_code }})</span>
+            }
+          </h3>
+          <app-status-badge [label]="reviewStatusLabel()" [tone]="reviewStatusTone()" />
+        </div>
+      </div>
+      <div class="drawer-header-actions">
+        @if (review(); as rev) {
+          @if (rev.status === 'REVIEWED') {
+            <button
+              class="btn btn-ghost template-heart-btn"
+              [class.is-favorite]="isFavoriteTemplate()"
+              type="button"
+              [title]="
+                isFavoriteTemplate() ? t().scrapActionRemoveTemplate : t().scrapActionSaveAsTemplate
+              "
+              [attr.aria-label]="
+                isFavoriteTemplate() ? t().scrapActionRemoveTemplate : t().scrapActionSaveAsTemplate
+              "
+              (click)="toggleFavoriteTemplate()"
+            >
+              <ui-icon [name]="isFavoriteTemplate() ? 'heart-filled' : 'heart'" />
+            </button>
+          }
+        }
+        <button
+          class="btn btn-ghost drawer-close-btn"
+          type="button"
+          aria-label="Fechar painel de análise"
+          (click)="attemptClose()"
+        >
+          <ui-icon name="x" />
+        </button>
+      </div>
+    </header>
+
+    <!-- Corpo com Rolagem -->
+    <div class="drawer-body">
+      @if (loading()) {
+        <div class="loading-state">
+          <ui-icon name="clock" />
+          <p>{{ t().scrapLoading }}</p>
+        </div>
+      } @else {
+        @if (error()) {
+          <div class="drawer-alert-wrapper">
+            <app-inline-alert [message]="error()!" />
+            @if (isConflict()) {
+              <button
+                type="button"
+                class="btn btn-secondary btn-reload"
+                (click)="loadReview(activeOccurrenceId()!)"
+              >
+                {{ t().scrapReloadReview }}
+              </button>
+            }
+          </div>
+        }
+
+        <!-- Resumo compacto da ocorrência -->
+        @if (occurrence(); as occ) {
+          <section class="drawer-section occurrence-card">
+            <h4>{{ t().scrapDrawerSummaryTitle }}</h4>
+            <div class="occ-meta-grid">
+              <div class="occ-meta-item">
+                <span class="occ-label">{{ t().scrapColItem }}</span>
+                <span class="occ-value item-code">{{ occ.item_code }}</span>
+              </div>
+              <div class="occ-meta-item">
+                <span class="occ-label">{{ t().scrapColDescription }}</span>
+                <span class="occ-value text-ellipsis" [title]="occ.item_description || ''">
+                  {{ occ.item_description || '—' }}
+                </span>
+              </div>
+              <div class="occ-meta-item">
+                <span class="occ-label">{{ t().scrapColOrganization }}</span>
+                <span class="occ-value">{{ occ.organization_code }}</span>
+              </div>
+              <div class="occ-meta-item">
+                <span class="occ-label">{{ t().scrapColDate }}</span>
+                <span class="occ-value">{{ formatTransactionDate(occ.transaction_date) }}</span>
+              </div>
+              <div class="occ-meta-item">
+                <span class="occ-label">{{ t().scrapColQuantity }}</span>
+                <span class="occ-value">{{ occ.issue_quantity }}</span>
+              </div>
+              <div class="occ-meta-item">
+                <span class="occ-label">{{ t().scrapColAmountUsd }}</span>
+                <span class="occ-value font-semibold">{{ formatCurrency(occ.amount_usd) }}</span>
+              </div>
+              @if (occ.work_order) {
+                <div class="occ-meta-item">
+                  <span class="occ-label">{{ t().scrapColOrder }}</span>
+                  <span class="occ-value">{{ occ.work_order }}</span>
+                </div>
+              }
+              @if (occ.occurrence_id) {
+                <div class="occ-meta-item full-width">
+                  <span class="occ-label">ID OCORRÊNCIA</span>
+                  <span class="occ-value id-code">{{ occ.occurrence_id }}</span>
+                </div>
+              }
+            </div>
+          </section>
+        }
+
+        <!-- Alternância entre Formulário e Preview -->
+        @if (isPreviewMode()) {
+          <app-scrap-review-preview
+            [review]="review()"
+            [occurrence]="occurrence()"
+            [draftForm]="localFormModel()"
+            [isDraft]="!isReadOnly()"
+            [defectTypeName]="localFormModel().defectTypeId"
+            (useAsReference)="useAsReference.emit($event)"
+          />
+        } @else {
+          <app-scrap-review-form
+            #reviewFormCmp
+            [review]="review()"
+            [defectTypes]="defectTypes()"
+            [readOnly]="isReadOnly()"
+            [uploading]="uploading()"
+            (modelChange)="onModelChange($event)"
+            (filesSelected)="onFilesSelected($event)"
+            (attachmentDeleted)="onAttachmentDeleted($event)"
+          />
+        }
+      }
+    </div>
+
+    <!-- Rodapé Fixo de Ações -->
+    <footer class="drawer-footer">
+      <div class="footer-left">
+        <button type="button" class="btn btn-ghost" (click)="attemptClose()">
+          {{ t().cancel }}
+        </button>
+      </div>
+
+      <div class="footer-right">
+        @if (!isReadOnly() && !loading()) {
+          <button
+            type="button"
+            class="btn btn-secondary"
+            (click)="togglePreviewMode()"
+            [disabled]="saving() || finalizing()"
+          >
+            {{ isPreviewMode() ? t().scrapActionEdit : t().scrapActionPreview }}
+          </button>
+
+          <button
+            type="button"
+            class="btn btn-secondary"
+            (click)="saveDraft()"
+            [disabled]="saving() || finalizing()"
+          >
+            {{ saving() ? t().scrapActionSaving : t().scrapActionSaveDraft }}
+          </button>
+
+          <button
+            type="button"
+            class="btn btn-primary"
+            (click)="promptFinalize()"
+            [disabled]="!canFinalize() || saving() || finalizing()"
+          >
+            {{ finalizing() ? t().scrapActionFinalizing : t().scrapActionFinalize }}
+          </button>
+        }
+      </div>
+    </footer>
+  </div>
+
+  <!-- Modal de Confirmação de Finalização -->
+  @if (showFinalizeConfirm()) {
+    <div
+      class="confirm-backdrop"
+      (click)="cancelFinalize()"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="confirm-title"
+    >
+      <div class="confirm-card" (click)="$event.stopPropagation()">
+        <h4 id="confirm-title" class="confirm-title">{{ t().scrapFinalizeConfirmTitle }}</h4>
+        <p class="confirm-message">{{ t().scrapFinalizeConfirmMessage }}</p>
+        <div class="confirm-actions">
+          <button type="button" class="btn btn-secondary" (click)="cancelFinalize()">
+            {{ t().cancel }}
+          </button>
+          <button type="button" class="btn btn-primary" (click)="confirmFinalize()">
+            {{ t().scrapActionFinalize }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Modal de Confirmação de Nome do Modelo -->
+  @if (showTemplateNamePrompt()) {
+    <div
+      class="template-prompt-backdrop"
+      (click)="cancelTemplatePrompt()"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="template-prompt-title"
+    >
+      <div class="template-prompt-card" (click)="$event.stopPropagation()">
+        <h4 id="template-prompt-title" class="prompt-title">{{ t().scrapActionSaveAsTemplate }}</h4>
+        <p class="prompt-message">Defina um nome de referência para este modelo:</p>
+        <div class="prompt-input-group">
+          <input
+            #tplNameInput
+            type="text"
+            class="form-control"
+            [value]="customTemplateName()"
+            (input)="customTemplateName.set(tplNameInput.value)"
+            [placeholder]="t().scrapTemplateNamePlaceholder"
+            (keydown.enter)="confirmSaveTemplate()"
+          />
+        </div>
+        <div class="prompt-actions">
+          <button type="button" class="btn btn-secondary" (click)="cancelTemplatePrompt()">
+            {{ t().cancel }}
+          </button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            (click)="confirmSaveTemplate()"
+            [disabled]="!customTemplateName().trim()"
+          >
+            Salvar
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

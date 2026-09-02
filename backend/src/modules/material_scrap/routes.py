@@ -2,12 +2,15 @@ import uuid
 from datetime import UTC, date, datetime, time
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
+from fastapi import APIRouter, Depends, File, HTTPException, Path, Query, Response, UploadFile, status
 from pydantic import StringConstraints
+from starlette.concurrency import run_in_threadpool
+from starlette.responses import FileResponse
 
 from ...infrastructure.dependencies import AsyncSessionDep, CurrentSuperUserDep, CurrentUserDep
 from .dependencies import (
     ScrapDashboardServiceDep,
+    ScrapReviewImageStorageDep,
     ScrapTargetServiceDep,
     require_material_scrap_ingestion_key,
 )
@@ -22,6 +25,7 @@ from .enums import (
     ExecutionSortField,
     ExecutionStepCode,
     ImpactMode,
+    ScrapReviewFilterStatus,
     ScrapSortField,
     SortOrder,
     ToBeCountedFilter,
@@ -36,6 +40,27 @@ from .execution_service import (
     update_step,
 )
 from .query_service import ScrapFilters, get_breakdown, get_filter_options, get_summary, get_trend, list_scrap
+from .review_image import ALLOWED_IMAGE_CONTENT_TYPES, ScrapReviewImageValidationError
+from .review_service import (
+    ScrapReviewConflictError,
+    ScrapReviewNotFoundError,
+    ScrapReviewPermissionError,
+    ScrapReviewValidationError,
+    add_review_attachment,
+    assert_review_accepts_attachment,
+    create_bulk_reviews,
+    create_defect_type,
+    create_review_template,
+    delete_review_attachment,
+    delete_review_template,
+    finalize_review,
+    get_review_attachment,
+    get_review_for_occurrence,
+    list_defect_types,
+    list_review_templates,
+    save_review_draft,
+    update_defect_type,
+)
 from .schemas import (
     AutomationExecutionStart,
     DashboardResponse,
@@ -46,8 +71,18 @@ from .schemas import (
     IngestionAccepted,
     MaterialScrapPayload,
     ScrapBreakdownItem,
+    ScrapDefectTypeCreate,
+    ScrapDefectTypeRead,
+    ScrapDefectTypeUpdate,
     ScrapFilterOptions,
     ScrapPage,
+    ScrapReviewAttachmentRead,
+    ScrapReviewBulkCreate,
+    ScrapReviewBulkResult,
+    ScrapReviewRead,
+    ScrapReviewTemplateCreate,
+    ScrapReviewTemplateRead,
+    ScrapReviewWrite,
     ScrapSummary,
     ScrapTargetRead,
     ScrapTargetUpsert,
@@ -226,6 +261,9 @@ async def read_scrap(
     page_size: int = Query(default=50, ge=1, le=200),
     sort_by: ScrapSortField = ScrapSortField.TRANSACTION_DATE,
     sort_order: SortOrder = SortOrder.DESC,
+    review_status: ScrapReviewFilterStatus | None = None,
+    defect_type_ids: Annotated[list[uuid.UUID] | None, Query(max_length=50)] = None,
+    responsible_user_ids: Annotated[list[int] | None, Query(max_length=50)] = None,
 ) -> ScrapPage:
     return await list_scrap(
         db,
@@ -235,12 +273,233 @@ async def read_scrap(
         page_size=page_size,
         sort_by=sort_by,
         sort_order=sort_order,
+        review_status=review_status,
+        defect_type_ids=defect_type_ids,
+        responsible_user_ids=responsible_user_ids,
     )
 
 
 @scrap_router.get("/filters", response_model=ScrapFilterOptions)
 async def read_scrap_filters(db: AsyncSessionDep, filters: ScrapFiltersDep) -> ScrapFilterOptions:
     return await get_filter_options(db, filters)
+
+
+def _review_http_exception(error: Exception) -> HTTPException:
+    if isinstance(error, ScrapReviewNotFoundError):
+        return HTTPException(status_code=404, detail=str(error))
+    if isinstance(error, ScrapReviewPermissionError):
+        return HTTPException(status_code=403, detail=str(error))
+    if isinstance(error, ScrapReviewConflictError):
+        return HTTPException(status_code=409, detail=str(error))
+    if isinstance(error, (ScrapReviewValidationError, ScrapReviewImageValidationError)):
+        return HTTPException(status_code=422, detail=str(error))
+    return HTTPException(status_code=500, detail="Unable to process Scrap review")
+
+
+@scrap_router.get("/review-types", response_model=list[ScrapDefectTypeRead])
+async def read_scrap_review_types(
+    db: AsyncSessionDep,
+    _: CurrentUserDep,
+    include_inactive: bool = False,
+) -> list[ScrapDefectTypeRead]:
+    return await list_defect_types(db, include_inactive=include_inactive)
+
+
+@scrap_router.post("/review-types", response_model=ScrapDefectTypeRead, status_code=status.HTTP_201_CREATED)
+async def create_scrap_review_type(
+    command: ScrapDefectTypeCreate,
+    db: AsyncSessionDep,
+    _: CurrentSuperUserDep,
+) -> ScrapDefectTypeRead:
+    try:
+        return await create_defect_type(db, command)
+    except ScrapReviewConflictError as error:
+        raise _review_http_exception(error) from error
+
+
+@scrap_router.patch("/review-types/{defect_type_id}", response_model=ScrapDefectTypeRead)
+async def update_scrap_review_type(
+    command: ScrapDefectTypeUpdate,
+    defect_type_id: uuid.UUID,
+    db: AsyncSessionDep,
+    _: CurrentSuperUserDep,
+) -> ScrapDefectTypeRead:
+    try:
+        return await update_defect_type(db, defect_type_id, command)
+    except (ScrapReviewNotFoundError, ScrapReviewConflictError) as error:
+        raise _review_http_exception(error) from error
+
+
+@scrap_router.get("/reviews/templates", response_model=list[ScrapReviewTemplateRead])
+async def read_scrap_review_templates(
+    db: AsyncSessionDep,
+    current_user: CurrentUserDep,
+) -> list[ScrapReviewTemplateRead]:
+    return await list_review_templates(db, int(current_user["id"]))
+
+
+@scrap_router.post("/reviews/templates", response_model=ScrapReviewTemplateRead, status_code=status.HTTP_201_CREATED)
+async def create_scrap_review_template(
+    command: ScrapReviewTemplateCreate,
+    db: AsyncSessionDep,
+    current_user: CurrentUserDep,
+) -> ScrapReviewTemplateRead:
+    try:
+        return await create_review_template(db, command, current_user)
+    except (ScrapReviewValidationError, ScrapReviewNotFoundError) as error:
+        raise _review_http_exception(error) from error
+
+
+@scrap_router.delete("/reviews/templates/{template_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_scrap_review_template(
+    template_id: uuid.UUID,
+    db: AsyncSessionDep,
+    current_user: CurrentUserDep,
+) -> None:
+    try:
+        await delete_review_template(db, template_id, current_user)
+    except (ScrapReviewNotFoundError, ScrapReviewPermissionError) as error:
+        raise _review_http_exception(error) from error
+
+
+@scrap_router.post("/reviews/bulk", response_model=ScrapReviewBulkResult, status_code=status.HTTP_201_CREATED)
+async def create_scrap_reviews_in_bulk(
+    command: ScrapReviewBulkCreate,
+    db: AsyncSessionDep,
+    current_user: CurrentUserDep,
+    storage: ScrapReviewImageStorageDep,
+) -> ScrapReviewBulkResult:
+    try:
+        return await create_bulk_reviews(db, command, current_user, storage)
+    except (ScrapReviewValidationError, ScrapReviewConflictError) as error:
+        raise _review_http_exception(error) from error
+
+
+@scrap_router.get("/reviews/{occurrence_id}", response_model=ScrapReviewRead)
+async def read_scrap_review(
+    occurrence_id: uuid.UUID,
+    db: AsyncSessionDep,
+    _: CurrentUserDep,
+) -> ScrapReviewRead:
+    try:
+        return await get_review_for_occurrence(db, occurrence_id)
+    except ScrapReviewNotFoundError as error:
+        raise _review_http_exception(error) from error
+
+
+@scrap_router.put("/reviews/{occurrence_id}", response_model=ScrapReviewRead)
+async def upsert_scrap_review_draft(
+    command: ScrapReviewWrite,
+    occurrence_id: uuid.UUID,
+    db: AsyncSessionDep,
+    current_user: CurrentUserDep,
+) -> ScrapReviewRead:
+    try:
+        return await save_review_draft(db, occurrence_id, command, current_user)
+    except (
+        ScrapReviewNotFoundError,
+        ScrapReviewPermissionError,
+        ScrapReviewConflictError,
+        ScrapReviewValidationError,
+    ) as error:
+        raise _review_http_exception(error) from error
+
+
+@scrap_router.post("/reviews/{occurrence_id}/finalize", response_model=ScrapReviewRead)
+async def finalize_scrap_review(
+    occurrence_id: uuid.UUID,
+    db: AsyncSessionDep,
+    current_user: CurrentUserDep,
+    expected_version: int | None = Query(default=None, ge=1),
+) -> ScrapReviewRead:
+    try:
+        return await finalize_review(db, occurrence_id, current_user, expected_version=expected_version)
+    except (
+        ScrapReviewNotFoundError,
+        ScrapReviewPermissionError,
+        ScrapReviewConflictError,
+        ScrapReviewValidationError,
+    ) as error:
+        raise _review_http_exception(error) from error
+
+
+@scrap_router.post(
+    "/reviews/by-id/{review_id}/attachments",
+    response_model=ScrapReviewAttachmentRead,
+    status_code=status.HTTP_201_CREATED,
+)
+async def upload_scrap_review_attachment(
+    review_id: uuid.UUID,
+    image: Annotated[UploadFile, File(description="JPEG, PNG or WebP evidence image")],
+    db: AsyncSessionDep,
+    current_user: CurrentUserDep,
+    storage: ScrapReviewImageStorageDep,
+) -> ScrapReviewAttachmentRead:
+    if image.content_type not in ALLOWED_IMAGE_CONTENT_TYPES:
+        raise HTTPException(status_code=415, detail="Unsupported image media type")
+    try:
+        review = await assert_review_accepts_attachment(
+            db,
+            review_id,
+            current_user,
+            max_attachments=storage.max_attachments,
+        )
+        payload = await image.read(storage.max_bytes + 1)
+        stored = await run_in_threadpool(storage.store, review.id, payload)
+        try:
+            return await add_review_attachment(db, review, stored, image.filename or "image", current_user)
+        except Exception:
+            await run_in_threadpool(storage.delete, review.id, stored.storage_key)
+            raise
+    except (
+        ScrapReviewNotFoundError,
+        ScrapReviewPermissionError,
+        ScrapReviewConflictError,
+        ScrapReviewValidationError,
+        ScrapReviewImageValidationError,
+    ) as error:
+        raise _review_http_exception(error) from error
+
+
+@scrap_router.get("/reviews/by-id/{review_id}/attachments/{attachment_id}", response_class=FileResponse)
+async def read_scrap_review_attachment(
+    review_id: uuid.UUID,
+    attachment_id: uuid.UUID,
+    db: AsyncSessionDep,
+    _: CurrentUserDep,
+    storage: ScrapReviewImageStorageDep,
+) -> FileResponse:
+    try:
+        attachment = await get_review_attachment(db, review_id, attachment_id)
+    except ScrapReviewNotFoundError as error:
+        raise _review_http_exception(error) from error
+    path = storage.resolve(review_id, attachment.storage_key)
+    if path is None or not path.is_file():
+        raise HTTPException(status_code=404, detail="Attachment file not found")
+    return FileResponse(path, media_type="image/webp", filename=attachment.original_filename)
+
+
+@scrap_router.delete(
+    "/reviews/by-id/{review_id}/attachments/{attachment_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def remove_scrap_review_attachment(
+    review_id: uuid.UUID,
+    attachment_id: uuid.UUID,
+    db: AsyncSessionDep,
+    current_user: CurrentUserDep,
+    storage: ScrapReviewImageStorageDep,
+) -> Response:
+    try:
+        attachment = await delete_review_attachment(db, review_id, attachment_id, current_user)
+    except (
+        ScrapReviewNotFoundError,
+        ScrapReviewPermissionError,
+        ScrapReviewConflictError,
+    ) as error:
+        raise _review_http_exception(error) from error
+    await run_in_threadpool(storage.delete, review_id, attachment.storage_key)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @dashboard_router.get("/summary", response_model=ScrapSummary)

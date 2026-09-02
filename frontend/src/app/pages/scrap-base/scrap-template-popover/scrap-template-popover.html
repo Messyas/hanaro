@@ -1,0 +1,75 @@
+@if (open()) {
+  <div
+    class="template-popover-card"
+    role="dialog"
+    aria-modal="false"
+    aria-label="Modelos de Revisão"
+  >
+    <header class="popover-header">
+      <div class="header-left">
+        <ui-icon name="heart-filled" class="header-icon" />
+        <h4 class="popover-title">{{ t().scrapTemplatesButton }}</h4>
+        <span class="count-badge">{{ templates().length }}</span>
+      </div>
+      <button
+        type="button"
+        class="btn btn-ghost btn-xs close-btn"
+        (click)="close()"
+        aria-label="Fechar"
+      >
+        <ui-icon name="x" />
+      </button>
+    </header>
+
+    <div class="popover-body">
+      @if (loading()) {
+        <div class="loading-state">
+          <ui-icon name="clock" />
+          <span>Carregando modelos...</span>
+        </div>
+      } @else if (templates().length === 0) {
+        <div class="empty-state">
+          <div class="empty-icon-circle">
+            <ui-icon name="heart" />
+          </div>
+          <strong class="empty-title">{{ t().scrapTemplatesEmptyTitle }}</strong>
+          <p class="empty-hint">{{ t().scrapTemplatesEmptyHint }}</p>
+        </div>
+      } @else {
+        <div class="template-list" role="list">
+          @for (tpl of templates(); track tpl.id) {
+            <div class="template-card" role="listitem">
+              <div class="card-header-row">
+                <span class="defect-badge">{{ tpl.defect_type?.name || 'Padrão' }}</span>
+                <button
+                  type="button"
+                  class="btn btn-ghost btn-xs delete-btn"
+                  (click)="onDelete(tpl.id, $event)"
+                  [title]="t().scrapActionRemoveTemplate"
+                  aria-label="Remover modelo"
+                >
+                  <ui-icon name="trash" />
+                </button>
+              </div>
+              <strong class="template-name">{{ tpl.name }}</strong>
+              @if (tpl.title && tpl.title !== tpl.name) {
+                <span class="template-title-sub">{{ tpl.title }}</span>
+              }
+              <p class="template-desc">{{ tpl.description }}</p>
+              <div class="card-action-row">
+                <button
+                  type="button"
+                  class="btn btn-primary btn-sm btn-use"
+                  (click)="onSelect(tpl)"
+                >
+                  <ui-icon name="check" />
+                  <span>{{ t().scrapUseThisTemplate }}</span>
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+}

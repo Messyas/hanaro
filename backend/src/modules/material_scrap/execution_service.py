@@ -296,7 +296,7 @@ async def link_ingestion_result(
             payload.execution.execution_id,
             ExecutionFailure(
                 failure_category="INGESTION",
-                failure_code=type(failed).__name__,
+                failure_code=getattr(failed, "code", type(failed).__name__),
                 failure_message=str(failed) or type(failed).__name__,
                 step_code=ExecutionStepCode.JSON_VALIDATION,
             ),

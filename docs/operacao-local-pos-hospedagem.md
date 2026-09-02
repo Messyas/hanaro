@@ -46,7 +46,7 @@ Não é necessário modificar o driver PostgreSQL: sem `DATABASE_URL`, a aplica�
 Quando a decisão for definitiva, faça uma revisão em pull request separada:
 
 1. Desative ou remova o workflow [deploy-staging.yml](../.github/workflows/deploy-staging.yml). Hoje ele publica o frontend na Cloudflare a cada push em `main`.
-2. Remova ou arquive [render.yaml](../render.yaml), para não recriar o serviço Render por engano.
+2. Remova ou arquive [render.yaml](../.github/deploy/render.yaml), para não recriar o serviço Render por engano.
 3. Remova do GitHub os secrets `CLOUDFLARE_API_TOKEN` e `CLOUDFLARE_ACCOUNT_ID` e apague o ambiente GitHub `production` se ele não tiver outro uso.
 4. Revogue o token da Cloudflare e confirme que o Worker/Pages não recebe mais tráfego.
 5. Remova as variáveis `DATABASE_URL`, `REDIS_URL`, `SECRET_KEY`, `CORS_ORIGINS` e `TRUSTED_HOSTS` do Render antes de excluir o serviço.

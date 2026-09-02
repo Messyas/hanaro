@@ -38,7 +38,7 @@ async def scrap_client() -> AsyncGenerator[AsyncClient, None]:
         return 1
 
     async def authenticated_user() -> dict[str, object]:
-        return {"id": 1, "tier_id": 1, "is_superuser": False}
+        return {"id": 1, "name": "Test Analyst", "username": "analyst", "tier_id": 1, "is_superuser": False}
 
     app.dependency_overrides[async_session] = override_session
     app.dependency_overrides[get_current_user] = authenticated_user
@@ -61,12 +61,35 @@ async def test_listing_filters_search_pagination_and_allowlist(scrap_client: Asy
     assert body["total_pages"] == 2
     assert len(body["items"]) == 2
     assert body["items"][0]["issue_amount_brl"].startswith("-")
+    assert body["items"][0]["occurrence_id"]
+    assert body["items"][0]["current_transaction_id"] == body["items"][0]["id"]
+    assert body["items"][0]["occurrence_status"] == "ACTIVE"
 
     unmapped = await scrap_client.get("/api/v1/scrap", params={"to_be_counted": "unmapped"})
     assert unmapped.json()["total_items"] == 6
     search = await scrap_client.get("/api/v1/scrap", params={"search": "linha inicial"})
     assert search.json()["total_items"] == 1
     assert (await scrap_client.get("/api/v1/scrap", params={"sort_by": "drop_table"})).status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_listing_exposes_and_filters_review_state(scrap_client: AsyncClient) -> None:
+    listing = (await scrap_client.get("/api/v1/scrap", params={"page_size": 1})).json()
+    occurrence_id = listing["items"][0]["occurrence_id"]
+    draft = await scrap_client.put(
+        f"/api/v1/scrap/reviews/{occurrence_id}",
+        json={"title": "Draft analysis", "description": "Work in progress"},
+    )
+    assert draft.status_code == 200
+
+    filtered = (await scrap_client.get("/api/v1/scrap", params={"review_status": "DRAFT"})).json()
+    assert filtered["total_items"] == 1
+    assert filtered["items"][0]["review_status"] == "DRAFT"
+    assert filtered["items"][0]["responsible_name"] == "Test Analyst"
+    assert filtered["items"][0]["attachment_count"] == 0
+
+    unreviewed = (await scrap_client.get("/api/v1/scrap", params={"review_status": "UNREVIEWED"})).json()
+    assert unreviewed["total_items"] == 5
 
 
 @pytest.mark.asyncio

@@ -1,0 +1,45 @@
+:host {
+  display: block;
+}
+
+.skeleton-frame {
+  overflow: hidden;
+}
+
+.skeleton-cell {
+  display: block;
+  width: 72%;
+  height: 0.875rem;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    var(--app-surface-muted) 25%,
+    color-mix(in srgb, var(--app-text-muted) 18%, var(--app-surface)) 50%,
+    var(--app-surface-muted) 75%
+  );
+  background-size: 220% 100%;
+  animation: skeleton-shimmer 1.35s ease-in-out infinite;
+}
+
+td:nth-child(2n) .skeleton-cell {
+  width: 56%;
+}
+
+td:nth-child(3n) .skeleton-cell {
+  width: 84%;
+}
+
+@keyframes skeleton-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -20% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-cell {
+    animation: none;
+  }
+}

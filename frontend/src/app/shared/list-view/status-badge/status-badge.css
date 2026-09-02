@@ -1,0 +1,42 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.22rem 0.65rem;
+  border: 1px solid transparent;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1rem;
+  white-space: nowrap;
+}
+
+.badge-success {
+  border-color: color-mix(in srgb, var(--app-success) 22%, transparent);
+  background: var(--app-success-soft);
+  color: var(--app-success);
+}
+
+.badge-danger {
+  border-color: color-mix(in srgb, var(--app-danger) 22%, transparent);
+  background: var(--app-danger-soft);
+  color: var(--app-danger);
+}
+
+.badge-warning {
+  border-color: color-mix(in srgb, var(--app-warning) 22%, transparent);
+  background: var(--app-warning-soft);
+  color: var(--app-warning);
+}
+
+.badge-info {
+  border-color: color-mix(in srgb, var(--app-blue) 22%, transparent);
+  background: var(--app-blue-soft);
+  color: var(--app-blue);
+}
+
+.badge-neutral {
+  border-color: var(--app-border-soft);
+  background: var(--app-surface-muted);
+  color: var(--app-text-secondary);
+}

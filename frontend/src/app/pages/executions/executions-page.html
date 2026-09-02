@@ -1,429 +1,144 @@
-<section class="executions-page page-stack" aria-labelledby="executions-title">
+<section class="executions-page list-page page-stack" aria-labelledby="executions-title">
   <!-- Header da Página -->
   <header class="executions-heading">
     <h1 class="page-title" id="executions-title">{{ t().executionsTitle }}</h1>
   </header>
 
   <!-- Tabela de Histórico com Filtro Integrado no Cabeçalho -->
-  <article class="panel-card">
-    <header class="section-header">
-      <div class="section-header-left">
-        <h2>{{ t().executionsHistoryTitle }}</h2>
-        @if (data(); as pageData) {
-          <span class="meta-label">{{ t().executionsTotalLabel }} {{ pageData.total_items }}</span>
-        }
-      </div>
-
-      <div class="section-header-right">
-        <!-- Pílulas de Filtros Ativos (se houver algum ativo) -->
-        @if (activeFiltersCount() > 0) {
-          <div class="active-filters-bar">
-            @if (searchQuery().trim()) {
-              <span class="filter-pill">
-                <span class="filter-pill-label">ID:</span>
-                <span class="filter-pill-value">{{ searchQuery().trim() }}</span>
-                <button
-                  type="button"
-                  class="filter-pill-remove"
-                  (click)="clearSearch($event)"
-                  aria-label="Remover filtro de busca"
-                >
-                  <ui-icon name="x" />
-                </button>
-              </span>
-            }
-            @if (statusFilter()) {
-              <span class="filter-pill">
-                <span class="filter-pill-label">{{ t().executionsStatus }}:</span>
-                <span class="filter-pill-value">{{ formatStatus(statusFilter()) }}</span>
-                <button
-                  type="button"
-                  class="filter-pill-remove"
-                  (click)="clearStatus($event)"
-                  aria-label="Remover filtro de status"
-                >
-                  <ui-icon name="x" />
-                </button>
-              </span>
-            }
-            @if (dateFrom() || dateTo()) {
-              <span class="filter-pill">
-                <span class="filter-pill-label">{{ t().executionsDateFrom }}:</span>
-                <span class="filter-pill-value"
-                  >{{ formatDateSlash(dateFrom()) || '...' }} →
-                  {{ formatDateSlash(dateTo()) || '...' }}</span
-                >
-                <button
-                  type="button"
-                  class="filter-pill-remove"
-                  (click)="clearDates($event)"
-                  aria-label="Remover filtro de datas"
-                >
-                  <ui-icon name="x" />
-                </button>
-              </span>
-            }
-            <button type="button" class="btn-clear-inline" (click)="clearFilters()">
-              {{ t().executionsClearAll }}
-            </button>
-          </div>
-        }
-
-        <!-- Botão Disparador do Filtro + Popover Flutuante -->
-        <div class="filter-popover-anchor">
-          <button
-            class="btn btn-secondary filter-trigger-btn"
-            [class.active]="filterOpen() || activeFiltersCount() > 0"
-            type="button"
-            (click)="toggleFilterPopover($event)"
-            aria-haspopup="dialog"
-            [attr.aria-expanded]="filterOpen()"
-          >
-            <ui-icon name="filter" />
-            <span>{{ t().executionsFilterBtn }}</span>
-            @if (activeFiltersCount() > 0) {
-              <span class="filter-badge">{{ activeFiltersCount() }}</span>
-            }
-          </button>
-
-          <!-- Painel do Popover -->
-          @if (filterOpen()) {
-            <div
-              class="filter-popover-panel"
-              role="dialog"
-              aria-modal="false"
-              (click)="$event.stopPropagation()"
-            >
-              <div class="popover-header">
-                <div class="popover-title-group">
-                  <ui-icon name="filter" />
-                  <strong>{{ t().executionsFilterPopoverTitle }}</strong>
-                </div>
-                @if (activeFiltersCount() > 0) {
-                  <button type="button" class="popover-clear-btn" (click)="clearFilters()">
-                    {{ t().executionsClearAll }}
-                  </button>
-                }
-              </div>
-
-              <div class="popover-body">
-                <!-- 1. Buscar (Primeiro campo, conforme solicitado) -->
-                <div class="filter-field">
-                  <label for="filter-search">{{ t().executionsSearchLabel }}</label>
-                  <div class="search-input-wrapper">
-                    <input
-                      id="filter-search"
-                      class="input-control"
-                      type="text"
-                      [placeholder]="t().executionsSearchPlaceholder"
-                      [value]="searchQuery()"
-                      (input)="onSearchInput($event)"
-                    />
-                    @if (searchQuery().trim()) {
-                      <button
-                        type="button"
-                        class="clear-search-btn"
-                        (click)="clearSearch($event)"
-                        aria-label="Limpar busca"
-                      >
-                        <ui-icon name="x" />
-                      </button>
-                    }
-                  </div>
-                </div>
-
-                <!-- 2. Status (Custom Select) -->
-                <div class="filter-field">
-                  <label id="status-select-label">{{ t().executionsStatus }}</label>
-                  <div
-                    class="custom-select-anchor status-select-anchor"
-                    (click)="$event.stopPropagation()"
-                  >
-                    <button
-                      type="button"
-                      class="custom-select-trigger"
-                      [class.open]="statusDropdownOpen()"
-                      (click)="toggleStatusDropdown($event)"
-                      aria-haspopup="listbox"
-                      [attr.aria-expanded]="statusDropdownOpen()"
-                      aria-labelledby="status-select-label"
-                    >
-                      <span>{{ getStatusOptionLabel(statusFilter()) }}</span>
-                      <ui-icon name="chevron-down" [class.rotated]="statusDropdownOpen()" />
-                    </button>
-
-                    @if (statusDropdownOpen()) {
-                      <div class="custom-select-menu" role="listbox">
-                        @for (opt of statusOptions; track opt.value) {
-                          <button
-                            type="button"
-                            class="custom-select-item"
-                            [class.selected]="statusFilter() === opt.value"
-                            (click)="selectStatus(opt.value)"
-                            role="option"
-                            [attr.aria-selected]="statusFilter() === opt.value"
-                          >
-                            <span>{{ getStatusOptionLabel(opt.value) }}</span>
-                            @if (statusFilter() === opt.value) {
-                              <span class="selected-indicator"></span>
-                            }
-                          </button>
-                        }
-                      </div>
-                    }
-                  </div>
-                </div>
-
-                <!-- 3. Datas (Inicial e Final Customizadas com Validação Temporal) -->
-                <div class="filter-dates-grid">
-                  <!-- Data Inicial -->
-                  <div class="filter-field">
-                    <label>{{ t().executionsDateFrom }}</label>
-                    <div
-                      class="custom-datepicker-anchor date-from-anchor"
-                      (click)="$event.stopPropagation()"
-                    >
-                      <div class="datepicker-input-wrapper">
-                        <input
-                          class="input-control datepicker-input"
-                          [class.input-invalid]="dateRangeError()"
-                          type="text"
-                          placeholder="YYYY/MM/DD"
-                          [value]="formatDateSlash(dateFrom())"
-                          (input)="onDateFromChange($event)"
-                          (click)="toggleDateFromPicker($event)"
-                        />
-                        <button
-                          type="button"
-                          class="datepicker-icon-btn"
-                          [class.active]="dateFromPickerOpen()"
-                          (click)="toggleDateFromPicker($event)"
-                          aria-label="Abrir calendário"
-                        >
-                          <ui-icon name="calendar" />
-                        </button>
-                      </div>
-
-                      @if (dateFromPickerOpen()) {
-                        <div
-                          class="custom-calendar-popup"
-                          role="dialog"
-                          (click)="$event.stopPropagation()"
-                        >
-                          <div class="calendar-header">
-                            <button
-                              type="button"
-                              class="cal-nav-btn"
-                              (click)="prevMonthFrom($event)"
-                            >
-                              <ui-icon name="chevron-left" />
-                            </button>
-                            <span class="cal-month-title">{{
-                              getMonthYearLabel(viewDateFrom())
-                            }}</span>
-                            <button
-                              type="button"
-                              class="cal-nav-btn"
-                              (click)="nextMonthFrom($event)"
-                            >
-                              <ui-icon name="chevron-right" />
-                            </button>
-                          </div>
-
-                          <div class="calendar-weekdays">
-                            @for (w of getWeekdayLabels(); track w) {
-                              <span class="cal-weekday">{{ w }}</span>
-                            }
-                          </div>
-
-                          <div class="calendar-days-grid">
-                            @for (
-                              day of getCalendarDays(
-                                viewDateFrom(),
-                                dateFrom(),
-                                undefined,
-                                dateTo()
-                              );
-                              track day.dateStr
-                            ) {
-                              <button
-                                type="button"
-                                class="cal-day-btn"
-                                [class.current-month]="day.isCurrentMonth"
-                                [class.other-month]="!day.isCurrentMonth"
-                                [class.today]="day.isToday"
-                                [class.selected]="day.isSelected"
-                                [class.disabled]="day.isDisabled"
-                                [disabled]="day.isDisabled"
-                                (click)="selectDayFrom(day.dateStr)"
-                              >
-                                <span>{{ day.dayNumber }}</span>
-                              </button>
-                            }
-                          </div>
-
-                          <div class="calendar-footer">
-                            <button
-                              type="button"
-                              class="cal-action-btn"
-                              (click)="clearDateFromInput()"
-                            >
-                              {{ t().calendarClear }}
-                            </button>
-                            <button
-                              type="button"
-                              class="cal-action-btn cal-today-btn"
-                              (click)="setTodayFrom()"
-                            >
-                              {{ t().calendarToday }}
-                            </button>
-                          </div>
-                        </div>
-                      }
-                    </div>
-                  </div>
-
-                  <!-- Data Final -->
-                  <div class="filter-field">
-                    <label>{{ t().executionsDateTo }}</label>
-                    <div
-                      class="custom-datepicker-anchor date-to-anchor"
-                      (click)="$event.stopPropagation()"
-                    >
-                      <div class="datepicker-input-wrapper">
-                        <input
-                          class="input-control datepicker-input"
-                          [class.input-invalid]="dateRangeError()"
-                          type="text"
-                          placeholder="YYYY/MM/DD"
-                          [value]="formatDateSlash(dateTo())"
-                          (input)="onDateToChange($event)"
-                          (click)="toggleDateToPicker($event)"
-                        />
-                        <button
-                          type="button"
-                          class="datepicker-icon-btn"
-                          [class.active]="dateToPickerOpen()"
-                          (click)="toggleDateToPicker($event)"
-                          aria-label="Abrir calendário"
-                        >
-                          <ui-icon name="calendar" />
-                        </button>
-                      </div>
-
-                      @if (dateToPickerOpen()) {
-                        <div
-                          class="custom-calendar-popup"
-                          role="dialog"
-                          (click)="$event.stopPropagation()"
-                        >
-                          <div class="calendar-header">
-                            <button type="button" class="cal-nav-btn" (click)="prevMonthTo($event)">
-                              <ui-icon name="chevron-left" />
-                            </button>
-                            <span class="cal-month-title">{{
-                              getMonthYearLabel(viewDateTo())
-                            }}</span>
-                            <button type="button" class="cal-nav-btn" (click)="nextMonthTo($event)">
-                              <ui-icon name="chevron-right" />
-                            </button>
-                          </div>
-
-                          <div class="calendar-weekdays">
-                            @for (w of getWeekdayLabels(); track w) {
-                              <span class="cal-weekday">{{ w }}</span>
-                            }
-                          </div>
-
-                          <div class="calendar-days-grid">
-                            @for (
-                              day of getCalendarDays(viewDateTo(), dateTo(), dateFrom(), undefined);
-                              track day.dateStr
-                            ) {
-                              <button
-                                type="button"
-                                class="cal-day-btn"
-                                [class.current-month]="day.isCurrentMonth"
-                                [class.other-month]="!day.isCurrentMonth"
-                                [class.today]="day.isToday"
-                                [class.selected]="day.isSelected"
-                                [class.disabled]="day.isDisabled"
-                                [disabled]="day.isDisabled"
-                                (click)="selectDayTo(day.dateStr)"
-                              >
-                                <span>{{ day.dayNumber }}</span>
-                              </button>
-                            }
-                          </div>
-
-                          <div class="calendar-footer">
-                            <button
-                              type="button"
-                              class="cal-action-btn"
-                              (click)="clearDateToInput()"
-                            >
-                              {{ t().calendarClear }}
-                            </button>
-                            <button
-                              type="button"
-                              class="cal-action-btn cal-today-btn"
-                              (click)="setTodayTo()"
-                            >
-                              {{ t().calendarToday }}
-                            </button>
-                          </div>
-                        </div>
-                      }
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Alerta de Inconsistência Temporal -->
-                @if (dateRangeError()) {
-                  <div class="filter-error-alert" role="alert">
-                    <ui-icon name="x" />
-                    <span>{{ t().executionsDateRangeError }}</span>
-                  </div>
-                }
-              </div>
-
-              <div class="popover-footer">
-                <button type="button" class="btn btn-ghost" (click)="clearFilters()">
-                  {{ t().executionsClearFilters }}
-                </button>
-                <button type="button" class="btn btn-primary" (click)="closeFilterPopover()">
-                  {{ t().executionsApplyFilters }}
-                </button>
-              </div>
-            </div>
+  <app-list-panel
+    [title]="t().executionsHistoryTitle"
+    [meta]="data() ? t().executionsTotalLabel + ' ' + data()!.total_items : ''"
+  >
+    <div list-actions class="execution-list-actions">
+      <!-- Pílulas de Filtros Ativos (se houver algum ativo) -->
+      @if (activeFiltersCount() > 0) {
+        <div class="active-filters-bar">
+          @if (searchQuery().trim()) {
+            <span class="filter-pill">
+              <span class="filter-pill-label">ID:</span>
+              <span class="filter-pill-value">{{ searchQuery().trim() }}</span>
+              <button
+                type="button"
+                class="filter-pill-remove"
+                (click)="clearSearch($event)"
+                aria-label="Remover filtro de busca"
+              >
+                <ui-icon name="x" />
+              </button>
+            </span>
           }
+          @if (statusFilter()) {
+            <span class="filter-pill">
+              <span class="filter-pill-label">{{ t().executionsStatus }}:</span>
+              <span class="filter-pill-value">{{ formatStatus(statusFilter()) }}</span>
+              <button
+                type="button"
+                class="filter-pill-remove"
+                (click)="clearStatus($event)"
+                aria-label="Remover filtro de status"
+              >
+                <ui-icon name="x" />
+              </button>
+            </span>
+          }
+          @if (dateFrom() || dateTo()) {
+            <span class="filter-pill">
+              <span class="filter-pill-label">{{ t().executionsDateFrom }}:</span>
+              <span class="filter-pill-value"
+                >{{ formatDateSlash(dateFrom()) || '...' }} →
+                {{ formatDateSlash(dateTo()) || '...' }}</span
+              >
+              <button
+                type="button"
+                class="filter-pill-remove"
+                (click)="clearDates($event)"
+                aria-label="Remover filtro de datas"
+              >
+                <ui-icon name="x" />
+              </button>
+            </span>
+          }
+          <button type="button" class="btn-clear-inline" (click)="clearFilters()">
+            {{ t().executionsClearAll }}
+          </button>
         </div>
-      </div>
-    </header>
+      }
 
-    @if (loading()) {
-      <div class="loading-container">
-        <ui-icon name="clock" />
-        <p>{{ t().executionsLoading }}</p>
-      </div>
-    } @else if (error()) {
-      <div class="error-container">
-        <span class="error-icon"><ui-icon name="x" /></span>
-        <strong>{{ t().executionsErrorTitle }}</strong>
-        <p>{{ error() }}</p>
-        <button class="btn btn-secondary" type="button" (click)="refresh()">
-          {{ t().executionsRetry }}
-        </button>
-      </div>
+      <!-- Botão Disparador do Filtro + Popover Flutuante -->
+      <app-delayed-progress-spinner [active]="loading()" ariaLabel="Consultando execuções" />
+      <app-list-filter-popover
+        [(open)]="filterOpen"
+        [activeCount]="activeFiltersCount()"
+        [triggerLabel]="t().executionsFilterBtn"
+        [title]="t().executionsFilterPopoverTitle"
+        [clearLabel]="t().executionsClearAll"
+        [applyLabel]="t().executionsApplyFilters"
+        (cleared)="clearFilters()"
+        (applied)="loadExecutions()"
+      >
+        <!-- 1. Buscar (Primeiro campo, conforme solicitado) -->
+        <app-list-filter-input
+          [(value)]="searchQuery"
+          [label]="t().executionsSearchLabel"
+          [placeholder]="t().executionsSearchPlaceholder"
+          (changed)="onSharedSearch($event)"
+        />
+
+        <!-- 2. Status (Custom Select) -->
+        <!-- 3. Datas (Inicial e Final Customizadas com Validação Temporal) -->
+        <app-list-filter-date-range
+          [(from)]="dateFrom"
+          [(to)]="dateTo"
+          [fromLabel]="t().executionsDateFrom"
+          [toLabel]="t().executionsDateTo"
+          [locale]="calendarLocale()"
+          [clearLabel]="t().calendarClear"
+          [todayLabel]="t().calendarToday"
+          (changed)="onDateRangeChanged()"
+        />
+
+        <app-list-filter-select
+          [(value)]="statusFilter"
+          [options]="sharedStatusOptions()"
+          [label]="t().executionsStatus"
+          [ariaLabel]="t().executionsStatus"
+          (changed)="onStatusChanged($event)"
+        />
+
+        <!-- Alerta de Inconsistência Temporal -->
+        @if (dateRangeError()) {
+          <app-inline-alert [message]="t().executionsDateRangeError" />
+        }
+      </app-list-filter-popover>
+    </div>
+
+    @if (loading() && (!data() || data()!.items.length === 0)) {
+      <app-list-table-skeleton
+        [columns]="tableColumns()"
+        [rows]="5"
+        minWidth="68rem"
+        [loadingLabel]="t().executionsLoading"
+      />
+    } @else if (error() && (!data() || data()!.items.length === 0)) {
+      <app-list-feedback
+        kind="error"
+        [title]="t().executionsErrorTitle"
+        [message]="error()!"
+        [retryLabel]="t().executionsRetry"
+        (retried)="refresh()"
+      />
     } @else if (!data() || data()!.items.length === 0) {
-      <div class="empty-container">
-        <span class="empty-icon"><ui-icon name="folder" /></span>
-        <strong>{{ t().executionsEmptyTitle }}</strong>
-        <p>{{ t().executionsEmptyDesc }}</p>
-      </div>
+      <app-list-feedback
+        kind="empty"
+        [title]="t().executionsEmptyTitle"
+        [message]="t().executionsEmptyDesc"
+      />
     } @else {
-      <div class="table-responsive">
-        <table class="executions-table">
+      @if (error()) {
+        <app-inline-alert class="table-refresh-error" [message]="error()!" />
+      }
+      <div class="list-table-frame" [attr.aria-busy]="loading()">
+        <table class="list-table executions-table">
           <thead>
             <tr>
               <th>{{ t().executionsColProcess }}</th>
@@ -463,14 +178,16 @@
                 <td class="align-right">{{ item.records_accepted | number }}</td>
                 <td class="align-right">{{ item.records_rejected | number }}</td>
                 <td class="align-center">
-                  <span [class]="getSnapshotBadgeClass(item.snapshot_status)">
-                    {{ formatSnapshotStatus(item.snapshot_status) }}
-                  </span>
+                  <app-status-badge
+                    [label]="formatSnapshotStatus(item.snapshot_status)"
+                    [tone]="getSnapshotBadgeTone(item.snapshot_status)"
+                  />
                 </td>
                 <td class="align-center">
-                  <span [class]="getStatusBadgeClass(item.status)">
-                    {{ formatStatus(item.status) }}
-                  </span>
+                  <app-status-badge
+                    [label]="formatStatus(item.status)"
+                    [tone]="getStatusBadgeTone(item.status)"
+                  />
                 </td>
               </tr>
             }
@@ -479,72 +196,20 @@
       </div>
 
       <!-- Paginação -->
-      <footer class="pagination-container">
-        <div>
-          <span
-            >{{ t().executionsPaginationPage }} {{ page() }} {{ t().executionsPaginationOf }}
-            {{ data()!.total_pages || 1 }}</span
-          >
-        </div>
-
-        <div class="pagination-controls">
-          <span class="meta-label">{{ t().executionsPaginationPerPage }}</span>
-          <div
-            class="custom-select-anchor pagination-size-select"
-            (click)="$event.stopPropagation()"
-          >
-            <button
-              type="button"
-              class="custom-select-trigger size-trigger"
-              [class.open]="pageSizeDropdownOpen()"
-              (click)="togglePageSizeDropdown($event)"
-              aria-haspopup="listbox"
-              [attr.aria-expanded]="pageSizeDropdownOpen()"
-            >
-              <span>{{ pageSize() }}</span>
-              <ui-icon name="chevron-down" [class.rotated]="pageSizeDropdownOpen()" />
-            </button>
-
-            @if (pageSizeDropdownOpen()) {
-              <div class="custom-select-menu size-menu" role="listbox">
-                @for (size of allowedPageSizes; track size) {
-                  <button
-                    type="button"
-                    class="custom-select-item"
-                    [class.selected]="pageSize() === size"
-                    (click)="selectPageSize(size)"
-                    role="option"
-                    [attr.aria-selected]="pageSize() === size"
-                  >
-                    <span>{{ size }}</span>
-                  </button>
-                }
-              </div>
-            }
-          </div>
-
-          <button
-            class="btn btn-secondary btn-pagination-nav"
-            type="button"
-            [disabled]="page() <= 1"
-            (click)="previousPage()"
-            aria-label="Previous page"
-          >
-            <ui-icon name="chevron-left" />
-          </button>
-          <button
-            class="btn btn-secondary btn-pagination-nav"
-            type="button"
-            [disabled]="page() >= data()!.total_pages"
-            (click)="nextPage()"
-            aria-label="Next page"
-          >
-            <ui-icon name="chevron-right" />
-          </button>
-        </div>
-      </footer>
+      <app-list-pagination
+        [page]="page()"
+        [totalPages]="data()!.total_pages"
+        [pageSize]="pageSize()"
+        [pageSizes]="allowedPageSizes"
+        [pageLabel]="t().executionsPaginationPage"
+        [ofLabel]="t().executionsPaginationOf"
+        [perPageLabel]="t().executionsPaginationPerPage"
+        (pageSizeChanged)="selectPageSize($event)"
+        (previous)="previousPage()"
+        (next)="nextPage()"
+      />
     }
-  </article>
+  </app-list-panel>
 
   <!-- Drawer / Modal de Detalhes da Execução -->
   @if (selectedExecutionId()) {

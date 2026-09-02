@@ -1,0 +1,19 @@
+.inline-alert {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 0.6rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--app-danger) 28%, transparent);
+  border-radius: 0.45rem;
+  background: var(--app-danger-soft);
+  color: var(--app-danger);
+  font-size: 0.775rem;
+  font-weight: 500;
+}
+
+.inline-alert ui-icon {
+  width: 0.9rem;
+  height: 0.9rem;
+  flex: 0 0 0.9rem;
+}

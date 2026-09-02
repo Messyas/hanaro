@@ -78,6 +78,21 @@ class ScrapSortField(StrEnum):
     AMOUNT_USD = "amount_usd"
 
 
+class ScrapReviewStatus(StrEnum):
+    DRAFT = "DRAFT"
+    REVIEWED = "REVIEWED"
+
+
+class ScrapReviewFilterStatus(StrEnum):
+    UNREVIEWED = "UNREVIEWED"
+    DRAFT = "DRAFT"
+    REVIEWED = "REVIEWED"
+
+
+class ScrapReviewBulkStatus(StrEnum):
+    COMPLETED = "COMPLETED"
+
+
 class TrendGroupBy(StrEnum):
     DAY = "day"
     WEEK = "week"

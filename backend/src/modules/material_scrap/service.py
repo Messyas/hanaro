@@ -1,7 +1,4 @@
-import hashlib
-import json
 from collections import Counter
-from datetime import date
 from decimal import ROUND_HALF_UP, Decimal, localcontext
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,7 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ...infrastructure.logging import get_logger
 from . import repository
 from .execution_service import ensure_execution_from_payload, link_ingestion_result
-from .schemas import CanonicalScrapRecord, IngestionResult, MaterialScrapPayload
+from .identity import content_hash
+from .schemas import IngestionResult, MaterialScrapPayload
 
 
 class CanonicalBatchValidationError(ValueError):
@@ -17,18 +15,6 @@ class CanonicalBatchValidationError(ValueError):
 
 
 logger = get_logger(__name__)
-
-
-def _content_hash(record: CanonicalScrapRecord) -> str:
-    values = record.model_dump(exclude={"content_hash"})
-    encoded = json.dumps(
-        values,
-        sort_keys=True,
-        separators=(",", ":"),
-        ensure_ascii=False,
-        default=lambda value: value.isoformat() if isinstance(value, date) else str(value),
-    ).encode("utf-8")
-    return hashlib.sha256(encoded).hexdigest()
 
 
 def validate_canonical_batch(payload: MaterialScrapPayload) -> None:
@@ -72,7 +58,7 @@ def validate_canonical_batch(payload: MaterialScrapPayload) -> None:
             )
         if record.amount_usd != expected_usd:
             raise CanonicalBatchValidationError(f"invalid amount_usd at source line {record.source_line}")
-        if record.content_hash != _content_hash(record):
+        if record.content_hash != content_hash(record):
             raise CanonicalBatchValidationError(f"invalid content_hash at source line {record.source_line}")
         quality_counts.update(record.quality_flags)
         expanded_rows += "expanded_req_comment_fields" in record.quality_flags
@@ -116,7 +102,7 @@ async def ingest_material_scrap(payload: MaterialScrapPayload, db: AsyncSession)
                 db,
                 read_count=len(payload.records),
                 rejected_count=len(payload.records),
-                error_message=type(error).__name__,
+                error_message=getattr(error, "code", type(error).__name__),
             )
         await link_ingestion_result(payload, db, ingestion_run_id=None, is_replay=False, failed=error)
         logger.exception(
