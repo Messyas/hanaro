@@ -234,7 +234,7 @@
       </div>
     </section>
   } @else {
-    <section class="kpi-summary-panel" [attr.aria-label]="text().relativeSummaryAria">
+    <section class="kpi-summary-panel compact" [attr.aria-label]="text().relativeSummaryAria">
       <div class="kpi-summary-lead">
         <span>{{ periodLabel() }}</span>
         <strong>{{ formatRate(store.relativeKpis().rate) }}</strong>
