@@ -45,6 +45,9 @@
         }
       </span>
     </div>
+    <span class="dashboard-data-status"
+      >{{ dataStatusLabel() }} · {{ text().updated }} {{ lastUpdatedLabel() }}</span
+    >
     <div class="analysis-controls">
       <app-list-filter-popover
         [activeCount]="advancedFiltersCount()"
@@ -163,6 +166,18 @@
           QTY Scrap
         </button>
       </div>
+      <label class="comparison-control">
+        <span>{{ text().compareWith }}</span>
+        <select
+          [attr.aria-label]="text().compareWith"
+          [value]="store.comparison()"
+          (change)="selectComparison($event)"
+        >
+          @for (option of comparisonOptions; track option) {
+            <option [value]="option">{{ comparisonOptionLabel(option) }}</option>
+          }
+        </select>
+      </label>
       <button
         class="mask-values-button"
         type="button"
@@ -173,6 +188,19 @@
         <ui-icon [name]="store.monetaryValuesHidden() ? 'eye-off' : 'eye'" />
         {{ store.monetaryValuesHidden() ? text().showValues : text().hideValues }}
       </button>
+    </div>
+  </section>
+
+  <section class="dashboard-story-strip">
+    <div>
+      <span>{{ text().executiveReading }}</span>
+      <strong>{{ summaryHeadline() }}</strong>
+      <small>{{ summaryDetail() }}</small>
+    </div>
+    <div>
+      <span>{{ text().comparisonReference }}</span>
+      <strong>{{ comparisonLabel() }}</strong>
+      <small>{{ summaryMetricLabel() }}</small>
     </div>
   </section>
 
@@ -195,7 +223,7 @@
           <small>{{ targetAchievementDeltaLabel() }}</small>
         </div>
         <div
-          class="kpi-summary-metric"
+          class="kpi-summary-metric kpi-summary-focus"
           [class.positive]="targetGapReached()"
           [class.negative]="!targetGapReached()"
         >
@@ -279,12 +307,19 @@
             [attr.aria-expanded]="evolutionFiltersOpen()"
             (click)="toggleEvolutionFilters()"
           >
-            {{ evolutionFiltersLabel() }}
+            <ui-icon name="filter" />
+            <span>{{ evolutionFiltersLabel() }}</span>
           </button>
         </div>
       </div>
       @if (evolutionFiltersOpen()) {
-        <div class="chart-filter-panel" [attr.aria-label]="text().chartFilters">
+        <app-dashboard-chart-filter-panel
+          [label]="text().chartFilters"
+          [summary]="evolutionFilterSummary()"
+          [clearLabel]="text().clearChartFilters"
+          [clearDisabled]="!evolutionFiltersCount()"
+          (clear)="clearEvolutionFilters()"
+        >
           <label class="dashboard-field">
             <span>{{ text().period }}</span>
             <select
@@ -302,6 +337,8 @@
             [allLabel]="text().allMasculine"
             [applyLabel]="text().apply"
             [selectedPlural]="text().selectedPlural"
+            [currentSelectionLabel]="text().currentSelection"
+            [removeLabel]="text().removeFilter"
             [searchLabel]="text().searchOptions"
             [noOptionsLabel]="text().noFilterOptions"
             [options]="store.options.products"
@@ -313,21 +350,15 @@
             [allLabel]="text().allFeminine"
             [applyLabel]="text().apply"
             [selectedPlural]="text().selectedPlural"
+            [currentSelectionLabel]="text().currentSelection"
+            [removeLabel]="text().removeFilter"
             [searchLabel]="text().searchOptions"
             [noOptionsLabel]="text().noFilterOptions"
             [options]="store.options.lines"
             [selected]="evolutionFilters().line"
             (selectionChange)="changeEvolutionMultiFilter('line', $event)"
           />
-          <button
-            class="chart-filter-clear"
-            type="button"
-            [disabled]="!evolutionFiltersCount()"
-            (click)="clearEvolutionFilters()"
-          >
-            {{ text().clearChartFilters }}
-          </button>
-        </div>
+        </app-dashboard-chart-filter-panel>
       }
       @defer (on viewport) {
         @if (hasPerformanceData()) {
@@ -341,7 +372,10 @@
             [monetaryValuesHidden]="store.monetaryValuesHidden()"
           />
         } @else {
-          <div class="chart-empty-state">{{ text().noChartData }}</div>
+          <div class="chart-empty-state">
+            <strong>{{ text().noChartDataTitle }}</strong>
+            <span>{{ performanceEmptyStateHint() }}</span>
+          </div>
         }
       } @placeholder {
         <div class="chart-defer-placeholder" aria-hidden="true"></div>
@@ -401,20 +435,27 @@
             [attr.aria-expanded]="distributionFiltersOpen()"
             (click)="toggleDistributionFilters()"
           >
-            {{ distributionFiltersLabel() }}
+            <ui-icon name="filter" />
+            <span>{{ distributionFiltersLabel() }}</span>
           </button>
         </div>
       </div>
       @if (distributionFiltersOpen()) {
-        <div
-          class="chart-filter-panel distribution-filter-panel"
-          [attr.aria-label]="text().chartFilters"
+        <app-dashboard-chart-filter-panel
+          [label]="text().chartFilters"
+          [summary]="distributionFilterSummary()"
+          [clearLabel]="text().clearChartFilters"
+          [clearDisabled]="!distributionFiltersCount()"
+          variant="distribution"
+          (clear)="clearDistributionFilters()"
         >
           <app-dashboard-multi-select
             [label]="text().product"
             [allLabel]="text().allMasculine"
             [applyLabel]="text().apply"
             [selectedPlural]="text().selectedPlural"
+            [currentSelectionLabel]="text().currentSelection"
+            [removeLabel]="text().removeFilter"
             [searchLabel]="text().searchOptions"
             [noOptionsLabel]="text().noFilterOptions"
             [options]="store.options.products"
@@ -426,6 +467,8 @@
             [allLabel]="text().allFeminine"
             [applyLabel]="text().apply"
             [selectedPlural]="text().selectedPlural"
+            [currentSelectionLabel]="text().currentSelection"
+            [removeLabel]="text().removeFilter"
             [searchLabel]="text().searchOptions"
             [noOptionsLabel]="text().noFilterOptions"
             [options]="store.options.lines"
@@ -445,15 +488,7 @@
               }
             </select>
           </label>
-          <button
-            class="chart-filter-clear"
-            type="button"
-            [disabled]="!distributionFiltersCount()"
-            (click)="clearDistributionFilters()"
-          >
-            {{ text().clearChartFilters }}
-          </button>
-        </div>
+        </app-dashboard-chart-filter-panel>
       }
       @defer (on viewport) {
         @if (hasDistributionData()) {
@@ -465,7 +500,10 @@
             [monetaryValuesHidden]="store.monetaryValuesHidden()"
           />
         } @else {
-          <div class="chart-empty-state">{{ text().noChartData }}</div>
+          <div class="chart-empty-state">
+            <strong>{{ text().noChartDataTitle }}</strong>
+            <span>{{ distributionEmptyStateHint() }}</span>
+          </div>
         }
       } @placeholder {
         <div class="chart-defer-placeholder" aria-hidden="true"></div>

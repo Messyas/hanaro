@@ -3,6 +3,7 @@ export type DashboardAnalysis = 'absolute' | 'relative';
 export type DashboardRankingLimit = 5 | 10;
 export type DashboardDataState = 'api' | 'api-empty' | 'loading' | 'mock';
 export type DashboardEvolutionView = 'monthly' | 'weekly';
+export type DashboardComparison = 'ytd' | 'yoy' | 'mom';
 
 export interface DashboardFilters {
   year: string;
@@ -19,7 +20,7 @@ export type DashboardMultiFilterKey = 'product' | 'line' | 'division' | 'week';
 export type DashboardSingleFilterKey = Exclude<DashboardFilterKey, DashboardMultiFilterKey>;
 
 export interface DashboardFilterChip {
-  key: DashboardMultiFilterKey | 'component';
+  key: DashboardFilterKey;
   label: string;
   values: readonly string[];
 }
@@ -58,6 +59,7 @@ export interface DashboardDistributionItem {
 
 export interface DashboardSnapshot {
   monthly: readonly DashboardMonthlyPoint[];
+  weekly: readonly DashboardMonthlyPoint[];
   distribution: readonly DashboardDistributionItem[];
   relativeDistribution: readonly DashboardDistributionItem[];
   lastUpdatedAt: string;

@@ -9,6 +9,9 @@ import { UiIcon } from '../../../ui-icon';
       <details #details class="dashboard-multi" name="dashboard-multi-select-group" (toggle)="handleToggle()">
       <summary class="dashboard-multi-summary" [attr.aria-label]="label() + ': ' + summary()">
         <span>{{ summary() }}</span>
+        @if (selected().length) {
+          <b>{{ selected().length }}</b>
+        }
         <ui-icon name="chevron-down" />
       </summary>
       <div class="dashboard-multi-menu">
@@ -21,6 +24,24 @@ import { UiIcon } from '../../../ui-icon';
             (input)="updateSearch($event)"
           />
         </label>
+        @if (draft().length) {
+          <div class="dashboard-multi-selected" [attr.aria-label]="currentSelectionLabel()">
+            <span>{{ currentSelectionLabel() }}</span>
+            <div>
+              @for (option of draft(); track option) {
+                <button
+                  type="button"
+                  class="dashboard-multi-chip"
+                  [attr.aria-label]="removeLabel() + ' ' + option"
+                  (click)="removeOption(option)"
+                >
+                  <span>{{ option }}</span>
+                  <ui-icon name="x" />
+                </button>
+              }
+            </div>
+          </div>
+        }
         <div class="dashboard-multi-options">
           @for (option of filteredOptions(); track option) {
             <label class="dashboard-multi-option">
@@ -51,6 +72,8 @@ export class DashboardMultiSelect {
   readonly allLabel = input('Todos');
   readonly applyLabel = input('Aplicar');
   readonly selectedPlural = input('selecionados');
+  readonly currentSelectionLabel = input('Seleção atual');
+  readonly removeLabel = input('Remover filtro');
   readonly searchLabel = input('Buscar');
   readonly noOptionsLabel = input('Nenhuma opção encontrada');
   readonly selectionChange = output<readonly string[]>();
@@ -91,6 +114,10 @@ export class DashboardMultiSelect {
     this.draft.update((current) =>
       current.includes(option) ? current.filter((item) => item !== option) : [...current, option],
     );
+  }
+
+  removeOption(option: string): void {
+    this.draft.update((current) => current.filter((item) => item !== option));
   }
 
   clear(): void {

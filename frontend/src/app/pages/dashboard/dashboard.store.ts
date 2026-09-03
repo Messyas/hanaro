@@ -4,12 +4,14 @@ import { computed, effect, inject, Injectable, PLATFORM_ID, signal } from '@angu
 import { firstValueFrom } from 'rxjs';
 import {
   DashboardAnalysis,
+  DashboardComparison,
   DashboardDataState,
   DashboardFilterChip,
   DashboardFilterKey,
   DashboardFilters,
   DashboardKpis,
   DashboardMetric,
+  DashboardMonthlyPoint,
   DashboardMultiFilterKey,
   DashboardRankingLimit,
   DashboardSnapshot,
@@ -35,6 +37,7 @@ interface DashboardApiResponse {
     generated_at: string;
   };
   monthly: DashboardApiSeriesPoint[];
+  weekly?: DashboardApiSeriesPoint[];
   rankings: {
     products: DashboardApiRankingItem[];
     lines: DashboardApiRankingItem[];
@@ -62,6 +65,7 @@ export class DashboardStore {
   readonly filters = signal<DashboardFilters>({ ...INITIAL_DASHBOARD_FILTERS });
   readonly metric = signal<DashboardMetric>('usd');
   readonly analysis = signal<DashboardAnalysis>('absolute');
+  readonly comparison = signal<DashboardComparison>('ytd');
   readonly rankingLimit = signal<DashboardRankingLimit>(5);
   readonly dataState = signal<DashboardDataState>('mock');
   readonly apiSnapshot = signal<DashboardSnapshot | null>(null);
@@ -79,6 +83,22 @@ export class DashboardStore {
   readonly activeFilterChips = computed<readonly DashboardFilterChip[]>(() => {
     const filters = this.filters();
     return [
+      {
+        key: 'year',
+        label: 'Ano',
+        values: filters.year === INITIAL_DASHBOARD_FILTERS.year ? [] : [filters.year],
+      },
+      {
+        key: 'period',
+        label: 'Período',
+        values:
+          filters.period === INITIAL_DASHBOARD_FILTERS.period
+            ? []
+            : [
+                this.options.periods.find((period) => period.value === filters.period)?.label ??
+                  filters.period,
+              ],
+      },
       { key: 'product', label: 'Produto', values: filters.product },
       { key: 'line', label: 'Linha', values: filters.line },
       { key: 'division', label: 'Divisão', values: filters.division },
@@ -96,13 +116,10 @@ export class DashboardStore {
     return this.options.periods.find((period) => period.value === selected)?.label ?? selected;
   });
   readonly comparisonLabel = computed(() => {
-    const selectedPeriod = this.filters().period;
-    if (selectedPeriod === 'ytd') return `Mesmo acumulado de ${Number(this.filters().year) - 1}`;
-
-    const monthIndex = Number(selectedPeriod);
-    return monthIndex > 0
-      ? (this.snapshot().monthly[monthIndex - 1]?.month ?? 'Período anterior')
-      : `Mesmo mês de ${Number(this.filters().year) - 1}`;
+    const comparison = this.comparison();
+    if (comparison === 'ytd') return `Mesmo acumulado de ${Number(this.filters().year) - 1}`;
+    if (comparison === 'mom') return this.previousMonthLabel();
+    return `Mesmo mês de ${Number(this.filters().year) - 1}`;
   });
   readonly kpis = computed<DashboardKpis>(() => {
     const metric = this.metric();
@@ -181,7 +198,7 @@ export class DashboardStore {
     this.filters.update((filters) => ({ ...filters, [key]: value }));
   }
 
-  clearFilter(key: DashboardMultiFilterKey | 'component'): void {
+  clearFilter(key: DashboardFilterKey): void {
     this.setFilter(key, INITIAL_DASHBOARD_FILTERS[key]);
   }
 
@@ -210,6 +227,10 @@ export class DashboardStore {
     this.rankingLimit.set(limit);
   }
 
+  setComparison(comparison: DashboardComparison): void {
+    this.comparison.set(comparison);
+  }
+
   toggleMonetaryValues(): void {
     if (this.metric() === 'usd') this.monetaryValuesHidden.update((hidden) => !hidden);
   }
@@ -231,22 +252,45 @@ export class DashboardStore {
 
   private selectedMonthlyPoints() {
     const points = this.snapshot().monthly;
-    const selectedPeriod = this.filters().period;
-    return selectedPeriod === 'ytd'
-      ? points.slice(0, 8)
-      : points.slice(Number(selectedPeriod), Number(selectedPeriod) + 1);
+    const monthIndex = this.currentMonthIndex();
+    return this.comparison() === 'ytd'
+      ? points.slice(0, monthIndex + 1)
+      : points.slice(monthIndex, monthIndex + 1);
   }
 
   private referenceMonthlyPoints() {
     const points = this.snapshot().monthly;
-    const selectedPeriod = this.filters().period;
-    if (selectedPeriod === 'ytd') {
-      return points.slice(0, 8).map((point) => ({ point, usePreviousYear: true }));
+    const monthIndex = this.currentMonthIndex();
+
+    if (this.comparison() === 'ytd') {
+      return points.slice(0, monthIndex + 1).map((point) => ({ point, usePreviousYear: true }));
     }
 
-    const monthIndex = Number(selectedPeriod);
-    if (monthIndex > 0) return [{ point: points[monthIndex - 1], usePreviousYear: false }];
-    return [{ point: points[0], usePreviousYear: true }];
+    if (this.comparison() === 'mom' && monthIndex > 0) {
+      return [{ point: points[monthIndex - 1], usePreviousYear: false }];
+    }
+
+    return [{ point: points[monthIndex], usePreviousYear: true }];
+  }
+
+  private currentMonthIndex(): number {
+    const selectedPeriod = this.filters().period;
+    if (selectedPeriod !== 'ytd') return Number(selectedPeriod);
+
+    const points = this.snapshot().monthly;
+    for (let index = points.length - 1; index >= 0; index -= 1) {
+      const point = points[index];
+      if (point.actualUsd !== null || point.actualQty !== null) return index;
+    }
+
+    return 0;
+  }
+
+  private previousMonthLabel(): string {
+    const monthIndex = this.currentMonthIndex();
+    return monthIndex > 0
+      ? (this.snapshot().monthly[monthIndex - 1]?.month ?? 'Período anterior')
+      : `Mesmo mês de ${Number(this.filters().year) - 1}`;
   }
 
   private filterValuesEqual(
@@ -350,6 +394,7 @@ export class DashboardStore {
 
     return {
       monthly,
+      weekly: (response.weekly ?? []).map((point) => this.mapApiWeeklyPoint(point)),
       distribution: response.rankings.products.map((item) => ({
         label: item.key ?? 'Não classificado',
         usd: this.toNumber(item.amount),
@@ -369,6 +414,27 @@ export class DashboardStore {
         minute: '2-digit',
       }).format(new Date(response.metadata.generated_at)),
     };
+  }
+
+  private mapApiWeeklyPoint(point: DashboardApiSeriesPoint): DashboardMonthlyPoint {
+    return {
+      month: this.weekLabel(point.period),
+      actualUsd: this.toNumber(point.actual),
+      previousUsd: this.toNullableNumber(point.previous_year),
+      targetUsd: this.toNullableNumber(point.target) ?? 0,
+      actualQty: null,
+      previousQty: null,
+      targetQty: 0,
+      materialAmountUsd: 0,
+      previousMaterialAmountUsd: 0,
+      productionQty: 0,
+      previousProductionQty: 0,
+    };
+  }
+
+  private weekLabel(period: string): string {
+    const match = period.match(/W(\d{1,2})$/);
+    return match ? `W${match[1]}` : period;
   }
 
   private hasUsableSnapshot(snapshot: DashboardSnapshot): boolean {

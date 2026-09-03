@@ -216,6 +216,7 @@ export class MockDashboardService {
         productionQty: Math.round(PRODUCTION_QTY[index] * factor),
         previousProductionQty: Math.round(PREVIOUS_PRODUCTION_QTY[index] * factor),
       })),
+      weekly: [],
       distribution: BASE_DISTRIBUTION.filter(
         (item) => !filters.product.length || filters.product.includes(item.label),
       ).map((item) => ({

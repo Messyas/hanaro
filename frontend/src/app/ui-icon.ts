@@ -19,6 +19,7 @@ export type IconName =
   | 'ellipsis-v'
   | 'filter'
   | 'folder'
+  | 'filter'
   | 'globe'
   | 'heart'
   | 'heart-filled'
@@ -124,6 +125,9 @@ export type IconName =
             pathLength="1"
             d="M3 7.5A2.5 2.5 0 0 1 5.5 5H10l2 2h6.5A2.5 2.5 0 0 1 21 9.5v7a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 16.5Z"
           />
+        }
+        @case ('filter') {
+          <path d="M4 5h16M7 12h10M10 19h4" />
         }
         @case ('globe') {
           <circle cx="12" cy="12" r="9" />

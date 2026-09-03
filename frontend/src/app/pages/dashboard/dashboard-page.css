@@ -8,29 +8,6 @@
   gap: 1rem;
 }
 
-.dashboard-filter-panel {
-  position: relative;
-  z-index: 20;
-  overflow: visible;
-  border: 1px solid var(--app-card-border, var(--app-border));
-  border-radius: 1rem;
-  background: var(--app-surface-raised);
-  box-shadow: var(--app-shadow-card);
-}
-
-.dashboard-filter-grid {
-  display: grid;
-  grid-template-columns: minmax(5.2rem, 0.65fr) minmax(8.5rem, 1fr);
-  gap: 0.65rem;
-  padding: 1rem;
-}
-.dashboard-filter-grid-advanced {
-  grid-template-columns: repeat(3, minmax(8rem, 1fr));
-  border-top: 1px solid var(--app-border-soft);
-  background: color-mix(in srgb, var(--app-surface-muted) 42%, transparent);
-  padding-top: 0.8rem;
-}
-
 .dashboard-field {
   display: flex;
   min-width: 0;
@@ -66,90 +43,16 @@
   opacity: 0.45;
 }
 
-.dashboard-filter-footer {
-  display: flex;
-  min-height: 2.6rem;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  border-top: 1px solid var(--app-border-soft);
-  padding: 0.55rem 1rem;
-}
-
-.dashboard-filter-context {
-  display: flex;
-  min-width: 0;
-  flex: 1;
-  flex-direction: column;
-  gap: 0.45rem;
-}
 .dashboard-data-status {
+  flex: 1 1 10rem;
   color: var(--app-text-subtle);
   font-size: 0.68rem;
-}
-.active-filter-list {
-  display: flex;
-  min-width: 0;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.45rem;
-}
-.active-filter-list > span {
-  color: var(--app-text-muted);
-  font-size: 0.68rem;
-  font-weight: 700;
-}
-.filter-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  border: 1px solid var(--brand-primary-border, var(--app-border));
-  border-radius: 999px;
-  background: var(--brand-primary-softer, var(--brand-primary-soft));
-  color: var(--brand-primary);
-  cursor: pointer;
-  padding: 0.28rem 0.42rem 0.28rem 0.6rem;
-  font: inherit;
-  font-size: 0.7rem;
-  font-weight: 750;
-}
-.filter-chip small {
-  color: var(--app-text-secondary);
-  font-size: 0.62rem;
-  font-weight: 600;
-}
-.filter-chip b {
-  display: grid;
-  width: 1rem;
-  height: 1rem;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--brand-primary-soft);
-}
-.dashboard-filter-footer button {
-  border: 0;
-  background: transparent;
-  color: var(--brand-primary);
-  cursor: pointer;
-  padding: 0.25rem;
-  font: inherit;
-  font-size: 0.7rem;
-  font-weight: 700;
-}
-.dashboard-filter-footer button:disabled {
-  cursor: default;
-  opacity: 0.42;
-}
-.dashboard-filter-actions {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.65rem;
+  text-align: center;
 }
 
 .dashboard-toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
@@ -262,6 +165,82 @@ app-list-filter-popover .filter-popover-panel {
   color: var(--brand-primary-contrast);
 }
 
+.comparison-control {
+  display: flex;
+  min-width: 10.5rem;
+  flex-direction: column;
+  gap: 0.18rem;
+}
+
+.comparison-control span {
+  color: var(--app-text-subtle);
+  font-size: 0.58rem;
+  font-weight: 750;
+}
+
+.comparison-control select {
+  min-height: 2rem;
+  border: 1px solid var(--app-border);
+  border-radius: 0.62rem;
+  background: var(--app-surface);
+  color: var(--app-text);
+  cursor: pointer;
+  padding: 0.3rem 1.5rem 0.3rem 0.55rem;
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.comparison-control select:focus-visible {
+  border-color: var(--brand-primary);
+  outline: 3px solid var(--app-focus-ring);
+  outline-offset: 1px;
+}
+
+.dashboard-story-strip {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(10rem, 0.28fr);
+  gap: 1rem;
+  align-items: stretch;
+  border: 1px solid var(--app-card-border, var(--app-border));
+  border-radius: 0.75rem;
+  background: var(--app-surface-raised);
+  box-shadow: var(--app-shadow-card);
+}
+
+.dashboard-story-strip > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.85rem 1rem;
+}
+
+.dashboard-story-strip > div + div {
+  border-left: 1px solid var(--app-border-soft);
+  background: color-mix(in srgb, var(--app-surface-muted) 42%, transparent);
+}
+
+.dashboard-story-strip span,
+.dashboard-story-strip small {
+  color: var(--app-text-muted);
+  font-size: 0.68rem;
+}
+
+.dashboard-story-strip span {
+  font-weight: 800;
+}
+
+.dashboard-story-strip strong {
+  overflow: hidden;
+  color: var(--app-text-strong);
+  font-size: 1rem;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .ranking-limit-switch,
 .evolution-view-switch {
   display: inline-flex;
@@ -292,9 +271,12 @@ app-list-filter-popover .filter-popover-panel {
   color: var(--brand-primary-contrast);
 }
 
-.chart-filter-button,
-.chart-filter-clear {
+.chart-filter-button {
+  display: inline-flex;
   min-height: 2rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
   border: 1px solid var(--app-border);
   border-radius: 0.62rem;
   background: var(--app-surface);
@@ -312,15 +294,9 @@ app-list-filter-popover .filter-popover-panel {
   outline-offset: 1px;
 }
 
-.chart-filter-clear {
-  align-self: end;
-  border: 0;
-  background: transparent;
-}
-
-.chart-filter-clear:disabled {
-  cursor: default;
-  opacity: 0.42;
+.chart-filter-button ui-icon {
+  width: 0.85rem;
+  height: 0.85rem;
 }
 
 .mask-values-button {
@@ -344,7 +320,7 @@ app-list-filter-popover .filter-popover-panel {
   grid-template-columns: minmax(16rem, 0.9fr) minmax(0, 2.2fr);
   overflow: hidden;
   border: 1px solid var(--app-card-border, var(--app-border));
-  border-radius: 0.85rem;
+  border-radius: 0.75rem;
   background: var(--app-surface-raised);
   box-shadow: var(--app-shadow-card);
 }
@@ -356,6 +332,7 @@ app-list-filter-popover .filter-popover-panel {
   justify-content: center;
   border-right: 1px solid var(--app-border-soft);
   background: color-mix(in srgb, var(--app-surface-muted) 38%, transparent);
+  box-shadow: inset 0.25rem 0 0 var(--brand-primary);
   padding: 1.1rem;
 }
 
@@ -393,6 +370,7 @@ app-list-filter-popover .filter-popover-panel {
 }
 
 .kpi-summary-metric {
+  position: relative;
   display: flex;
   min-width: 0;
   min-height: 7rem;
@@ -400,6 +378,22 @@ app-list-filter-popover .filter-popover-panel {
   justify-content: center;
   border-right: 1px solid var(--app-border-soft);
   padding: 0.95rem;
+}
+
+.kpi-summary-focus {
+  background: color-mix(in srgb, var(--brand-primary-soft) 46%, transparent);
+}
+
+.kpi-summary-focus::after {
+  position: absolute;
+  right: 0.8rem;
+  bottom: 0.75rem;
+  width: 1.65rem;
+  height: 0.18rem;
+  border-radius: 999px;
+  background: currentcolor;
+  content: '';
+  opacity: 0.22;
 }
 
 .kpi-summary-metric:last-child {
@@ -444,29 +438,6 @@ app-list-filter-popover .filter-popover-panel {
   z-index: 9;
 }
 
-.chart-filter-panel {
-  position: relative;
-  z-index: 15;
-  display: grid;
-  grid-template-columns: minmax(7rem, 0.75fr) repeat(2, minmax(8rem, 1fr)) auto;
-  gap: 0.65rem;
-  align-items: end;
-  margin-top: 0.9rem;
-  border: 1px solid var(--app-border-soft);
-  border-radius: 0.75rem;
-  background: color-mix(in srgb, var(--app-surface-muted) 44%, transparent);
-  padding: 0.8rem;
-}
-
-.distribution-filter-panel {
-  grid-template-columns: 1fr;
-  align-items: stretch;
-}
-
-.distribution-filter-panel .chart-filter-clear {
-  justify-self: end;
-}
-
 .period-status {
   display: flex;
   align-items: center;
@@ -498,28 +469,32 @@ app-list-filter-popover .filter-popover-panel {
 }
 
 .chart-empty-state {
-  display: grid;
+  display: flex;
   min-height: 16.5rem;
-  place-items: center;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
   margin-top: 1rem;
   border: 1px dashed var(--app-border);
   border-radius: 0.75rem;
   background: color-mix(in srgb, var(--app-surface-muted) 52%, transparent);
-  color: var(--app-text-subtle);
   padding: 1rem;
   text-align: center;
+}
+
+.chart-empty-state strong {
+  color: var(--app-text);
+  font-size: 0.82rem;
+}
+
+.chart-empty-state span {
+  max-width: 24rem;
+  color: var(--app-text-subtle);
   font-size: 0.78rem;
   font-weight: 650;
 }
 
-@media (max-width: 1240px) {
-  .dashboard-filter-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-  .dashboard-filter-grid-advanced {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
 @media (max-width: 1050px) {
   .kpi-summary-panel {
     grid-template-columns: 1fr;
@@ -545,13 +520,6 @@ app-list-filter-popover .filter-popover-panel {
   }
 }
 @media (max-width: 760px) {
-  .dashboard-filter-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .dashboard-filter-grid-advanced {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .dashboard-filter-footer,
   .dashboard-toolbar {
     align-items: flex-start;
   }
@@ -559,35 +527,22 @@ app-list-filter-popover .filter-popover-panel {
     width: 100%;
     flex-wrap: wrap;
   }
-  .chart-filter-panel {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .distribution-filter-panel {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .chart-filter-clear {
-    justify-self: end;
-  }
-  .dashboard-filter-footer {
-    flex-direction: column;
-  }
-  .dashboard-filter-footer > button {
-    align-self: flex-end;
-  }
-  .dashboard-filter-actions {
-    width: 100%;
-  }
   .analysis-controls {
     flex-wrap: wrap;
     justify-content: flex-end;
+  }
+  .dashboard-story-strip {
+    grid-template-columns: 1fr;
+  }
+  .dashboard-story-strip > div + div {
+    border-top: 1px solid var(--app-border-soft);
+    border-left: 0;
   }
   .chart-empty-state {
     min-height: 13rem;
   }
 }
 @media (max-width: 480px) {
-  .dashboard-filter-grid,
-  .dashboard-filter-grid-advanced,
   .kpi-summary-metrics,
   .kpi-summary-metrics.compact {
     grid-template-columns: 1fr;
@@ -605,26 +560,25 @@ app-list-filter-popover .filter-popover-panel {
   .dashboard-toolbar {
     flex-direction: column;
   }
+  .dashboard-data-status {
+    text-align: left;
+  }
   .panel-header-actions,
   .evolution-view-switch,
-  .chart-filter-button,
-  .chart-filter-clear {
+  .chart-filter-button {
     width: 100%;
   }
   .evolution-view-switch button {
     flex: 1;
   }
-  .chart-filter-panel {
-    grid-template-columns: 1fr;
-  }
-  .distribution-filter-panel {
-    grid-template-columns: 1fr;
-  }
-  .chart-filter-clear {
-    justify-self: stretch;
-  }
   .analysis-controls {
     width: 100%;
     justify-content: space-between;
+  }
+  .comparison-control {
+    min-width: 100%;
+  }
+  .dashboard-story-strip strong {
+    white-space: normal;
   }
 }

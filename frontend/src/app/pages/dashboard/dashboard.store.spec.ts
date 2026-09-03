@@ -47,6 +47,7 @@ describe('DashboardStore', () => {
 
   it('treats a selected month as a single period and compares it with the prior month', () => {
     store.setFilter('period', '7');
+    store.setComparison('mom');
 
     expect(store.periodLabel()).toBe('Ago');
     expect(store.comparisonLabel()).toBe('Jul');
