@@ -1,4 +1,5 @@
-import { Component, HostListener, input, model, output, signal } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, inject, input, model, output, signal } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
 import { UiIcon } from '../../ui-icon';
 
 export interface ListFilterSelectOption {
@@ -16,7 +17,14 @@ export interface ListFilterSelectOption {
     '[class.menu-up]': "menuPosition() === 'up'",
   },
 })
-export class ListFilterSelect {
+export class ListFilterSelect implements OnInit, OnDestroy {
+  private readonly elementRef = inject(ElementRef);
+  private readonly document = inject(DOCUMENT);
+  private readonly closeListener = (event: MouseEvent): void => {
+    const target = event.target as HTMLElement | null;
+    if (target && !this.elementRef.nativeElement.contains(target)) this.open.set(false);
+  };
+
   readonly value = model('');
   readonly options = input.required<readonly ListFilterSelectOption[]>();
   readonly label = input('');
@@ -26,12 +34,19 @@ export class ListFilterSelect {
   readonly changed = output<string>();
   readonly open = signal(false);
 
+  ngOnInit(): void {
+    this.document.addEventListener('click', this.closeListener, true);
+  }
+
+  ngOnDestroy(): void {
+    this.document.removeEventListener('click', this.closeListener, true);
+  }
+
   selectedLabel(): string {
     return this.options().find((option) => option.value === this.value())?.label ?? '';
   }
 
   toggle(event: Event): void {
-    event.stopPropagation();
     this.open.update((open) => !open);
   }
 
@@ -39,11 +54,5 @@ export class ListFilterSelect {
     this.value.set(value);
     this.open.set(false);
     this.changed.emit(value);
-  }
-
-  @HostListener('document:click', ['$event'])
-  closeOutside(event: MouseEvent): void {
-    const target = event.target as HTMLElement | null;
-    if (target && !target.closest('app-list-filter-select')) this.open.set(false);
   }
 }

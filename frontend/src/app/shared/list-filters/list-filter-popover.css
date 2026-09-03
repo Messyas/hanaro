@@ -73,6 +73,24 @@
   background: var(--app-surface);
   box-shadow: var(--app-shadow-action);
 }
+@media (max-width: 700px) {
+  .filter-popover-panel {
+    position: fixed;
+    top: auto;
+    right: 1rem;
+    left: 1rem;
+    bottom: 1rem;
+    width: auto;
+    max-width: none;
+    max-height: 70vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .popover-body {
+    overflow-y: auto;
+  }
+}
 .popover-header,
 .popover-title-group,
 .popover-footer {
