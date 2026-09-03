@@ -24,6 +24,7 @@ from .enums import (
 from .models import (
     DailyExchangeRate,
     IngestionRun,
+    ScrapClassificationRule,
     ScrapDashboardAggregate,
     ScrapDefectType,
     ScrapOccurrence,
@@ -231,6 +232,17 @@ async def list_scrap(
         .limit(page_size)
     )
     rows = (await db.execute(statement)).all()
+    aliases = {
+        " ".join(rule.source_value.split()).upper(): rule.target_value
+        for rule in (
+            await db.execute(
+                select(ScrapClassificationRule).where(
+                    ScrapClassificationRule.kind == "PRODUCT_ALIAS",
+                    ScrapClassificationRule.is_active.is_(True),
+                )
+            )
+        ).scalars()
+    }
     return ScrapPage(
         items=[
             ScrapItem.model_validate(transaction).model_copy(
@@ -247,6 +259,7 @@ async def list_scrap(
                     "reviewed_at": reviewed_at,
                     "review_updated_at": review_updated_at,
                     "attachment_count": int(attachment_count),
+                    "product_alias": aliases.get(" ".join(transaction.item_code.split()).upper()),
                 }
             )
             for (

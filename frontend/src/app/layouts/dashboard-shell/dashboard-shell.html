@@ -241,6 +241,9 @@
           }
         </nav>
       </div>
+      @if (dashboardStatus.label(); as status) {
+        <p class="dashboard-data-status" aria-live="polite">{{ status }}</p>
+      }
     </header>
     <main class="app-canvas" tabindex="-1">
       <div class="dashboard-content"><router-outlet /></div>

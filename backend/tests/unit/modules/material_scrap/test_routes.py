@@ -165,7 +165,10 @@ async def test_frontend_dashboard_contract_uses_precalculated_projection(scrap_c
 
 
 @pytest.mark.asyncio
-async def test_dashboard_rejects_invalid_window_and_unbounded_filters(scrap_client: AsyncClient) -> None:
+async def test_dashboard_rejects_invalid_window_and_unbounded_filters(
+    scrap_client: AsyncClient,
+    client: AsyncClient,
+) -> None:
     reversed_window = await scrap_client.get(
         "/api/v1/dashboard/scrap",
         params={"date_from": "2026-08-27", "date_to": "2026-08-01"},
@@ -182,7 +185,13 @@ async def test_dashboard_rejects_invalid_window_and_unbounded_filters(scrap_clie
         "/api/v1/dashboard/scrap/targets/2026/8",
         json={"currency": "USD", "amount": "1000.00"},
     )
-    assert regular_user_target_write.status_code == 403
+    assert regular_user_target_write.status_code == 200
+
+    unauthenticated_target_write = await client.put(
+        "/api/v1/dashboard/scrap/targets/2026/8",
+        json={"currency": "USD", "amount": "1000.00"},
+    )
+    assert unauthenticated_target_write.status_code == 401
 
 
 @pytest.mark.asyncio

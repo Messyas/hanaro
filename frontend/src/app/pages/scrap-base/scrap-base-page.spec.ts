@@ -116,6 +116,10 @@ describe('ScrapBasePage', () => {
     expect(rendered).not.toContain('VALOR BRL');
   });
 
+  it('formats reviewed timestamps using the table date pattern', () => {
+    expect(component.formatTransactionDate('2026-09-03T20:03:39.734227')).toBe('03/09/2026');
+  });
+
   it('toggles selection mode and selects items by occurrence_id', () => {
     expect(component.selectionMode()).toBe(false);
 

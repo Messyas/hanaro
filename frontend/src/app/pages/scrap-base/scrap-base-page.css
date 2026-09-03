@@ -265,8 +265,9 @@
 }
 
 .description-cell {
-  min-width: 8rem;
-  max-width: 14rem;
+  width: 10rem;
+  min-width: 7rem;
+  max-width: 10rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

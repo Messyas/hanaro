@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...infrastructure.logging import get_logger
 from . import repository
+from .classification_service import ScrapClassificationService
 from .execution_service import ensure_execution_from_payload, link_ingestion_result
 from .identity import content_hash
 from .schemas import IngestionResult, MaterialScrapPayload
@@ -92,7 +93,8 @@ async def ingest_material_scrap(payload: MaterialScrapPayload, db: AsyncSession)
         await repository.mark_processing(run, db)
         run_id = run.id
         execution_id = run.execution_id
-        await repository.publish_snapshot(run, payload.records, db)
+        records = await ScrapClassificationService().resolve_records(payload.records, db)
+        await repository.publish_snapshot(run, records, db)
     except Exception as error:
         # A validation error may happen before an ingestion row exists.
         await db.rollback()

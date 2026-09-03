@@ -32,7 +32,40 @@ export interface AppTranslations {
   loginHint: string;
   settingsTitle: string;
   settingsTabPreferences: string;
+  settingsTabClassifications: string;
+  settingsTabDefectTypes: string;
   settingsTabSystem: string;
+  settingsTabTargets: string;
+  targetYearPlanTitle: string;
+  targetYearPlanSubtitle: string;
+  targetSelectYear: string;
+  targetAnnualTotal: string;
+  targetMonthlyAverage: string;
+  targetComparisonPreviousYear: string;
+  targetNoPreviousYear: string;
+  targetReductionVsPrevious: string;
+  targetIncreaseVsPrevious: string;
+  prefillAssistantTitle: string;
+  prefillAssistantDesc: string;
+  prefillModeLinear: string;
+  prefillModeCurve: string;
+  prefillAnnualTotalLabel: string;
+  prefillJanValueLabel: string;
+  prefillDecValueLabel: string;
+  prefillRangeConnector: string;
+  prefillApplyBtn: string;
+  targetMonthCol: string;
+  targetValueCol: string;
+  targetShareCol: string;
+  targetCurveTrajectory: string;
+  targetSavePlanBtn: string;
+  targetSavingPlan: string;
+  targetClearPlanBtn: string;
+  targetPlanSavedSuccess: string;
+  targetPlanClearedSuccess: string;
+  targetPlanSaveError: string;
+  targetLoginRequiredNotice: string;
+  targetLoginAction: string;
   scrapDefectTypesTitle: string;
   scrapDefectTypesSubtitle: string;
   scrapDefectTypeNameLabel: string;
@@ -413,7 +446,43 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     loginHint: 'Acessar sua conta',
     settingsTitle: 'Configurações',
     settingsTabPreferences: 'Preferências',
-    settingsTabSystem: 'Sistema',
+    settingsTabClassifications: 'Classificações de Material',
+    settingsTabDefectTypes: 'Tipos de Scrap',
+    settingsTabSystem: 'Tipos de Scrap',
+    settingsTabTargets: 'Metas de IF Cost',
+    targetYearPlanTitle: 'Plano Anual de Metas (IF Cost)',
+    targetYearPlanSubtitle:
+      'Defina as metas mensais de custo de refugo para guiar os indicadores de desempenho e o gráfico de evolução no Dashboard.',
+    targetSelectYear: 'Ano de Referência',
+    targetAnnualTotal: 'Total Anual Planejado',
+    targetMonthlyAverage: 'Média Mensal',
+    targetComparisonPreviousYear: 'Comparativo Ano Anterior',
+    targetNoPreviousYear: 'Sem meta cadastrada no ano anterior',
+    targetReductionVsPrevious: 'de redução em relação a',
+    targetIncreaseVsPrevious: 'de aumento em relação a',
+    prefillAssistantTitle: 'Assistente de Pré-preenchimento',
+    prefillAssistantDesc:
+      'Acelere o planejamento distribuindo uma meta uniforme ou traçando uma trajetória decrescente de Janeiro até Dezembro.',
+    prefillModeLinear: 'Distribuição Uniforme',
+    prefillModeCurve: 'Curva Gradual (Jan a Dez)',
+    prefillAnnualTotalLabel: 'Meta Total do Ano (USD)',
+    prefillJanValueLabel: 'Meta Inicial (Janeiro)',
+    prefillDecValueLabel: 'Meta Final (Dezembro)',
+    prefillRangeConnector: 'até',
+    prefillApplyBtn: 'Aplicar Pré-preenchimento',
+    targetMonthCol: 'Mês',
+    targetValueCol: 'Meta IF Cost (USD)',
+    targetShareCol: 'Participação Anual',
+    targetCurveTrajectory: 'Trajetória da Meta no Ano',
+    targetSavePlanBtn: 'Salvar Plano Anual',
+    targetSavingPlan: 'Salvando plano...',
+    targetClearPlanBtn: 'Excluir Metas do Ano',
+    targetPlanSavedSuccess: 'Plano anual de metas salvo com sucesso!',
+    targetPlanClearedSuccess: 'Metas do ano removidas com sucesso.',
+    targetPlanSaveError: 'Erro ao salvar plano de metas. Tente novamente.',
+    targetLoginRequiredNotice:
+      'Apenas usuários autenticados podem cadastrar ou editar metas de IF Cost. Você está visualizando em modo somente leitura.',
+    targetLoginAction: 'Fazer Login',
     scrapDefectTypesTitle: 'Tipos de Scrap',
     scrapDefectTypesSubtitle:
       'Categorias compartilhadas do sistema para classificação e análise de refugo pela equipe.',
@@ -804,7 +873,43 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     loginHint: 'Access your account',
     settingsTitle: 'Settings',
     settingsTabPreferences: 'Preferences',
-    settingsTabSystem: 'System',
+    settingsTabClassifications: 'Material Classifications',
+    settingsTabDefectTypes: 'Scrap Types',
+    settingsTabSystem: 'Scrap Types',
+    settingsTabTargets: 'IF Cost Targets',
+    targetYearPlanTitle: 'Annual Target Plan (IF Cost)',
+    targetYearPlanSubtitle:
+      'Set monthly scrap cost targets to drive performance indicators and the evolution chart on the Dashboard.',
+    targetSelectYear: 'Reference Year',
+    targetAnnualTotal: 'Planned Annual Total',
+    targetMonthlyAverage: 'Monthly Average',
+    targetComparisonPreviousYear: 'Previous Year Comparison',
+    targetNoPreviousYear: 'No target registered for previous year',
+    targetReductionVsPrevious: 'reduction compared to',
+    targetIncreaseVsPrevious: 'increase compared to',
+    prefillAssistantTitle: 'Pre-fill Assistant',
+    prefillAssistantDesc:
+      'Speed up planning by distributing an even target or sketching a declining curve from January to December.',
+    prefillModeLinear: 'Uniform Distribution',
+    prefillModeCurve: 'Gradual Curve (Jan to Dec)',
+    prefillAnnualTotalLabel: 'Annual Total Target (USD)',
+    prefillJanValueLabel: 'Initial Target (January)',
+    prefillDecValueLabel: 'Final Target (December)',
+    prefillRangeConnector: 'to',
+    prefillApplyBtn: 'Apply Pre-fill',
+    targetMonthCol: 'Month',
+    targetValueCol: 'Target IF Cost (USD)',
+    targetShareCol: 'Annual Share',
+    targetCurveTrajectory: 'Target Trajectory Across Year',
+    targetSavePlanBtn: 'Save Annual Plan',
+    targetSavingPlan: 'Saving plan...',
+    targetClearPlanBtn: 'Delete Year Targets',
+    targetPlanSavedSuccess: 'Annual target plan saved successfully!',
+    targetPlanClearedSuccess: 'Year targets removed successfully.',
+    targetPlanSaveError: 'Error saving target plan. Please try again.',
+    targetLoginRequiredNotice:
+      'Only authenticated users can register or edit IF Cost targets. You are viewing in read-only mode.',
+    targetLoginAction: 'Sign In',
     scrapDefectTypesTitle: 'Scrap Defect Types',
     scrapDefectTypesSubtitle:
       'Shared system categories for team scrap classification and analysis.',
@@ -1194,7 +1299,43 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     loginHint: '계정에 접속',
     settingsTitle: '설정',
     settingsTabPreferences: '환경설정',
-    settingsTabSystem: '시스템',
+    settingsTabClassifications: '자재 분류 규칙',
+    settingsTabDefectTypes: '스크랩 유형',
+    settingsTabSystem: '스크랩 유형',
+    settingsTabTargets: 'IF Cost 목표',
+    targetYearPlanTitle: '연간 목표 계획 (IF Cost)',
+    targetYearPlanSubtitle:
+      '대시보드의 성과 지표와 추세 그래프를 안내하기 위해 월별 스크랩 비용 목표를 설정합니다.',
+    targetSelectYear: '기준 연도',
+    targetAnnualTotal: '연간 총 계획',
+    targetMonthlyAverage: '월평균',
+    targetComparisonPreviousYear: '전년 대비 비교',
+    targetNoPreviousYear: '전년도 등록된 목표 없음',
+    targetReductionVsPrevious: '감소 대비',
+    targetIncreaseVsPrevious: '증가 대비',
+    prefillAssistantTitle: '사전 입력 도우미',
+    prefillAssistantDesc:
+      '균등한 목표를 분배하거나 1월부터 12월까지 감소하는 곡선을 그려 계획을 가속화합니다.',
+    prefillModeLinear: '균등 분배',
+    prefillModeCurve: '점진적 곡선 (1월부터 12월)',
+    prefillAnnualTotalLabel: '연간 총 목표 (USD)',
+    prefillJanValueLabel: '초기 목표 (1월)',
+    prefillDecValueLabel: '최종 목표 (12월)',
+    prefillRangeConnector: '부터',
+    prefillApplyBtn: '사전 입력 적용',
+    targetMonthCol: '월',
+    targetValueCol: 'IF Cost 목표 (USD)',
+    targetShareCol: '연간 점유율',
+    targetCurveTrajectory: '연간 목표 궤적',
+    targetSavePlanBtn: '연간 계획 저장',
+    targetSavingPlan: '계획 저장 중...',
+    targetClearPlanBtn: '연간 목표 삭제',
+    targetPlanSavedSuccess: '연간 목표 계획이 성공적으로 저장되었습니다!',
+    targetPlanClearedSuccess: '연간 목표가 삭제되었습니다.',
+    targetPlanSaveError: '목표 계획 저장 중 오류가 발생했습니다. 다시 시도해 주세요.',
+    targetLoginRequiredNotice:
+      '인증된 사용자만 IF Cost 목표를 등록하거나 편집할 수 있습니다. 현재 읽기 전용 모드로 보고 있습니다.',
+    targetLoginAction: '로그인',
     scrapDefectTypesTitle: '스크랩 불량 유형',
     scrapDefectTypesSubtitle: '팀 스크랩 분류 및 분석을 위한 공유 시스템 카테고리입니다.',
     scrapDefectTypeNameLabel: '카테고리 이름',

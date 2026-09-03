@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 
 from .dashboard_cache import DashboardResponseCache
-from .enums import DashboardCurrency, ImpactMode
+from .enums import DashboardCurrency, DashboardMetric, ImpactMode
 from .models import ScrapDashboardAggregate, ScrapDashboardState, ScrapOccurrence, ScrapTarget
 from .projection import UNMAPPED_DIMENSION
 from .query_service import ScrapFilters, _aggregate_filter_conditions
@@ -55,7 +55,17 @@ class ScrapDashboardService:
         )
 
     @staticmethod
-    def _metric(currency: DashboardCurrency, impact_mode: ImpactMode) -> InstrumentedAttribute[Decimal]:
+    def _metric(
+        dashboard_metric: DashboardMetric,
+        currency: DashboardCurrency,
+        impact_mode: ImpactMode,
+    ) -> InstrumentedAttribute[Decimal]:
+        if dashboard_metric == DashboardMetric.QUANTITY:
+            return (
+                ScrapDashboardAggregate.issue_quantity_abs
+                if impact_mode == ImpactMode.ABSOLUTE
+                else ScrapDashboardAggregate.issue_quantity
+            )
         if currency == DashboardCurrency.BRL:
             return (
                 ScrapDashboardAggregate.issue_amount_brl_abs
@@ -145,6 +155,7 @@ class ScrapDashboardService:
         *,
         year: int,
         currency: DashboardCurrency,
+        dashboard_metric: DashboardMetric,
         impact_mode: ImpactMode,
         ranking_limit: int,
     ) -> DashboardResponse:
@@ -154,6 +165,7 @@ class ScrapDashboardService:
             "filters": asdict(filters),
             "year": year,
             "currency": currency.value,
+            "metric": dashboard_metric.value,
             "impact_mode": impact_mode.value,
             "ranking_limit": ranking_limit,
         }
@@ -173,19 +185,79 @@ class ScrapDashboardService:
             date_from=_previous_year(current_date_from),
             date_to=_previous_year(current_date_to),
         )
-        metric = self._metric(currency, impact_mode)
+        metric = self._metric(dashboard_metric, currency, impact_mode)
         actual = await self._total(db, current_filters, metric)
         previous_actual = await self._total(db, previous_filters, metric)
-        targets = await self._targets(db, year=year, currency=currency)
+        targets = await self._targets(db, year=year, currency=currency) if dashboard_metric == DashboardMetric.IF_COST else {}
         target_total = sum(targets.values(), ZERO) if targets else None
+
+        data_statement = self._active_statement(func.max(ScrapDashboardAggregate.transaction_date))
+        data_conditions = _aggregate_filter_conditions(current_filters)
+        if data_conditions:
+            data_statement = data_statement.where(*data_conditions)
+        data_through = (await db.execute(data_statement)).scalar_one()
 
         current_months = await self._series(db, current_filters, metric, weekly=False)
         previous_months = await self._series(db, previous_filters, metric, weekly=False)
-        weekly = await self._series(db, current_filters, metric, weekly=True)
+        current_weeks = await self._series(db, current_filters, metric, weekly=True)
+        previous_weeks = await self._series(db, previous_filters, metric, weekly=True)
+
+        current_by_week: dict[int, Decimal] = {}
+        for period_key, val in current_weeks.items():
+            if "-W" in period_key:
+                try:
+                    current_by_week[int(period_key.split("-W")[1])] = val
+                except ValueError:
+                    pass
+
+        previous_by_week: dict[int, Decimal] = {}
+        for period_key, val in previous_weeks.items():
+            if "-W" in period_key:
+                try:
+                    previous_by_week[int(period_key.split("-W")[1])] = val
+                except ValueError:
+                    pass
+
+        if data_through is not None:
+            iso = data_through.isocalendar()
+            if iso.year > year:
+                max_current_week = 53
+            elif iso.year == year:
+                max_current_week = iso.week
+            else:
+                max_current_week = 0
+        else:
+            max_current_week = 0
+
+        all_week_nums = set(current_by_week.keys()).union(previous_by_week.keys())
+        if not (filters.date_from or filters.date_to):
+            max_total_weeks = max(max(all_week_nums, default=52), 52)
+            display_weeks = list(range(1, max_total_weeks + 1))
+        else:
+            display_weeks = sorted(all_week_nums)
+
+        weekly_points = [
+            DashboardSeriesPoint(
+                period=f"{year}-W{w:02d}",
+                actual=current_by_week.get(w, ZERO) if w <= max_current_week else None,
+                previous_year=previous_by_week.get(w),
+                target=None,
+            )
+            for w in display_weeks
+        ]
+
         monthly_points = [
             DashboardSeriesPoint(
                 period=f"{year}-{month:02d}",
-                actual=current_months.get(f"{year}-{month:02d}", ZERO),
+                actual=current_months.get(
+                    f"{year}-{month:02d}",
+                    ZERO
+                    if (
+                        data_through is not None
+                        and (year < data_through.year or (year == data_through.year and month <= data_through.month))
+                    )
+                    else None,
+                ),
                 previous_year=previous_months.get(f"{year - 1}-{month:02d}"),
                 target=targets.get(month),
             )
@@ -197,12 +269,6 @@ class ScrapDashboardService:
         lines = await self._ranking(db, current_filters, metric, ScrapDashboardAggregate.receipt_department, ranking_limit)
         models = await self._ranking(db, current_filters, metric, ScrapDashboardAggregate.item_code, ranking_limit)
         offenders = await self._ranking(db, current_filters, metric, ScrapDashboardAggregate.account_alias, ranking_limit)
-
-        data_statement = self._active_statement(func.max(ScrapDashboardAggregate.transaction_date))
-        data_conditions = _aggregate_filter_conditions(current_filters)
-        if data_conditions:
-            data_statement = data_statement.where(*data_conditions)
-        data_through = (await db.execute(data_statement)).scalar_one()
         target_attainment = (
             (target_total / actual * 100).quantize(PERCENT_QUANTUM) if target_total is not None and actual else None
         )
@@ -225,7 +291,7 @@ class ScrapDashboardService:
                 previous_year_variation_percent=previous_variation,
             ),
             monthly=monthly_points,
-            weekly=[DashboardSeriesPoint(period=period, actual=amount) for period, amount in weekly.items()],
+            weekly=weekly_points,
             rankings=DashboardRankings(
                 products=products,
                 components=components,

@@ -270,7 +270,10 @@
                 <td>{{ formatTransactionDate(item.transaction_date) }}</td>
                 <td>{{ item.organization_code }}</td>
                 <td>
-                  <span class="item-code">{{ item.item_code }}</span>
+                  <span class="item-code">{{ item.product_alias || item.item_code }}</span>
+                  @if (item.product_alias) {
+                    <small class="text-muted">{{ item.item_code }}</small>
+                  }
                 </td>
                 <td class="description-cell" [title]="item.item_description || ''">
                   {{ item.item_description || '—' }}
