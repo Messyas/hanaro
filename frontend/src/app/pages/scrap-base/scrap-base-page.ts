@@ -648,8 +648,11 @@ export class ScrapBasePage implements OnInit {
   }
 
   formatTransactionDate(value: string): string {
-    const [year, month, day] = value.split('-');
-    return year && month && day ? `${day}/${month}/${year}` : value;
+    const dateParts = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+    if (!dateParts) return value;
+
+    const [, year, month, day] = dateParts;
+    return `${day}/${month}/${year}`;
   }
 
   formatReviewStatus(status: ScrapListItem['review_status']): string {

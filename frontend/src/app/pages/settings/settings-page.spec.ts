@@ -7,6 +7,7 @@ import { ThemeService } from '../../theme/theme.service';
 import { ScrapDefectType } from '../scrap-base/scrap-review.models';
 import { ScrapReviewService } from '../scrap-base/scrap-review.service';
 import { ScrapTargetService } from './scrap-target.service';
+import { ScrapClassificationService } from './scrap-classification.service';
 import { SettingsPage } from './settings-page';
 
 describe('SettingsPage', () => {
@@ -25,6 +26,13 @@ describe('SettingsPage', () => {
   };
   let authServiceMock: {
     isAuthenticated: ReturnType<typeof vi.fn>;
+  };
+  let scrapClassificationServiceMock: {
+    list: ReturnType<typeof vi.fn>;
+    create: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
+    delete: ReturnType<typeof vi.fn>;
+    reapply: ReturnType<typeof vi.fn>;
   };
 
   const mockTypes: ScrapDefectType[] = [
@@ -67,6 +75,13 @@ describe('SettingsPage', () => {
     authServiceMock = {
       isAuthenticated: vi.fn().mockReturnValue(true),
     };
+    scrapClassificationServiceMock = {
+      list: vi.fn().mockReturnValue(of([])),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+      reapply: vi.fn(),
+    };
 
     await TestBed.configureTestingModule({
       imports: [SettingsPage],
@@ -75,6 +90,7 @@ describe('SettingsPage', () => {
         ThemeService,
         { provide: ScrapReviewService, useValue: scrapReviewServiceMock },
         { provide: ScrapTargetService, useValue: scrapTargetServiceMock },
+        { provide: ScrapClassificationService, useValue: scrapClassificationServiceMock },
         { provide: AuthService, useValue: authServiceMock },
       ],
     }).compileComponents();
@@ -94,8 +110,18 @@ describe('SettingsPage', () => {
 
     const text = fixture.nativeElement.textContent;
     expect(text).toContain('Preferências');
-    expect(text).toContain('Sistema');
+    expect(text).toContain('Classificações de Material');
+    expect(text).toContain('Tipos de Scrap');
     expect(text).toContain('Tema da interface');
+  });
+
+  it('switches to classifications tab and renders material classifications', () => {
+    component.selectTab('classifications');
+    fixture.detectChanges();
+
+    expect(component.activeTab()).toBe('classifications');
+    const text = fixture.nativeElement.textContent;
+    expect(text).toContain('Classificações de material');
   });
 
   it('switches to system tab and renders scrap defect types table', () => {
@@ -152,6 +178,42 @@ describe('SettingsPage', () => {
     expect(component.newName()).toBe('');
     expect(component.newCode()).toBe('');
     expect(component.feedbackMessage()?.type).toBe('success');
+  });
+
+  it('creates a persisted product alias rule for the scrap catalog', () => {
+    const created = {
+      id: 'rule-1',
+      kind: 'PRODUCT_ALIAS' as const,
+      source_value: 'F700-1234',
+      source_context: null,
+      target_value: 'TV 55 Premium',
+      target_secondary: null,
+      boolean_value: null,
+      match_mode: 'EXACT' as const,
+      priority: 0,
+      is_active: true,
+      created_at: '2026-09-03T00:00:00Z',
+      updated_at: '2026-09-03T00:00:00Z',
+    };
+    scrapClassificationServiceMock.create.mockReturnValue(of(created));
+    component.classificationKind.set('PRODUCT_ALIAS');
+    component.classificationSource.set('F700-1234');
+    component.classificationTarget.set('TV 55 Premium');
+
+    component.saveClassification();
+
+    expect(scrapClassificationServiceMock.create).toHaveBeenCalledWith({
+      kind: 'PRODUCT_ALIAS',
+      source_value: 'F700-1234',
+      source_context: null,
+      target_value: 'TV 55 Premium',
+      target_secondary: null,
+      boolean_value: null,
+      match_mode: 'EXACT',
+      priority: 0,
+      is_active: true,
+    });
+    expect(component.classificationRules()).toContainEqual(created);
   });
 
   it('toggles active status of an existing defect type', () => {

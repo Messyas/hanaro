@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { LanguageService } from '../../i18n/language.service';
 import { UiIcon } from '../../ui-icon';
 import { DashboardPerformanceChart } from './components/dashboard-performance-chart';
@@ -15,12 +15,16 @@ import {
   DashboardComparison,
   DashboardDistributionItem,
   DashboardEvolutionView,
+  DashboardFilters,
   DashboardMetric,
   DashboardMonthlyPoint,
   DashboardMultiFilterKey,
+  DashboardRankingLimit,
+  DashboardSnapshot,
   DashboardSingleFilterKey,
 } from './dashboard.models';
 import { DashboardStore, INITIAL_DASHBOARD_FILTERS } from './dashboard.store';
+import { DashboardStatusService } from './dashboard-status.service';
 import {
   DASHBOARD_LOCALES,
   DASHBOARD_MONTHS,
@@ -43,6 +47,18 @@ interface DashboardDistributionFilters {
 
 type DashboardDistributionMultiFilterKey = 'product' | 'line';
 
+type DashboardRankingKey = 'lines' | 'models' | 'components' | 'offenders';
+type DashboardBarChartKey = 'distribution' | DashboardRankingKey;
+
+interface DashboardRankingFilters {
+  lines: readonly string[];
+  models: readonly string[];
+  components: readonly string[];
+  offenders: readonly string[];
+}
+
+type DashboardBarChartLimits = Record<DashboardBarChartKey, DashboardRankingLimit>;
+
 const INITIAL_EVOLUTION_FILTERS: DashboardEvolutionFilters = {
   period: 'ytd',
   product: [],
@@ -55,33 +71,19 @@ const INITIAL_DISTRIBUTION_FILTERS: DashboardDistributionFilters = {
   component: INITIAL_DASHBOARD_FILTERS.component,
 };
 
-const PRODUCT_FACTORS: Record<string, number> = {
-  BM: 0.27,
-  VS: 0.25,
-  AV: 0.21,
-  TV: 0.17,
-  MNT: 0.1,
-  SMT: 0.08,
-  IPI: 0.07,
-  FA: 0.06,
-  MFG: 0.05,
-  QA: 0.04,
+const INITIAL_RANKING_FILTERS: DashboardRankingFilters = {
+  lines: [],
+  models: [],
+  components: [],
+  offenders: [],
 };
 
-const LINE_FACTORS: Record<string, number> = {
-  BMCELL: 0.31,
-  Quale: 0.24,
-  G08: 0.2,
-  C02: 0.15,
-  Ventito: 0.1,
-};
-
-const COMPONENT_FACTORS: Record<string, number> = {
-  Module: 0.32,
-  PCBA: 0.27,
-  Tape: 0.18,
-  Cover: 0.13,
-  Chassis: 0.1,
+const INITIAL_BAR_CHART_LIMITS: DashboardBarChartLimits = {
+  distribution: 10,
+  lines: 10,
+  models: 10,
+  components: 10,
+  offenders: 10,
 };
 
 const COMPARISON_OPTIONS: readonly DashboardComparison[] = ['ytd', 'yoy', 'mom'];
@@ -103,13 +105,17 @@ const COMPARISON_OPTIONS: readonly DashboardComparison[] = ['ytd', 'yoy', 'mom']
 export class DashboardPage {
   readonly store = inject(DashboardStore);
   readonly language = inject(LanguageService);
+  private readonly dashboardStatus = inject(DashboardStatusService);
   readonly evolutionFiltersOpen = signal(false);
   readonly distributionFiltersOpen = signal(false);
   readonly evolutionView = signal<DashboardEvolutionView>('monthly');
   readonly evolutionFilters = signal<DashboardEvolutionFilters>({ ...INITIAL_EVOLUTION_FILTERS });
+  readonly evolutionSnapshot = signal<DashboardSnapshot | null>(null);
   readonly distributionFilters = signal<DashboardDistributionFilters>({
     ...INITIAL_DISTRIBUTION_FILTERS,
   });
+  readonly rankingFilters = signal<DashboardRankingFilters>({ ...INITIAL_RANKING_FILTERS });
+  readonly barChartLimits = signal<DashboardBarChartLimits>({ ...INITIAL_BAR_CHART_LIMITS });
   readonly text = computed(() => DASHBOARD_TRANSLATIONS[this.language.currentLanguage()]);
   readonly locale = computed(() => DASHBOARD_LOCALES[this.language.currentLanguage()]);
   readonly months = computed(() => DASHBOARD_MONTHS[this.language.currentLanguage()]);
@@ -129,6 +135,10 @@ export class DashboardPage {
       label: this.comparisonOptionLabel(option),
     })),
   );
+  readonly rankingLimitOptions = computed<ListFilterSelectOption[]>(() => [
+    { value: '5', label: this.text().topFive },
+    { value: '10', label: this.text().topTen },
+  ]);
   readonly componentOptions = computed<ListFilterSelectOption[]>(() => [
     { value: INITIAL_DASHBOARD_FILTERS.component, label: this.text().allMasculine },
     ...this.store.options.components.map((component) => ({
@@ -139,7 +149,9 @@ export class DashboardPage {
   readonly evolutionFiltersCount = computed(() => {
     const filters = this.evolutionFilters();
     return (
-      (filters.period === INITIAL_EVOLUTION_FILTERS.period ? 0 : 1) +
+      (this.evolutionView() === 'weekly' && filters.period !== INITIAL_EVOLUTION_FILTERS.period
+        ? 1
+        : 0) +
       filters.product.length +
       filters.line.length
     );
@@ -149,7 +161,8 @@ export class DashboardPage {
     return (
       filters.product.length +
       filters.line.length +
-      (filters.component === INITIAL_DISTRIBUTION_FILTERS.component ? 0 : 1)
+      (filters.component === INITIAL_DISTRIBUTION_FILTERS.component ? 0 : 1) +
+      this.barChartLimitCount('distribution')
     );
   });
   readonly advancedFiltersCount = computed(() => {
@@ -163,8 +176,9 @@ export class DashboardPage {
     );
   });
 
+  readonly evolutionDataSource = computed(() => this.evolutionSnapshot() ?? this.store.snapshot());
   readonly monthlyPerformanceData = computed(() => this.buildMonthlyPerformanceData());
-  readonly weeklyData = computed(() => this.buildWeeklyData(this.monthlyPerformanceData()));
+  readonly weeklyData = computed(() => this.buildWeeklyData());
   readonly performanceData = computed(() => {
     return this.evolutionView() === 'monthly' ? this.monthlyPerformanceData() : this.weeklyData();
   });
@@ -207,10 +221,42 @@ export class DashboardPage {
     });
   });
 
-  readonly linesData = computed(() => this.store.snapshot().lines ?? []);
-  readonly modelsData = computed(() => this.store.snapshot().models ?? []);
-  readonly offendersData = computed(() => (this.store.snapshot().offenders ?? []).slice(0, 5));
-  readonly componentsData = computed(() => this.store.snapshot().components ?? []);
+  readonly linesData = computed(() =>
+    this.filterRankingData(this.store.snapshot().lines ?? [], 'lines').slice(
+      0,
+      this.barChartLimit('lines'),
+    ),
+  );
+  readonly modelsData = computed(() =>
+    this.filterRankingData(this.store.snapshot().models ?? [], 'models').slice(
+      0,
+      this.barChartLimit('models'),
+    ),
+  );
+  readonly offendersData = computed(() =>
+    this.filterRankingData(this.store.snapshot().offenders ?? [], 'offenders').slice(
+      0,
+      this.barChartLimit('offenders'),
+    ),
+  );
+  readonly componentsData = computed(() =>
+    this.filterRankingData(this.store.snapshot().components ?? [], 'components').slice(
+      0,
+      this.barChartLimit('components'),
+    ),
+  );
+  readonly linesFilterOptions = computed(() =>
+    this.rankingOptions(this.store.snapshot().lines ?? []),
+  );
+  readonly modelsFilterOptions = computed(() =>
+    this.rankingOptions(this.store.snapshot().models ?? []),
+  );
+  readonly componentsFilterOptions = computed(() =>
+    this.rankingOptions(this.store.snapshot().components ?? []),
+  );
+  readonly offendersFilterOptions = computed(() =>
+    this.rankingOptions(this.store.snapshot().offenders ?? []),
+  );
 
   readonly hasLinesData = computed(() =>
     this.linesData().some((item) => item.usd > 0 || item.qty > 0),
@@ -224,6 +270,26 @@ export class DashboardPage {
   readonly hasComponentsData = computed(() =>
     this.componentsData().some((item) => item.usd > 0 || item.qty > 0),
   );
+
+  private evolutionRequestSequence = 0;
+
+  constructor() {
+    effect((onCleanup) => {
+      this.dashboardStatus.set(`${this.text().updated} ${this.lastUpdatedLabel()}`);
+      onCleanup(() => this.dashboardStatus.clear());
+    });
+    effect(() => {
+      const filters = this.evolutionQueryFilters();
+      const metric = this.store.metric();
+      const requestId = ++this.evolutionRequestSequence;
+
+      void this.store.loadChartSnapshot(filters, metric).then((snapshot) => {
+        if (requestId === this.evolutionRequestSequence) {
+          this.evolutionSnapshot.set(snapshot);
+        }
+      });
+    });
+  }
 
   changeYear(value: string): void {
     this.store.setFilter('year', value);
@@ -245,6 +311,10 @@ export class DashboardPage {
     this.store.setMetric(metric);
   }
 
+  toggleMetric(): void {
+    this.selectMetric(this.store.metric() === 'usd' ? 'qty' : 'usd');
+  }
+
   selectAnalysis(analysis: DashboardAnalysis): void {
     if (analysis === 'relative') return;
     this.store.setAnalysis(analysis);
@@ -256,6 +326,7 @@ export class DashboardPage {
 
   selectEvolutionView(view: DashboardEvolutionView): void {
     this.evolutionView.set(view);
+    if (view === 'monthly') this.changeEvolutionPeriod(INITIAL_EVOLUTION_FILTERS.period);
   }
 
   toggleEvolutionFilters(): void {
@@ -300,6 +371,33 @@ export class DashboardPage {
 
   clearDistributionFilters(): void {
     this.distributionFilters.set({ ...INITIAL_DISTRIBUTION_FILTERS });
+    this.resetBarChartLimit('distribution');
+  }
+
+  changeRankingFilter(key: DashboardRankingKey, values: readonly string[]): void {
+    this.rankingFilters.update((filters) => ({ ...filters, [key]: values }));
+  }
+
+  clearRankingFilters(key: DashboardRankingKey): void {
+    this.rankingFilters.update((filters) => ({ ...filters, [key]: [] }));
+    this.resetBarChartLimit(key);
+  }
+
+  rankingFiltersCount(key: DashboardRankingKey): number {
+    return this.rankingFilters()[key].length + this.barChartLimitCount(key);
+  }
+
+  barChartLimit(key: DashboardBarChartKey): DashboardRankingLimit {
+    return this.barChartLimits()[key];
+  }
+
+  barChartLimitValue(key: DashboardBarChartKey): string {
+    return `${this.barChartLimit(key)}`;
+  }
+
+  changeBarChartLimit(key: DashboardBarChartKey, value: string): void {
+    const limit: DashboardRankingLimit = value === '5' ? 5 : 10;
+    this.barChartLimits.update((limits) => ({ ...limits, [key]: limit }));
   }
 
   advancedFiltersLabel(): string {
@@ -335,7 +433,9 @@ export class DashboardPage {
   evolutionFilterSummary(): string {
     const filters = this.evolutionFilters();
     return [
-      `${this.text().period}: ${this.periodOptionLabel(filters.period)}`,
+      ...(this.evolutionView() === 'weekly'
+        ? [`${this.text().period}: ${this.periodOptionLabel(filters.period)}`]
+        : []),
       `${this.text().product}: ${this.selectionSummary(filters.product, this.text().allMasculine)}`,
       `${this.text().line}: ${this.selectionSummary(filters.line, this.text().allFeminine)}`,
     ].join(' · ');
@@ -381,6 +481,11 @@ export class DashboardPage {
 
   performanceTitle(): string {
     if (this.store.analysis() === 'absolute') {
+      if (this.store.metric() === 'qty') {
+        return this.evolutionView() === 'monthly'
+          ? this.text().monthlyQtyActual
+          : this.text().weeklyQtyActual;
+      }
       return this.evolutionView() === 'monthly'
         ? this.text().monthlyTargetActual
         : this.text().weeklyTargetActual;
@@ -401,13 +506,7 @@ export class DashboardPage {
     if (this.evolutionView() === 'weekly') return this.text().currentMonthWeeks;
     if (this.store.analysis() === 'relative') return this.text().lowerIsBetter;
 
-    const period = this.evolutionFilters().period;
-    const periodLabel =
-      period === INITIAL_EVOLUTION_FILTERS.period
-        ? this.store.filters().year
-        : this.periodOptionLabel(period);
-
-    return `${this.store.metric() === 'usd' ? 'IF Cost' : 'QTY Scrap'} · ${periodLabel}`;
+    return `${this.store.metric() === 'usd' ? 'IF Cost' : 'QTY Scrap'} · ${this.store.filters().year}`;
   }
 
   formatPrimaryValue(value: number): string {
@@ -506,7 +605,7 @@ export class DashboardPage {
     if (state === 'api') return this.text().apiData;
     if (state === 'api-empty') return this.text().apiEmptyData;
     if (state === 'loading') return this.text().loadingData;
-    return this.text().simulatedData;
+    return 'Erro ao carregar dados';
   }
 
   performanceEmptyStateHint(): string {
@@ -555,14 +654,7 @@ export class DashboardPage {
   }
 
   private buildMonthlyPerformanceData(): readonly DashboardMonthlyPoint[] {
-    const filters = this.evolutionFilters();
-    const scaled = this.store
-      .snapshot()
-      .monthly.map((point) => this.scaleEvolutionPoint(point, this.evolutionScaleFactor(filters)));
-
-    return filters.period === INITIAL_EVOLUTION_FILTERS.period
-      ? scaled
-      : [scaled[Number(filters.period)] ?? scaled[0]];
+    return this.evolutionDataSource().monthly;
   }
 
   private buildDistributionData(): readonly DashboardDistributionItem[] {
@@ -572,121 +664,77 @@ export class DashboardPage {
         ? this.store.snapshot().distribution
         : this.store.snapshot().relativeDistribution;
     const labelFilter = this.store.analysis() === 'absolute' ? filters.product : filters.line;
-    const factor = this.distributionScaleFactor(filters);
 
     return data
       .filter((item) => !labelFilter.length || labelFilter.includes(item.label))
-      .map((item) => this.scaleDistributionItem(item, factor))
-      .slice(0, this.store.rankingLimit());
+      .slice(0, this.barChartLimit('distribution'));
   }
 
-  private buildWeeklyData(
-    points: readonly DashboardMonthlyPoint[],
-  ): readonly DashboardMonthlyPoint[] {
-    const apiWeekly = this.apiWeeklyData();
-    if (apiWeekly.length) return apiWeekly;
+  private barChartLimitCount(key: DashboardBarChartKey): number {
+    return this.barChartLimit(key) === INITIAL_BAR_CHART_LIMITS[key] ? 0 : 1;
+  }
 
-    const source = this.selectedWeeklySourcePoint(points);
-    const weights = [0.18, 0.2, 0.22, 0.19, 0.21];
-
-    return weights.map((weight, index) => ({
-      ...source,
-      month: this.weeklyLabels()[index] ?? `W${index + 1}`,
-      actualUsd: this.scaleWeeklyValue(source.actualUsd, weight),
-      previousUsd: this.scaleWeeklyValue(source.previousUsd, weight * 0.98),
-      targetUsd: Math.round(source.targetUsd * weight),
-      actualQty: this.scaleWeeklyValue(source.actualQty, weight),
-      previousQty: this.scaleWeeklyValue(source.previousQty, weight * 0.98),
-      targetQty: Math.round(source.targetQty * weight),
-      materialAmountUsd: Math.round(source.materialAmountUsd * weight),
-      previousMaterialAmountUsd: Math.round(source.previousMaterialAmountUsd * weight),
-      productionQty: Math.round(source.productionQty * weight),
-      previousProductionQty: Math.round(source.previousProductionQty * weight),
+  private resetBarChartLimit(key: DashboardBarChartKey): void {
+    this.barChartLimits.update((limits) => ({
+      ...limits,
+      [key]: INITIAL_BAR_CHART_LIMITS[key],
     }));
   }
 
-  private apiWeeklyData(): readonly DashboardMonthlyPoint[] {
-    const snapshot = this.store.snapshot();
-    const globalPeriod = this.store.filters().period;
-    const chartPeriod = this.evolutionFilters().period;
+  private filterRankingData(
+    data: readonly DashboardDistributionItem[],
+    key: DashboardRankingKey,
+  ): readonly DashboardDistributionItem[] {
+    const selected = this.rankingFilters()[key];
+    return selected.length ? data.filter((item) => selected.includes(item.label)) : data;
+  }
 
-    if (
-      this.store.dataState() !== 'api' ||
-      globalPeriod === INITIAL_DASHBOARD_FILTERS.period ||
-      chartPeriod !== globalPeriod ||
-      !snapshot.weekly.length
-    ) {
+  private rankingOptions(data: readonly DashboardDistributionItem[]): readonly string[] {
+    return [...new Set(data.map((item) => item.label))];
+  }
+
+  private buildWeeklyData(): readonly DashboardMonthlyPoint[] {
+    const snapshot = this.evolutionDataSource();
+    if (!snapshot.weekly?.length) {
       return [];
     }
 
-    return snapshot.weekly.map((point) =>
-      this.scaleEvolutionPoint(point, this.evolutionScaleFactor(this.evolutionFilters())),
-    );
+    const chartPeriod = this.evolutionFilters().period;
+    if (chartPeriod !== INITIAL_EVOLUTION_FILTERS.period) {
+      const monthIndex = Number(chartPeriod);
+      const startWeek = Math.floor(monthIndex * 4.33) + 1;
+      const endWeek = Math.floor((monthIndex + 1) * 4.33) + (monthIndex === 11 ? 5 : 0);
+      return snapshot.weekly.filter((point) => {
+        const weekNum = Number(point.month.replace('W', ''));
+        return !isNaN(weekNum) && weekNum >= startWeek && weekNum <= endWeek;
+      });
+    }
+
+    return snapshot.weekly;
   }
 
-  private selectedWeeklySourcePoint(
-    points: readonly DashboardMonthlyPoint[],
-  ): DashboardMonthlyPoint {
-    const latestPoint = [...points]
-      .reverse()
-      .find((point) => point.actualUsd !== null || point.actualQty !== null);
-    return latestPoint ?? points[0];
-  }
+  private evolutionQueryFilters(): DashboardFilters {
+    const globalFilters = this.store.filters();
+    const localFilters = this.evolutionFilters();
 
-  private scaleWeeklyValue(value: number | null, weight: number): number | null {
-    return value === null ? null : Math.round(value * weight);
-  }
-
-  private scaleEvolutionPoint(point: DashboardMonthlyPoint, factor: number): DashboardMonthlyPoint {
     return {
-      ...point,
-      actualUsd: this.scaleWeeklyValue(point.actualUsd, factor),
-      previousUsd: this.scaleWeeklyValue(point.previousUsd, factor),
-      targetUsd: Math.round(point.targetUsd * factor),
-      actualQty: this.scaleWeeklyValue(point.actualQty, factor),
-      previousQty: this.scaleWeeklyValue(point.previousQty, factor),
-      targetQty: Math.round(point.targetQty * factor),
-      materialAmountUsd: Math.round(point.materialAmountUsd * factor),
-      previousMaterialAmountUsd: Math.round(point.previousMaterialAmountUsd * factor),
-      productionQty: Math.round(point.productionQty * factor),
-      previousProductionQty: Math.round(point.previousProductionQty * factor),
+      ...globalFilters,
+      // No modo mensal, o gráfico compara sempre toda a trajetória anual.
+      // O período local só determina o recorte do modo semanal.
+      period:
+        this.evolutionView() === 'weekly' ? localFilters.period : INITIAL_EVOLUTION_FILTERS.period,
+      product: this.intersectFilters(globalFilters.product, localFilters.product),
+      line: this.intersectFilters(globalFilters.line, localFilters.line),
     };
   }
 
-  private evolutionScaleFactor(filters: DashboardEvolutionFilters): number {
-    const productFactor = this.selectedLocalFactor(filters.product, PRODUCT_FACTORS);
-    const lineFactor = this.selectedLocalFactor(filters.line, LINE_FACTORS);
-
-    return productFactor * lineFactor;
-  }
-
-  private distributionScaleFactor(filters: DashboardDistributionFilters): number {
-    const productFactor = this.selectedLocalFactor(filters.product, PRODUCT_FACTORS);
-    const lineFactor = this.selectedLocalFactor(filters.line, LINE_FACTORS);
-    const componentFactor =
-      filters.component === INITIAL_DISTRIBUTION_FILTERS.component
-        ? 1
-        : (COMPONENT_FACTORS[filters.component] ?? 1);
-
-    return productFactor * lineFactor * componentFactor;
-  }
-
-  private scaleDistributionItem(
-    item: DashboardDistributionItem,
-    factor: number,
-  ): DashboardDistributionItem {
-    return {
-      ...item,
-      usd: Math.round(item.usd * factor),
-      qty: Math.round(item.qty * factor),
-      relativeUsd: item.relativeUsd === undefined ? undefined : item.relativeUsd * factor,
-      relativeQty: item.relativeQty === undefined ? undefined : item.relativeQty * factor,
-    };
-  }
-
-  private selectedLocalFactor(values: readonly string[], factors: Record<string, number>): number {
-    if (!values.length) return 1;
-    return values.reduce((sum, value) => sum + (factors[value] ?? 0), 0) || 1;
+  private intersectFilters(
+    globalValues: readonly string[],
+    localValues: readonly string[],
+  ): readonly string[] {
+    if (!globalValues.length) return localValues;
+    if (!localValues.length) return globalValues;
+    return globalValues.filter((value) => localValues.includes(value));
   }
 
   private selectionSummary(values: readonly string[], allLabel: string): string {

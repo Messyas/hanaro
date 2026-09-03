@@ -65,6 +65,78 @@
   gap: 1.5rem;
 }
 
+.classification-card {
+  border: 1px solid var(--app-card-border, var(--app-border));
+  border-radius: 1rem;
+  background: var(--app-surface-raised);
+  box-shadow: var(--app-shadow-card);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.classification-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1.25rem;
+  border: 1px solid var(--app-border);
+  border-radius: 0.85rem;
+  background: var(--app-surface-muted);
+}
+
+.classification-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.classification-form .form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--app-border-soft);
+}
+
+.classification-actions,
+.classification-rule {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.classification-list {
+  display: grid;
+  gap: 0.5rem;
+}
+.classification-rule {
+  padding: 0.8rem 0;
+  border-top: 1px solid var(--app-border);
+}
+.classification-rule p {
+  margin: 0.25rem 0 0;
+  color: var(--app-text-secondary);
+}
+.classification-empty {
+  margin: 0;
+  color: var(--app-text-secondary);
+}
+
+@media (max-width: 768px) {
+  .classification-grid {
+    grid-template-columns: 1fr;
+  }
+  .classification-actions,
+  .classification-rule {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
 .defect-types-card {
   border: 1px solid var(--app-card-border, var(--app-border));
   border-radius: 1rem;
@@ -222,6 +294,15 @@
   background: var(--brand-primary-hover);
   border-color: var(--brand-primary-hover);
   box-shadow: var(--app-shadow-action);
+}
+
+.btn-primary:disabled {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+  color: var(--app-text-muted);
+  opacity: 0.75;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 .btn-secondary {
@@ -748,8 +829,9 @@
   color: var(--app-text-secondary);
 }
 
-.curve-arrow {
-  font-size: 1.25rem;
+.curve-range-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
   color: var(--app-text-muted);
   align-self: center;
   margin-top: 1.2rem;
@@ -944,5 +1026,159 @@
   }
   .sparkline-container {
     width: 100%;
+  }
+}
+
+/* Alignment with the shared application surface, scoped to management tabs. */
+.classification-card,
+.defect-types-card,
+.targets-overview-card,
+.targets-table-card {
+  border-color: var(--app-card-border);
+  border-radius: 0.85rem;
+  background: var(--app-surface);
+  box-shadow: var(--app-shadow-card);
+}
+
+.classification-card,
+.defect-types-card {
+  gap: 1.25rem;
+  padding: 1.25rem;
+}
+
+.classification-card .settings-card-header h2,
+.defect-types-card .settings-card-header h2,
+.targets-overview-card .settings-card-header h2 {
+  color: var(--app-page-title);
+  font-size: 1.25rem;
+  line-height: 1.4;
+}
+
+.classification-form,
+.defect-creation-panel {
+  border-color: var(--app-border-soft);
+  border-radius: 0.7rem;
+  background: var(--app-surface-muted);
+}
+
+.classification-actions,
+.defect-types-list-header {
+  min-height: 2.5rem;
+  padding-top: 0.25rem;
+}
+
+.classification-list,
+.types-table-card {
+  overflow: hidden;
+  border: 1px solid var(--app-border-soft);
+  border-radius: 0.7rem;
+}
+
+.classification-list {
+  gap: 0;
+}
+
+.classification-rule {
+  min-height: 4.5rem;
+  padding: 0.85rem 1rem;
+  border-top-color: var(--app-divider);
+}
+
+.classification-rule:first-child {
+  border-top: 0;
+}
+
+.card-intro-banner {
+  padding: 0.85rem 1rem;
+  border-color: var(--app-border-soft);
+  border-radius: 0.7rem;
+  background: var(--app-surface-muted);
+  color: var(--app-text-secondary);
+}
+
+.targets-layout {
+  gap: 1rem;
+}
+
+.targets-overview-card,
+.targets-table-card {
+  padding: 1.25rem;
+}
+
+.targets-kpis-grid {
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.target-kpi-box {
+  min-height: 6.75rem;
+  padding: 1rem;
+  border-color: var(--app-border-soft);
+  border-radius: 0.7rem;
+  background: var(--app-surface-muted);
+}
+
+.target-kpi-box.primary {
+  border-left: 1px solid var(--brand-primary-border);
+  border-color: var(--brand-primary-border);
+  background: var(--brand-primary-softer);
+}
+
+.target-kpi-box .kpi-value {
+  color: var(--app-text-strong);
+  font-size: 1.35rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.prefill-card {
+  border: 0;
+  border-top: 1px solid var(--app-divider);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 1.25rem 0 0;
+}
+
+.prefill-body {
+  margin-top: 0.75rem;
+}
+
+.targets-table-header {
+  margin-bottom: 0.5rem;
+}
+
+.targets-table {
+  overflow: hidden;
+  border: 1px solid var(--app-border-soft);
+  border-radius: 0.7rem;
+}
+
+.targets-table th {
+  background: var(--app-surface-muted);
+  color: var(--app-text-muted-detail);
+}
+
+.targets-table td {
+  border-bottom-color: var(--app-divider);
+}
+
+.targets-footer-actions {
+  margin-top: 1.25rem;
+  border-top-color: var(--app-divider);
+}
+
+@media (max-width: 640px) {
+  .classification-card,
+  .defect-types-card,
+  .targets-overview-card,
+  .targets-table-card {
+    padding: 1rem;
+  }
+
+  .classification-actions,
+  .defect-types-list-header,
+  .targets-footer-actions {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

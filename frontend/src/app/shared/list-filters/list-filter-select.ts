@@ -24,6 +24,8 @@ export interface ListFilterSelectOption {
   styleUrl: './list-filter-select.css',
   host: {
     '[class.select-inline]': "layout() === 'inline'",
+    '[class.select-inline-compact]': 'compact()',
+    '[class.select-menu-content-width]': "menuWidth() === 'content'",
     '[class.menu-up]': "menuPosition() === 'up'",
   },
 })
@@ -38,8 +40,11 @@ export class ListFilterSelect implements OnInit, OnDestroy {
   readonly value = model('');
   readonly options = input.required<readonly ListFilterSelectOption[]>();
   readonly label = input('');
+  readonly showLabel = input(true);
   readonly ariaLabel = input('Selecionar opção');
   readonly layout = input<'stacked' | 'inline'>('stacked');
+  readonly compact = input(false);
+  readonly menuWidth = input<'trigger' | 'content'>('trigger');
   readonly menuPosition = input<'down' | 'up'>('down');
   readonly changed = output<string>();
   readonly open = signal(false);

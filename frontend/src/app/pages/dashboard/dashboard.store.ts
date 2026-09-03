@@ -8,6 +8,7 @@ import {
   DashboardDataState,
   DashboardFilterChip,
   DashboardFilterKey,
+  DashboardFilterOptions,
   DashboardFilters,
   DashboardKpis,
   DashboardMetric,
@@ -15,9 +16,10 @@ import {
   DashboardMultiFilterKey,
   DashboardRankingLimit,
   DashboardSnapshot,
+  DEFAULT_FILTER_OPTIONS,
+  EMPTY_SNAPSHOT,
   RelativeDashboardKpis,
 } from './dashboard.models';
-import { MockDashboardService } from './mock-dashboard.service';
 
 interface DashboardApiRankingItem {
   key: string | null;
@@ -27,7 +29,7 @@ interface DashboardApiRankingItem {
 
 interface DashboardApiSeriesPoint {
   period: string;
-  actual: string;
+  actual: string | null;
   previous_year: string | null;
   target: string | null;
 }
@@ -47,6 +49,31 @@ interface DashboardApiResponse {
   };
 }
 
+interface ScrapFiltersResponse {
+  organizations: string[];
+  receipt_departments?: string[];
+  departments: string[];
+  item_types: string[];
+  items: string[];
+  account_aliases: string[];
+  periods: string[];
+}
+
+const MONTH_NAMES = [
+  'Jan',
+  'Fev',
+  'Mar',
+  'Abr',
+  'Mai',
+  'Jun',
+  'Jul',
+  'Ago',
+  'Set',
+  'Out',
+  'Nov',
+  'Dez',
+] as const;
+
 export const INITIAL_DASHBOARD_FILTERS: DashboardFilters = {
   year: '2026',
   period: 'ytd',
@@ -59,30 +86,34 @@ export const INITIAL_DASHBOARD_FILTERS: DashboardFilters = {
 
 @Injectable()
 export class DashboardStore {
-  private readonly dataSource = inject(MockDashboardService);
   private readonly http = inject(HttpClient, { optional: true });
   private readonly platformId = inject(PLATFORM_ID);
   private readonly canUseApi = isPlatformBrowser(this.platformId);
   private apiRequestSequence = 0;
+
+  private readonly filterOptionsSignal = signal<DashboardFilterOptions>(DEFAULT_FILTER_OPTIONS);
+  get options(): DashboardFilterOptions {
+    return this.filterOptionsSignal();
+  }
 
   readonly filters = signal<DashboardFilters>({ ...INITIAL_DASHBOARD_FILTERS });
   readonly metric = signal<DashboardMetric>('usd');
   readonly analysis = signal<DashboardAnalysis>('absolute');
   readonly comparison = signal<DashboardComparison>('ytd');
   readonly rankingLimit = signal<DashboardRankingLimit>(10);
-  readonly dataState = signal<DashboardDataState>('mock');
-  readonly apiSnapshot = signal<DashboardSnapshot | null>(null);
+  readonly dataState = signal<DashboardDataState>('loading');
+  readonly apiSnapshot = signal<DashboardSnapshot>(EMPTY_SNAPSHOT);
   readonly monetaryValuesHidden = signal(false);
-  readonly options = this.dataSource.options;
-  readonly snapshot = computed(
-    () => this.apiSnapshot() ?? this.dataSource.getSnapshot(this.filters()),
-  );
+
+  readonly snapshot = computed(() => this.apiSnapshot());
+
   readonly hasActiveFilters = computed(() => {
     const filters = this.filters();
     return (Object.keys(INITIAL_DASHBOARD_FILTERS) as DashboardFilterKey[]).some(
       (key) => !this.filterValuesEqual(filters[key], INITIAL_DASHBOARD_FILTERS[key]),
     );
   });
+
   readonly activeFilterChips = computed<readonly DashboardFilterChip[]>(() => {
     const filters = this.filters();
     return [
@@ -114,16 +145,19 @@ export class DashboardStore {
       },
     ].filter((chip) => chip.values.length > 0) as readonly DashboardFilterChip[];
   });
+
   readonly periodLabel = computed(() => {
     const selected = this.filters().period;
     return this.options.periods.find((period) => period.value === selected)?.label ?? selected;
   });
+
   readonly comparisonLabel = computed(() => {
     const comparison = this.comparison();
     if (comparison === 'ytd') return `Mesmo acumulado de ${Number(this.filters().year) - 1}`;
     if (comparison === 'mom') return this.previousMonthLabel();
     return `Mesmo mês de ${Number(this.filters().year) - 1}`;
   });
+
   readonly kpis = computed<DashboardKpis>(() => {
     const metric = this.metric();
     const selected = this.selectedMonthlyPoints();
@@ -148,11 +182,13 @@ export class DashboardStore {
 
     return {
       actual,
+      reference: previous,
       target,
       achievement: actual > 0 ? (target / actual) * 100 : 0,
       variation: previous > 0 ? ((actual - previous) / previous) * 100 : 0,
     };
   });
+
   readonly relativeKpis = computed<RelativeDashboardKpis>(() => {
     const metric = this.metric();
     const selected = this.selectedMonthlyPoints();
@@ -234,11 +270,32 @@ export class DashboardStore {
     this.comparison.set(comparison);
   }
 
+  /** Busca dados para um contexto local de gráfico sem alterar o Dashboard. */
+  async loadChartSnapshot(
+    filters: DashboardFilters,
+    metric: DashboardMetric = this.metric(),
+    rankingLimit: DashboardRankingLimit = this.rankingLimit(),
+  ): Promise<DashboardSnapshot | null> {
+    if (!this.canUseApi || !this.http) return null;
+
+    try {
+      const response = await firstValueFrom(
+        this.http.get<DashboardApiResponse>('/api/v1/dashboard/scrap', {
+          params: this.apiParams(filters, rankingLimit, metric),
+        }),
+      );
+      return this.mapApiResponse(response, metric);
+    } catch {
+      return null;
+    }
+  }
+
   toggleMonetaryValues(): void {
     if (this.metric() === 'usd') this.monetaryValuesHidden.update((hidden) => !hidden);
   }
 
   constructor() {
+    void this.loadFilterOptions();
     effect(() => {
       void this.loadApiSnapshot(
         this.filters(),
@@ -247,6 +304,26 @@ export class DashboardStore {
         this.rankingLimit(),
       );
     });
+  }
+
+  private async loadFilterOptions(): Promise<void> {
+    if (!this.canUseApi || !this.http) return;
+    try {
+      const res = await firstValueFrom(
+        this.http.get<ScrapFiltersResponse>('/api/v1/scrap/filters'),
+      );
+      this.filterOptionsSignal.update((prev) => ({
+        ...prev,
+        lines: res.receipt_departments?.length
+          ? res.receipt_departments
+          : res.departments.length
+            ? res.departments
+            : prev.lines,
+        components: res.item_types.length ? res.item_types : prev.components,
+      }));
+    } catch {
+      // Mantém DEFAULT_FILTER_OPTIONS em caso de indisponibilidade
+    }
   }
 
   private sum(values: readonly (number | null)[]): number {
@@ -316,9 +393,9 @@ export class DashboardStore {
     rankingLimit: DashboardRankingLimit,
   ): Promise<void> {
     const requestId = ++this.apiRequestSequence;
-    if (!this.canUseApi || !this.http || metric !== 'usd' || analysis !== 'absolute') {
-      this.apiSnapshot.set(null);
-      this.dataState.set('mock');
+    if (!this.canUseApi || !this.http) {
+      this.apiSnapshot.set(EMPTY_SNAPSHOT);
+      this.dataState.set('api-empty');
       return;
     }
 
@@ -326,30 +403,30 @@ export class DashboardStore {
     try {
       const response = await firstValueFrom(
         this.http.get<DashboardApiResponse>('/api/v1/dashboard/scrap', {
-          params: this.apiParams(filters, rankingLimit),
+          params: this.apiParams(filters, rankingLimit, metric),
         }),
       );
       if (requestId !== this.apiRequestSequence) return;
 
-      const snapshot = this.mapApiResponse(response);
-      if (this.hasUsableSnapshot(snapshot)) {
-        this.apiSnapshot.set(snapshot);
-        this.dataState.set('api');
-      } else {
-        this.apiSnapshot.set(null);
-        this.dataState.set('api-empty');
-      }
+      const snapshot = this.mapApiResponse(response, metric);
+      this.apiSnapshot.set(snapshot);
+      this.dataState.set(this.hasUsableSnapshot(snapshot) ? 'api' : 'api-empty');
     } catch {
       if (requestId !== this.apiRequestSequence) return;
-      this.apiSnapshot.set(null);
-      this.dataState.set('mock');
+      this.apiSnapshot.set(EMPTY_SNAPSHOT);
+      this.dataState.set('error');
     }
   }
 
-  private apiParams(filters: DashboardFilters, rankingLimit: DashboardRankingLimit): HttpParams {
+  private apiParams(
+    filters: DashboardFilters,
+    rankingLimit: DashboardRankingLimit,
+    metric: DashboardMetric,
+  ): HttpParams {
     let params = new HttpParams()
       .set('year', filters.year)
       .set('currency', 'USD')
+      .set('metric', metric === 'usd' ? 'if_cost' : 'quantity')
       .set('impact_mode', 'absolute')
       .set('ranking_limit', String(rankingLimit));
 
@@ -377,58 +454,82 @@ export class DashboardStore {
     return values.reduce((nextParams, value) => nextParams.append(key, value), params);
   }
 
-  private mapApiResponse(response: DashboardApiResponse): DashboardSnapshot {
-    const mock = this.dataSource.getSnapshot(this.filters());
+  private mapApiResponse(
+    response: DashboardApiResponse,
+    metric: DashboardMetric,
+  ): DashboardSnapshot {
+    const quantityMetric = metric === 'qty';
     const monthlyByIndex = new Map(
       response.monthly.map((point) => [Number(point.period.slice(5, 7)) - 1, point]),
     );
-    const monthly = Array.from({ length: 12 }, (_, index) => {
+    const monthly: DashboardMonthlyPoint[] = Array.from({ length: 12 }, (_, index) => {
       const apiPoint = monthlyByIndex.get(index);
-      const mockPoint = mock.monthly[index];
 
       return {
-        ...mockPoint,
-        month: mockPoint.month,
-        actualUsd: apiPoint ? this.toNumber(apiPoint.actual) : null,
-        previousUsd: apiPoint ? this.toNullableNumber(apiPoint.previous_year) : null,
-        targetUsd: apiPoint ? (this.toNullableNumber(apiPoint.target) ?? 0) : 0,
+        month: MONTH_NAMES[index],
+        actualUsd: quantityMetric ? null : apiPoint ? this.toNullableNumber(apiPoint.actual) : null,
+        previousUsd: quantityMetric
+          ? null
+          : apiPoint
+            ? this.toNullableNumber(apiPoint.previous_year)
+            : null,
+        targetUsd: quantityMetric
+          ? 0
+          : apiPoint
+            ? (this.toNullableNumber(apiPoint.target) ?? 0)
+            : 0,
+        actualQty: quantityMetric
+          ? apiPoint
+            ? this.toNullableNumber(apiPoint.actual)
+            : null
+          : null,
+        previousQty: quantityMetric
+          ? apiPoint
+            ? this.toNullableNumber(apiPoint.previous_year)
+            : null
+          : null,
+        targetQty: 0,
+        materialAmountUsd: 0,
+        previousMaterialAmountUsd: 0,
+        productionQty: 0,
+        previousProductionQty: 0,
       };
     });
 
     return {
       monthly,
-      weekly: (response.weekly ?? []).map((point) => this.mapApiWeeklyPoint(point)),
+      weekly: (response.weekly ?? []).map((point) => this.mapApiWeeklyPoint(point, metric)),
       distribution: response.rankings.products.map((item) => ({
         label: item.key ?? 'Não classificado',
         usd: this.toNumber(item.amount),
-        qty: item.record_count,
+        qty: quantityMetric ? this.toNumber(item.amount) : item.record_count,
       })),
       relativeDistribution: (response.rankings.lines ?? []).map((item) => ({
         label: item.key ?? 'Não classificado',
         usd: this.toNumber(item.amount),
-        qty: item.record_count,
+        qty: quantityMetric ? this.toNumber(item.amount) : item.record_count,
         relativeUsd: undefined,
         relativeQty: undefined,
       })),
       components: (response.rankings.components ?? []).map((item) => ({
         label: item.key ?? 'Não classificado',
         usd: this.toNumber(item.amount),
-        qty: item.record_count,
+        qty: quantityMetric ? this.toNumber(item.amount) : item.record_count,
       })),
       lines: (response.rankings.lines ?? []).map((item) => ({
         label: item.key ?? 'Não classificado',
         usd: this.toNumber(item.amount),
-        qty: item.record_count,
+        qty: quantityMetric ? this.toNumber(item.amount) : item.record_count,
       })),
       models: (response.rankings.models ?? []).map((item) => ({
         label: item.key ?? 'Não classificado',
         usd: this.toNumber(item.amount),
-        qty: item.record_count,
+        qty: quantityMetric ? this.toNumber(item.amount) : item.record_count,
       })),
       offenders: (response.rankings.offenders ?? []).map((item) => ({
         label: item.key ?? 'Não classificado',
         usd: this.toNumber(item.amount),
-        qty: item.record_count,
+        qty: quantityMetric ? this.toNumber(item.amount) : item.record_count,
       })),
       lastUpdatedAt: new Intl.DateTimeFormat('pt-BR', {
         day: '2-digit',
@@ -439,14 +540,18 @@ export class DashboardStore {
     };
   }
 
-  private mapApiWeeklyPoint(point: DashboardApiSeriesPoint): DashboardMonthlyPoint {
+  private mapApiWeeklyPoint(
+    point: DashboardApiSeriesPoint,
+    metric: DashboardMetric,
+  ): DashboardMonthlyPoint {
+    const quantityMetric = metric === 'qty';
     return {
       month: this.weekLabel(point.period),
-      actualUsd: this.toNumber(point.actual),
-      previousUsd: this.toNullableNumber(point.previous_year),
-      targetUsd: this.toNullableNumber(point.target) ?? 0,
-      actualQty: null,
-      previousQty: null,
+      actualUsd: quantityMetric ? null : this.toNullableNumber(point.actual),
+      previousUsd: quantityMetric ? null : this.toNullableNumber(point.previous_year),
+      targetUsd: quantityMetric ? 0 : (this.toNullableNumber(point.target) ?? 0),
+      actualQty: quantityMetric ? this.toNullableNumber(point.actual) : null,
+      previousQty: quantityMetric ? this.toNullableNumber(point.previous_year) : null,
       targetQty: 0,
       materialAmountUsd: 0,
       previousMaterialAmountUsd: 0,

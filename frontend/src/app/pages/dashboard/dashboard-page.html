@@ -1,4 +1,7 @@
 <div class="scrap-dashboard">
+  <div class="dashboard-page-status" aria-live="polite">
+    {{ text().updated }} {{ lastUpdatedLabel() }}
+  </div>
   <section class="dashboard-filter-panel" [attr.aria-label]="text().filtersAria">
     <div class="dashboard-filter-footer">
       <div class="dashboard-filter-context">
@@ -19,14 +22,11 @@
             }
           </div>
         }
-        <span class="dashboard-data-status"
-          >{{ dataStatusLabel() }} · {{ text().updated }} {{ lastUpdatedLabel() }}</span
-        >
       </div>
     </div>
   </section>
   <section class="dashboard-toolbar" [attr.aria-label]="text().analysisControlsAria">
-    <div class="analysis-switch-control is-locked" [attr.title]="text().scrapRateLockedHint">
+    <div class="analysis-switch-control">
       <button
         class="analysis-toggle"
         type="button"
@@ -35,14 +35,12 @@
         [class.active]="false"
         [attr.aria-checked]="false"
         [attr.aria-disabled]="true"
-        [attr.aria-label]="text().scrapRateLockedHint"
-        [attr.title]="text().scrapRateLockedHint"
+        [attr.aria-label]="text().absoluteImpact"
       >
         <span></span>
       </button>
       <span>
         {{ text().absoluteImpact }}
-        <small class="lock-indicator">{{ text().scrapRateLockedHint }}</small>
       </span>
     </div>
     <div class="analysis-controls">
@@ -142,31 +140,16 @@
         </div>
       </app-list-filter-popover>
 
-      <div class="metric-switch" role="group" [attr.aria-label]="text().metricGroupAria">
-        <button
-          type="button"
-          [class.active]="store.metric() === 'usd'"
-          [attr.aria-pressed]="store.metric() === 'usd'"
-          (click)="selectMetric('usd')"
-        >
-          IF Cost
-        </button>
-        <button
-          type="button"
-          [class.active]="store.metric() === 'qty'"
-          [attr.aria-pressed]="store.metric() === 'qty'"
-          (click)="selectMetric('qty')"
-        >
-          QTY Scrap
-        </button>
-      </div>
       <app-list-filter-select
         class="comparison-select"
         [label]="text().compareWith"
+        [showLabel]="false"
         [ariaLabel]="text().compareWith"
         [options]="comparisonOptions()"
         [value]="store.comparison()"
         layout="inline"
+        [compact]="true"
+        menuWidth="content"
         (changed)="onComparisonChange($event)"
       />
       <button
@@ -174,24 +157,29 @@
         type="button"
         [disabled]="store.metric() !== 'usd'"
         [attr.aria-pressed]="store.monetaryValuesHidden()"
+        [attr.aria-label]="store.monetaryValuesHidden() ? text().showValues : text().hideValues"
+        [attr.title]="store.monetaryValuesHidden() ? text().showValues : text().hideValues"
         (click)="store.toggleMonetaryValues()"
       >
         <ui-icon [name]="store.monetaryValuesHidden() ? 'eye-off' : 'eye'" />
-        {{ store.monetaryValuesHidden() ? text().showValues : text().hideValues }}
       </button>
-    </div>
-  </section>
-
-  <section class="dashboard-story-strip">
-    <div>
-      <span>{{ text().executiveReading }}</span>
-      <strong>{{ summaryHeadline() }}</strong>
-      <small>{{ summaryDetail() }}</small>
-    </div>
-    <div>
-      <span>{{ text().comparisonReference }}</span>
-      <strong>{{ comparisonLabel() }}</strong>
-      <small>{{ summaryMetricLabel() }}</small>
+      <div class="metric-toggle-control">
+        <span class="metric-toggle-label">
+          {{ store.metric() === 'usd' ? 'Valor monetário' : 'Quantidade' }}
+        </span>
+        <span>{{ store.metric() === 'usd' ? 'IF (Valor monetário)' : 'Quantidade unitária' }}</span>
+        <button
+          class="analysis-toggle"
+          type="button"
+          role="switch"
+          [class.active]="store.metric() === 'qty'"
+          [attr.aria-checked]="store.metric() === 'qty'"
+          [attr.aria-label]="text().metricGroupAria"
+          (click)="toggleMetric()"
+        >
+          <span></span>
+        </button>
+      </div>
     </div>
   </section>
 
@@ -202,36 +190,72 @@
         <strong>{{ formatPrimaryValue(store.kpis().actual) }}</strong>
         <small>{{ store.metric() === 'usd' ? text().ifCostActual : text().qtyActual }}</small>
       </div>
-      <div class="kpi-summary-metrics">
-        <div class="kpi-summary-metric">
-          <span>{{ store.metric() === 'usd' ? text().ifCostTarget : text().qtyTarget }}</span>
-          <strong>{{ formatPrimaryValue(store.kpis().target) }}</strong>
-          <small>{{ text().targetRegistered }} {{ store.filters().year }}</small>
+      @if (store.metric() === 'usd') {
+        <div class="kpi-summary-metrics">
+          <div class="kpi-summary-metric">
+            <span>{{ text().ifCostTarget }}</span>
+            <strong>{{ formatPrimaryValue(store.kpis().target) }}</strong>
+            <small>{{ text().targetRegistered }} {{ store.filters().year }}</small>
+          </div>
+          <div class="kpi-summary-metric positive">
+            <span class="kpi-metric-label">{{ text().targetAchievement }}</span>
+            <strong class="kpi-value-with-icon">
+              {{ formatPercentage(store.kpis().achievement, false) }}
+              <ui-icon [name]="targetGapReached() ? 'arrow-down' : 'arrow-up'" />
+            </strong>
+            <small>{{ targetAchievementDeltaLabel() }}</small>
+          </div>
+          <div
+            class="kpi-summary-metric"
+            [class.positive]="targetGapReached()"
+            [class.negative]="!targetGapReached()"
+          >
+            <span class="kpi-metric-label">{{ text().targetGapAmount }}</span>
+            <strong class="kpi-value-with-icon">
+              {{ targetGapValueLabel() }}
+              <ui-icon [name]="targetGapReached() ? 'check' : 'arrow-up'" />
+            </strong>
+            <small>{{ targetGapHintLabel() }}</small>
+          </div>
+          <div
+            class="kpi-summary-metric"
+            [class.positive]="store.kpis().variation <= 0"
+            [class.negative]="store.kpis().variation > 0"
+          >
+            <span class="kpi-metric-label">{{ text().ifCostVariation }}</span>
+            <strong class="kpi-value-with-icon">
+              {{ formatPercentage(store.kpis().variation) }}
+              <ui-icon [name]="store.kpis().variation <= 0 ? 'arrow-down' : 'arrow-up'" />
+            </strong>
+            <small>{{ comparisonLabel() }}</small>
+          </div>
         </div>
-        <div class="kpi-summary-metric positive">
-          <span>{{ text().targetAchievement }}</span>
-          <strong>{{ formatPercentage(store.kpis().achievement, false) }}</strong>
-          <small>{{ targetAchievementDeltaLabel() }}</small>
+      } @else {
+        <div class="kpi-summary-metrics compact">
+          <div class="kpi-summary-metric">
+            <span>{{ text().quantityReference }}</span>
+            <strong>{{ formatPrimaryValue(store.kpis().reference) }}</strong>
+            <small>{{ comparisonLabel() }}</small>
+          </div>
+          <div class="kpi-summary-metric">
+            <span>{{ text().qtyTarget }}</span>
+            <strong>{{ text().quantityTargetUnavailable }}</strong>
+            <small>{{ text().quantityTargetHint }}</small>
+          </div>
+          <div
+            class="kpi-summary-metric"
+            [class.positive]="store.kpis().variation <= 0"
+            [class.negative]="store.kpis().variation > 0"
+          >
+            <span class="kpi-metric-label">{{ text().qtyVariation }}</span>
+            <strong class="kpi-value-with-icon">
+              {{ formatPercentage(store.kpis().variation) }}
+              <ui-icon [name]="store.kpis().variation <= 0 ? 'arrow-down' : 'arrow-up'" />
+            </strong>
+            <small>{{ comparisonLabel() }}</small>
+          </div>
         </div>
-        <div
-          class="kpi-summary-metric kpi-summary-focus"
-          [class.positive]="targetGapReached()"
-          [class.negative]="!targetGapReached()"
-        >
-          <span>{{ text().targetGapAmount }}</span>
-          <strong>{{ targetGapValueLabel() }}</strong>
-          <small>{{ targetGapHintLabel() }}</small>
-        </div>
-        <div
-          class="kpi-summary-metric"
-          [class.positive]="store.kpis().variation <= 0"
-          [class.negative]="store.kpis().variation > 0"
-        >
-          <span>{{ store.metric() === 'usd' ? text().ifCostVariation : text().qtyVariation }}</span>
-          <strong>{{ formatPercentage(store.kpis().variation) }}</strong>
-          <small>{{ comparisonLabel() }}</small>
-        </div>
-      </div>
+      }
     </section>
   } @else {
     <section class="kpi-summary-panel" [attr.aria-label]="text().relativeSummaryAria">
@@ -258,8 +282,13 @@
           [class.positive]="store.relativeKpis().variation <= 0"
           [class.negative]="store.relativeKpis().variation > 0"
         >
-          <span>{{ text().rateVariation }}</span>
-          <strong>{{ formatPercentage(store.relativeKpis().variation) }}</strong>
+          <span class="kpi-metric-label">
+            {{ text().rateVariation }}
+          </span>
+          <strong class="kpi-value-with-icon">
+            {{ formatPercentage(store.relativeKpis().variation) }}
+            <ui-icon [name]="store.relativeKpis().variation <= 0 ? 'arrow-down' : 'arrow-up'" />
+          </strong>
           <small>{{ comparisonLabel() }}</small>
         </div>
       </div>
@@ -302,13 +331,15 @@
             (cleared)="clearEvolutionFilters()"
           >
             <div class="dashboard-filter-grid-chart">
-              <app-list-filter-select
-                [label]="text().period"
-                [ariaLabel]="text().period"
-                [options]="periodOptions()"
-                [value]="evolutionFilters().period"
-                (changed)="changeEvolutionPeriod($event)"
-              />
+              @if (evolutionView() === 'weekly') {
+                <app-list-filter-select
+                  [label]="text().period"
+                  [ariaLabel]="text().period"
+                  [options]="periodOptions()"
+                  [value]="evolutionFilters().period"
+                  (changed)="changeEvolutionPeriod($event)"
+                />
+              }
               <app-dashboard-multi-select
                 [label]="text().product"
                 [allLabel]="text().allMasculine"
@@ -360,13 +391,6 @@
       } @placeholder {
         <div class="chart-defer-placeholder" aria-hidden="true"></div>
       }
-      @if (store.analysis() === 'absolute' && evolutionView() === 'monthly') {
-        <div class="period-status" [attr.aria-label]="text().periodStatusAria">
-          <span><i class="closed"></i>{{ text().closedMonths }}</span>
-          <span><i class="partial"></i>{{ text().partialMonth }}</span>
-          <span><i class="future"></i>{{ text().futureMonths }}</span>
-        </div>
-      }
     </article>
     <article class="panel scrap-distribution-panel">
       <div class="panel-header">
@@ -378,13 +402,9 @@
                 : text().highestRateLines
             }}
           </h3>
-          <p>
-            {{
-              store.analysis() === 'absolute'
-                ? text().participationSelectedPeriod
-                : text().efficiencyRanking
-            }}
-          </p>
+          @if (store.analysis() === 'relative') {
+            <p>{{ text().efficiencyRanking }}</p>
+          }
         </div>
         <div class="panel-header-actions">
           <app-list-filter-popover
@@ -397,6 +417,13 @@
             (cleared)="clearDistributionFilters()"
           >
             <div class="dashboard-filter-grid-chart">
+              <app-list-filter-select
+                [label]="text().rankingLimitAria"
+                [ariaLabel]="text().rankingLimitAria"
+                [options]="rankingLimitOptions()"
+                [value]="barChartLimitValue('distribution')"
+                (changed)="changeBarChartLimit('distribution', $event)"
+              />
               <app-dashboard-multi-select
                 [label]="text().product"
                 [allLabel]="text().allMasculine"
@@ -461,6 +488,39 @@
         <div>
           <h3>{{ text().topLines }}</h3>
         </div>
+        <div class="panel-header-actions">
+          <app-list-filter-popover
+            [activeCount]="rankingFiltersCount('lines')"
+            [triggerLabel]="text().chartFilters"
+            [title]="text().topLines"
+            [clearLabel]="text().clearChartFilters"
+            [applyLabel]="text().apply"
+            (cleared)="clearRankingFilters('lines')"
+          >
+            <div class="dashboard-filter-grid-chart">
+              <app-list-filter-select
+                [label]="text().rankingLimitAria"
+                [ariaLabel]="text().rankingLimitAria"
+                [options]="rankingLimitOptions()"
+                [value]="barChartLimitValue('lines')"
+                (changed)="changeBarChartLimit('lines', $event)"
+              />
+              <app-dashboard-multi-select
+                [label]="text().line"
+                [allLabel]="text().allFeminine"
+                [applyLabel]="text().apply"
+                [selectedPlural]="text().selectedPlural"
+                [currentSelectionLabel]="text().currentSelection"
+                [removeLabel]="text().removeFilter"
+                [searchLabel]="text().searchOptions"
+                [noOptionsLabel]="text().noFilterOptions"
+                [options]="linesFilterOptions()"
+                [selected]="rankingFilters().lines"
+                (selectionChange)="changeRankingFilter('lines', $event)"
+              />
+            </div>
+          </app-list-filter-popover>
+        </div>
       </div>
       @defer (on viewport) {
         @if (hasLinesData()) {
@@ -486,6 +546,39 @@
       <div class="panel-header">
         <div>
           <h3>{{ text().topModels }}</h3>
+        </div>
+        <div class="panel-header-actions">
+          <app-list-filter-popover
+            [activeCount]="rankingFiltersCount('models')"
+            [triggerLabel]="text().chartFilters"
+            [title]="text().topModels"
+            [clearLabel]="text().clearChartFilters"
+            [applyLabel]="text().apply"
+            (cleared)="clearRankingFilters('models')"
+          >
+            <div class="dashboard-filter-grid-chart">
+              <app-list-filter-select
+                [label]="text().rankingLimitAria"
+                [ariaLabel]="text().rankingLimitAria"
+                [options]="rankingLimitOptions()"
+                [value]="barChartLimitValue('models')"
+                (changed)="changeBarChartLimit('models', $event)"
+              />
+              <app-dashboard-multi-select
+                [label]="text().topModels"
+                [allLabel]="text().allMasculine"
+                [applyLabel]="text().apply"
+                [selectedPlural]="text().selectedPlural"
+                [currentSelectionLabel]="text().currentSelection"
+                [removeLabel]="text().removeFilter"
+                [searchLabel]="text().searchOptions"
+                [noOptionsLabel]="text().noFilterOptions"
+                [options]="modelsFilterOptions()"
+                [selected]="rankingFilters().models"
+                (selectionChange)="changeRankingFilter('models', $event)"
+              />
+            </div>
+          </app-list-filter-popover>
         </div>
       </div>
       @defer (on viewport) {
@@ -513,6 +606,39 @@
         <div>
           <h3>{{ text().topComponents }}</h3>
         </div>
+        <div class="panel-header-actions">
+          <app-list-filter-popover
+            [activeCount]="rankingFiltersCount('components')"
+            [triggerLabel]="text().chartFilters"
+            [title]="text().topComponents"
+            [clearLabel]="text().clearChartFilters"
+            [applyLabel]="text().apply"
+            (cleared)="clearRankingFilters('components')"
+          >
+            <div class="dashboard-filter-grid-chart">
+              <app-list-filter-select
+                [label]="text().rankingLimitAria"
+                [ariaLabel]="text().rankingLimitAria"
+                [options]="rankingLimitOptions()"
+                [value]="barChartLimitValue('components')"
+                (changed)="changeBarChartLimit('components', $event)"
+              />
+              <app-dashboard-multi-select
+                [label]="text().component"
+                [allLabel]="text().allMasculine"
+                [applyLabel]="text().apply"
+                [selectedPlural]="text().selectedPlural"
+                [currentSelectionLabel]="text().currentSelection"
+                [removeLabel]="text().removeFilter"
+                [searchLabel]="text().searchOptions"
+                [noOptionsLabel]="text().noFilterOptions"
+                [options]="componentsFilterOptions()"
+                [selected]="rankingFilters().components"
+                (selectionChange)="changeRankingFilter('components', $event)"
+              />
+            </div>
+          </app-list-filter-popover>
+        </div>
       </div>
       @defer (on viewport) {
         @if (hasComponentsData()) {
@@ -538,6 +664,39 @@
       <div class="panel-header">
         <div>
           <h3>{{ text().topOffenders }}</h3>
+        </div>
+        <div class="panel-header-actions">
+          <app-list-filter-popover
+            [activeCount]="rankingFiltersCount('offenders')"
+            [triggerLabel]="text().chartFilters"
+            [title]="text().topOffenders"
+            [clearLabel]="text().clearChartFilters"
+            [applyLabel]="text().apply"
+            (cleared)="clearRankingFilters('offenders')"
+          >
+            <div class="dashboard-filter-grid-chart">
+              <app-list-filter-select
+                [label]="text().rankingLimitAria"
+                [ariaLabel]="text().rankingLimitAria"
+                [options]="rankingLimitOptions()"
+                [value]="barChartLimitValue('offenders')"
+                (changed)="changeBarChartLimit('offenders', $event)"
+              />
+              <app-dashboard-multi-select
+                [label]="text().topOffenders"
+                [allLabel]="text().allMasculine"
+                [applyLabel]="text().apply"
+                [selectedPlural]="text().selectedPlural"
+                [currentSelectionLabel]="text().currentSelection"
+                [removeLabel]="text().removeFilter"
+                [searchLabel]="text().searchOptions"
+                [noOptionsLabel]="text().noFilterOptions"
+                [options]="offendersFilterOptions()"
+                [selected]="rankingFilters().offenders"
+                (selectionChange)="changeRankingFilter('offenders', $event)"
+              />
+            </div>
+          </app-list-filter-popover>
         </div>
       </div>
       @defer (on viewport) {

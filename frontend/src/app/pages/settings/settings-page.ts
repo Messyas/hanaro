@@ -11,6 +11,12 @@ import { UiIcon } from '../../ui-icon';
 import { ScrapDefectType } from '../scrap-base/scrap-review.models';
 import { ScrapReviewService } from '../scrap-base/scrap-review.service';
 import { ScrapTargetService } from './scrap-target.service';
+import {
+  ScrapClassificationKind,
+  ScrapClassificationRule,
+  ScrapClassificationRuleWrite,
+  ScrapClassificationService,
+} from './scrap-classification.service';
 
 @Component({
   selector: 'app-settings-page',
@@ -24,15 +30,34 @@ export class SettingsPage implements OnInit {
   readonly authService = inject(AuthService);
   readonly scrapReviewService = inject(ScrapReviewService);
   readonly scrapTargetService = inject(ScrapTargetService);
+  readonly scrapClassificationService = inject(ScrapClassificationService);
   private readonly dialog = inject(MatDialog);
 
-  readonly activeTab = signal<'preferences' | 'system' | 'targets'>('preferences');
+  readonly activeTab = signal<'preferences' | 'classifications' | 'system' | 'targets'>(
+    'preferences',
+  );
 
   // Defect types state
   readonly defectTypes = signal<ScrapDefectType[]>([]);
   readonly loadingDefectTypes = signal(false);
   readonly submitting = signal(false);
   readonly feedbackMessage = signal<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  readonly classificationRules = signal<ScrapClassificationRule[]>([]);
+  readonly loadingClassifications = signal(false);
+  readonly savingClassification = signal(false);
+  readonly classificationFeedback = signal<{ type: 'success' | 'error'; text: string } | null>(
+    null,
+  );
+  readonly editingClassificationId = signal<string | null>(null);
+  readonly classificationKind = signal<ScrapClassificationKind>('PRODUCT_ALIAS');
+  readonly classificationSource = signal('');
+  readonly classificationContext = signal('');
+  readonly classificationTarget = signal('');
+  readonly classificationSecondary = signal('');
+  readonly classificationBoolean = signal<'true' | 'false'>('true');
+  readonly classificationMode = signal<'EXACT' | 'REGEX'>('EXACT');
+  readonly classificationPriority = signal(0);
 
   // New defect form
   readonly newName = signal('');
@@ -150,15 +175,148 @@ export class SettingsPage implements OnInit {
     // Carrega os tipos de scrap e metas em segundo plano
     this.loadDefectTypes();
     this.loadTargets(this.selectedTargetYear());
+    this.loadClassifications();
   }
 
-  selectTab(tab: 'preferences' | 'system' | 'targets'): void {
+  selectTab(tab: 'preferences' | 'classifications' | 'system' | 'targets'): void {
     this.activeTab.set(tab);
     if (tab === 'system' && this.defectTypes().length === 0) {
       this.loadDefectTypes();
+    } else if (tab === 'classifications' && this.classificationRules().length === 0) {
+      this.loadClassifications();
     } else if (tab === 'targets') {
       this.loadTargets(this.selectedTargetYear());
     }
+  }
+
+  loadClassifications(): void {
+    this.loadingClassifications.set(true);
+    this.scrapClassificationService.list().subscribe({
+      next: (rules) => {
+        this.classificationRules.set(rules);
+        this.loadingClassifications.set(false);
+      },
+      error: () => this.loadingClassifications.set(false),
+    });
+  }
+
+  classificationKindLabel(kind: ScrapClassificationKind): string {
+    return {
+      PRODUCT_ALIAS: 'Apelido de produto',
+      ORGANIZATION: 'Organização → produto/divisão',
+      DEPARTMENT: 'Setor de recebimento → departamento',
+      COUNTING: 'Conta → entra no IF Cost',
+      ITEM_TYPE: 'Descrição → tipo de item',
+    }[kind];
+  }
+
+  resetClassificationForm(): void {
+    this.editingClassificationId.set(null);
+    this.classificationKind.set('PRODUCT_ALIAS');
+    this.classificationSource.set('');
+    this.classificationContext.set('');
+    this.classificationTarget.set('');
+    this.classificationSecondary.set('');
+    this.classificationBoolean.set('true');
+    this.classificationMode.set('EXACT');
+    this.classificationPriority.set(0);
+  }
+
+  editClassification(rule: ScrapClassificationRule): void {
+    this.editingClassificationId.set(rule.id);
+    this.classificationKind.set(rule.kind);
+    this.classificationSource.set(rule.source_value);
+    this.classificationContext.set(rule.source_context || '');
+    this.classificationTarget.set(rule.target_value || '');
+    this.classificationSecondary.set(rule.target_secondary || '');
+    this.classificationBoolean.set(rule.boolean_value === false ? 'false' : 'true');
+    this.classificationMode.set(rule.match_mode);
+    this.classificationPriority.set(rule.priority);
+  }
+
+  saveClassification(): void {
+    const kind = this.classificationKind();
+    const source = this.classificationSource().trim();
+    if (!source || this.savingClassification()) return;
+    const payload: ScrapClassificationRuleWrite = {
+      kind,
+      source_value: source,
+      source_context: this.classificationContext().trim() || null,
+      target_value: this.classificationTarget().trim() || null,
+      target_secondary: this.classificationSecondary().trim() || null,
+      boolean_value: kind === 'COUNTING' ? this.classificationBoolean() === 'true' : null,
+      match_mode: kind === 'ITEM_TYPE' ? this.classificationMode() : 'EXACT',
+      priority: Number(this.classificationPriority()) || 0,
+      is_active: true,
+    };
+    this.savingClassification.set(true);
+    const id = this.editingClassificationId();
+    const request = id
+      ? this.scrapClassificationService.update(id, payload)
+      : this.scrapClassificationService.create(payload);
+    request.subscribe({
+      next: (saved) => {
+        this.savingClassification.set(false);
+        this.classificationRules.update((rules) =>
+          id ? rules.map((rule) => (rule.id === saved.id ? saved : rule)) : [...rules, saved],
+        );
+        this.classificationFeedback.set({
+          type: 'success',
+          text: 'Regra salva. Reaplique para refletir dados já ingeridos.',
+        });
+        this.resetClassificationForm();
+      },
+      error: (error) => {
+        this.savingClassification.set(false);
+        this.classificationFeedback.set({
+          type: 'error',
+          text: error.error?.detail || 'Não foi possível salvar a regra.',
+        });
+      },
+    });
+  }
+
+  deleteClassification(rule: ScrapClassificationRule): void {
+    if (this.savingClassification()) return;
+    this.savingClassification.set(true);
+    this.scrapClassificationService.delete(rule.id).subscribe({
+      next: () => {
+        this.savingClassification.set(false);
+        this.classificationRules.update((rules) => rules.filter((item) => item.id !== rule.id));
+        this.classificationFeedback.set({
+          type: 'success',
+          text: 'Regra removida. Reaplique para atualizar o histórico.',
+        });
+      },
+      error: () => {
+        this.savingClassification.set(false);
+        this.classificationFeedback.set({
+          type: 'error',
+          text: 'Não foi possível remover a regra.',
+        });
+      },
+    });
+  }
+
+  reapplyClassifications(): void {
+    if (this.savingClassification()) return;
+    this.savingClassification.set(true);
+    this.scrapClassificationService.reapply().subscribe({
+      next: ({ reclassified_records }) => {
+        this.savingClassification.set(false);
+        this.classificationFeedback.set({
+          type: 'success',
+          text: `${reclassified_records} registros foram reclassificados.`,
+        });
+      },
+      error: () => {
+        this.savingClassification.set(false);
+        this.classificationFeedback.set({
+          type: 'error',
+          text: 'Não foi possível reaplicar as classificações.',
+        });
+      },
+    });
   }
 
   private slugify(text: string): string {

@@ -31,7 +31,6 @@ export interface DashboardTranslations {
   toggleAnalysisAria: string;
   absoluteImpact: string;
   relativeEfficiency: string;
-  scrapRateLockedHint: string;
   metricGroupAria: string;
   compareWith: string;
   compareYtd: string;
@@ -51,6 +50,9 @@ export interface DashboardTranslations {
   qtyActual: string;
   ifCostTarget: string;
   qtyTarget: string;
+  quantityReference: string;
+  quantityTargetUnavailable: string;
+  quantityTargetHint: string;
   targetRegistered: string;
   targetAchievement: string;
   aboveTargetIsGood: string;
@@ -81,6 +83,8 @@ export interface DashboardTranslations {
   clearChartFilters: string;
   monthlyTargetActual: string;
   weeklyTargetActual: string;
+  monthlyQtyActual: string;
+  weeklyQtyActual: string;
   ifCostRateMonthly: string;
   ifCostRateWeekly: string;
   qtyRateMonthly: string;
@@ -151,7 +155,6 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     toggleAnalysisAria: 'Alternar tipo de análise',
     absoluteImpact: 'Impacto absoluto',
     relativeEfficiency: 'Eficiência relativa',
-    scrapRateLockedHint: 'Scrap Rate temporariamente bloqueado (aguardando dados de produção)',
     metricGroupAria: 'Métrica exibida',
     compareWith: 'Comparar com',
     compareYtd: 'YTD anterior',
@@ -171,6 +174,9 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     qtyActual: 'QTY Scrap realizada',
     ifCostTarget: 'Target de IF Cost',
     qtyTarget: 'Target de QTY Scrap',
+    quantityReference: 'Quantidade de referência',
+    quantityTargetUnavailable: 'Não configurada',
+    quantityTargetHint: 'As metas são definidas para IF Cost',
     targetRegistered: 'Meta cadastrada para',
     targetAchievement: 'Atingimento do target',
     aboveTargetIsGood: 'Acima de 100% é favorável',
@@ -201,6 +207,8 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     clearChartFilters: 'Limpar filtros do gráfico',
     monthlyTargetActual: 'Target × realizado mensal',
     weeklyTargetActual: 'Target × realizado semanal',
+    monthlyQtyActual: 'Quantidade realizada mensal',
+    weeklyQtyActual: 'Quantidade realizada semanal',
     ifCostRateMonthly: 'Scrap Rate de IF Cost por mês',
     ifCostRateWeekly: 'Scrap Rate de IF Cost por semana',
     qtyRateMonthly: 'Scrap Rate por quantidade por mês',
@@ -270,7 +278,6 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     toggleAnalysisAria: 'Switch analysis type',
     absoluteImpact: 'Absolute impact',
     relativeEfficiency: 'Relative efficiency',
-    scrapRateLockedHint: 'Scrap Rate temporarily locked (awaiting production data)',
     metricGroupAria: 'Displayed metric',
     compareWith: 'Compare with',
     compareYtd: 'Previous YTD',
@@ -290,6 +297,9 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     qtyActual: 'Actual QTY Scrap',
     ifCostTarget: 'IF Cost target',
     qtyTarget: 'QTY Scrap target',
+    quantityReference: 'Reference quantity',
+    quantityTargetUnavailable: 'Not configured',
+    quantityTargetHint: 'Targets are set for IF Cost',
     targetRegistered: 'Target registered for',
     targetAchievement: 'Target achievement',
     aboveTargetIsGood: 'Above 100% is favorable',
@@ -320,6 +330,8 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     clearChartFilters: 'Clear chart filters',
     monthlyTargetActual: 'Monthly target × actual',
     weeklyTargetActual: 'Weekly target × actual',
+    monthlyQtyActual: 'Monthly actual quantity',
+    weeklyQtyActual: 'Weekly actual quantity',
     ifCostRateMonthly: 'Monthly IF Cost Scrap Rate',
     ifCostRateWeekly: 'Weekly IF Cost Scrap Rate',
     qtyRateMonthly: 'Monthly quantity Scrap Rate',
@@ -389,7 +401,6 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     toggleAnalysisAria: '분석 유형 전환',
     absoluteImpact: '절대 영향',
     relativeEfficiency: '상대 효율',
-    scrapRateLockedHint: '스크랩 비율 일시 잠금 (생산 데이터 대기 중)',
     metricGroupAria: '표시 지표',
     compareWith: '비교 기준',
     compareYtd: '전년 누계',
@@ -409,6 +420,9 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     qtyActual: '실제 QTY Scrap',
     ifCostTarget: 'IF Cost 목표',
     qtyTarget: 'QTY Scrap 목표',
+    quantityReference: '기준 수량',
+    quantityTargetUnavailable: '설정되지 않음',
+    quantityTargetHint: '목표는 IF Cost에 대해 설정됩니다',
     targetRegistered: '목표 등록 연도',
     targetAchievement: '목표 달성률',
     aboveTargetIsGood: '100% 이상이면 양호',
@@ -439,6 +453,8 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     clearChartFilters: '차트 필터 지우기',
     monthlyTargetActual: '월별 목표 × 실적',
     weeklyTargetActual: '주별 목표 × 실적',
+    monthlyQtyActual: '월별 실제 수량',
+    weeklyQtyActual: '주별 실제 수량',
     ifCostRateMonthly: '월별 IF Cost Scrap Rate',
     ifCostRateWeekly: '주별 IF Cost Scrap Rate',
     qtyRateMonthly: '월별 수량 Scrap Rate',

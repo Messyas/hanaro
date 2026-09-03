@@ -2,6 +2,8 @@ import { Component, input } from '@angular/core';
 
 export type IconName =
   | 'arrow-left'
+  | 'arrow-down'
+  | 'arrow-up'
   | 'bell'
   | 'building'
   | 'calendar'
@@ -55,6 +57,12 @@ export type IconName =
       @switch (name()) {
         @case ('arrow-left') {
           <path d="M19 12H5M12 19l-7-7 7-7" />
+        }
+        @case ('arrow-up') {
+          <path d="M12 19V5M5 12l7-7 7 7" />
+        }
+        @case ('arrow-down') {
+          <path d="M12 5v14m7-7-7 7-7-7" />
         }
         @case ('chevron-left') {
           <path d="m15 18-6-6 6-6" />

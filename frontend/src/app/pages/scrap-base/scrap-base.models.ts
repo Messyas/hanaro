@@ -21,6 +21,7 @@ export interface ScrapListItem {
   account_alias: string;
   receipt_department: string | null;
   item_code: string;
+  product_alias?: string | null;
   item_description: string | null;
   transaction_date: string;
   issue_quantity: string;

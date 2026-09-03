@@ -32,6 +32,8 @@ export interface AppTranslations {
   loginHint: string;
   settingsTitle: string;
   settingsTabPreferences: string;
+  settingsTabClassifications: string;
+  settingsTabDefectTypes: string;
   settingsTabSystem: string;
   settingsTabTargets: string;
   targetYearPlanTitle: string;
@@ -50,6 +52,7 @@ export interface AppTranslations {
   prefillAnnualTotalLabel: string;
   prefillJanValueLabel: string;
   prefillDecValueLabel: string;
+  prefillRangeConnector: string;
   prefillApplyBtn: string;
   targetMonthCol: string;
   targetValueCol: string;
@@ -443,7 +446,9 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     loginHint: 'Acessar sua conta',
     settingsTitle: 'Configurações',
     settingsTabPreferences: 'Preferências',
-    settingsTabSystem: 'Sistema',
+    settingsTabClassifications: 'Classificações de Material',
+    settingsTabDefectTypes: 'Tipos de Scrap',
+    settingsTabSystem: 'Tipos de Scrap',
     settingsTabTargets: 'Metas de IF Cost',
     targetYearPlanTitle: 'Plano Anual de Metas (IF Cost)',
     targetYearPlanSubtitle:
@@ -459,10 +464,11 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     prefillAssistantDesc:
       'Acelere o planejamento distribuindo uma meta uniforme ou traçando uma trajetória decrescente de Janeiro até Dezembro.',
     prefillModeLinear: 'Distribuição Uniforme',
-    prefillModeCurve: 'Curva Gradual (Jan → Dez)',
+    prefillModeCurve: 'Curva Gradual (Jan a Dez)',
     prefillAnnualTotalLabel: 'Meta Total do Ano (USD)',
     prefillJanValueLabel: 'Meta Inicial (Janeiro)',
     prefillDecValueLabel: 'Meta Final (Dezembro)',
+    prefillRangeConnector: 'até',
     prefillApplyBtn: 'Aplicar Pré-preenchimento',
     targetMonthCol: 'Mês',
     targetValueCol: 'Meta IF Cost (USD)',
@@ -867,7 +873,9 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     loginHint: 'Access your account',
     settingsTitle: 'Settings',
     settingsTabPreferences: 'Preferences',
-    settingsTabSystem: 'System',
+    settingsTabClassifications: 'Material Classifications',
+    settingsTabDefectTypes: 'Scrap Types',
+    settingsTabSystem: 'Scrap Types',
     settingsTabTargets: 'IF Cost Targets',
     targetYearPlanTitle: 'Annual Target Plan (IF Cost)',
     targetYearPlanSubtitle:
@@ -883,10 +891,11 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     prefillAssistantDesc:
       'Speed up planning by distributing an even target or sketching a declining curve from January to December.',
     prefillModeLinear: 'Uniform Distribution',
-    prefillModeCurve: 'Gradual Curve (Jan → Dec)',
+    prefillModeCurve: 'Gradual Curve (Jan to Dec)',
     prefillAnnualTotalLabel: 'Annual Total Target (USD)',
     prefillJanValueLabel: 'Initial Target (January)',
     prefillDecValueLabel: 'Final Target (December)',
+    prefillRangeConnector: 'to',
     prefillApplyBtn: 'Apply Pre-fill',
     targetMonthCol: 'Month',
     targetValueCol: 'Target IF Cost (USD)',
@@ -1290,7 +1299,9 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     loginHint: '계정에 접속',
     settingsTitle: '설정',
     settingsTabPreferences: '환경설정',
-    settingsTabSystem: '시스템',
+    settingsTabClassifications: '자재 분류 규칙',
+    settingsTabDefectTypes: '스크랩 유형',
+    settingsTabSystem: '스크랩 유형',
     settingsTabTargets: 'IF Cost 목표',
     targetYearPlanTitle: '연간 목표 계획 (IF Cost)',
     targetYearPlanSubtitle:
@@ -1306,10 +1317,11 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     prefillAssistantDesc:
       '균등한 목표를 분배하거나 1월부터 12월까지 감소하는 곡선을 그려 계획을 가속화합니다.',
     prefillModeLinear: '균등 분배',
-    prefillModeCurve: '점진적 곡선 (1월 → 12월)',
+    prefillModeCurve: '점진적 곡선 (1월부터 12월)',
     prefillAnnualTotalLabel: '연간 총 목표 (USD)',
     prefillJanValueLabel: '초기 목표 (1월)',
     prefillDecValueLabel: '최종 목표 (12월)',
+    prefillRangeConnector: '부터',
     prefillApplyBtn: '사전 입력 적용',
     targetMonthCol: '월',
     targetValueCol: 'IF Cost 목표 (USD)',

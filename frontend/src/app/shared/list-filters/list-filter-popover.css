@@ -40,8 +40,10 @@
   color: var(--brand-primary-contrast);
 }
 .filter-trigger-btn {
+  height: 2.25rem;
   padding: 0.45rem 0.85rem;
   font-size: 0.825rem;
+  box-sizing: border-box;
 }
 .filter-trigger-btn.active {
   border-color: var(--brand-primary);

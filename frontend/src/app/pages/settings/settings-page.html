@@ -21,12 +21,27 @@
         type="button"
         role="tab"
         class="settings-tab-btn"
+        [class.active]="activeTab() === 'classifications'"
+        [attr.aria-selected]="activeTab() === 'classifications'"
+        (click)="selectTab('classifications')"
+      >
+        <ui-icon name="filter" />
+        <span>{{ t.settingsTabClassifications }}</span>
+        @if (classificationRules().length > 0) {
+          <span class="tab-badge">{{ classificationRules().length }}</span>
+        }
+      </button>
+
+      <button
+        type="button"
+        role="tab"
+        class="settings-tab-btn"
         [class.active]="activeTab() === 'system'"
         [attr.aria-selected]="activeTab() === 'system'"
         (click)="selectTab('system')"
       >
         <ui-icon name="building" />
-        <span>{{ t.settingsTabSystem }}</span>
+        <span>{{ t.settingsTabDefectTypes }}</span>
         @if (totalCount() > 0) {
           <span class="tab-badge">{{ totalCount() }}</span>
         }
@@ -137,7 +152,225 @@
     </div>
   }
 
-  <!-- Conteúdo da Aba 2: Sistema (Tipos de Scrap) -->
+  <!-- Conteúdo da Aba 2: Classificações de Material -->
+  @if (activeTab() === 'classifications') {
+    <div class="system-settings-stack">
+      <article class="classification-card">
+        <header class="settings-card-header">
+          <h2>Classificações de material</h2>
+          <p>
+            Regras auditáveis que substituem os ajustes manuais na planilha. O código original do
+            GERP não é alterado.
+          </p>
+        </header>
+
+        @if (classificationFeedback(); as message) {
+          <div
+            class="feedback-banner"
+            [class.success]="message.type === 'success'"
+            [class.error]="message.type === 'error'"
+          >
+            <ui-icon [name]="message.type === 'success' ? 'check' : 'x'" />
+            <span>{{ message.text }}</span>
+          </div>
+        }
+
+        <form class="classification-form" (ngSubmit)="saveClassification()">
+          <h3 class="panel-title">
+            {{
+              editingClassificationId() ? 'Editar regra de classificação' : 'Cadastrar nova regra'
+            }}
+          </h3>
+          <div class="classification-grid">
+            <div class="form-group">
+              <label class="form-label" for="classification-kind">Tipo de regra</label>
+              <select
+                id="classification-kind"
+                class="form-input"
+                [ngModel]="classificationKind()"
+                (ngModelChange)="classificationKind.set($event)"
+                name="classificationKind"
+              >
+                <option value="PRODUCT_ALIAS">Apelido de produto</option>
+                <option value="ORGANIZATION">Organização → produto/divisão</option>
+                <option value="DEPARTMENT">Setor → departamento</option>
+                <option value="COUNTING">Conta → entra no IF Cost</option>
+                <option value="ITEM_TYPE">Descrição → tipo de item</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="classification-source">
+                {{
+                  classificationKind() === 'ITEM_TYPE'
+                    ? 'Descrição ou padrão'
+                    : 'Código/valor de origem'
+                }}
+              </label>
+              <input
+                id="classification-source"
+                class="form-input"
+                [ngModel]="classificationSource()"
+                (ngModelChange)="classificationSource.set($event)"
+                name="classificationSource"
+                required
+              />
+            </div>
+            @if (classificationKind() === 'COUNTING') {
+              <div class="form-group">
+                <label class="form-label" for="classification-context">Alias da conta</label>
+                <input
+                  id="classification-context"
+                  class="form-input"
+                  [ngModel]="classificationContext()"
+                  (ngModelChange)="classificationContext.set($event)"
+                  name="classificationContext"
+                  required
+                />
+              </div>
+            }
+            @if (classificationKind() !== 'COUNTING') {
+              <div class="form-group">
+                <label class="form-label" for="classification-target">
+                  {{
+                    classificationKind() === 'PRODUCT_ALIAS'
+                      ? 'Apelido visível'
+                      : 'Resultado principal'
+                  }}
+                </label>
+                <input
+                  id="classification-target"
+                  class="form-input"
+                  [ngModel]="classificationTarget()"
+                  (ngModelChange)="classificationTarget.set($event)"
+                  name="classificationTarget"
+                />
+              </div>
+            }
+            @if (classificationKind() === 'ORGANIZATION') {
+              <div class="form-group">
+                <label class="form-label" for="classification-secondary">Divisão</label>
+                <input
+                  id="classification-secondary"
+                  class="form-input"
+                  [ngModel]="classificationSecondary()"
+                  (ngModelChange)="classificationSecondary.set($event)"
+                  name="classificationSecondary"
+                />
+              </div>
+            }
+            @if (classificationKind() === 'COUNTING') {
+              <div class="form-group">
+                <label class="form-label" for="classification-boolean">Entrar no IF Cost?</label>
+                <select
+                  id="classification-boolean"
+                  class="form-input"
+                  [ngModel]="classificationBoolean()"
+                  (ngModelChange)="classificationBoolean.set($event)"
+                  name="classificationBoolean"
+                >
+                  <option value="true">Sim</option>
+                  <option value="false">Não</option>
+                </select>
+              </div>
+            }
+            @if (classificationKind() === 'ITEM_TYPE') {
+              <div class="form-group">
+                <label class="form-label" for="classification-mode">Correspondência</label>
+                <select
+                  id="classification-mode"
+                  class="form-input"
+                  [ngModel]="classificationMode()"
+                  (ngModelChange)="classificationMode.set($event)"
+                  name="classificationMode"
+                >
+                  <option value="EXACT">Texto exato</option>
+                  <option value="REGEX">Expressão regular</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="classification-priority">Prioridade</label>
+                <input
+                  id="classification-priority"
+                  type="number"
+                  min="0"
+                  class="form-input"
+                  [ngModel]="classificationPriority()"
+                  (ngModelChange)="classificationPriority.set(+$event)"
+                  name="classificationPriority"
+                />
+              </div>
+            }
+          </div>
+          <div class="form-actions">
+            @if (editingClassificationId()) {
+              <button type="button" class="btn btn-secondary" (click)="resetClassificationForm()">
+                Cancelar
+              </button>
+            }
+            <button
+              type="submit"
+              class="btn btn-primary"
+              [disabled]="savingClassification() || !classificationSource().trim()"
+            >
+              <ui-icon [name]="editingClassificationId() ? 'check' : 'plus'" />
+              <span>{{ editingClassificationId() ? 'Salvar regra' : 'Adicionar regra' }}</span>
+            </button>
+          </div>
+        </form>
+
+        <div class="classification-actions">
+          <span>{{ classificationRules().length }} regras cadastradas</span>
+          <button
+            type="button"
+            class="btn btn-secondary"
+            (click)="reapplyClassifications()"
+            [disabled]="savingClassification()"
+          >
+            <ui-icon name="chart-line" />
+            <span>Reaplicar ao histórico</span>
+          </button>
+        </div>
+        @if (loadingClassifications()) {
+          <p class="classification-empty">Carregando regras…</p>
+        } @else if (classificationRules().length === 0) {
+          <p class="classification-empty">Nenhuma regra cadastrada.</p>
+        } @else {
+          <div class="classification-list">
+            @for (rule of classificationRules(); track rule.id) {
+              <article class="classification-rule">
+                <div>
+                  <strong>{{ classificationKindLabel(rule.kind) }}</strong>
+                  <p>
+                    <code>{{ rule.source_value }}</code> →
+                    {{ rule.target_value || (rule.boolean_value ? 'Sim' : 'Não')
+                    }}{{ rule.target_secondary ? ' / ' + rule.target_secondary : '' }}
+                  </p>
+                </div>
+                <div class="actions-cell">
+                  <button
+                    type="button"
+                    class="btn btn-ghost btn-sm"
+                    (click)="editClassification(rule)"
+                  >
+                    Editar
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-ghost btn-sm btn-delete-danger"
+                    (click)="deleteClassification(rule)"
+                  >
+                    Excluir
+                  </button>
+                </div>
+              </article>
+            }
+          </div>
+        }
+      </article>
+    </div>
+  }
+
+  <!-- Conteúdo da Aba 3: Tipos de Scrap -->
   @if (activeTab() === 'system') {
     <div class="system-settings-stack">
       @if (feedbackMessage(); as msg) {
@@ -537,7 +770,7 @@
                     />
                   </div>
                 </div>
-                <div class="curve-arrow" aria-hidden="true">→</div>
+                <span class="curve-range-label">{{ t.prefillRangeConnector }}</span>
                 <div class="field-group">
                   <label for="prefill-dec">{{ t.prefillDecValueLabel }}</label>
                   <div class="input-currency-wrapper">
@@ -588,20 +821,6 @@
           <div>
             <h3>{{ t.targetCurveTrajectory }}</h3>
             <p>Ano {{ selectedTargetYear() }} · {{ t.targetMonthCol }} a {{ t.targetMonthCol }}</p>
-          </div>
-
-          <!-- Sparkline Mini Chart -->
-          <div class="sparkline-container" aria-hidden="true">
-            <svg viewBox="0 0 360 70" class="sparkline-svg">
-              <polyline
-                fill="none"
-                stroke="var(--brand-primary, #e60049)"
-                stroke-width="2.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                [attr.points]="sparklinePoints()"
-              />
-            </svg>
           </div>
         </header>
 

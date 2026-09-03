@@ -803,6 +803,25 @@ app-root {
   gap: 0.8rem;
 }
 
+.dashboard-data-status {
+  min-width: 0;
+  margin: 0;
+  color: var(--app-text-muted-detail);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.25;
+  text-align: right;
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .dashboard-data-status {
+    max-width: 48%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
 .topbar-left {
   min-width: 0;
 }
