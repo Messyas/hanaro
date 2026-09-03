@@ -19,10 +19,16 @@ cobertura de testes.
 
 ## Modelo de acesso
 
+Consulte também o [modelo de acesso canônico](../../docs/modelo-de-acesso.md),
+que separa explicitamente dashboard/TV públicos, relatórios autenticados,
+aliases administrativos, perfil e provisionamento de contas.
+
 | Superfície    | Identidade                       | Regras                                                      |
 | ------------- | -------------------------------- | ----------------------------------------------------------- |
 | Dashboard     | anônimo                          | somente leitura e sem dados pessoais                        |
 | Modo TV       | anônimo                          | somente leitura, sem sessão e sem controles administrativos |
+| Relatórios    | sessão autenticada               | dados detalhados; backend também deve exigir autenticação    |
+| Aliases       | sessão / superusuário            | leitura compartilhada; escrita somente administrativa       |
 | Perfil        | sessão autenticada               | leitura e alteração apenas do próprio usuário               |
 | Administração | superusuário/role administrativa | interface separada e eventos auditáveis                     |
 
@@ -43,7 +49,7 @@ withXsrfConfiguration({
 
 - [ ] Usar URLs relativas iniciadas por `/api/v1/`.
 - [ ] Deixar o navegador transportar o cookie `session_id` `HttpOnly`.
-- [ ] Manter JWT, session ID e tokens OAuth fora de `localStorage`,
+- [ ] Manter JWT e session ID fora de `localStorage`,
       `sessionStorage` e código Angular.
 - [ ] Manter a proteção XSRF habilitada em `POST`, `PUT`, `PATCH` e `DELETE`.
 - [ ] Tratar `401` como sessão ausente/expirada e `403` como acesso negado.
@@ -63,6 +69,7 @@ desabilitado enquanto frontend e API estiverem na mesma origem.
 - [ ] Seguir a [separação entre Perfil, Configurações e tradução reativa](profile-settings-i18n.md).
 - [ ] Normalizar os ícones conforme a [animação dos ícones da sidebar](sidebar-icon-animation.md).
 - [ ] Seguir o [contrato do login no shell público](login.md) em mudanças de autenticação.
+- [ ] Seguir o [guia do Monitor de Execuções GERP](gerp-executions-monitor.md) na implementação do histórico de rotinas da automação.
 - [ ] Criar `modules/<funcionalidade>/` com componente, rotas, serviço e testes
       necessários à própria feature.
 - [ ] Lazy-load da rota quando a funcionalidade não fizer parte da primeira tela.

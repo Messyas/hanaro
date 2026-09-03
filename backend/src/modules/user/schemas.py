@@ -34,13 +34,6 @@ class User(TimestampSchema, UserBase, PersistentDeletion):
     ]
     tier_id: int | None = None
 
-    google_id: str | None = None
-    github_id: str | None = None
-    oauth_provider: str | None = None
-    email_verified: bool = False
-    oauth_created_at: datetime | None = None
-    oauth_updated_at: datetime | None = None
-
 
 class UserRead(BaseModel):
     """Schema for reading user data, excludes sensitive information."""
@@ -59,8 +52,6 @@ class UserRead(BaseModel):
     is_deleted: bool = False
     tier_id: int | None
     is_superuser: bool = False
-    email_verified: bool = False
-    oauth_provider: str | None = None
 
 
 class UserCreate(UserBase):
@@ -78,13 +69,6 @@ class UserCreate(UserBase):
             examples=["violet canoe glacier lantern 8472"],
         ),
     ]
-    google_id: str | None = None
-    github_id: str | None = None
-    oauth_provider: str | None = None
-    email_verified: bool = False
-    oauth_created_at: datetime | None = None
-    oauth_updated_at: datetime | None = None
-
     model_config = ConfigDict(extra="forbid")
 
     @model_validator(mode="after")
@@ -114,12 +98,6 @@ class UserCreateInternal(UserBase):
     """Internal schema for user creation with hashed password."""
 
     hashed_password: str
-    google_id: str | None = None
-    github_id: str | None = None
-    oauth_provider: str | None = None
-    email_verified: bool = False
-    oauth_created_at: datetime | None = None
-    oauth_updated_at: datetime | None = None
 
 
 class UserUpdate(BaseModel):
@@ -169,11 +147,6 @@ class UserUpdate(BaseModel):
         ]
         | None
     ) = None
-    google_id: str | None = None
-    github_id: str | None = None
-    oauth_provider: str | None = None
-    email_verified: bool | None = None
-    oauth_updated_at: datetime | None = None
 
 
 class UserUpdateInternal(UserUpdate):
@@ -221,12 +194,6 @@ class UserAnonymize(BaseModel):
     profile_image_url: str | None = None
     tier_id: int | None = None
     is_superuser: bool = False
-    google_id: str | None = None
-    github_id: str | None = None
-    oauth_provider: str | None = None
-    email_verified: bool = False
-    oauth_created_at: datetime | None = None
-    oauth_updated_at: datetime | None = None
 
 
 class UserRestoreDeleted(BaseModel):

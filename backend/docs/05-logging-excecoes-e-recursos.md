@@ -36,7 +36,7 @@ logger.info(
 ### Dados excluídos dos logs
 
 - [ ] Senhas, hashes de senha ou códigos de recuperação.
-- [ ] `Authorization`, cookies, tokens de sessão, refresh tokens ou segredos OAuth.
+- [ ] `Authorization`, cookies, tokens de sessão, refresh tokens ou outros segredos.
 - [ ] API keys completas; para correlação, use identificador público ou prefixo não secreto.
 - [ ] Tokens CSRF, `SECRET_KEY`, connection strings ou variáveis de ambiente.
 - [ ] Corpo completo de requests/responses, documentos e dados pessoais.

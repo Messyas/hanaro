@@ -685,13 +685,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/da/11/535ee9a8f2a21ab302a249f3e37d153b4376e77503b94b9c984f099eb79a/crudauth-0.6.0-py3-none-any.whl", hash = "sha256:9951cdbd8d7c8bee33b1b789349fb565718118752dfd24779614ce2b0d5e4bf0", size = 139738, upload-time = "2026-06-22T02:46:24.869Z" },
 ]
 
-[package.optional-dependencies]
-all = [
-    { name = "httpx" },
-    { name = "redis" },
-    { name = "user-agents" },
-]
-
 [[package]]
 name = "dnspython"
 version = "2.8.0"
@@ -787,7 +780,7 @@ dependencies = [
     { name = "aiosqlite" },
     { name = "alembic" },
     { name = "asyncpg" },
-    { name = "crudauth", extra = ["all"] },
+    { name = "crudauth" },
     { name = "faker" },
     { name = "fastapi", extra = ["standard"] },
     { name = "fastcrud" },
@@ -799,7 +792,6 @@ dependencies = [
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "redis" },
-    { name = "sqladmin" },
     { name = "sqlalchemy" },
     { name = "taskiq" },
     { name = "taskiq-aio-pika" },
@@ -818,7 +810,6 @@ dev = [
     { name = "pytest-xdist", extra = ["psutil"] },
     { name = "ruff" },
     { name = "testcontainers" },
-    { name = "types-wtforms" },
     { name = "types-zxcvbn" },
 ]
 
@@ -828,7 +819,7 @@ requires-dist = [
     { name = "aiosqlite", specifier = ">=0.21.0" },
     { name = "alembic", specifier = ">=1.16.4" },
     { name = "asyncpg", specifier = ">=0.30.0" },
-    { name = "crudauth", extras = ["all"], specifier = ">=0.6.0,<0.7.0" },
+    { name = "crudauth", specifier = ">=0.6.0,<0.7.0" },
     { name = "faker", specifier = ">=37.1.0" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.115.8" },
     { name = "fastcrud", specifier = ">=0.21.0" },
@@ -847,13 +838,11 @@ requires-dist = [
     { name = "pytest-xdist", extras = ["psutil"], marker = "extra == 'dev'", specifier = ">=3.8.0" },
     { name = "redis", specifier = ">=6.1.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.9.4" },
-    { name = "sqladmin", specifier = ">=0.22.0" },
     { name = "sqlalchemy", specifier = ">=2.0.37" },
     { name = "taskiq", specifier = ">=0.11.20" },
     { name = "taskiq-aio-pika", specifier = ">=0.4.3" },
     { name = "taskiq-redis", specifier = ">=1.1.2" },
     { name = "testcontainers", extras = ["postgres"], marker = "extra == 'dev'", specifier = ">=4.10.0" },
-    { name = "types-wtforms", marker = "extra == 'dev'", specifier = "==3.2.1.20260518" },
     { name = "types-zxcvbn", marker = "extra == 'dev'", specifier = "==4.5.0.20260518" },
     { name = "user-agents", specifier = ">=2.2.0" },
     { name = "zxcvbn", specifier = "==4.5.0" },
@@ -2449,22 +2438,6 @@ wheels = [
 ]
 
 [[package]]
-name = "sqladmin"
-version = "0.26.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "jinja2" },
-    { name = "python-multipart" },
-    { name = "sqlalchemy" },
-    { name = "starlette" },
-    { name = "wtforms" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/21/1c/95642193903a542329bbcdb84ec14e2a6a9724be2797e90f39d2e9e5d5ed/sqladmin-0.26.0.tar.gz", hash = "sha256:2f77ab3e6da2e55bc4a86ebc7e867cbe3adff5dd604d0692790a14f89d7a4666", size = 1440407, upload-time = "2026-05-18T09:45:43.849Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/64/b7/4811f6fc252149bec219de40e13f62fd604e1b90f853c21e312f40f00aa6/sqladmin-0.26.0-py3-none-any.whl", hash = "sha256:4fd155b35d7831eb32cc399bb7bf96638353fef4fc6d977338850931eed6c924", size = 1455984, upload-time = "2026-05-18T09:45:45.31Z" },
-]
-
-[[package]]
 name = "sqlalchemy"
 version = "2.0.49"
 source = { registry = "https://pypi.org/simple" }
@@ -2678,18 +2651,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/e4/51/9aed62104cea109b820bbd6c14245af756112017d309da813ef107d42e7e/typer-0.25.1.tar.gz", hash = "sha256:9616eb8853a09ffeabab1698952f33c6f29ffdbceb4eaeecf571880e8d7664cc", size = 122276, upload-time = "2026-04-30T19:32:16.964Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/3f/f9/2b3ff4e56e5fa7debfaf9eb135d0da96f3e9a1d5b27222223c7296336e5f/typer-0.25.1-py3-none-any.whl", hash = "sha256:75caa44ed46a03fb2dab8808753ffacdbfea88495e74c85a28c5eefcf5f39c89", size = 58409, upload-time = "2026-04-30T19:32:18.271Z" },
-]
-
-[[package]]
-name = "types-wtforms"
-version = "3.2.1.20260518"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "markupsafe" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/bf/f0/0c84f7175c56089ba0c000d1eb4f20b144721b7446b90280625f3c8ce23b/types_wtforms-3.2.1.20260518.tar.gz", hash = "sha256:05fb7adfc8cdd72c7b597e20b74f6270511ca492a80953805f25ee7d1cfd1282", size = 17505, upload-time = "2026-05-18T06:07:30.769Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/6e/94/0da3294e8c4fd4b64e96d57f7a768fb57e3b2d77ac0aed142c25fe1f28d5/types_wtforms-3.2.1.20260518-py3-none-any.whl", hash = "sha256:193377e60e715920b47481fbc62a7f3796045d0492e02a46319c5064eee81e23", size = 24303, upload-time = "2026-05-18T06:07:29.866Z" },
 ]
 
 [[package]]
@@ -3053,18 +3014,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/82/dd/e5176e4b241c9f528402cebb238a36785a628179d7d8b71091154b3e4c9e/wrapt-2.1.2-cp314-cp314t-win_amd64.whl", hash = "sha256:08ffa54146a7559f5b8df4b289b46d963a8e74ed16ba3687f99896101a3990c5", size = 63969, upload-time = "2026-03-06T02:54:39Z" },
     { url = "https://files.pythonhosted.org/packages/5c/99/79f17046cf67e4a95b9987ea129632ba8bcec0bc81f3fb3d19bdb0bd60cd/wrapt-2.1.2-cp314-cp314t-win_arm64.whl", hash = "sha256:72aaa9d0d8e4ed0e2e98019cea47a21f823c9dd4b43c7b77bba6679ffcca6a00", size = 60554, upload-time = "2026-03-06T02:53:14.132Z" },
     { url = "https://files.pythonhosted.org/packages/1a/c7/8528ac2dfa2c1e6708f647df7ae144ead13f0a31146f43c7264b4942bf12/wrapt-2.1.2-py3-none-any.whl", hash = "sha256:b8fd6fa2b2c4e7621808f8c62e8317f4aae56e59721ad933bac5239d913cf0e8", size = 43993, upload-time = "2026-03-06T02:53:12.905Z" },
-]
-
-[[package]]
-name = "wtforms"
-version = "3.1.2"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "markupsafe" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/6a/c7/96d10183c3470f1836846f7b9527d6cb0b6c2226ebca40f36fa29f23de60/wtforms-3.1.2.tar.gz", hash = "sha256:f8d76180d7239c94c6322f7990ae1216dae3659b7aa1cee94b6318bdffb474b9", size = 134705, upload-time = "2024-01-06T07:52:41.075Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/18/19/c3232f35e24dccfad372e9f341c4f3a1166ae7c66e4e1351a9467c921cc1/wtforms-3.1.2-py3-none-any.whl", hash = "sha256:bf831c042829c8cdbad74c27575098d541d039b1faa74c771545ecac916f2c07", size = 145961, upload-time = "2024-01-06T07:52:43.023Z" },
 ]
 
 [[package]]

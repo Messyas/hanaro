@@ -8,6 +8,55 @@ class IngestionStatus(StrEnum):
     FAILED = "FAILED"
 
 
+class AutomationExecutionStatus(StrEnum):
+    QUEUED = "QUEUED"
+    RUNNING = "RUNNING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+    CANCELLED = "CANCELLED"
+
+
+class AutomationSnapshotStatus(StrEnum):
+    NOT_PUBLISHED = "NOT_PUBLISHED"
+    PUBLISHED = "PUBLISHED"
+    UNCHANGED_REPLAY = "UNCHANGED_REPLAY"
+    PRESERVED_PREVIOUS = "PRESERVED_PREVIOUS"
+
+
+class ExecutionStepCode(StrEnum):
+    GERP_REQUEST = "GERP_REQUEST"
+    GERP_REPORT_GENERATION = "GERP_REPORT_GENERATION"
+    FILE_DOWNLOAD = "FILE_DOWNLOAD"
+    FILE_VALIDATION = "FILE_VALIDATION"
+    DATA_NORMALIZATION = "DATA_NORMALIZATION"
+    EXCHANGE_RATE = "EXCHANGE_RATE"
+    JSON_VALIDATION = "JSON_VALIDATION"
+    SNAPSHOT_PUBLICATION = "SNAPSHOT_PUBLICATION"
+
+
+class ExecutionStepStatus(StrEnum):
+    PENDING = "PENDING"
+    RUNNING = "RUNNING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+    SKIPPED = "SKIPPED"
+
+
+class AutomationMode(StrEnum):
+    LOCAL_FILE_SIMULATION = "LOCAL_FILE_SIMULATION"
+    GERP_RPA = "GERP_RPA"
+
+
+class AutomationTrigger(StrEnum):
+    SCHEDULED = "SCHEDULED"
+
+
+class ExecutionSortField(StrEnum):
+    STARTED_AT = "started_at"
+    FINISHED_AT = "finished_at"
+    STATUS = "status"
+
+
 class SortOrder(StrEnum):
     ASC = "asc"
     DESC = "desc"
@@ -27,6 +76,21 @@ class ScrapSortField(StrEnum):
     ISSUE_QUANTITY = "issue_quantity"
     ISSUE_AMOUNT_BRL = "issue_amount_brl"
     AMOUNT_USD = "amount_usd"
+
+
+class ScrapReviewStatus(StrEnum):
+    DRAFT = "DRAFT"
+    REVIEWED = "REVIEWED"
+
+
+class ScrapReviewFilterStatus(StrEnum):
+    UNREVIEWED = "UNREVIEWED"
+    DRAFT = "DRAFT"
+    REVIEWED = "REVIEWED"
+
+
+class ScrapReviewBulkStatus(StrEnum):
+    COMPLETED = "COMPLETED"
 
 
 class TrendGroupBy(StrEnum):

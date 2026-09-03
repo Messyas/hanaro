@@ -1,4 +1,30 @@
 <div class="scrap-dashboard">
+  <section class="dashboard-filter-panel" [attr.aria-label]="text().filtersAria">
+    <div class="dashboard-filter-footer">
+      <div class="dashboard-filter-context">
+        @if (store.activeFilterChips().length) {
+          <div class="active-filter-list" [attr.aria-label]="text().activeFilters">
+            <span>{{ text().activeFilters }}</span>
+            @for (chip of store.activeFilterChips(); track chip.key) {
+              <button
+                class="filter-chip"
+                type="button"
+                [attr.aria-label]="text().removeFilter + ' ' + filterChipLabel(chip.key)"
+                (click)="store.clearFilter(chip.key)"
+              >
+                <small>{{ filterChipLabel(chip.key) }}</small>
+                {{ filterChipValue(chip.values) }}
+                <b aria-hidden="true">×</b>
+              </button>
+            }
+          </div>
+        }
+        <span class="dashboard-data-status"
+          >{{ dataStatusLabel() }} · {{ text().updated }} {{ lastUpdatedLabel() }}</span
+        >
+      </div>
+    </div>
+  </section>
   <section class="dashboard-toolbar" [attr.aria-label]="text().analysisControlsAria">
     <div class="analysis-switch-control">
       <button
@@ -23,6 +49,109 @@
       >{{ dataStatusLabel() }} · {{ text().updated }} {{ lastUpdatedLabel() }}</span
     >
     <div class="analysis-controls">
+      <app-list-filter-popover
+        [activeCount]="advancedFiltersCount()"
+        [triggerLabel]="advancedFiltersLabel()"
+        [title]="text().moreFilters"
+        [clearLabel]="text().clearSelection"
+        [applyLabel]="text().apply"
+        (cleared)="store.resetFilters()"
+      >
+        <div class="dashboard-filter-grid-advanced">
+          <app-list-filter-select
+            [label]="text().year"
+            [ariaLabel]="text().year"
+            [options]="yearOptions()"
+            [value]="store.filters().year"
+            (changed)="changeYear($event)"
+          />
+          <app-list-filter-select
+            [label]="text().period"
+            [ariaLabel]="text().period"
+            [options]="periodOptions()"
+            [value]="store.filters().period"
+            (changed)="changePeriod($event)"
+          />
+          <app-dashboard-multi-select
+            [label]="text().product"
+            [allLabel]="text().allMasculine"
+            [applyLabel]="text().apply"
+            [selectedPlural]="text().selectedPlural"
+            [searchLabel]="text().searchOptions"
+            [noOptionsLabel]="text().noFilterOptions"
+            [options]="store.options.products"
+            [selected]="store.filters().product"
+            (selectionChange)="changeMultiFilter('product', $event)"
+          />
+          <app-dashboard-multi-select
+            [label]="text().line"
+            [allLabel]="text().allFeminine"
+            [applyLabel]="text().apply"
+            [selectedPlural]="text().selectedPlural"
+            [searchLabel]="text().searchOptions"
+            [noOptionsLabel]="text().noFilterOptions"
+            [options]="store.options.lines"
+            [selected]="store.filters().line"
+            (selectionChange)="changeMultiFilter('line', $event)"
+          />
+          @if (store.analysis() === 'relative') {
+            <label class="dashboard-field">
+              <span>{{ text().division }}</span>
+              <select
+                [attr.aria-label]="text().division"
+                disabled
+                [title]="text().unavailableRelative"
+              >
+                <option>{{ text().allMasculine }}</option>
+              </select>
+            </label>
+            <label class="dashboard-field">
+              <span>{{ text().week }}</span>
+              <select [attr.aria-label]="text().week" disabled [title]="text().unavailableRelative">
+                <option>{{ text().allFeminine }}</option>
+              </select>
+            </label>
+          } @else {
+            <app-dashboard-multi-select
+              [label]="text().division"
+              [allLabel]="text().allMasculine"
+              [applyLabel]="text().apply"
+              [selectedPlural]="text().selectedPlural"
+              [searchLabel]="text().searchOptions"
+              [noOptionsLabel]="text().noFilterOptions"
+              [options]="store.options.divisions"
+              [selected]="store.filters().division"
+              (selectionChange)="changeMultiFilter('division', $event)"
+            />
+            <app-dashboard-multi-select
+              [label]="text().week"
+              [allLabel]="text().allFeminine"
+              [applyLabel]="text().apply"
+              [selectedPlural]="text().selectedPlural"
+              [searchLabel]="text().searchOptions"
+              [noOptionsLabel]="text().noFilterOptions"
+              [options]="store.options.weeks"
+              [selected]="store.filters().week"
+              (selectionChange)="changeMultiFilter('week', $event)"
+            />
+          }
+          <label class="dashboard-field">
+            <span>{{ text().component }}</span>
+            <select
+              [attr.aria-label]="text().component"
+              [disabled]="store.analysis() === 'relative'"
+              [value]="store.filters().component"
+              (change)="changeFilter('component', $event)"
+            >
+              <option value="Todos">{{ text().allMasculine }}</option>
+              @for (component of store.options.components; track component) {
+                <option [value]="component">{{ component }}</option>
+              }
+            </select>
+          </label>
+        </div>
+      </app-list-filter-popover>
+
       <div class="metric-switch" role="group" [attr.aria-label]="text().metricGroupAria">
         <button
           type="button"

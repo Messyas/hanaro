@@ -1,0 +1,17 @@
+<label class="filter-field">
+  <span>{{ label() }}</span>
+  <div class="input-wrapper">
+    <input
+      [type]="type()"
+      class="input-control"
+      [placeholder]="placeholder()"
+      [value]="value()"
+      (input)="update($event)"
+    />
+    @if (value()) {
+      <button type="button" (click)="clear()" aria-label="Limpar campo">
+        <ui-icon name="x" />
+      </button>
+    }
+  </div>
+</label>

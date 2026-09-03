@@ -172,5 +172,20 @@ automation/artifacts/*.json
 # Config files:
 src/.env
 
+<<<<<<< HEAD
+# Graphify
+graphify-out/
+.graphify/
+
+# Codex & Agents
+.codex/
+.agents/skills/
+.agents/hooks/
+.impeccable/
+.github/skills/impeccable/
+.github/agents/
+.github/hooks/
+=======
 skills-lock.json
 transcripts/
+>>>>>>> origin/feat/dashboard-graphs

@@ -194,7 +194,7 @@ docker compose --profile sonar down --volumes
 
 O pipeline de staging está documentado em [docs/ci-cd.md](docs/ci-cd.md). O
 push em `developer` só dispara Render e Cloudflare depois do `CI / quality-gate`.
-O merge em `main` ainda não publica a intranet final. O blueprint de infraestrutura está em [`render.yaml`](render.yaml) e a
+O merge em `main` ainda não publica a intranet final. O blueprint de infraestrutura está em [`.github/deploy/render.yaml`](.github/deploy/render.yaml) e a
 configuração do Worker em [`frontend/wrangler.jsonc`](frontend/wrangler.jsonc).
 
 Crie `deploy/.env.production` a partir de

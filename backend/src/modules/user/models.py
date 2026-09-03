@@ -1,7 +1,6 @@
-from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String
+from sqlalchemy import ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ...infrastructure.database.models import SoftDeleteMixin, TimestampMixin
@@ -45,13 +44,6 @@ class User(Base, TimestampMixin, SoftDeleteMixin):
     )
 
     is_superuser: Mapped[bool] = mapped_column(default=False)
-
-    google_id: Mapped[str | None] = mapped_column(String(50), unique=True, index=True, default=None)
-    github_id: Mapped[str | None] = mapped_column(String(50), unique=True, index=True, default=None)
-    oauth_provider: Mapped[str | None] = mapped_column(String(20), default=None)
-    email_verified: Mapped[bool] = mapped_column(default=False)
-    oauth_created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
-    oauth_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
 
     tier: Mapped["Tier | None"] = relationship("Tier", back_populates="users", lazy="selectin", init=False)
 

@@ -1,0 +1,372 @@
+<section class="executions-page list-page page-stack" aria-labelledby="executions-title">
+  <!-- Header da Página -->
+  <header class="executions-heading">
+    <h1 class="page-title" id="executions-title">{{ t().executionsTitle }}</h1>
+  </header>
+
+  <!-- Tabela de Histórico com Filtro Integrado no Cabeçalho -->
+  <app-list-panel
+    [title]="t().executionsHistoryTitle"
+    [meta]="data() ? t().executionsTotalLabel + ' ' + data()!.total_items : ''"
+  >
+    <div list-actions class="execution-list-actions">
+      <!-- Pílulas de Filtros Ativos (se houver algum ativo) -->
+      @if (activeFiltersCount() > 0) {
+        <div class="active-filters-bar">
+          @if (searchQuery().trim()) {
+            <span class="filter-pill">
+              <span class="filter-pill-label">ID:</span>
+              <span class="filter-pill-value">{{ searchQuery().trim() }}</span>
+              <button
+                type="button"
+                class="filter-pill-remove"
+                (click)="clearSearch($event)"
+                aria-label="Remover filtro de busca"
+              >
+                <ui-icon name="x" />
+              </button>
+            </span>
+          }
+          @if (statusFilter()) {
+            <span class="filter-pill">
+              <span class="filter-pill-label">{{ t().executionsStatus }}:</span>
+              <span class="filter-pill-value">{{ formatStatus(statusFilter()) }}</span>
+              <button
+                type="button"
+                class="filter-pill-remove"
+                (click)="clearStatus($event)"
+                aria-label="Remover filtro de status"
+              >
+                <ui-icon name="x" />
+              </button>
+            </span>
+          }
+          @if (dateFrom() || dateTo()) {
+            <span class="filter-pill">
+              <span class="filter-pill-label">{{ t().executionsDateFrom }}:</span>
+              <span class="filter-pill-value"
+                >{{ formatDateSlash(dateFrom()) || '...' }} →
+                {{ formatDateSlash(dateTo()) || '...' }}</span
+              >
+              <button
+                type="button"
+                class="filter-pill-remove"
+                (click)="clearDates($event)"
+                aria-label="Remover filtro de datas"
+              >
+                <ui-icon name="x" />
+              </button>
+            </span>
+          }
+          <button type="button" class="btn-clear-inline" (click)="clearFilters()">
+            {{ t().executionsClearAll }}
+          </button>
+        </div>
+      }
+
+      <!-- Botão Disparador do Filtro + Popover Flutuante -->
+      <app-delayed-progress-spinner [active]="loading()" ariaLabel="Consultando execuções" />
+      <app-list-filter-popover
+        [(open)]="filterOpen"
+        [activeCount]="activeFiltersCount()"
+        [triggerLabel]="t().executionsFilterBtn"
+        [title]="t().executionsFilterPopoverTitle"
+        [clearLabel]="t().executionsClearAll"
+        [applyLabel]="t().executionsApplyFilters"
+        (cleared)="clearFilters()"
+        (applied)="loadExecutions()"
+      >
+        <!-- 1. Buscar (Primeiro campo, conforme solicitado) -->
+        <app-list-filter-input
+          [(value)]="searchQuery"
+          [label]="t().executionsSearchLabel"
+          [placeholder]="t().executionsSearchPlaceholder"
+          (changed)="onSharedSearch($event)"
+        />
+
+        <!-- 2. Status (Custom Select) -->
+        <!-- 3. Datas (Inicial e Final Customizadas com Validação Temporal) -->
+        <app-list-filter-date-range
+          [(from)]="dateFrom"
+          [(to)]="dateTo"
+          [fromLabel]="t().executionsDateFrom"
+          [toLabel]="t().executionsDateTo"
+          [locale]="calendarLocale()"
+          [clearLabel]="t().calendarClear"
+          [todayLabel]="t().calendarToday"
+          (changed)="onDateRangeChanged()"
+        />
+
+        <app-list-filter-select
+          [(value)]="statusFilter"
+          [options]="sharedStatusOptions()"
+          [label]="t().executionsStatus"
+          [ariaLabel]="t().executionsStatus"
+          (changed)="onStatusChanged($event)"
+        />
+
+        <!-- Alerta de Inconsistência Temporal -->
+        @if (dateRangeError()) {
+          <app-inline-alert [message]="t().executionsDateRangeError" />
+        }
+      </app-list-filter-popover>
+    </div>
+
+    @if (loading() && (!data() || data()!.items.length === 0)) {
+      <app-list-table-skeleton
+        [columns]="tableColumns()"
+        [rows]="5"
+        minWidth="68rem"
+        [loadingLabel]="t().executionsLoading"
+      />
+    } @else if (error() && (!data() || data()!.items.length === 0)) {
+      <app-list-feedback
+        kind="error"
+        [title]="t().executionsErrorTitle"
+        [message]="error()!"
+        [retryLabel]="t().executionsRetry"
+        (retried)="refresh()"
+      />
+    } @else if (!data() || data()!.items.length === 0) {
+      <app-list-feedback
+        kind="empty"
+        [title]="t().executionsEmptyTitle"
+        [message]="t().executionsEmptyDesc"
+      />
+    } @else {
+      @if (error()) {
+        <app-inline-alert class="table-refresh-error" [message]="error()!" />
+      }
+      <div class="list-table-frame" [attr.aria-busy]="loading()">
+        <table class="list-table executions-table">
+          <thead>
+            <tr>
+              <th>{{ t().executionsColProcess }}</th>
+              <th>{{ t().executionsColOrigin }}</th>
+              <th>{{ t().executionsColTrigger }}</th>
+              <th>{{ t().executionsColStart }}</th>
+              <th>{{ t().executionsColEnd }}</th>
+              <th class="align-right">{{ t().executionsColDuration }}</th>
+              <th class="align-right">{{ t().executionsColReceived }}</th>
+              <th class="align-right">{{ t().executionsColValid }}</th>
+              <th class="align-right">{{ t().executionsColRejected }}</th>
+              <th class="align-center">{{ t().executionsColSnapshot }}</th>
+              <th class="align-center">{{ t().executionsColStatus }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of data()!.items; track item.id) {
+              <tr class="clickable-row" (click)="openDetail(item.execution_id)">
+                <td>
+                  <div class="execution-id-cell">
+                    <span class="execution-id-code" [title]="item.execution_id">
+                      {{ formatShortId(item.execution_id) }}
+                    </span>
+                    <span class="execution-report-name">{{ item.report_name }}</span>
+                  </div>
+                </td>
+                <td>
+                  <span>{{ item.source_system }}</span>
+                </td>
+                <td>
+                  <span>{{ formatTrigger(item.trigger) }}</span>
+                </td>
+                <td>{{ formatDateTime(item.started_at) }}</td>
+                <td>{{ formatDateTime(item.finished_at) }}</td>
+                <td class="align-right">{{ formatDuration(item.duration_ms) }}</td>
+                <td class="align-right">{{ item.records_received | number }}</td>
+                <td class="align-right">{{ item.records_accepted | number }}</td>
+                <td class="align-right">{{ item.records_rejected | number }}</td>
+                <td class="align-center">
+                  <app-status-badge
+                    [label]="formatSnapshotStatus(item.snapshot_status)"
+                    [tone]="getSnapshotBadgeTone(item.snapshot_status)"
+                  />
+                </td>
+                <td class="align-center">
+                  <app-status-badge
+                    [label]="formatStatus(item.status)"
+                    [tone]="getStatusBadgeTone(item.status)"
+                  />
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Paginação -->
+      <app-list-pagination
+        [page]="page()"
+        [totalPages]="data()!.total_pages"
+        [pageSize]="pageSize()"
+        [pageSizes]="allowedPageSizes"
+        [pageLabel]="t().executionsPaginationPage"
+        [ofLabel]="t().executionsPaginationOf"
+        [perPageLabel]="t().executionsPaginationPerPage"
+        (pageSizeChanged)="selectPageSize($event)"
+        (previous)="previousPage()"
+        (next)="nextPage()"
+      />
+    }
+  </app-list-panel>
+
+  <!-- Drawer / Modal de Detalhes da Execução -->
+  @if (selectedExecutionId()) {
+    <div class="modal-backdrop" (click)="closeDetail()">
+      <div
+        class="detail-drawer"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="drawer-execution-title"
+        (click)="$event.stopPropagation()"
+      >
+        <header class="drawer-header">
+          <div class="drawer-title-group">
+            <span class="meta-label">{{ t().executionsDetailTitle }}</span>
+            <h3 id="drawer-execution-title">{{ selectedExecutionId() }}</h3>
+          </div>
+          <button
+            class="btn btn-ghost"
+            type="button"
+            [attr.aria-label]="t().executionsCloseDetail"
+            (click)="closeDetail()"
+          >
+            <ui-icon name="x" />
+          </button>
+        </header>
+
+        <div class="drawer-body">
+          @if (loadingDetail()) {
+            <div class="loading-container">
+              <ui-icon name="clock" />
+              <p>{{ t().executionsLoading }}</p>
+            </div>
+          } @else if (detailError()) {
+            <div class="error-container">
+              <span class="error-icon"><ui-icon name="x" /></span>
+              <strong>{{ t().executionsErrorTitle }}</strong>
+              <p>{{ detailError() }}</p>
+            </div>
+          } @else if (selectedDetail(); as detail) {
+            <!-- Seção 1: Status & Falha -->
+            @if (detail.status === 'FAILED') {
+              <div class="failure-box">
+                <strong
+                  >{{ t().executionsFailureTitle }}:
+                  {{ detail.failure_code || detail.status }}</strong
+                >
+                @if (detail.failure_category) {
+                  <span class="meta-label">{{ detail.failure_category }}</span>
+                }
+                <p>{{ detail.failure_message || '—' }}</p>
+              </div>
+            }
+
+            <!-- Seção 2: Resumo Geral -->
+            <section class="drawer-section">
+              <h4>{{ t().executionsMetaGeneral }}</h4>
+              <div class="meta-grid">
+                <div class="meta-item">
+                  <span class="meta-label">{{ t().executionsColStatus }}</span>
+                  <span [class]="getStatusBadgeClass(detail.status)">
+                    {{ formatStatus(detail.status) }}
+                  </span>
+                </div>
+                <div class="meta-item">
+                  <span class="meta-label">{{ t().executionsColSnapshot }}</span>
+                  <span [class]="getSnapshotBadgeClass(detail.snapshot_status)">
+                    {{ formatSnapshotStatus(detail.snapshot_status) }}
+                  </span>
+                </div>
+                <div class="meta-item">
+                  <span class="meta-label">{{ t().executionsMetaReport }}</span>
+                  <span class="meta-value">{{ detail.report_name }}</span>
+                </div>
+                <div class="meta-item">
+                  <span class="meta-label">{{ t().executionsColTrigger }}</span>
+                  <span class="meta-value">{{ formatTrigger(detail.trigger) }}</span>
+                </div>
+                <div class="meta-item">
+                  <span class="meta-label"
+                    >{{ t().executionsColStart }} / {{ t().executionsColEnd }}</span
+                  >
+                  <span class="meta-value"
+                    >{{ formatDateSlash(detail.query_date_from) }} —
+                    {{ formatDateSlash(detail.query_date_to) }}</span
+                  >
+                </div>
+                <div class="meta-item">
+                  <span class="meta-label">{{ t().executionsColDuration }}</span>
+                  <span class="meta-value">{{ formatDuration(detail.duration_ms) }}</span>
+                </div>
+              </div>
+            </section>
+
+            <!-- Seção 3: Metadados Técnicos e Arquivo -->
+            <section class="drawer-section">
+              <h4>{{ t().executionsMetaTechnical }}</h4>
+              <div class="meta-grid">
+                <div class="meta-item">
+                  <span class="meta-label">{{ t().executionsMetaGerpRequestId }}</span>
+                  <span class="meta-value">{{ detail.gerp_request_id || '—' }}</span>
+                </div>
+                <div class="meta-item">
+                  <span class="meta-label">{{ t().executionsMetaCorrelationId }}</span>
+                  <span class="meta-value">{{ detail.correlation_id }}</span>
+                </div>
+                <div class="meta-item">
+                  <span class="meta-label">{{ t().executionsMetaSourceFile }}</span>
+                  <span class="meta-value">{{ detail.source_file_name || '—' }}</span>
+                </div>
+                <div class="meta-item">
+                  <span class="meta-label">{{ t().executionsMetaSha256 }}</span>
+                  <span class="meta-value" style="font-size: 0.7rem">
+                    {{ detail.source_file_sha256 || '—' }}
+                  </span>
+                </div>
+                <div class="meta-item">
+                  <span class="meta-label">{{ t().executionsColReceived }}</span>
+                  <span class="meta-value">{{ detail.records_received | number }}</span>
+                </div>
+                <div class="meta-item">
+                  <span class="meta-label">{{ t().executionsColValid }}</span>
+                  <span class="meta-value">{{ detail.records_accepted | number }}</span>
+                </div>
+              </div>
+            </section>
+
+            <!-- Seção 4: Timeline das 8 Etapas -->
+            <section class="drawer-section">
+              <h4>{{ t().executionsTimelineTitle }}</h4>
+              <div class="timeline-list">
+                @for (step of detail.steps; track step.sequence + '-' + step.attempt) {
+                  <div class="timeline-item">
+                    <div class="timeline-header">
+                      <div class="timeline-branch"></div>
+                      <span class="timeline-step-name">
+                        {{ step.sequence }}. {{ formatStepName(step.step_code) }}
+                      </span>
+                      <span [class]="getStepStatusBadgeClass(step.status)">
+                        {{ formatStepStatus(step.status) }}
+                      </span>
+                    </div>
+                    <div class="timeline-step-time">
+                      <span>{{ formatDateTime(step.started_at) }}</span>
+                      @if (step.duration_ms !== null) {
+                        <span> • {{ formatDuration(step.duration_ms) }}</span>
+                      }
+                    </div>
+                    @if (step.message) {
+                      <div class="timeline-message">{{ step.message }}</div>
+                    }
+                  </div>
+                }
+              </div>
+            </section>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</section>

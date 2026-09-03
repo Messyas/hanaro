@@ -177,6 +177,10 @@ async def test_check_rate_limit_exceeded(mock_request, mock_db):
 async def test_rate_limiter_middleware(mock_request, mock_response, mock_app):
     """Test the RateLimiterMiddleware."""
     middleware = RateLimiterMiddleware(app=mock_app)
+    mock_db = AsyncMock()
+    session_context = MagicMock()
+    session_context.__aenter__ = AsyncMock(return_value=mock_db)
+    session_context.__aexit__ = AsyncMock(return_value=None)
 
     async def next_handler(request):
         return mock_response
@@ -187,7 +191,13 @@ async def test_rate_limiter_middleware(mock_request, mock_response, mock_app):
         "X-RateLimit-Reset": "60",
     }
 
-    response = await middleware.dispatch(mock_request, next_handler)
+    with (
+        patch("src.infrastructure.rate_limit.middleware.local_session", return_value=session_context),
+        patch("src.infrastructure.rate_limit.middleware._check_rate_limit", new_callable=AsyncMock) as mock_check,
+    ):
+        response = await middleware.dispatch(mock_request, next_handler)
+
+    mock_check.assert_awaited_once_with(mock_request, mock_db)
 
     assert response.headers["X-RateLimit-Limit"] == "10"
     assert response.headers["X-RateLimit-Remaining"] == "5"
@@ -205,6 +215,37 @@ async def test_rate_limiter_middleware_no_headers(mock_request, mock_response, m
     if hasattr(mock_request.state, "rate_limit_headers"):
         delattr(mock_request.state, "rate_limit_headers")
 
-    response = await middleware.dispatch(mock_request, next_handler)
+    session_context = MagicMock()
+    session_context.__aenter__ = AsyncMock(return_value=AsyncMock())
+    session_context.__aexit__ = AsyncMock(return_value=None)
+    with (
+        patch("src.infrastructure.rate_limit.middleware.local_session", return_value=session_context),
+        patch("src.infrastructure.rate_limit.middleware._check_rate_limit", new_callable=AsyncMock),
+    ):
+        response = await middleware.dispatch(mock_request, next_handler)
 
     assert len(response.headers) == 0
+
+
+@pytest.mark.asyncio
+async def test_rate_limiter_middleware_returns_429_before_handler(mock_request, mock_app):
+    """A rejected request must not reach the application handler."""
+    middleware = RateLimiterMiddleware(app=mock_app)
+    session_context = MagicMock()
+    session_context.__aenter__ = AsyncMock(return_value=AsyncMock())
+    session_context.__aexit__ = AsyncMock(return_value=None)
+    next_handler = AsyncMock()
+
+    with (
+        patch("src.infrastructure.rate_limit.middleware.local_session", return_value=session_context),
+        patch(
+            "src.infrastructure.rate_limit.middleware._check_rate_limit",
+            new_callable=AsyncMock,
+            side_effect=RateLimitException("Too many requests"),
+        ),
+    ):
+        response = await middleware.dispatch(mock_request, next_handler)
+
+    assert response.status_code == 429
+    assert response.headers["Retry-After"] == "60"
+    next_handler.assert_not_awaited()

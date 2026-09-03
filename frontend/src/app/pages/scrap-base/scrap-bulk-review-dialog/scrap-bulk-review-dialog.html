@@ -1,0 +1,109 @@
+<div class="modal-backdrop" (click)="close()">
+  <section
+    class="bulk-dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="bulk-dialog-title"
+    (click)="$event.stopPropagation()"
+  >
+    <header class="dialog-header">
+      <div>
+        <h2 id="bulk-dialog-title" #dialogTitle tabindex="-1">
+          {{ t().scrapTemplateChecklistTitle }}
+        </h2>
+        <p>{{ selectedOccurrenceIds().length }} {{ t().scrapBulkItemsSelected }}</p>
+      </div>
+      <button
+        type="button"
+        class="btn btn-ghost close-btn"
+        (click)="close()"
+        [disabled]="isSubmitting()"
+      >
+        <ui-icon name="x" />
+        <span>{{ t().close }}</span>
+      </button>
+    </header>
+
+    <div class="dialog-body">
+      @if (error()) {
+        <app-inline-alert [message]="error()!" />
+      }
+
+      @if (bulkResult(); as result) {
+        <div class="result-summary" role="status">
+          <ui-icon name="check" />
+          <div>
+            <strong>{{ result.created_count }} {{ t().scrapBulkSuccessSummary }}</strong>
+            @if (result.skipped_count > 0) {
+              <span>{{ result.skipped_count }} {{ t().scrapBulkSkippedSummary }}</span>
+            }
+          </div>
+        </div>
+        @if (result.skipped.length > 0) {
+          <ul class="skipped-list">
+            @for (item of result.skipped; track item.occurrence_id) {
+              <li>
+                <code>{{ item.occurrence_id.slice(0, 8) }}</code>
+                <span>{{ translateSkipReason(item.reason) }}</span>
+              </li>
+            }
+          </ul>
+        }
+      } @else {
+        <div class="confirmation-sentence">
+          <span>{{ t().scrapApplyTemplate }}</span>
+          <strong>{{ sourceName() }}</strong>
+          <span>{{ t().scrapTemplateConfirmConnector }}</span>
+          <strong>{{ selectedOccurrenceIds().length }} {{ t().scrapItemsSelected }}</strong>
+        </div>
+
+        <dl class="source-details">
+          <div>
+            <dt>{{ t().scrapFieldDefectType }}</dt>
+            <dd>{{ sourceType() }}</dd>
+          </div>
+          <div>
+            <dt>{{ t().scrapFieldDescription }}</dt>
+            <dd>{{ sourceDescription() }}</dd>
+          </div>
+        </dl>
+
+        <p class="skip-note">{{ t().scrapTemplateSkipNotice }}</p>
+
+        @if (canCopyAttachments()) {
+          <label class="copy-option">
+            <input
+              type="checkbox"
+              [checked]="copyAttachments()"
+              (change)="toggleCopyAttachments()"
+            />
+            <span>{{ t().scrapBulkCopyAttachments }}</span>
+          </label>
+          <p class="copy-warning">{{ t().scrapBulkCopyAttachmentsWarning }}</p>
+        }
+      }
+    </div>
+
+    <footer class="dialog-footer">
+      @if (bulkResult()) {
+        <button type="button" class="btn btn-primary" (click)="close()">{{ t().close }}</button>
+      } @else {
+        <button type="button" class="btn btn-ghost" (click)="close()" [disabled]="isSubmitting()">
+          {{ t().cancel }}
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          (click)="executeBulk()"
+          [disabled]="isSubmitting()"
+        >
+          {{
+            isSubmitting()
+              ? t().scrapBulkApplying
+              : t().scrapTemplateChecklistApply + ' (' + selectedOccurrenceIds().length + ')'
+          }}
+        </button>
+      }
+    </footer>
+  </section>
+</div>

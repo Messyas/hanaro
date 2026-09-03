@@ -1,0 +1,135 @@
+:host {
+  display: inline-block;
+  position: relative;
+}
+.filter-popover-anchor {
+  position: relative;
+  display: inline-block;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1.1rem;
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn:focus-visible {
+  outline: 2px solid var(--app-focus-ring);
+  outline-offset: 2px;
+}
+.btn-secondary {
+  background: var(--app-surface);
+  color: var(--app-text);
+  border-color: var(--app-card-border);
+}
+.btn-secondary:hover {
+  background: var(--app-surface-muted);
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--app-text-secondary);
+}
+.btn-primary {
+  background: var(--brand-primary);
+  color: var(--brand-primary-contrast);
+}
+.filter-trigger-btn {
+  padding: 0.45rem 0.85rem;
+  font-size: 0.825rem;
+}
+.filter-trigger-btn.active {
+  border-color: var(--brand-primary);
+  background: var(--brand-primary-soft);
+  color: var(--brand-primary);
+}
+.filter-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background: var(--brand-primary);
+  color: var(--brand-primary-contrast);
+  font-size: 0.68rem;
+}
+.filter-popover-panel {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 40;
+  width: 360px;
+  max-width: calc(100vw - 2rem);
+  overflow: visible;
+  border: 1px solid var(--app-card-border);
+  border-radius: 0.75rem;
+  background: var(--app-surface);
+  box-shadow: var(--app-shadow-action);
+}
+@media (max-width: 700px) {
+  .filter-popover-panel {
+    position: fixed;
+    top: auto;
+    right: 1rem;
+    left: 1rem;
+    bottom: 1rem;
+    width: auto;
+    max-width: none;
+    max-height: 70vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .popover-body {
+    overflow-y: auto;
+  }
+}
+.popover-header,
+.popover-title-group,
+.popover-footer {
+  display: flex;
+  align-items: center;
+}
+.popover-header {
+  justify-content: space-between;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--app-card-border);
+}
+.popover-title-group {
+  gap: 0.5rem;
+  color: var(--app-text);
+  font-size: 0.875rem;
+}
+.popover-title-group ui-icon {
+  color: var(--brand-primary);
+}
+.popover-clear-btn {
+  border: 0;
+  background: transparent;
+  color: var(--brand-primary);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.popover-body {
+  padding: 1.25rem;
+}
+.popover-footer {
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--app-card-border);
+  background: var(--app-surface-muted);
+}
+.popover-footer .btn {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8rem;
+}

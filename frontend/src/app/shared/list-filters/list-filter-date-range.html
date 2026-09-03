@@ -1,0 +1,126 @@
+<div class="filter-dates-grid">
+  <div class="filter-field date-anchor">
+    <label>{{ fromLabel() }}</label>
+    <div class="datepicker-input-wrapper">
+      <input
+        class="input-control datepicker-input"
+        [class.input-invalid]="rangeError()"
+        type="text"
+        placeholder="YYYY/MM/DD"
+        [value]="format(from())"
+        (input)="updateFrom($event)"
+        (click)="toggleFrom($event)"
+      /><button
+        type="button"
+        class="datepicker-icon-btn"
+        [class.active]="fromOpen()"
+        (click)="toggleFrom($event)"
+        aria-label="Abrir calendário"
+      >
+        <ui-icon name="calendar" />
+      </button>
+    </div>
+    @if (fromOpen()) {
+      <div class="custom-calendar-popup" role="dialog" (click)="$event.stopPropagation()">
+        <div class="calendar-header">
+          <button type="button" class="cal-nav-btn" (click)="previousFrom()">
+            <ui-icon name="chevron-left" /></button
+          ><span class="cal-month-title">{{ monthLabel(fromView()) }}</span
+          ><button type="button" class="cal-nav-btn" (click)="nextFrom()">
+            <ui-icon name="chevron-right" />
+          </button>
+        </div>
+        <div class="calendar-weekdays">
+          @for (weekday of weekdays(); track weekday) {
+            <span>{{ weekday }}</span>
+          }
+        </div>
+        <div class="calendar-days-grid">
+          @for (day of days(fromView(), from(), undefined, to()); track day.iso) {
+            <button
+              type="button"
+              class="cal-day-btn"
+              [class.other-month]="!day.currentMonth"
+              [class.today]="day.today"
+              [class.selected]="day.selected"
+              [class.disabled]="day.disabled"
+              [disabled]="day.disabled"
+              (click)="selectFrom(day)"
+            >
+              {{ day.day }}
+            </button>
+          }
+        </div>
+        <div class="calendar-footer">
+          <button type="button" class="cal-action-btn" (click)="clearFrom()">
+            {{ clearLabel() }}</button
+          ><button type="button" class="cal-action-btn cal-today-btn" (click)="setTodayFrom()">
+            {{ todayLabel() }}
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+  <div class="filter-field date-anchor">
+    <label>{{ toLabel() }}</label>
+    <div class="datepicker-input-wrapper">
+      <input
+        class="input-control datepicker-input"
+        [class.input-invalid]="rangeError()"
+        type="text"
+        placeholder="YYYY/MM/DD"
+        [value]="format(to())"
+        (input)="updateTo($event)"
+        (click)="toggleTo($event)"
+      /><button
+        type="button"
+        class="datepicker-icon-btn"
+        [class.active]="toOpen()"
+        (click)="toggleTo($event)"
+        aria-label="Abrir calendário"
+      >
+        <ui-icon name="calendar" />
+      </button>
+    </div>
+    @if (toOpen()) {
+      <div class="custom-calendar-popup to-popup" role="dialog" (click)="$event.stopPropagation()">
+        <div class="calendar-header">
+          <button type="button" class="cal-nav-btn" (click)="previousTo()">
+            <ui-icon name="chevron-left" /></button
+          ><span class="cal-month-title">{{ monthLabel(toView()) }}</span
+          ><button type="button" class="cal-nav-btn" (click)="nextTo()">
+            <ui-icon name="chevron-right" />
+          </button>
+        </div>
+        <div class="calendar-weekdays">
+          @for (weekday of weekdays(); track weekday) {
+            <span>{{ weekday }}</span>
+          }
+        </div>
+        <div class="calendar-days-grid">
+          @for (day of days(toView(), to(), from()); track day.iso) {
+            <button
+              type="button"
+              class="cal-day-btn"
+              [class.other-month]="!day.currentMonth"
+              [class.today]="day.today"
+              [class.selected]="day.selected"
+              [class.disabled]="day.disabled"
+              [disabled]="day.disabled"
+              (click)="selectTo(day)"
+            >
+              {{ day.day }}
+            </button>
+          }
+        </div>
+        <div class="calendar-footer">
+          <button type="button" class="cal-action-btn" (click)="clearTo()">
+            {{ clearLabel() }}</button
+          ><button type="button" class="cal-action-btn cal-today-btn" (click)="setTodayTo()">
+            {{ todayLabel() }}
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+</div>

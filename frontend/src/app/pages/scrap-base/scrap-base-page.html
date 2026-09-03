@@ -1,0 +1,373 @@
+<section class="scrap-base-page list-page page-stack" aria-labelledby="scrap-base-title">
+  <header class="page-header">
+    <h1 class="page-title" id="scrap-base-title">{{ t().scrapBaseTitle }}</h1>
+    <div class="header-action-group">
+      <!-- Botão e Popover de Modelos Salvos -->
+      <button
+        type="button"
+        class="btn btn-secondary template-menu-btn"
+        [class.btn-active]="isTemplatePopoverOpen() || !!activeTemplate()"
+        (click)="toggleTemplatePopover($event)"
+        [attr.aria-expanded]="isTemplatePopoverOpen()"
+      >
+        <ui-icon name="heart" class="template-btn-icon" />
+        <span>{{ t().scrapApplyTemplate }}</span>
+        <span class="template-count-chip">{{ templates().length }}</span>
+      </button>
+
+      <!-- Botão de Selecionar Itens -->
+      <button type="button" class="btn btn-primary select-mode-btn" (click)="toggleSelectionMode()">
+        <ui-icon [name]="selectionMode() ? 'x' : 'check'" />
+        <span>{{ selectionMode() ? t().scrapCancelSelection : t().scrapSelectMode }}</span>
+      </button>
+    </div>
+  </header>
+
+  <app-scrap-template-popover
+    [open]="isTemplatePopoverOpen()"
+    (openChange)="isTemplatePopoverOpen.set($event)"
+    [templates]="templates()"
+    [defectTypes]="defectTypes()"
+    [loading]="templatesLoading()"
+    [activeTemplateId]="activeTemplate()?.id || null"
+    [mutationId]="templateMutationId()"
+    [feedback]="templateFeedback()"
+    [feedbackKind]="templateFeedbackKind()"
+    (useTemplate)="onUseTemplate($event)"
+    (updateTemplate)="onUpdateTemplate($event)"
+    (deleteTemplate)="onDeleteTemplate($event)"
+  />
+
+  @if (activeTemplate(); as template) {
+    <section class="workflow-banner" aria-labelledby="template-workflow-title">
+      <div class="workflow-copy">
+        <ui-icon name="heart" />
+        <div>
+          <span>{{ t().scrapTemplateSelectedBanner }}</span>
+          <strong id="template-workflow-title">{{ template.name }}</strong>
+          <small>{{ t().scrapSelectReferenceMode }}</small>
+        </div>
+      </div>
+      <button type="button" class="btn btn-ghost" (click)="isTemplatePopoverOpen.set(true)">
+        {{ t().scrapTemplateEdit }}
+      </button>
+    </section>
+  } @else if (activeReferenceReview(); as reference) {
+    <section class="workflow-banner" aria-labelledby="reference-workflow-title">
+      <div class="workflow-copy">
+        <ui-icon name="copy" />
+        <div>
+          <span>{{ t().scrapReferenceSelectedBanner }}</span>
+          <strong id="reference-workflow-title">{{ reference.title }}</strong>
+          <small>{{ t().scrapSelectReferenceMode }}</small>
+        </div>
+      </div>
+    </section>
+  }
+
+  <app-list-panel
+    [title]="t().scrapOccurrencesTitle"
+    [meta]="data() ? t().scrapTotalLabel + ' ' + data()!.total_items : ''"
+  >
+    <div list-actions class="list-actions">
+      <app-delayed-progress-spinner [active]="loading()" [ariaLabel]="t().scrapLoading" />
+
+      <!-- Popover de Filtros Integrado -->
+      <app-list-filter-popover
+        [(open)]="filterOpen"
+        [activeCount]="activeFiltersCount()"
+        [triggerLabel]="t().scrapFilterButton"
+        [title]="t().scrapFilterTitle"
+        [clearLabel]="t().scrapClearFilters"
+        [applyLabel]="t().scrapApplyFilters"
+        (cleared)="clearFilters()"
+        (applied)="loadScrap()"
+      >
+        <app-list-filter-input
+          [(value)]="searchText"
+          [label]="t().scrapSearchLabel"
+          [placeholder]="t().scrapSearchPlaceholder"
+          type="search"
+          (changed)="onSearchInput($event)"
+        />
+        <app-list-filter-date-range
+          [(from)]="dateFrom"
+          [(to)]="dateTo"
+          [fromLabel]="t().scrapDateFrom"
+          [toLabel]="t().scrapDateTo"
+          [locale]="calendarLocale()"
+          [clearLabel]="t().calendarClear"
+          [todayLabel]="t().calendarToday"
+          (changed)="onDateChange()"
+        />
+        <app-list-filter-input
+          [(value)]="organization"
+          [label]="t().scrapOrganizations"
+          [placeholder]="t().scrapOrganizationsPlaceholder"
+          (changed)="onOrganizationChange()"
+        />
+
+        <!-- Novos Filtros da Análise -->
+        <app-list-filter-select
+          [value]="reviewStatusFilter()"
+          [options]="reviewStatusOptions()"
+          [label]="t().scrapFilterReviewStatus"
+          [ariaLabel]="t().scrapFilterReviewStatus"
+          (changed)="onReviewStatusFilterChange($event)"
+        />
+
+        <app-list-filter-select
+          [value]="defectTypeFilter()"
+          [options]="defectTypeOptions()"
+          [label]="t().scrapFilterDefectType"
+          [ariaLabel]="t().scrapFilterDefectType"
+          (changed)="onDefectTypeFilterChange($event)"
+        />
+
+        <app-list-filter-select
+          [value]="responsibleFilter()"
+          [options]="responsibleOptions()"
+          [label]="t().scrapFilterResponsible"
+          [ariaLabel]="t().scrapFilterResponsible"
+          (changed)="onResponsibleFilterChange($event)"
+        />
+
+        @if (dateRangeError()) {
+          <app-inline-alert [message]="t().scrapDateRangeError" />
+        }
+      </app-list-filter-popover>
+
+      <span class="sort-label">{{ t().scrapSortBy }}</span>
+      <app-list-filter-select
+        class="sort-field-select"
+        [(value)]="sortBy"
+        [options]="sortOptions()"
+        [ariaLabel]="t().scrapSortAriaLabel"
+        (changed)="onSortChange($event)"
+      />
+      <button type="button" class="btn btn-secondary sort-order-button" (click)="toggleSortOrder()">
+        {{ sortOrder() === 'desc' ? t().scrapSortDescending : t().scrapSortAscending }}
+      </button>
+    </div>
+
+    <!-- Barra de Ações de Seleção Flutuante/Fixa -->
+    @if (selectionMode() && selectedCount() > 0) {
+      <div class="selection-action-bar" role="toolbar" aria-label="Ações para itens selecionados">
+        <div class="selection-info">
+          <span class="selection-count-badge">{{ selectedCount() }}</span>
+          <span class="selection-label">{{ t().scrapSelectedCount }}</span>
+          <button type="button" class="btn btn-ghost btn-sm" (click)="cancelSelectionFlow()">
+            {{ t().cancel }}
+          </button>
+        </div>
+
+        <div class="selection-buttons">
+          @if (activeTemplate() || activeReferenceReview()) {
+            <button type="button" class="btn btn-primary btn-sm" (click)="openBulkDialog()">
+              <ui-icon name="heart" />
+              <span>{{ t().scrapTemplateChecklistApply }} ({{ selectedCount() }})</span>
+            </button>
+          } @else if (selectedCount() === 1) {
+            <button
+              type="button"
+              class="btn btn-primary btn-sm"
+              (click)="openReviewForFirstSelected()"
+            >
+              <ui-icon name="plus" />
+              <span>{{ t().scrapCreateReview }}</span>
+            </button>
+          } @else {
+            <button type="button" class="btn btn-primary btn-sm" (click)="startReviewQueue()">
+              <ui-icon name="clock" />
+              <span>{{ t().scrapStartQueue }} ({{ selectedCount() }})</span>
+            </button>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Estados de Carga / Erro / Vazio -->
+    @if (loading() && (!data() || data()!.items.length === 0)) {
+      <app-list-table-skeleton
+        [columns]="tableColumns()"
+        [rows]="6"
+        minWidth="100%"
+        [loadingLabel]="t().scrapLoading"
+      />
+    } @else if (error() && (!data() || data()!.items.length === 0)) {
+      <app-list-feedback
+        kind="error"
+        [title]="t().scrapErrorTitle"
+        [message]="error()!"
+        [retryLabel]="t().scrapRetry"
+        (retried)="loadScrap()"
+      />
+    } @else if (
+      !data() || data()!.items.length === 0 || (selectionMode() && displayedItems().length === 0)
+    ) {
+      <app-list-feedback
+        kind="empty"
+        [title]="selectionMode() ? t().scrapSelectionEmptyTitle : t().scrapEmptyTitle"
+        [message]="selectionMode() ? t().scrapSelectionEmptyDesc : t().scrapEmptyDesc"
+      />
+    } @else {
+      @if (error()) {
+        <app-inline-alert class="table-refresh-error" [message]="error()!" />
+      }
+      <div class="list-table-frame" [attr.aria-busy]="loading()">
+        <table class="list-table scrap-table">
+          <thead>
+            <tr>
+              @if (selectionMode()) {
+                <th class="checkbox-col align-center">
+                  <input
+                    type="checkbox"
+                    [checked]="isAllPageSelected()"
+                    (change)="toggleSelectAllOnPage()"
+                    [attr.aria-label]="t().scrapSelectAllPage"
+                  />
+                </th>
+              }
+              <th>{{ t().scrapColDate }}</th>
+              <th>{{ t().scrapColOrganization }}</th>
+              <th>{{ t().scrapColItem }}</th>
+              <th>{{ t().scrapColDescription }}</th>
+              <th>{{ t().scrapColOrder }}</th>
+              <th class="align-right">{{ t().scrapColQuantity }}</th>
+              <th class="align-right">{{ t().scrapColAmountUsd }}</th>
+              <th>{{ t().scrapColDefectType }}</th>
+              <th class="align-center">{{ t().scrapColReviewStatus }}</th>
+              <th>{{ t().scrapColResponsible }}</th>
+              <th class="align-center">{{ t().scrapColAction }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of displayedItems(); track item.occurrence_id ?? item.id) {
+              <tr
+                [class.clickable-row]="!selectionMode() || isItemSelectable(item)"
+                [class.selected-row]="
+                  selectionMode() && selectedOccurrenceIds().has(item.occurrence_id!)
+                "
+                [class.row-disabled]="selectionMode() && !isItemSelectable(item)"
+                (click)="onRowClick(item)"
+              >
+                @if (selectionMode()) {
+                  <td class="checkbox-col align-center" (click)="$event.stopPropagation()">
+                    @if (isItemSelectable(item)) {
+                      <input
+                        type="checkbox"
+                        [checked]="selectedOccurrenceIds().has(item.occurrence_id!)"
+                        (change)="toggleItemSelection(item, $event)"
+                        [attr.aria-label]="'Selecionar ocorrência ' + item.item_code"
+                      />
+                    } @else {
+                      <span class="unavail-indicator" [title]="t().scrapNoOccurrenceIdTooltip">
+                        —
+                      </span>
+                    }
+                  </td>
+                }
+                <td>{{ formatTransactionDate(item.transaction_date) }}</td>
+                <td>{{ item.organization_code }}</td>
+                <td>
+                  <span class="item-code">{{ item.item_code }}</span>
+                </td>
+                <td class="description-cell" [title]="item.item_description || ''">
+                  {{ item.item_description || '—' }}
+                </td>
+                <td>{{ item.work_order || '—' }}</td>
+                <td class="align-right">{{ formatNumber(item.issue_quantity) }}</td>
+                <td class="align-right font-semibold">{{ formatCurrency(item.amount_usd) }}</td>
+                <td class="defect-cell">{{ item.defect_type_name || '—' }}</td>
+                <td class="align-center">
+                  <app-status-badge
+                    [label]="formatReviewStatus(item.review_status)"
+                    [tone]="reviewStatusTone(item.review_status)"
+                  />
+                </td>
+                <td>
+                  <div class="responsible-cell">
+                    @if (item.responsible_name) {
+                      <span class="resp-name">{{ item.responsible_name }}</span>
+                      @if (item.reviewed_at) {
+                        <span class="resp-date">{{ formatTransactionDate(item.reviewed_at) }}</span>
+                      }
+                    } @else {
+                      <span class="text-muted">—</span>
+                    }
+                  </div>
+                </td>
+                <td class="align-center action-col" (click)="$event.stopPropagation()">
+                  @if (item.occurrence_id) {
+                    <button
+                      type="button"
+                      class="btn btn-ghost btn-sm action-btn"
+                      [disabled]="selectionMode()"
+                      (click)="openReview(item)"
+                      [attr.aria-label]="
+                        (item.review_status === 'REVIEWED'
+                          ? t().scrapActionView
+                          : t().scrapActionOpen) +
+                        ' ' +
+                        item.item_code
+                      "
+                    >
+                      <ui-icon [name]="item.review_status === 'REVIEWED' ? 'eye' : 'plus'" />
+                      <span class="action-text">{{
+                        item.review_status === 'REVIEWED'
+                          ? t().scrapActionView
+                          : t().scrapActionOpen
+                      }}</span>
+                    </button>
+                  } @else {
+                    <span class="unavail-indicator" [title]="t().scrapNoOccurrenceIdTooltip">
+                      —
+                    </span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <app-list-pagination
+        [page]="page()"
+        [totalPages]="data()!.total_pages"
+        [pageSize]="pageSize()"
+        [pageSizes]="pageSizes"
+        [pageLabel]="t().executionsPaginationPage"
+        [ofLabel]="t().executionsPaginationOf"
+        [perPageLabel]="t().executionsPaginationPerPage"
+        (pageSizeChanged)="onPageSizeChange($event)"
+        (previous)="previousPage()"
+        (next)="nextPage()"
+      />
+    }
+  </app-list-panel>
+
+  <!-- Drawer Lateral de Revisão -->
+  @if (openedOccurrenceId()) {
+    <app-scrap-review-drawer
+      [occurrenceId]="openedOccurrenceId()"
+      [occurrence]="selectedOccurrenceForDrawer()"
+      [queueOccurrenceIds]="activeQueueIds()"
+      [queueOccurrences]="activeQueueOccurrences()"
+      (closed)="closeDrawer()"
+      (reviewSaved)="onReviewSaved($event)"
+      (useAsReference)="onUseAsReference($event)"
+      (queueFinished)="onQueueFinished()"
+    />
+  }
+
+  <!-- Modal de Operação em Massa -->
+  @if (showBulkDialog()) {
+    <app-scrap-bulk-review-dialog
+      [selectedOccurrenceIds]="[...selectedOccurrenceIds()]"
+      [preselectedReference]="activeReferenceReview()"
+      [preselectedTemplate]="activeTemplate()"
+      (closed)="closeBulkDialog()"
+      (bulkCompleted)="onBulkCompleted($event)"
+    />
+  }
+</section>

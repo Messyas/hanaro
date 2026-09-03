@@ -57,6 +57,10 @@
   justify-content: space-between;
   gap: 1rem;
 }
+app-list-filter-popover .filter-popover-panel {
+  right: auto;
+  left: 0;
+}
 
 .panel-header-actions {
   display: flex;
@@ -70,6 +74,26 @@
 .analysis-controls {
   display: flex;
   gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.dashboard-field-inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.dashboard-field-inline > span {
+  white-space: nowrap;
+  font-size: 0.68rem;
+}
+
+.dashboard-field-inline select {
+  min-height: 2.35rem;
+  width: auto;
+  min-width: 5.5rem;
+  padding: 0.4rem 1.5rem 0.4rem 0.6rem;
 }
 
 .analysis-switch-control {

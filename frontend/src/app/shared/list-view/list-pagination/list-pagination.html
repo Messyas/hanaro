@@ -1,0 +1,33 @@
+<footer class="pagination-container">
+  <span>{{ pageLabel() }} {{ page() }} {{ ofLabel() }} {{ totalPages() || 1 }}</span>
+  <div class="pagination-controls">
+    <app-list-filter-select
+      class="pagination-size-select"
+      [value]="pageSizeValue()"
+      [options]="pageSizeOptions()"
+      [label]="perPageLabel()"
+      [ariaLabel]="perPageLabel()"
+      layout="inline"
+      menuPosition="up"
+      (changed)="changePageSize($event)"
+    />
+    <button
+      type="button"
+      class="pagination-nav"
+      [disabled]="page() <= 1"
+      [attr.aria-label]="previousLabel()"
+      (click)="previous.emit()"
+    >
+      <ui-icon name="chevron-left" />
+    </button>
+    <button
+      type="button"
+      class="pagination-nav"
+      [disabled]="page() >= totalPages()"
+      [attr.aria-label]="nextLabel()"
+      (click)="next.emit()"
+    >
+      <ui-icon name="chevron-right" />
+    </button>
+  </div>
+</footer>
