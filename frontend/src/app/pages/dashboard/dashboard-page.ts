@@ -3,7 +3,6 @@ import { LanguageService } from '../../i18n/language.service';
 import { UiIcon } from '../../ui-icon';
 import { DashboardPerformanceChart } from './components/dashboard-performance-chart';
 import { DashboardDistributionChart } from './components/dashboard-distribution-chart';
-import { DashboardChartFilterPanel } from './components/dashboard-chart-filter-panel';
 import { DashboardMultiSelect } from './components/dashboard-multi-select';
 import {
   ListFilterSelect,
@@ -19,7 +18,6 @@ import {
   DashboardMetric,
   DashboardMonthlyPoint,
   DashboardMultiFilterKey,
-  DashboardRankingLimit,
   DashboardSingleFilterKey,
 } from './dashboard.models';
 import { DashboardStore, INITIAL_DASHBOARD_FILTERS } from './dashboard.store';
@@ -97,7 +95,6 @@ const COMPARISON_OPTIONS: readonly DashboardComparison[] = ['ytd', 'yoy', 'mom']
     DashboardMultiSelect,
     ListFilterSelect,
     ListFilterPopover,
-    DashboardChartFilterPanel,
   ],
   providers: [DashboardStore],
   templateUrl: './dashboard-page.html',
@@ -126,7 +123,19 @@ export class DashboardPage {
       label: this.periodOptionLabel(period.value),
     })),
   );
-  readonly comparisonOptions = COMPARISON_OPTIONS;
+  readonly comparisonOptions = computed<ListFilterSelectOption[]>(() =>
+    COMPARISON_OPTIONS.map((option) => ({
+      value: option,
+      label: this.comparisonOptionLabel(option),
+    })),
+  );
+  readonly componentOptions = computed<ListFilterSelectOption[]>(() => [
+    { value: INITIAL_DASHBOARD_FILTERS.component, label: this.text().allMasculine },
+    ...this.store.options.components.map((component) => ({
+      value: component,
+      label: component,
+    })),
+  ]);
   readonly evolutionFiltersCount = computed(() => {
     const filters = this.evolutionFilters();
     return (
@@ -198,6 +207,24 @@ export class DashboardPage {
     });
   });
 
+  readonly linesData = computed(() => this.store.snapshot().lines ?? []);
+  readonly modelsData = computed(() => this.store.snapshot().models ?? []);
+  readonly offendersData = computed(() => (this.store.snapshot().offenders ?? []).slice(0, 5));
+  readonly componentsData = computed(() => this.store.snapshot().components ?? []);
+
+  readonly hasLinesData = computed(() =>
+    this.linesData().some((item) => item.usd > 0 || item.qty > 0),
+  );
+  readonly hasModelsData = computed(() =>
+    this.modelsData().some((item) => item.usd > 0 || item.qty > 0),
+  );
+  readonly hasOffendersData = computed(() =>
+    this.offendersData().some((item) => item.usd > 0 || item.qty > 0),
+  );
+  readonly hasComponentsData = computed(() =>
+    this.componentsData().some((item) => item.usd > 0 || item.qty > 0),
+  );
+
   changeYear(value: string): void {
     this.store.setFilter('year', value);
   }
@@ -206,8 +233,8 @@ export class DashboardPage {
     this.store.setFilter('period', value);
   }
 
-  changeFilter(key: DashboardSingleFilterKey, event: Event): void {
-    this.store.setFilter(key, (event.target as HTMLSelectElement).value);
+  changeComponent(value: string): void {
+    this.store.setFilter('component', value);
   }
 
   changeMultiFilter(key: DashboardMultiFilterKey, values: readonly string[]): void {
@@ -219,15 +246,12 @@ export class DashboardPage {
   }
 
   selectAnalysis(analysis: DashboardAnalysis): void {
+    if (analysis === 'relative') return;
     this.store.setAnalysis(analysis);
   }
 
-  selectRankingLimit(limit: DashboardRankingLimit): void {
-    this.store.setRankingLimit(limit);
-  }
-
-  selectComparison(event: Event): void {
-    this.store.setComparison((event.target as HTMLSelectElement).value as DashboardComparison);
+  onComparisonChange(value: string): void {
+    this.store.setComparison(value as DashboardComparison);
   }
 
   selectEvolutionView(view: DashboardEvolutionView): void {
@@ -242,10 +266,10 @@ export class DashboardPage {
     this.distributionFiltersOpen.update((open) => !open);
   }
 
-  changeEvolutionPeriod(event: Event): void {
+  changeEvolutionPeriod(value: string): void {
     this.evolutionFilters.update((filters) => ({
       ...filters,
-      period: (event.target as HTMLSelectElement).value,
+      period: value,
     }));
   }
 
@@ -267,10 +291,10 @@ export class DashboardPage {
     this.distributionFilters.update((filters) => ({ ...filters, [key]: values }));
   }
 
-  changeDistributionComponent(event: Event): void {
+  changeDistributionComponent(value: string): void {
     this.distributionFilters.update((filters) => ({
       ...filters,
-      component: (event.target as HTMLSelectElement).value,
+      component: value,
     }));
   }
 

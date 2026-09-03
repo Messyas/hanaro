@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import {
+  DashboardDistributionItem,
   DashboardFilterOptions,
   DashboardFilters,
   DashboardMonthlyPoint,
@@ -165,6 +166,53 @@ const RELATIVE_DISTRIBUTION = [
   { label: 'B01', usd: 0, qty: 0, relativeUsd: 0.0379, relativeQty: 0.0612 },
 ] as const;
 
+const MOCK_LINES: readonly DashboardDistributionItem[] = [
+  { label: 'Misp', usd: 17_400, qty: 112 },
+  { label: 'C02', usd: 14_300, qty: 98 },
+  { label: 'Quale', usd: 12_400, qty: 86 },
+  { label: 'Ventito', usd: 11_500, qty: 79 },
+  { label: 'G08', usd: 11_300, qty: 77 },
+  { label: 'BMCELL', usd: 11_100, qty: 75 },
+  { label: 'G05', usd: 8_300, qty: 54 },
+  { label: 'G15', usd: 7_000, qty: 48 },
+  { label: 'A02', usd: 5_400, qty: 38 },
+  { label: 'BM1', usd: 5_100, qty: 35 },
+];
+
+const MOCK_MODELS: readonly DashboardDistributionItem[] = [
+  { label: 'OLED55M', usd: 33_600, qty: 210 },
+  { label: 'OLED65C4', usd: 29_800, qty: 195 },
+  { label: '75QNED73ASA', usd: 23_700, qty: 160 },
+  { label: '32MR50C', usd: 23_400, qty: 158 },
+  { label: '43LK5700PSA', usd: 19_300, qty: 135 },
+  { label: 'SMT-MAIN', usd: 14_900, qty: 105 },
+  { label: 'VS-43UR78', usd: 12_100, qty: 88 },
+  { label: 'BM-UR8750', usd: 10_800, qty: 76 },
+  { label: 'AV-50SQ11', usd: 8_800, qty: 62 },
+  { label: '27UP650', usd: 7_700, qty: 55 },
+];
+
+const MOCK_OFFENDERS: readonly DashboardDistributionItem[] = [
+  { label: 'PCBA', usd: 33_600, qty: 210 },
+  { label: 'Tape', usd: 29_800, qty: 195 },
+  { label: 'Cover', usd: 23_700, qty: 160 },
+  { label: 'Module', usd: 23_400, qty: 158 },
+  { label: 'Chassis', usd: 19_300, qty: 135 },
+];
+
+const MOCK_COMPONENTS: readonly DashboardDistributionItem[] = [
+  { label: 'PCBA', usd: 33_600, qty: 210 },
+  { label: 'Tape', usd: 29_800, qty: 195 },
+  { label: 'Cover', usd: 23_700, qty: 160 },
+  { label: 'Module', usd: 23_400, qty: 158 },
+  { label: 'Chassis', usd: 19_300, qty: 135 },
+  { label: 'Box', usd: 14_900, qty: 105 },
+  { label: 'Packing', usd: 12_100, qty: 88 },
+  { label: 'Cover Assembly', usd: 10_800, qty: 76 },
+  { label: 'Base', usd: 8_800, qty: 62 },
+  { label: 'Lens', usd: 7_700, qty: 55 },
+];
+
 const FILTER_FACTORS: Partial<Record<keyof DashboardFilters, Record<string, number>>> = {
   product: { BM: 0.27, VS: 0.25, AV: 0.21, TV: 0.17, MNT: 0.1 },
   line: { BMCELL: 0.31, Quale: 0.24, G08: 0.2, C02: 0.15, Ventito: 0.1 },
@@ -234,6 +282,26 @@ export class MockDashboardService {
         ...item,
         relativeUsd: item.relativeUsd * (filters.product.length ? 1.06 : 1),
         relativeQty: item.relativeQty * (filters.product.length ? 1.04 : 1),
+      })),
+      components: MOCK_COMPONENTS.map((item) => ({
+        ...item,
+        usd: Math.round(item.usd * scale * usdPeriodScale),
+        qty: Math.round(item.qty * scale * qtyPeriodScale),
+      })),
+      lines: MOCK_LINES.map((item) => ({
+        ...item,
+        usd: Math.round(item.usd * scale * usdPeriodScale),
+        qty: Math.round(item.qty * scale * qtyPeriodScale),
+      })),
+      models: MOCK_MODELS.map((item) => ({
+        ...item,
+        usd: Math.round(item.usd * scale * usdPeriodScale),
+        qty: Math.round(item.qty * scale * qtyPeriodScale),
+      })),
+      offenders: MOCK_OFFENDERS.map((item) => ({
+        ...item,
+        usd: Math.round(item.usd * scale * usdPeriodScale),
+        qty: Math.round(item.qty * scale * qtyPeriodScale),
       })),
       lastUpdatedAt: 'Hoje, 10:00',
     };

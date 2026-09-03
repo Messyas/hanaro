@@ -21,6 +21,7 @@ echarts.use([BarChart, GridComponent, TooltipComponent, AriaComponent, SVGRender
     <div
       echarts
       class="distribution-chart"
+      [style.height]="chartHeight()"
       role="img"
       [attr.aria-label]="
         analysis() === 'relative'
@@ -43,7 +44,7 @@ echarts.use([BarChart, GridComponent, TooltipComponent, AriaComponent, SVGRender
     }
     @media (max-width: 760px) {
       .distribution-chart {
-        height: 14rem;
+        height: 14rem !important;
       }
     }
   `,
@@ -56,6 +57,7 @@ export class DashboardDistributionChart {
   readonly analysis = input.required<DashboardAnalysis>();
   readonly language = input.required<LanguageCode>();
   readonly monetaryValuesHidden = input(false);
+  readonly chartHeight = input<string>('16.5rem');
   readonly copy = computed(() => DASHBOARD_TRANSLATIONS[this.language()]);
   readonly initOptions = { renderer: 'svg' as const };
   readonly options = computed<EChartsCoreOption>(() => {
@@ -83,6 +85,19 @@ export class DashboardDistributionChart {
         backgroundColor: CHART_DESIGN.surface,
         borderColor: CHART_DESIGN.grid,
         textStyle: { color: CHART_DESIGN.text, fontFamily: CHART_DESIGN.fontFamily },
+        formatter: (params: unknown) => {
+          const items = Array.isArray(params) ? params : [params];
+          const first = items[0] as { name?: string; value?: number };
+          if (!first || first.name === undefined) return '';
+          const rawVal = first.value ?? 0;
+          const displayVal =
+            analysis === 'relative'
+              ? `${rawVal.toLocaleString(DASHBOARD_LOCALES[this.language()], { minimumFractionDigits: 2, maximumFractionDigits: 4 })}%`
+              : metric === 'usd'
+                ? this.compactCurrency(rawVal)
+                : `${new Intl.NumberFormat(DASHBOARD_LOCALES[this.language()]).format(rawVal)} ${this.copy().units}`;
+          return `<div style="font-weight:600;margin-bottom:2px">${first.name}</div><div>${displayVal}</div>`;
+        },
       },
       xAxis: { type: 'value', show: false },
       yAxis: {

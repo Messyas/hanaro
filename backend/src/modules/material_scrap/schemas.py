@@ -576,7 +576,26 @@ class ScrapTargetUpsert(ContractModel):
     @field_validator("amount", mode="before")
     @classmethod
     def validate_decimal_json(cls, value: object) -> object:
+        if isinstance(value, (int, float)):
+            return str(value)
         return _require_decimal_string(value)
+
+
+class ScrapTargetMonthItem(ContractModel):
+    month: int = Field(ge=1, le=12)
+    amount: Decimal = Field(ge=0, max_digits=24, decimal_places=6)
+
+    @field_validator("amount", mode="before")
+    @classmethod
+    def validate_amount(cls, value: object) -> object:
+        if isinstance(value, (int, float)):
+            return str(value)
+        return _require_decimal_string(value)
+
+
+class ScrapTargetBatchUpsert(ContractModel):
+    currency: DashboardCurrency = DashboardCurrency.USD
+    targets: list[ScrapTargetMonthItem] = Field(min_length=1, max_length=12)
 
 
 class ScrapTargetRead(BaseModel):

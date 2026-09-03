@@ -15,6 +15,29 @@ artefatos de execução ficam em `automation/artifacts/` e não são versionados
 `fixtures/material_scrap_payload_example.json` é uma amostra anonimizada do
 contrato enviado à API.
 
+## Gerar TSV sintético histórico
+
+Para simular dados próximos do export GERP sem reutilizar identificadores de
+pessoas, gere arquivos TSV brutos a partir de uma amostra. Por padrão, o
+comando gera três anos até a data corrente e nunca produz datas futuras. Cada
+arquivo cobre no máximo 366 dias, portanto pode ser processado e ingerido de
+forma independente pelo contrato atual da API.
+
+```powershell
+python -m automation.material_scrap.synthetic `
+  --template "C:\Users\User\Downloads\Other_Account_Transaction_Text_250826_ (1)" `
+  --output-directory automation/artifacts/synthetic `
+  --years 3 `
+  --average-rows-per-day 24
+```
+
+O gerador mantém a estrutura, códigos e distribuição da amostra, recalcula
+quantidade/preço/valor de cada registro e substitui responsáveis, comentários
+e identificadores operacionais por valores sintéticos. Use `--years 2` para
+dois anos, `--seed` para repetibilidade e `--end-date` quando quiser uma data
+anterior; se uma data futura for informada, ela é limitada automaticamente ao
+dia corrente.
+
 O RPA real ainda deve autenticar no GERP, submeter uma única requisição,
 acompanhar `Completed/Normal`, conferir estabilidade do download e então chamar
 este comando. Não usar `sleep` como confirmação de término nem registrar

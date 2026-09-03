@@ -1,10 +1,12 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { vi } from 'vitest';
+import { AuthService } from '../../core/auth/auth.service';
 import { LanguageService } from '../../i18n/language.service';
 import { ThemeService } from '../../theme/theme.service';
 import { ScrapDefectType } from '../scrap-base/scrap-review.models';
 import { ScrapReviewService } from '../scrap-base/scrap-review.service';
+import { ScrapTargetService } from './scrap-target.service';
 import { SettingsPage } from './settings-page';
 
 describe('SettingsPage', () => {
@@ -15,6 +17,14 @@ describe('SettingsPage', () => {
     createDefectType: ReturnType<typeof vi.fn>;
     updateDefectType: ReturnType<typeof vi.fn>;
     deleteDefectType: ReturnType<typeof vi.fn>;
+  };
+  let scrapTargetServiceMock: {
+    getTargets: ReturnType<typeof vi.fn>;
+    saveYearPlan: ReturnType<typeof vi.fn>;
+    deleteYearPlan: ReturnType<typeof vi.fn>;
+  };
+  let authServiceMock: {
+    isAuthenticated: ReturnType<typeof vi.fn>;
   };
 
   const mockTypes: ScrapDefectType[] = [
@@ -48,12 +58,24 @@ describe('SettingsPage', () => {
       deleteDefectType: vi.fn().mockReturnValue(of(undefined)),
     };
 
+    scrapTargetServiceMock = {
+      getTargets: vi.fn().mockReturnValue(of([])),
+      saveYearPlan: vi.fn().mockReturnValue(of([])),
+      deleteYearPlan: vi.fn().mockReturnValue(of(undefined)),
+    };
+
+    authServiceMock = {
+      isAuthenticated: vi.fn().mockReturnValue(true),
+    };
+
     await TestBed.configureTestingModule({
       imports: [SettingsPage],
       providers: [
         LanguageService,
         ThemeService,
         { provide: ScrapReviewService, useValue: scrapReviewServiceMock },
+        { provide: ScrapTargetService, useValue: scrapTargetServiceMock },
+        { provide: AuthService, useValue: authServiceMock },
       ],
     }).compileComponents();
 
@@ -154,5 +176,51 @@ describe('SettingsPage', () => {
     expect(component.confirmingDeleteItem()).toBeNull();
     expect(component.defectTypes().find((t) => t.id === 'type-1')).toBeUndefined();
     expect(component.feedbackMessage()?.type).toBe('success');
+  });
+
+  it('switches to targets tab and loads targets for the year', () => {
+    scrapTargetServiceMock.getTargets.mockReturnValue(
+      of([
+        { year: 2026, month: 1, amount: 1000, currency: 'USD', updated_at: '2026-01-01' },
+        { year: 2026, month: 2, amount: 2000, currency: 'USD', updated_at: '2026-01-01' },
+      ]),
+    );
+
+    component.selectTab('targets');
+    expect(component.activeTab()).toBe('targets');
+    expect(scrapTargetServiceMock.getTargets).toHaveBeenCalledWith(2026);
+    expect(component.monthlyTargets()[0].amount).toBe(1000);
+    expect(component.monthlyTargets()[1].amount).toBe(2000);
+  });
+
+  it('applies prefill curve and linear modes correctly', () => {
+    component.prefillMode.set('curve');
+    component.prefillJanValue.set(11000);
+    component.prefillDecValue.set(0);
+    component.applyPrefill();
+
+    expect(component.monthlyTargets()[0].amount).toBe(11000);
+    expect(component.monthlyTargets()[11].amount).toBe(0);
+    expect(component.currentYearTotal()).toBeGreaterThan(0);
+
+    component.prefillMode.set('linear');
+    component.prefillAnnualTotal.set(120000);
+    component.applyPrefill();
+
+    expect(component.monthlyTargets()[0].amount).toBe(10000);
+    expect(component.monthlyTargets()[6].amount).toBe(10000);
+    expect(component.currentYearTotal()).toBe(120000);
+  });
+
+  it('saves year plan via scrapTargetService', () => {
+    scrapTargetServiceMock.saveYearPlan.mockReturnValue(of([]));
+    component.updateMonthAmount(1, 5000);
+    component.saveTargetsPlan();
+
+    expect(scrapTargetServiceMock.saveYearPlan).toHaveBeenCalledWith(
+      2026,
+      expect.arrayContaining([{ month: 1, amount: 5000 }]),
+    );
+    expect(component.targetFeedback()?.type).toBe('success');
   });
 });

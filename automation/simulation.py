@@ -32,6 +32,21 @@ def _enabled(name: str, default: bool) -> bool:
     raise ValueError(f"{name} must be true or false")
 
 
+def _sources(input_path: Path, context: RunContext) -> list[Path]:
+    """Accept one GERP file or a directory of bounded synthetic windows."""
+    if input_path.is_file():
+        return [LocalFileSource(input_path).obtain_file(context)]
+    if input_path.is_dir():
+        sources = [
+            LocalFileSource(path).obtain_file(context)
+            for path in sorted(input_path.iterdir())
+            if path.is_file()
+        ]
+        if sources:
+            return sources
+    raise FileNotFoundError(f"GERP source file or directory not found: {input_path}")
+
+
 def main() -> None:
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s"
@@ -43,54 +58,63 @@ def main() -> None:
         reference_date=reference_date,
         organization_parameter=_environment("HANARO_SIMULATION_ORGANIZATION", "ALL"),
     )
-    source = LocalFileSource(
+    sources = _sources(
         Path(
             _environment(
                 "HANARO_SIMULATION_INPUT",
                 "/app/automation/fixtures/Other_Account_Transaction_Text_anonymized",
             )
-        )
-    ).obtain_file(context)
-    batch = build_canonical_batch(
-        source,
-        context,
-        ManualExchangeRateProvider(
-            rate=Decimal(_environment("HANARO_SIMULATION_EXCHANGE_RATE", "5.15")),
-            source=_environment("HANARO_SIMULATION_RATE_SOURCE", "manual_fixture"),
         ),
-        extracted_at=datetime.now(ZoneInfo("America/Manaus")),
+        context,
     )
     artifact_directory = Path(
         _environment("HANARO_SIMULATION_ARTIFACT_DIR", "/app/automation/artifacts")
     )
     artifact_directory.mkdir(parents=True, exist_ok=True)
-    artifact = (
-        artifact_directory / f"material_scrap_{batch.execution.execution_id}.json"
-    )
-    artifact.write_text(batch.model_dump_json(indent=2), encoding="utf-8")
+    results: list[dict[str, object]] = []
+    for source in sources:
+        batch = build_canonical_batch(
+            source,
+            context,
+            ManualExchangeRateProvider(
+                rate=Decimal(_environment("HANARO_SIMULATION_EXCHANGE_RATE", "5.15")),
+                source=_environment("HANARO_SIMULATION_RATE_SOURCE", "manual_fixture"),
+            ),
+            extracted_at=datetime.now(ZoneInfo("America/Manaus")),
+        )
+        artifact = artifact_directory / f"material_scrap_{batch.execution.execution_id}.json"
+        artifact.write_text(batch.model_dump_json(indent=2), encoding="utf-8")
 
-    ingestion: dict[str, object] | None = None
-    if _enabled("HANARO_SIMULATION_SEND", True):
-        ingestion = HttpBatchSender(
-            _environment("HANARO_SIMULATION_BACKEND_URL", "http://backend:8000"),
-            _environment("HANARO_API_KEY"),
-        ).send(batch)
+        ingestion: dict[str, object] | None = None
+        if _enabled("HANARO_SIMULATION_SEND", True):
+            ingestion = HttpBatchSender(
+                _environment("HANARO_SIMULATION_BACKEND_URL", "http://backend:8000"),
+                _environment("HANARO_API_KEY"),
+            ).send(batch)
 
-    logger.info(
-        "execution_id=%s stage=completed source_rows=%d accepted_rows=%d artifact=%s sent=%s",
-        batch.execution.execution_id,
-        batch.statistics.source_rows,
-        batch.statistics.accepted_rows,
-        artifact,
-        ingestion is not None,
-    )
-    print(
-        json.dumps(
+        logger.info(
+            "execution_id=%s stage=completed source=%s source_rows=%d accepted_rows=%d artifact=%s sent=%s",
+            batch.execution.execution_id,
+            source.name,
+            batch.statistics.source_rows,
+            batch.statistics.accepted_rows,
+            artifact,
+            ingestion is not None,
+        )
+        results.append(
             {
                 "execution_id": str(batch.execution.execution_id),
+                "source": str(source),
                 "artifact": str(artifact),
                 "statistics": batch.statistics.model_dump(mode="json"),
                 "ingestion": ingestion,
+            }
+        )
+    print(
+        json.dumps(
+            {
+                "source_files": len(sources),
+                "results": results,
             },
             ensure_ascii=False,
         )

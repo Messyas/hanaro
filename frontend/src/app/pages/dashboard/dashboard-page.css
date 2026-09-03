@@ -57,9 +57,21 @@
   justify-content: space-between;
   gap: 1rem;
 }
-app-list-filter-popover .filter-popover-panel {
+
+.analysis-controls app-list-filter-popover .filter-popover-panel {
   right: auto;
   left: 0;
+}
+
+.panel-header-actions app-list-filter-popover .filter-popover-panel {
+  right: 0;
+  left: auto;
+}
+
+.dashboard-filter-grid-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
 }
 
 .panel-header-actions {
@@ -136,6 +148,19 @@ app-list-filter-popover .filter-popover-panel {
 }
 .analysis-toggle.active > span {
   transform: translateX(1.1rem);
+}
+.analysis-toggle:disabled {
+  background: var(--app-border, #d1d5db);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.analysis-switch-control.is-locked {
+  cursor: not-allowed;
+}
+.analysis-switch-control.is-locked .lock-indicator {
+  color: var(--app-text-muted);
+  font-size: 0.65rem;
+  font-weight: 500;
 }
 .metric-switch {
   display: inline-flex;
@@ -241,7 +266,6 @@ app-list-filter-popover .filter-popover-panel {
   white-space: nowrap;
 }
 
-.ranking-limit-switch,
 .evolution-view-switch {
   display: inline-flex;
   flex: 0 0 auto;
@@ -251,7 +275,6 @@ app-list-filter-popover .filter-popover-panel {
   padding: 0.16rem;
 }
 
-.ranking-limit-switch button,
 .evolution-view-switch button {
   min-height: 1.8rem;
   border: 0;
@@ -265,7 +288,6 @@ app-list-filter-popover .filter-popover-panel {
   font-weight: 750;
 }
 
-.ranking-limit-switch button.active,
 .evolution-view-switch button.active {
   background: var(--brand-primary);
   color: var(--brand-primary-contrast);
@@ -422,9 +444,22 @@ app-list-filter-popover .filter-popover-panel {
   grid-template-columns: minmax(0, 1.8fr) minmax(18rem, 0.9fr);
   gap: 1rem;
 }
-.scrap-chart-grid .panel {
+.scrap-chart-grid .panel,
+.scrap-rankings-grid .panel {
   min-width: 0;
   padding: 1rem;
+}
+
+.scrap-rankings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+@media (max-width: 960px) {
+  .scrap-rankings-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .scrap-performance-panel,
@@ -565,8 +600,8 @@ app-list-filter-popover .filter-popover-panel {
   }
   .panel-header-actions,
   .evolution-view-switch,
-  .chart-filter-button {
-    width: 100%;
+  .panel-header-actions app-list-filter-popover {
+    width: auto;
   }
   .evolution-view-switch button {
     flex: 1;
@@ -575,8 +610,8 @@ app-list-filter-popover .filter-popover-panel {
     width: 100%;
     justify-content: space-between;
   }
-  .comparison-control {
-    min-width: 100%;
+  .comparison-select {
+    min-width: 0;
   }
   .dashboard-story-strip strong {
     white-space: normal;

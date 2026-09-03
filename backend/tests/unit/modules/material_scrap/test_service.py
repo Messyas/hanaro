@@ -243,3 +243,36 @@ async def test_target_upsert_is_idempotent_and_versions_dashboard(scrap_db: Asyn
     assert len(await service.list(scrap_db, year=2026)) == 1
     await scrap_db.refresh(state)
     assert state.revision != initial_revision
+
+
+@pytest.mark.asyncio
+async def test_target_year_plan_upsert_and_delete(scrap_db: AsyncSession) -> None:
+    service = ScrapTargetService()
+    monthly_targets = {month: Decimal(f"{month * 1000}.00") for month in range(1, 13)}
+
+    saved = await service.upsert_year_plan(
+        scrap_db,
+        year=2026,
+        currency=DashboardCurrency.USD,
+        targets=monthly_targets,
+        actor_id=1,
+    )
+    assert len(saved) == 12
+    assert saved[0].month == 1
+    assert saved[0].amount == Decimal("1000.00")
+    assert saved[11].month == 12
+    assert saved[11].amount == Decimal("12000.00")
+
+    updated = await service.upsert_year_plan(
+        scrap_db,
+        year=2026,
+        currency=DashboardCurrency.USD,
+        targets={1: Decimal("1500.00")},
+        actor_id=1,
+    )
+    targets_2026 = {t.month: t.amount for t in updated}
+    assert targets_2026[1] == Decimal("1500.00")
+    assert targets_2026[12] == Decimal("12000.00")
+
+    await service.delete_year_plan(scrap_db, year=2026, currency=DashboardCurrency.USD)
+    assert len(await service.list(scrap_db, year=2026)) == 0

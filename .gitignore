@@ -163,7 +163,8 @@ pnpm-debug.log*
 logs/
 tmp/
 temp/
-automation/artifacts/*.json
+automation/artifacts/
+automation/artifacts/**
 
 .idea
 
@@ -172,7 +173,6 @@ automation/artifacts/*.json
 # Config files:
 src/.env
 
-<<<<<<< HEAD
 # Graphify
 graphify-out/
 .graphify/
@@ -185,7 +185,5 @@ graphify-out/
 .github/skills/impeccable/
 .github/agents/
 .github/hooks/
-=======
 skills-lock.json
 transcripts/
->>>>>>> origin/feat/dashboard-graphs

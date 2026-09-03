@@ -34,8 +34,17 @@ TO_BE_COUNTED_CLASSIFICATION: dict[tuple[str, str], bool] = {
 }
 
 ITEM_TYPE_PATTERNS: tuple[tuple[str, str], ...] = (
+    (r"^(?:pcba|pcb assembly|printed circuit)(?:,|\b)", "PCBA"),
+    (r"^tape(?:,|\b)", "Tape"),
+    (r"^(?:cover assembly)(?:,|\b)", "Cover Assembly"),
+    (r"^cover(?:,|\b)", "Cover"),
+    (r"^(?:lcd|led assembly|module)(?:,|\b)", "Module"),
+    (r"^chassis(?:,|\b)", "Chassis"),
+    (r"^box(?:,|\b)", "Box"),
+    (r"^packing(?:,|\b)", "Packing"),
+    (r"^base(?:,|\b)", "Base"),
+    (r"^lens(?:,|\b)", "Lens"),
     (r"^gasket(?:,|\b)", "Gasket"),
     (r"^sheet(?:,|\b)", "Sheet"),
-    (r"^(?:lcd|led assembly)(?:,|\b)", "Module"),
     (r"^part(?:,|\b)", "Part"),
 )

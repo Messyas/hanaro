@@ -1,4 +1,4 @@
-import { Component, afterNextRender, computed, inject, input, signal } from '@angular/core';
+import { Component, afterNextRender, computed, effect, inject, input, signal } from '@angular/core';
 import { LineChart } from 'echarts/charts';
 import {
   AriaComponent,
@@ -15,6 +15,7 @@ import { LanguageCode } from '../i18n/language.service';
 import { CHART_DESIGN } from './chart-design.tokens';
 import {
   DashboardAnalysis,
+  DashboardEvolutionView,
   DashboardMetric,
   DashboardMonthlyPoint,
 } from '../pages/dashboard/dashboard.models';
@@ -40,18 +41,25 @@ echarts.use([
   template: `
     @if (chartReady()) {
       <div
-        echarts
-        class="performance-chart"
-        role="img"
-        [attr.aria-label]="
-          analysis() === 'relative'
-            ? copy().performanceRelativeAria
-            : copy().performanceAbsoluteAria
-        "
-        [options]="options()"
-        [initOpts]="initOptions"
-        [autoResize]="true"
-      ></div>
+        class="chart-grow-container"
+        [class.animating]="isSweepAnimating()"
+        (animationend)="onAnimationEnd()"
+      >
+        <div
+          echarts
+          class="performance-chart"
+          role="img"
+          [attr.aria-label]="
+            analysis() === 'relative'
+              ? copy().performanceRelativeAria
+              : copy().performanceAbsoluteAria
+          "
+          [options]="options()"
+          [initOpts]="initOptions"
+          [autoResize]="true"
+          (chartInit)="onChartInit($event)"
+        ></div>
+      </div>
     } @else {
       <div class="chart-placeholder" aria-hidden="true">
         @for (item of data(); track item.month) {
@@ -94,6 +102,40 @@ echarts.use([
     :host {
       display: block;
       margin-top: 1rem;
+      width: 100%;
+    }
+    .chart-grow-container {
+      width: 100%;
+      position: relative;
+      overflow: hidden;
+    }
+    .chart-grow-container.animating {
+      animation: chart-grow-sweep 700ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      will-change: clip-path, transform, opacity;
+    }
+    @keyframes chart-grow-sweep {
+      0% {
+        clip-path: inset(0 100% 0 0);
+        opacity: 0.2;
+        transform: scaleX(0.96);
+        transform-origin: left center;
+      }
+      35% {
+        opacity: 1;
+      }
+      100% {
+        clip-path: inset(0 0 0 0);
+        opacity: 1;
+        transform: scaleX(1);
+        transform-origin: left center;
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .chart-grow-container.animating {
+        animation: none;
+        clip-path: none;
+        transform: none;
+      }
     }
     .performance-chart {
       width: 100%;
@@ -140,6 +182,10 @@ export class DashboardPerformanceChart {
   readonly language = input.required<LanguageCode>();
   readonly labels = input<readonly string[] | null>(null);
   readonly monetaryValuesHidden = input(false);
+  readonly view = input<DashboardEvolutionView>('monthly');
+  readonly isSweepAnimating = signal(true);
+  private chartInstance: echarts.ECharts | null = null;
+  private prevKey = '';
   readonly copy = computed(() => DASHBOARD_TRANSLATIONS[this.language()]);
   readonly chartReady = signal(false);
   readonly initOptions = { renderer: 'svg' as const };
@@ -154,8 +200,15 @@ export class DashboardPerformanceChart {
     const previousYear = String(Number(currentYear) - 1);
     const copy = this.copy();
 
+    const pointCount = data.length;
+    const staggerDelay = pointCount > 20 ? 14 : 32;
+
     return {
-      animationDuration: 450,
+      animation: true,
+      animationDuration: 750,
+      animationEasing: 'cubicOut',
+      animationDelay: (idx: number) => idx * staggerDelay,
+      animationDurationUpdate: 0,
       textStyle: { fontFamily: CHART_DESIGN.fontFamily },
       aria: {
         show: true,
@@ -234,6 +287,9 @@ export class DashboardPerformanceChart {
           symbol: 'circle',
           lineStyle: { width: 3, color: CHART_DESIGN.primary },
           itemStyle: { color: CHART_DESIGN.primary },
+          animationDuration: 750,
+          animationEasing: 'cubicOut',
+          animationDelay: (idx: number) => idx * staggerDelay,
         },
         {
           name: `${copy.reference} ${previousYear}`,
@@ -243,6 +299,9 @@ export class DashboardPerformanceChart {
           symbol: 'circle',
           lineStyle: { width: 2, color: '#66728d' },
           itemStyle: { color: '#66728d' },
+          animationDuration: 750,
+          animationEasing: 'cubicOut',
+          animationDelay: (idx: number) => idx * staggerDelay,
         },
         ...(analysis === 'absolute'
           ? [
@@ -254,6 +313,9 @@ export class DashboardPerformanceChart {
                 symbol: 'circle',
                 lineStyle: { width: 2, type: 'dashed', color: '#5ad6b3' },
                 itemStyle: { color: '#5ad6b3' },
+                animationDuration: 750,
+                animationEasing: 'cubicOut',
+                animationDelay: (idx: number) => idx * staggerDelay,
               },
             ]
           : []),
@@ -265,6 +327,35 @@ export class DashboardPerformanceChart {
     afterNextRender(() => {
       this.chartReady.set(typeof ResizeObserver !== 'undefined');
     });
+
+    effect(() => {
+      const key = `${this.view()}-${this.labels()?.length ?? 12}-${this.data().length}-${this.analysis()}-${this.metric()}`;
+      if (this.prevKey && this.prevKey !== key) {
+        this.triggerSweepAnimation();
+      }
+      this.prevKey = key;
+    });
+  }
+
+  onChartInit(chart: echarts.ECharts): void {
+    this.chartInstance = chart;
+  }
+
+  triggerSweepAnimation(): void {
+    if (this.chartInstance) {
+      this.chartInstance.clear();
+      this.chartInstance.setOption(this.options(), true);
+    }
+    this.isSweepAnimating.set(false);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        this.isSweepAnimating.set(true);
+      });
+    });
+  }
+
+  onAnimationEnd(): void {
+    this.isSweepAnimating.set(false);
   }
 
   actualValue(item: DashboardMonthlyPoint): number | null {

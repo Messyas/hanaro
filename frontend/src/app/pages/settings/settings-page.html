@@ -31,6 +31,18 @@
           <span class="tab-badge">{{ totalCount() }}</span>
         }
       </button>
+
+      <button
+        type="button"
+        role="tab"
+        class="settings-tab-btn"
+        [class.active]="activeTab() === 'targets'"
+        [attr.aria-selected]="activeTab() === 'targets'"
+        (click)="selectTab('targets')"
+      >
+        <ui-icon name="chart-line" />
+        <span>{{ t.settingsTabTargets }}</span>
+      </button>
     </nav>
   </header>
 
@@ -376,6 +388,296 @@
             </div>
           </div>
         }
+      </article>
+    </div>
+  }
+
+  <!-- Conteúdo da Aba 3: Metas de IF Cost (Targets) -->
+  @if (activeTab() === 'targets') {
+    <div class="settings-grid targets-layout">
+      <!-- Read-only warning for unauthenticated users -->
+      @if (!canEditTargets()) {
+        <div class="targets-auth-banner" role="alert">
+          <ui-icon name="bell" />
+          <div class="auth-banner-content">
+            <strong>{{ t.targetLoginRequiredNotice }}</strong>
+          </div>
+          <button type="button" class="btn btn-primary btn-sm" (click)="openLoginDialog()">
+            <ui-icon name="log-in" />
+            <span>{{ t.targetLoginAction }}</span>
+          </button>
+        </div>
+      }
+
+      <!-- Target Feedback Message -->
+      @if (targetFeedback(); as fb) {
+        <div
+          class="settings-feedback-toast"
+          [class.success]="fb.type === 'success'"
+          [class.error]="fb.type === 'error'"
+        >
+          <ui-icon [name]="fb.type === 'success' ? 'check' : 'x'" />
+          <span>{{ fb.text }}</span>
+        </div>
+      }
+
+      <!-- Year Selector & Executive Summary -->
+      <article class="settings-card targets-overview-card">
+        <header class="settings-card-header targets-overview-header">
+          <div>
+            <h2>{{ t.targetYearPlanTitle }}</h2>
+            <p>{{ t.targetYearPlanSubtitle }}</p>
+          </div>
+          <div class="year-selector-group">
+            <label for="target-year-select">{{ t.targetSelectYear }}:</label>
+            <select
+              id="target-year-select"
+              class="target-year-select"
+              [value]="selectedTargetYear()"
+              (change)="selectTargetYear(+$any($event.target).value)"
+            >
+              @for (year of availableTargetYears(); track year) {
+                <option [value]="year">{{ year }}</option>
+              }
+            </select>
+          </div>
+        </header>
+
+        <!-- KPI Cards of the Plan -->
+        <div class="targets-kpis-grid">
+          <div class="target-kpi-box primary">
+            <span class="kpi-label">{{ t.targetAnnualTotal }}</span>
+            <strong class="kpi-value">{{
+              currentYearTotal() | currency: 'USD' : 'symbol' : '1.0-0'
+            }}</strong>
+            <small class="kpi-hint">Ano {{ selectedTargetYear() }}</small>
+          </div>
+          <div class="target-kpi-box">
+            <span class="kpi-label">{{ t.targetMonthlyAverage }}</span>
+            <strong class="kpi-value">{{
+              currentYearAverage() | currency: 'USD' : 'symbol' : '1.0-0'
+            }}</strong>
+            <small class="kpi-hint">/ mês</small>
+          </div>
+          <div class="target-kpi-box">
+            <span class="kpi-label">{{ t.targetComparisonPreviousYear }}</span>
+            @if (previousYearTotal() !== null && previousYearVariationPercent() !== null) {
+              <div class="kpi-comparison">
+                <strong
+                  [class.favorable]="previousYearVariationPercent()! <= 0"
+                  [class.unfavorable]="previousYearVariationPercent()! > 0"
+                >
+                  {{ previousYearVariationPercent()! > 0 ? '+' : ''
+                  }}{{ previousYearVariationPercent() | number: '1.1-1' }}%
+                </strong>
+                <span>
+                  {{
+                    previousYearVariationPercent()! <= 0
+                      ? t.targetReductionVsPrevious
+                      : t.targetIncreaseVsPrevious
+                  }}
+                  {{ selectedTargetYear() - 1 }} ({{
+                    previousYearTotal() | currency: 'USD' : 'symbol' : '1.0-0'
+                  }})
+                </span>
+              </div>
+            } @else {
+              <span class="kpi-muted">{{ t.targetNoPreviousYear }}</span>
+            }
+          </div>
+        </div>
+      </article>
+
+      <!-- Pre-fill Assistant Card (enabled only if logged in) -->
+      @if (canEditTargets()) {
+        <article class="settings-card prefill-card">
+          <header class="settings-card-header">
+            <div class="prefill-title-badge">
+              <ui-icon name="cog" />
+              <h3>{{ t.prefillAssistantTitle }}</h3>
+            </div>
+            <p>{{ t.prefillAssistantDesc }}</p>
+          </header>
+
+          <div class="prefill-body">
+            <div class="prefill-modes" role="radiogroup">
+              <button
+                type="button"
+                class="btn-toggle"
+                [class.active]="prefillMode() === 'curve'"
+                (click)="prefillMode.set('curve')"
+              >
+                <ui-icon name="chart-line" />
+                <span>{{ t.prefillModeCurve }}</span>
+              </button>
+              <button
+                type="button"
+                class="btn-toggle"
+                [class.active]="prefillMode() === 'linear'"
+                (click)="prefillMode.set('linear')"
+              >
+                <ui-icon name="chart-columns" />
+                <span>{{ t.prefillModeLinear }}</span>
+              </button>
+            </div>
+
+            <div class="prefill-inputs">
+              @if (prefillMode() === 'curve') {
+                <div class="field-group">
+                  <label for="prefill-jan">{{ t.prefillJanValueLabel }}</label>
+                  <div class="input-currency-wrapper">
+                    <span>US$</span>
+                    <input
+                      id="prefill-jan"
+                      type="number"
+                      min="0"
+                      step="500"
+                      [value]="prefillJanValue()"
+                      (input)="prefillJanValue.set(+$any($event.target).value)"
+                    />
+                  </div>
+                </div>
+                <div class="curve-arrow" aria-hidden="true">→</div>
+                <div class="field-group">
+                  <label for="prefill-dec">{{ t.prefillDecValueLabel }}</label>
+                  <div class="input-currency-wrapper">
+                    <span>US$</span>
+                    <input
+                      id="prefill-dec"
+                      type="number"
+                      min="0"
+                      step="500"
+                      [value]="prefillDecValue()"
+                      (input)="prefillDecValue.set(+$any($event.target).value)"
+                    />
+                  </div>
+                </div>
+              } @else {
+                <div class="field-group full">
+                  <label for="prefill-annual">{{ t.prefillAnnualTotalLabel }}</label>
+                  <div class="input-currency-wrapper">
+                    <span>US$</span>
+                    <input
+                      id="prefill-annual"
+                      type="number"
+                      min="0"
+                      step="1000"
+                      [value]="prefillAnnualTotal()"
+                      (input)="prefillAnnualTotal.set(+$any($event.target).value)"
+                    />
+                  </div>
+                </div>
+              }
+
+              <button
+                type="button"
+                class="btn btn-secondary prefill-apply-btn"
+                (click)="applyPrefill()"
+              >
+                <ui-icon name="check" />
+                <span>{{ t.prefillApplyBtn }}</span>
+              </button>
+            </div>
+          </div>
+        </article>
+      }
+
+      <!-- Interactive 12-Month Table and Sparkline -->
+      <article class="settings-card targets-table-card">
+        <header class="settings-card-header targets-table-header">
+          <div>
+            <h3>{{ t.targetCurveTrajectory }}</h3>
+            <p>Ano {{ selectedTargetYear() }} · {{ t.targetMonthCol }} a {{ t.targetMonthCol }}</p>
+          </div>
+
+          <!-- Sparkline Mini Chart -->
+          <div class="sparkline-container" aria-hidden="true">
+            <svg viewBox="0 0 360 70" class="sparkline-svg">
+              <polyline
+                fill="none"
+                stroke="var(--brand-primary, #e60049)"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                [attr.points]="sparklinePoints()"
+              />
+            </svg>
+          </div>
+        </header>
+
+        <div class="table-responsive">
+          <table class="targets-table">
+            <thead>
+              <tr>
+                <th>{{ t.targetMonthCol }}</th>
+                <th>{{ t.targetValueCol }}</th>
+                <th>{{ t.targetShareCol }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of monthlyTargets(); track item.month) {
+                <tr>
+                  <td class="month-cell">
+                    <span class="month-badge">{{
+                      item.month < 10 ? '0' + item.month : item.month
+                    }}</span>
+                    <span class="month-name">{{ item.name }}</span>
+                  </td>
+                  <td class="value-cell">
+                    <div class="input-currency-wrapper target-input-wrapper">
+                      <span>US$</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="100"
+                        [disabled]="!canEditTargets()"
+                        [value]="item.amount"
+                        (input)="updateMonthAmount(item.month, $any($event.target).value)"
+                      />
+                    </div>
+                  </td>
+                  <td class="share-cell">
+                    @let total = currentYearTotal();
+                    @let share = total > 0 ? (item.amount / total) * 100 : 0;
+                    <div class="share-bar-container">
+                      <div class="share-bar" [style.width.%]="share"></div>
+                      <span class="share-pct">{{ share | number: '1.1-1' }}%</span>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Footer Actions (only enabled if logged in) -->
+        <footer class="targets-footer-actions">
+          <div class="footer-status">
+            @if (submittingTargets()) {
+              <span class="saving-indicator">{{ t.targetSavingPlan }}</span>
+            }
+          </div>
+          <div class="footer-buttons">
+            <button
+              type="button"
+              class="btn btn-outline-danger"
+              [disabled]="!canEditTargets() || submittingTargets() || currentYearTotal() === 0"
+              (click)="clearTargetsPlan()"
+            >
+              <ui-icon name="trash" />
+              <span>{{ t.targetClearPlanBtn }}</span>
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              [disabled]="!canEditTargets() || submittingTargets()"
+              (click)="saveTargetsPlan()"
+            >
+              <ui-icon name="check" />
+              <span>{{ t.targetSavePlanBtn }}</span>
+            </button>
+          </div>
+        </footer>
       </article>
     </div>
   }

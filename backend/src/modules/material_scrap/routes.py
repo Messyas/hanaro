@@ -7,7 +7,7 @@ from pydantic import StringConstraints
 from starlette.concurrency import run_in_threadpool
 from starlette.responses import FileResponse
 
-from ...infrastructure.dependencies import AsyncSessionDep, CurrentSuperUserDep, CurrentUserDep, OptionalUserDep
+from ...infrastructure.dependencies import AsyncSessionDep, CurrentUserDep, OptionalUserDep
 from .dependencies import (
     ScrapDashboardServiceDep,
     ScrapReviewImageStorageDep,
@@ -87,6 +87,7 @@ from .schemas import (
     ScrapReviewTemplateUpdate,
     ScrapReviewWrite,
     ScrapSummary,
+    ScrapTargetBatchUpsert,
     ScrapTargetRead,
     ScrapTargetUpsert,
     ScrapTrendPoint,
@@ -598,11 +599,29 @@ async def read_scrap_targets(
     return await service.list(db, year=year)
 
 
+@dashboard_router.put("/targets/{year}", response_model=list[ScrapTargetRead])
+async def upsert_scrap_year_targets(
+    command: ScrapTargetBatchUpsert,
+    db: AsyncSessionDep,
+    current_user: CurrentUserDep,
+    service: ScrapTargetServiceDep,
+    year: int = Path(ge=2000, le=2100),
+) -> list[ScrapTargetRead]:
+    monthly_map = {item.month: item.amount for item in command.targets}
+    return await service.upsert_year_plan(
+        db,
+        year=year,
+        currency=command.currency,
+        targets=monthly_map,
+        actor_id=int(current_user["id"]),
+    )
+
+
 @dashboard_router.put("/targets/{year}/{month}", response_model=ScrapTargetRead)
 async def upsert_scrap_target(
     command: ScrapTargetUpsert,
     db: AsyncSessionDep,
-    current_user: CurrentSuperUserDep,
+    current_user: CurrentUserDep,
     service: ScrapTargetServiceDep,
     year: int = Path(ge=2000, le=2100),
     month: int = Path(ge=1, le=12),
@@ -614,3 +633,14 @@ async def upsert_scrap_target(
         command=command,
         actor_id=int(current_user["id"]),
     )
+
+
+@dashboard_router.delete("/targets/{year}", status_code=204)
+async def delete_scrap_year_targets(
+    db: AsyncSessionDep,
+    current_user: CurrentUserDep,
+    service: ScrapTargetServiceDep,
+    year: int = Path(ge=2000, le=2100),
+    currency: DashboardCurrency = Query(default=DashboardCurrency.USD),
+) -> None:
+    await service.delete_year_plan(db, year=year, currency=currency)

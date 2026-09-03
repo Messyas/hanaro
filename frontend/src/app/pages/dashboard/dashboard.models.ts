@@ -62,6 +62,10 @@ export interface DashboardSnapshot {
   weekly: readonly DashboardMonthlyPoint[];
   distribution: readonly DashboardDistributionItem[];
   relativeDistribution: readonly DashboardDistributionItem[];
+  components: readonly DashboardDistributionItem[];
+  lines: readonly DashboardDistributionItem[];
+  models: readonly DashboardDistributionItem[];
+  offenders: readonly DashboardDistributionItem[];
   lastUpdatedAt: string;
 }
 

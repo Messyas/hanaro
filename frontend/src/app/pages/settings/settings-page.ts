@@ -1,24 +1,32 @@
+import { CurrencyPipe, DecimalPipe } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { MatDialog } from '@angular/material/dialog';
 import { MatSlideToggle } from '@angular/material/slide-toggle';
+import { AuthService } from '../../core/auth/auth.service';
 import { LanguageService } from '../../i18n/language.service';
+import { LoginDialog } from '../../layouts/dashboard-shell/login-dialog';
 import { ThemeService } from '../../theme/theme.service';
 import { UiIcon } from '../../ui-icon';
 import { ScrapDefectType } from '../scrap-base/scrap-review.models';
 import { ScrapReviewService } from '../scrap-base/scrap-review.service';
+import { ScrapTargetService } from './scrap-target.service';
 
 @Component({
   selector: 'app-settings-page',
-  imports: [FormsModule, MatSlideToggle, UiIcon],
+  imports: [FormsModule, MatSlideToggle, UiIcon, CurrencyPipe, DecimalPipe],
   templateUrl: './settings-page.html',
   styleUrl: './settings-page.css',
 })
 export class SettingsPage implements OnInit {
   readonly theme = inject(ThemeService);
   readonly language = inject(LanguageService);
+  readonly authService = inject(AuthService);
   readonly scrapReviewService = inject(ScrapReviewService);
+  readonly scrapTargetService = inject(ScrapTargetService);
+  private readonly dialog = inject(MatDialog);
 
-  readonly activeTab = signal<'preferences' | 'system'>('preferences');
+  readonly activeTab = signal<'preferences' | 'system' | 'targets'>('preferences');
 
   // Defect types state
   readonly defectTypes = signal<ScrapDefectType[]>([]);
@@ -40,17 +48,116 @@ export class SettingsPage implements OnInit {
   readonly activeCount = computed(() => this.defectTypes().filter((d) => d.is_active).length);
   readonly totalCount = computed(() => this.defectTypes().length);
 
+  // Targets state
+  readonly selectedTargetYear = signal<number>(2026);
+  readonly availableTargetYears = signal<number[]>([2025, 2026, 2027]);
+  readonly monthlyTargets = signal<{ month: number; name: string; amount: number }[]>([
+    { month: 1, name: 'Jan', amount: 0 },
+    { month: 2, name: 'Fev', amount: 0 },
+    { month: 3, name: 'Mar', amount: 0 },
+    { month: 4, name: 'Abr', amount: 0 },
+    { month: 5, name: 'Mai', amount: 0 },
+    { month: 6, name: 'Jun', amount: 0 },
+    { month: 7, name: 'Jul', amount: 0 },
+    { month: 8, name: 'Ago', amount: 0 },
+    { month: 9, name: 'Set', amount: 0 },
+    { month: 10, name: 'Out', amount: 0 },
+    { month: 11, name: 'Nov', amount: 0 },
+    { month: 12, name: 'Dez', amount: 0 },
+  ]);
+  readonly previousYearTargets = signal<Record<number, number>>({});
+  readonly loadingTargets = signal<boolean>(false);
+  readonly submittingTargets = signal<boolean>(false);
+  readonly targetFeedback = signal<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Prefill assistant state
+  readonly prefillMode = signal<'linear' | 'curve'>('curve');
+  readonly prefillAnnualTotal = signal<number>(120000);
+  readonly prefillJanValue = signal<number>(12000);
+  readonly prefillDecValue = signal<number>(6000);
+
+  // Computeds
+  readonly canEditTargets = computed(() => this.authService.isAuthenticated());
+
+  readonly currentYearTotal = computed(() =>
+    this.monthlyTargets().reduce((acc, m) => acc + (Number(m.amount) || 0), 0),
+  );
+
+  readonly currentYearAverage = computed(() => {
+    const total = this.currentYearTotal();
+    return total > 0 ? total / 12 : 0;
+  });
+
+  readonly previousYearTotal = computed(() => {
+    const prev = this.previousYearTargets();
+    const sum = Object.values(prev).reduce((acc, val) => acc + (Number(val) || 0), 0);
+    return sum > 0 ? sum : null;
+  });
+
+  readonly previousYearVariationPercent = computed(() => {
+    const prev = this.previousYearTotal();
+    const curr = this.currentYearTotal();
+    if (prev === null || prev === 0 || curr === 0) return null;
+    return ((curr - prev) / prev) * 100;
+  });
+
+  readonly monthLabels = computed(() => {
+    const lang = this.language.currentLanguage();
+    if (lang === 'en') {
+      return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    }
+    if (lang === 'ko') {
+      return [
+        '1월',
+        '2월',
+        '3월',
+        '4월',
+        '5월',
+        '6월',
+        '7월',
+        '8월',
+        '9월',
+        '10월',
+        '11월',
+        '12월',
+      ];
+    }
+    return ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+  });
+
+  readonly sparklinePoints = computed(() => {
+    const targets = this.monthlyTargets();
+    const amounts = targets.map((t) => Number(t.amount) || 0);
+    const max = Math.max(...amounts, 1);
+    const width = 360;
+    const height = 70;
+    const padding = 10;
+    const innerWidth = width - padding * 2;
+    const innerHeight = height - padding * 2;
+
+    return amounts
+      .map((val, idx) => {
+        const x = padding + (idx / 11) * innerWidth;
+        const y = height - padding - (val / max) * innerHeight;
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+      })
+      .join(' ');
+  });
+
   private feedbackTimeout: ReturnType<typeof setTimeout> | null = null;
 
   ngOnInit(): void {
-    // Carrega os tipos de scrap em segundo plano para que contadores e dados fiquem prontos
+    // Carrega os tipos de scrap e metas em segundo plano
     this.loadDefectTypes();
+    this.loadTargets(this.selectedTargetYear());
   }
 
-  selectTab(tab: 'preferences' | 'system'): void {
+  selectTab(tab: 'preferences' | 'system' | 'targets'): void {
     this.activeTab.set(tab);
     if (tab === 'system' && this.defectTypes().length === 0) {
       this.loadDefectTypes();
+    } else if (tab === 'targets') {
+      this.loadTargets(this.selectedTargetYear());
     }
   }
 
@@ -208,5 +315,136 @@ export class SettingsPage implements OnInit {
     this.feedbackTimeout = setTimeout(() => {
       this.feedbackMessage.set(null);
     }, 4500);
+  }
+
+  loadTargets(year: number): void {
+    this.loadingTargets.set(true);
+    this.scrapTargetService.getTargets(year).subscribe({
+      next: (targets) => {
+        const labels = this.monthLabels();
+        const updated = Array.from({ length: 12 }, (_, i) => {
+          const monthNum = i + 1;
+          const found = targets.find((t) => t.month === monthNum);
+          return {
+            month: monthNum,
+            name: labels[i] ?? `M${monthNum}`,
+            amount: found ? Number(found.amount) : 0,
+          };
+        });
+        this.monthlyTargets.set(updated);
+        this.loadingTargets.set(false);
+      },
+      error: () => {
+        this.loadingTargets.set(false);
+      },
+    });
+
+    // Load previous year for comparison
+    this.scrapTargetService.getTargets(year - 1).subscribe({
+      next: (targets) => {
+        const map: Record<number, number> = {};
+        for (const t of targets) {
+          map[t.month] = Number(t.amount);
+        }
+        this.previousYearTargets.set(map);
+      },
+      error: () => {
+        this.previousYearTargets.set({});
+      },
+    });
+  }
+
+  selectTargetYear(year: number): void {
+    this.selectedTargetYear.set(year);
+    this.loadTargets(year);
+  }
+
+  updateMonthAmount(month: number, value: string | number): void {
+    const num = Math.max(0, Number(value) || 0);
+    this.monthlyTargets.update((list) =>
+      list.map((m) => (m.month === month ? { ...m, amount: num } : m)),
+    );
+  }
+
+  applyPrefill(): void {
+    const mode = this.prefillMode();
+    const labels = this.monthLabels();
+
+    if (mode === 'linear') {
+      const total = Math.max(0, Number(this.prefillAnnualTotal()) || 0);
+      const perMonth = Math.round((total / 12) * 100) / 100;
+      this.monthlyTargets.set(
+        Array.from({ length: 12 }, (_, i) => ({
+          month: i + 1,
+          name: labels[i],
+          amount: perMonth,
+        })),
+      );
+    } else {
+      const start = Math.max(0, Number(this.prefillJanValue()) || 0);
+      const end = Math.max(0, Number(this.prefillDecValue()) || 0);
+      this.monthlyTargets.set(
+        Array.from({ length: 12 }, (_, i) => {
+          const fraction = i / 11;
+          const val = start + (end - start) * fraction;
+          return {
+            month: i + 1,
+            name: labels[i],
+            amount: Math.round(val * 100) / 100,
+          };
+        }),
+      );
+    }
+  }
+
+  saveTargetsPlan(): void {
+    if (!this.canEditTargets()) return;
+    this.submittingTargets.set(true);
+    const year = this.selectedTargetYear();
+    const items = this.monthlyTargets().map((m) => ({
+      month: m.month,
+      amount: m.amount,
+    }));
+
+    this.scrapTargetService.saveYearPlan(year, items).subscribe({
+      next: () => {
+        this.submittingTargets.set(false);
+        this.showTargetFeedback('success', this.language.translations().targetPlanSavedSuccess);
+        this.loadTargets(year);
+      },
+      error: () => {
+        this.submittingTargets.set(false);
+        this.showTargetFeedback('error', this.language.translations().targetPlanSaveError);
+      },
+    });
+  }
+
+  clearTargetsPlan(): void {
+    if (!this.canEditTargets()) return;
+    const year = this.selectedTargetYear();
+    this.submittingTargets.set(true);
+    this.scrapTargetService.deleteYearPlan(year).subscribe({
+      next: () => {
+        this.submittingTargets.set(false);
+        this.showTargetFeedback('success', this.language.translations().targetPlanClearedSuccess);
+        this.loadTargets(year);
+      },
+      error: () => {
+        this.submittingTargets.set(false);
+        this.showTargetFeedback('error', this.language.translations().targetPlanSaveError);
+      },
+    });
+  }
+
+  openLoginDialog(): void {
+    this.dialog.open(LoginDialog, {
+      ariaLabelledBy: 'login-dialog-title',
+      panelClass: 'login-dialog-panel',
+    });
+  }
+
+  private showTargetFeedback(type: 'success' | 'error', text: string): void {
+    this.targetFeedback.set({ type, text });
+    setTimeout(() => this.targetFeedback.set(null), 4500);
   }
 }

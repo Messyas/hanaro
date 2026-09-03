@@ -40,7 +40,10 @@ interface DashboardApiResponse {
   weekly?: DashboardApiSeriesPoint[];
   rankings: {
     products: DashboardApiRankingItem[];
-    lines: DashboardApiRankingItem[];
+    components?: DashboardApiRankingItem[];
+    lines?: DashboardApiRankingItem[];
+    models?: DashboardApiRankingItem[];
+    offenders?: DashboardApiRankingItem[];
   };
 }
 
@@ -66,7 +69,7 @@ export class DashboardStore {
   readonly metric = signal<DashboardMetric>('usd');
   readonly analysis = signal<DashboardAnalysis>('absolute');
   readonly comparison = signal<DashboardComparison>('ytd');
-  readonly rankingLimit = signal<DashboardRankingLimit>(5);
+  readonly rankingLimit = signal<DashboardRankingLimit>(10);
   readonly dataState = signal<DashboardDataState>('mock');
   readonly apiSnapshot = signal<DashboardSnapshot | null>(null);
   readonly monetaryValuesHidden = signal(false);
@@ -400,12 +403,32 @@ export class DashboardStore {
         usd: this.toNumber(item.amount),
         qty: item.record_count,
       })),
-      relativeDistribution: response.rankings.lines.map((item) => ({
+      relativeDistribution: (response.rankings.lines ?? []).map((item) => ({
         label: item.key ?? 'Não classificado',
         usd: this.toNumber(item.amount),
         qty: item.record_count,
         relativeUsd: undefined,
         relativeQty: undefined,
+      })),
+      components: (response.rankings.components ?? []).map((item) => ({
+        label: item.key ?? 'Não classificado',
+        usd: this.toNumber(item.amount),
+        qty: item.record_count,
+      })),
+      lines: (response.rankings.lines ?? []).map((item) => ({
+        label: item.key ?? 'Não classificado',
+        usd: this.toNumber(item.amount),
+        qty: item.record_count,
+      })),
+      models: (response.rankings.models ?? []).map((item) => ({
+        label: item.key ?? 'Não classificado',
+        usd: this.toNumber(item.amount),
+        qty: item.record_count,
+      })),
+      offenders: (response.rankings.offenders ?? []).map((item) => ({
+        label: item.key ?? 'Não classificado',
+        usd: this.toNumber(item.amount),
+        qty: item.record_count,
       })),
       lastUpdatedAt: new Intl.DateTimeFormat('pt-BR', {
         day: '2-digit',
@@ -440,7 +463,6 @@ export class DashboardStore {
   private hasUsableSnapshot(snapshot: DashboardSnapshot): boolean {
     return (
       snapshot.monthly.some((point) => (point.actualUsd ?? 0) > 0) &&
-      snapshot.monthly.some((point) => (point.targetUsd ?? 0) > 0) &&
       snapshot.distribution.length > 0
     );
   }

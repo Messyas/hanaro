@@ -31,6 +31,7 @@ export interface DashboardTranslations {
   toggleAnalysisAria: string;
   absoluteImpact: string;
   relativeEfficiency: string;
+  scrapRateLockedHint: string;
   metricGroupAria: string;
   compareWith: string;
   compareYtd: string;
@@ -88,6 +89,10 @@ export interface DashboardTranslations {
   weeklyView: string;
   currentMonthWeeks: string;
   distributionByProduct: string;
+  topLines: string;
+  topModels: string;
+  topOffenders: string;
+  topComponents: string;
   participationSelectedPeriod: string;
   highestRateLines: string;
   efficiencyRanking: string;
@@ -146,6 +151,7 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     toggleAnalysisAria: 'Alternar tipo de análise',
     absoluteImpact: 'Impacto absoluto',
     relativeEfficiency: 'Eficiência relativa',
+    scrapRateLockedHint: 'Scrap Rate temporariamente bloqueado (aguardando dados de produção)',
     metricGroupAria: 'Métrica exibida',
     compareWith: 'Comparar com',
     compareYtd: 'YTD anterior',
@@ -203,6 +209,10 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     weeklyView: 'Semanal',
     currentMonthWeeks: 'Semanas do período selecionado',
     distributionByProduct: 'Distribuição por produto / área',
+    topLines: 'Top 10 linhas',
+    topModels: 'Top 10 modelos',
+    topOffenders: 'Top 5 ofensores',
+    topComponents: 'Top 10 componentes',
     participationSelectedPeriod: 'Participação no período selecionado',
     highestRateLines: 'Linhas com maior taxa',
     efficiencyRanking: 'Ranking de eficiência no recorte atual',
@@ -260,6 +270,7 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     toggleAnalysisAria: 'Switch analysis type',
     absoluteImpact: 'Absolute impact',
     relativeEfficiency: 'Relative efficiency',
+    scrapRateLockedHint: 'Scrap Rate temporarily locked (awaiting production data)',
     metricGroupAria: 'Displayed metric',
     compareWith: 'Compare with',
     compareYtd: 'Previous YTD',
@@ -317,6 +328,10 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     weeklyView: 'Weekly',
     currentMonthWeeks: 'Weeks in the selected period',
     distributionByProduct: 'Distribution by product / area',
+    topLines: 'Top 10 lines',
+    topModels: 'Top 10 models',
+    topOffenders: 'Top 5 offenders',
+    topComponents: 'Top 10 components',
     participationSelectedPeriod: 'Share in the selected period',
     highestRateLines: 'Lines with the highest rate',
     efficiencyRanking: 'Efficiency ranking in the current selection',
@@ -374,6 +389,7 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     toggleAnalysisAria: '분석 유형 전환',
     absoluteImpact: '절대 영향',
     relativeEfficiency: '상대 효율',
+    scrapRateLockedHint: '스크랩 비율 일시 잠금 (생산 데이터 대기 중)',
     metricGroupAria: '표시 지표',
     compareWith: '비교 기준',
     compareYtd: '전년 누계',
@@ -431,6 +447,10 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     weeklyView: '주별',
     currentMonthWeeks: '선택 기간의 주차',
     distributionByProduct: '제품 / 영역별 분포',
+    topLines: '상위 10개 라인',
+    topModels: '상위 10개 모델',
+    topOffenders: '상위 5개 원인',
+    topComponents: '상위 10개 부품',
     participationSelectedPeriod: '선택 기간 비중',
     highestRateLines: '비율이 높은 라인',
     efficiencyRanking: '현재 선택 범위 효율 순위',

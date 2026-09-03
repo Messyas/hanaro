@@ -167,6 +167,12 @@ Mapeamento atual: linha = `receipt_department`, componente = `item_type`, modelo
 = `item_code` e ofensor = `account_alias`. O frontend não deve reinterpretar
 essas dimensões nem recalcular percentuais.
 
+## Limitações de Escopo e Dados Atuais (Scrap Rate e QTY)
+
+Atualmente, o pipeline de ingestão do GERP consome apenas o relatório de descartes de estoque (MATERIAL_SCRAP). O backend ainda não possui as tabelas nem a ingestão dos dados de produção total ou consumo de matéria-prima da fábrica para compor esse denominador.
+
+Por isso, na tela, tanto a Taxa de Scrap (análise relativa) quanto a Quantidade (QTY) utilizam dados mockados: a base de dados real do backend hoje só tem o valor financeiro absoluto/com sinal dos descartes.
+
 ## Pendências de homologação
 
 1. Confirmar se `Organization Code = ALL` retorna todas as NWS no Runner.

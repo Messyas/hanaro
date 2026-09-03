@@ -91,4 +91,12 @@ describe('DashboardStore', () => {
     expect(store.relativeKpis().rate).toBeGreaterThan(0);
     expect(store.relativeKpis().denominator).toBeGreaterThan(store.relativeKpis().numerator);
   });
+
+  it('exposes line, model, offender, and component rankings in snapshot', () => {
+    const snapshot = store.snapshot();
+    expect(snapshot.lines.length).toBeGreaterThan(0);
+    expect(snapshot.models.length).toBeGreaterThan(0);
+    expect(snapshot.offenders.length).toBeGreaterThan(0);
+    expect(snapshot.components.length).toBeGreaterThan(0);
+  });
 });

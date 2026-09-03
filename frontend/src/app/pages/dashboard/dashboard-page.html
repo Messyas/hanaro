@@ -26,28 +26,25 @@
     </div>
   </section>
   <section class="dashboard-toolbar" [attr.aria-label]="text().analysisControlsAria">
-    <div class="analysis-switch-control">
+    <div class="analysis-switch-control is-locked" [attr.title]="text().scrapRateLockedHint">
       <button
         class="analysis-toggle"
         type="button"
         role="switch"
-        [class.active]="store.analysis() === 'relative'"
-        [attr.aria-checked]="store.analysis() === 'relative'"
-        [attr.aria-label]="text().toggleAnalysisAria"
-        (click)="selectAnalysis(store.analysis() === 'absolute' ? 'relative' : 'absolute')"
+        disabled
+        [class.active]="false"
+        [attr.aria-checked]="false"
+        [attr.aria-disabled]="true"
+        [attr.aria-label]="text().scrapRateLockedHint"
+        [attr.title]="text().scrapRateLockedHint"
       >
         <span></span>
       </button>
       <span>
-        {{ store.analysis() === 'relative' ? 'Scrap Rate' : text().absoluteImpact }}
-        @if (store.analysis() === 'relative') {
-          <small>{{ text().relativeEfficiency }}</small>
-        }
+        {{ text().absoluteImpact }}
+        <small class="lock-indicator">{{ text().scrapRateLockedHint }}</small>
       </span>
     </div>
-    <span class="dashboard-data-status"
-      >{{ dataStatusLabel() }} · {{ text().updated }} {{ lastUpdatedLabel() }}</span
-    >
     <div class="analysis-controls">
       <app-list-filter-popover
         [activeCount]="advancedFiltersCount()"
@@ -135,20 +132,13 @@
               (selectionChange)="changeMultiFilter('week', $event)"
             />
           }
-          <label class="dashboard-field">
-            <span>{{ text().component }}</span>
-            <select
-              [attr.aria-label]="text().component"
-              [disabled]="store.analysis() === 'relative'"
-              [value]="store.filters().component"
-              (change)="changeFilter('component', $event)"
-            >
-              <option value="Todos">{{ text().allMasculine }}</option>
-              @for (component of store.options.components; track component) {
-                <option [value]="component">{{ component }}</option>
-              }
-            </select>
-          </label>
+          <app-list-filter-select
+            [label]="text().component"
+            [ariaLabel]="text().component"
+            [options]="componentOptions()"
+            [value]="store.filters().component"
+            (changed)="changeComponent($event)"
+          />
         </div>
       </app-list-filter-popover>
 
@@ -170,18 +160,15 @@
           QTY Scrap
         </button>
       </div>
-      <label class="comparison-control">
-        <span>{{ text().compareWith }}</span>
-        <select
-          [attr.aria-label]="text().compareWith"
-          [value]="store.comparison()"
-          (change)="selectComparison($event)"
-        >
-          @for (option of comparisonOptions; track option) {
-            <option [value]="option">{{ comparisonOptionLabel(option) }}</option>
-          }
-        </select>
-      </label>
+      <app-list-filter-select
+        class="comparison-select"
+        [label]="text().compareWith"
+        [ariaLabel]="text().compareWith"
+        [options]="comparisonOptions()"
+        [value]="store.comparison()"
+        layout="inline"
+        (changed)="onComparisonChange($event)"
+      />
       <button
         class="mask-values-button"
         type="button"
@@ -305,65 +292,53 @@
               {{ text().weeklyView }}
             </button>
           </div>
-          <button
-            class="chart-filter-button"
-            type="button"
-            [attr.aria-expanded]="evolutionFiltersOpen()"
-            (click)="toggleEvolutionFilters()"
+          <app-list-filter-popover
+            [(open)]="evolutionFiltersOpen"
+            [activeCount]="evolutionFiltersCount()"
+            [triggerLabel]="text().chartFilters"
+            [title]="text().chartFilters"
+            [clearLabel]="text().clearChartFilters"
+            [applyLabel]="text().apply"
+            (cleared)="clearEvolutionFilters()"
           >
-            <ui-icon name="filter" />
-            <span>{{ evolutionFiltersLabel() }}</span>
-          </button>
+            <div class="dashboard-filter-grid-chart">
+              <app-list-filter-select
+                [label]="text().period"
+                [ariaLabel]="text().period"
+                [options]="periodOptions()"
+                [value]="evolutionFilters().period"
+                (changed)="changeEvolutionPeriod($event)"
+              />
+              <app-dashboard-multi-select
+                [label]="text().product"
+                [allLabel]="text().allMasculine"
+                [applyLabel]="text().apply"
+                [selectedPlural]="text().selectedPlural"
+                [currentSelectionLabel]="text().currentSelection"
+                [removeLabel]="text().removeFilter"
+                [searchLabel]="text().searchOptions"
+                [noOptionsLabel]="text().noFilterOptions"
+                [options]="store.options.products"
+                [selected]="evolutionFilters().product"
+                (selectionChange)="changeEvolutionMultiFilter('product', $event)"
+              />
+              <app-dashboard-multi-select
+                [label]="text().line"
+                [allLabel]="text().allFeminine"
+                [applyLabel]="text().apply"
+                [selectedPlural]="text().selectedPlural"
+                [currentSelectionLabel]="text().currentSelection"
+                [removeLabel]="text().removeFilter"
+                [searchLabel]="text().searchOptions"
+                [noOptionsLabel]="text().noFilterOptions"
+                [options]="store.options.lines"
+                [selected]="evolutionFilters().line"
+                (selectionChange)="changeEvolutionMultiFilter('line', $event)"
+              />
+            </div>
+          </app-list-filter-popover>
         </div>
       </div>
-      @if (evolutionFiltersOpen()) {
-        <app-dashboard-chart-filter-panel
-          [label]="text().chartFilters"
-          [summary]="evolutionFilterSummary()"
-          [clearLabel]="text().clearChartFilters"
-          [clearDisabled]="!evolutionFiltersCount()"
-          (clear)="clearEvolutionFilters()"
-        >
-          <label class="dashboard-field">
-            <span>{{ text().period }}</span>
-            <select
-              [attr.aria-label]="text().period"
-              [value]="evolutionFilters().period"
-              (change)="changeEvolutionPeriod($event)"
-            >
-              @for (period of store.options.periods; track period.value) {
-                <option [value]="period.value">{{ periodOptionLabel(period.value) }}</option>
-              }
-            </select>
-          </label>
-          <app-dashboard-multi-select
-            [label]="text().product"
-            [allLabel]="text().allMasculine"
-            [applyLabel]="text().apply"
-            [selectedPlural]="text().selectedPlural"
-            [currentSelectionLabel]="text().currentSelection"
-            [removeLabel]="text().removeFilter"
-            [searchLabel]="text().searchOptions"
-            [noOptionsLabel]="text().noFilterOptions"
-            [options]="store.options.products"
-            [selected]="evolutionFilters().product"
-            (selectionChange)="changeEvolutionMultiFilter('product', $event)"
-          />
-          <app-dashboard-multi-select
-            [label]="text().line"
-            [allLabel]="text().allFeminine"
-            [applyLabel]="text().apply"
-            [selectedPlural]="text().selectedPlural"
-            [currentSelectionLabel]="text().currentSelection"
-            [removeLabel]="text().removeFilter"
-            [searchLabel]="text().searchOptions"
-            [noOptionsLabel]="text().noFilterOptions"
-            [options]="store.options.lines"
-            [selected]="evolutionFilters().line"
-            (selectionChange)="changeEvolutionMultiFilter('line', $event)"
-          />
-        </app-dashboard-chart-filter-panel>
-      }
       @defer (on viewport) {
         @if (hasPerformanceData()) {
           <app-dashboard-performance-chart
@@ -374,6 +349,7 @@
             [language]="language.currentLanguage()"
             [labels]="performanceLabels()"
             [monetaryValuesHidden]="store.monetaryValuesHidden()"
+            [view]="evolutionView()"
           />
         } @else {
           <div class="chart-empty-state">
@@ -411,89 +387,53 @@
           </p>
         </div>
         <div class="panel-header-actions">
-          <div
-            class="ranking-limit-switch"
-            role="group"
-            [attr.aria-label]="text().rankingLimitAria"
+          <app-list-filter-popover
+            [(open)]="distributionFiltersOpen"
+            [activeCount]="distributionFiltersCount()"
+            [triggerLabel]="text().chartFilters"
+            [title]="text().chartFilters"
+            [clearLabel]="text().clearChartFilters"
+            [applyLabel]="text().apply"
+            (cleared)="clearDistributionFilters()"
           >
-            <button
-              type="button"
-              [class.active]="store.rankingLimit() === 5"
-              [attr.aria-pressed]="store.rankingLimit() === 5"
-              (click)="selectRankingLimit(5)"
-            >
-              {{ text().topFive }}
-            </button>
-            <button
-              type="button"
-              [class.active]="store.rankingLimit() === 10"
-              [attr.aria-pressed]="store.rankingLimit() === 10"
-              (click)="selectRankingLimit(10)"
-            >
-              {{ text().topTen }}
-            </button>
-          </div>
-          <button
-            class="chart-filter-button"
-            type="button"
-            [attr.aria-expanded]="distributionFiltersOpen()"
-            (click)="toggleDistributionFilters()"
-          >
-            <ui-icon name="filter" />
-            <span>{{ distributionFiltersLabel() }}</span>
-          </button>
+            <div class="dashboard-filter-grid-chart">
+              <app-dashboard-multi-select
+                [label]="text().product"
+                [allLabel]="text().allMasculine"
+                [applyLabel]="text().apply"
+                [selectedPlural]="text().selectedPlural"
+                [currentSelectionLabel]="text().currentSelection"
+                [removeLabel]="text().removeFilter"
+                [searchLabel]="text().searchOptions"
+                [noOptionsLabel]="text().noFilterOptions"
+                [options]="store.options.products"
+                [selected]="distributionFilters().product"
+                (selectionChange)="changeDistributionMultiFilter('product', $event)"
+              />
+              <app-dashboard-multi-select
+                [label]="text().line"
+                [allLabel]="text().allFeminine"
+                [applyLabel]="text().apply"
+                [selectedPlural]="text().selectedPlural"
+                [currentSelectionLabel]="text().currentSelection"
+                [removeLabel]="text().removeFilter"
+                [searchLabel]="text().searchOptions"
+                [noOptionsLabel]="text().noFilterOptions"
+                [options]="store.options.lines"
+                [selected]="distributionFilters().line"
+                (selectionChange)="changeDistributionMultiFilter('line', $event)"
+              />
+              <app-list-filter-select
+                [label]="text().component"
+                [ariaLabel]="text().component"
+                [options]="componentOptions()"
+                [value]="distributionFilters().component"
+                (changed)="changeDistributionComponent($event)"
+              />
+            </div>
+          </app-list-filter-popover>
         </div>
       </div>
-      @if (distributionFiltersOpen()) {
-        <app-dashboard-chart-filter-panel
-          [label]="text().chartFilters"
-          [summary]="distributionFilterSummary()"
-          [clearLabel]="text().clearChartFilters"
-          [clearDisabled]="!distributionFiltersCount()"
-          variant="distribution"
-          (clear)="clearDistributionFilters()"
-        >
-          <app-dashboard-multi-select
-            [label]="text().product"
-            [allLabel]="text().allMasculine"
-            [applyLabel]="text().apply"
-            [selectedPlural]="text().selectedPlural"
-            [currentSelectionLabel]="text().currentSelection"
-            [removeLabel]="text().removeFilter"
-            [searchLabel]="text().searchOptions"
-            [noOptionsLabel]="text().noFilterOptions"
-            [options]="store.options.products"
-            [selected]="distributionFilters().product"
-            (selectionChange)="changeDistributionMultiFilter('product', $event)"
-          />
-          <app-dashboard-multi-select
-            [label]="text().line"
-            [allLabel]="text().allFeminine"
-            [applyLabel]="text().apply"
-            [selectedPlural]="text().selectedPlural"
-            [currentSelectionLabel]="text().currentSelection"
-            [removeLabel]="text().removeFilter"
-            [searchLabel]="text().searchOptions"
-            [noOptionsLabel]="text().noFilterOptions"
-            [options]="store.options.lines"
-            [selected]="distributionFilters().line"
-            (selectionChange)="changeDistributionMultiFilter('line', $event)"
-          />
-          <label class="dashboard-field">
-            <span>{{ text().component }}</span>
-            <select
-              [attr.aria-label]="text().component"
-              [value]="distributionFilters().component"
-              (change)="changeDistributionComponent($event)"
-            >
-              <option value="Todos">{{ text().allMasculine }}</option>
-              @for (component of store.options.components; track component) {
-                <option [value]="component">{{ component }}</option>
-              }
-            </select>
-          </label>
-        </app-dashboard-chart-filter-panel>
-      }
       @defer (on viewport) {
         @if (hasDistributionData()) {
           <app-dashboard-distribution-chart
@@ -507,6 +447,112 @@
           <div class="chart-empty-state">
             <strong>{{ text().noChartDataTitle }}</strong>
             <span>{{ distributionEmptyStateHint() }}</span>
+          </div>
+        }
+      } @placeholder {
+        <div class="chart-defer-placeholder" aria-hidden="true"></div>
+      }
+    </article>
+  </section>
+
+  <section class="scrap-rankings-grid">
+    <article class="panel ranking-panel">
+      <div class="panel-header">
+        <div>
+          <h3>{{ text().topLines }}</h3>
+        </div>
+      </div>
+      @defer (on viewport) {
+        @if (hasLinesData()) {
+          <app-dashboard-distribution-chart
+            [data]="linesData()"
+            [metric]="store.metric()"
+            [analysis]="store.analysis()"
+            [language]="language.currentLanguage()"
+            [monetaryValuesHidden]="store.monetaryValuesHidden()"
+          />
+        } @else {
+          <div class="chart-empty-state">
+            <strong>{{ text().noChartDataTitle }}</strong>
+            <span>{{ text().noChartData }}</span>
+          </div>
+        }
+      } @placeholder {
+        <div class="chart-defer-placeholder" aria-hidden="true"></div>
+      }
+    </article>
+
+    <article class="panel ranking-panel">
+      <div class="panel-header">
+        <div>
+          <h3>{{ text().topModels }}</h3>
+        </div>
+      </div>
+      @defer (on viewport) {
+        @if (hasModelsData()) {
+          <app-dashboard-distribution-chart
+            [data]="modelsData()"
+            [metric]="store.metric()"
+            [analysis]="store.analysis()"
+            [language]="language.currentLanguage()"
+            [monetaryValuesHidden]="store.monetaryValuesHidden()"
+          />
+        } @else {
+          <div class="chart-empty-state">
+            <strong>{{ text().noChartDataTitle }}</strong>
+            <span>{{ text().noChartData }}</span>
+          </div>
+        }
+      } @placeholder {
+        <div class="chart-defer-placeholder" aria-hidden="true"></div>
+      }
+    </article>
+
+    <article class="panel ranking-panel">
+      <div class="panel-header">
+        <div>
+          <h3>{{ text().topComponents }}</h3>
+        </div>
+      </div>
+      @defer (on viewport) {
+        @if (hasComponentsData()) {
+          <app-dashboard-distribution-chart
+            [data]="componentsData()"
+            [metric]="store.metric()"
+            [analysis]="store.analysis()"
+            [language]="language.currentLanguage()"
+            [monetaryValuesHidden]="store.monetaryValuesHidden()"
+          />
+        } @else {
+          <div class="chart-empty-state">
+            <strong>{{ text().noChartDataTitle }}</strong>
+            <span>{{ text().noChartData }}</span>
+          </div>
+        }
+      } @placeholder {
+        <div class="chart-defer-placeholder" aria-hidden="true"></div>
+      }
+    </article>
+
+    <article class="panel ranking-panel">
+      <div class="panel-header">
+        <div>
+          <h3>{{ text().topOffenders }}</h3>
+        </div>
+      </div>
+      @defer (on viewport) {
+        @if (hasOffendersData()) {
+          <app-dashboard-distribution-chart
+            [data]="offendersData()"
+            [metric]="store.metric()"
+            [analysis]="store.analysis()"
+            [language]="language.currentLanguage()"
+            [monetaryValuesHidden]="store.monetaryValuesHidden()"
+          />
+        } @else {
+          <div class="chart-empty-state">
+            <strong>{{ text().noChartDataTitle }}</strong>
+            <span>{{ text().noChartData }}</span>
           </div>
         }
       } @placeholder {
