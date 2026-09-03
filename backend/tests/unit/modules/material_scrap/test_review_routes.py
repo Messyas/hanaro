@@ -10,7 +10,7 @@ from httpx import ASGITransport, AsyncClient
 from PIL import Image
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from src.infrastructure.auth.dependencies import get_current_superuser, get_current_user
+from src.infrastructure.auth.dependencies import get_current_user
 from src.infrastructure.database.session import Base, async_session
 from src.modules.material_scrap.dependencies import get_scrap_review_image_storage
 from src.modules.material_scrap.models import ScrapOccurrence
@@ -65,13 +65,12 @@ async def review_client(tmp_path: Path) -> AsyncGenerator[tuple[AsyncClient, lis
             "id": user.id,
             "name": user.name,
             "username": user.username,
-            "is_superuser": True,
+            "is_superuser": False,
         }
 
     storage = ScrapReviewImageStorage(str(tmp_path), 1024 * 1024, 4096, max_attachments=3)
     app.dependency_overrides[async_session] = override_session
     app.dependency_overrides[get_current_user] = authenticated_user
-    app.dependency_overrides[get_current_superuser] = authenticated_user
     app.dependency_overrides[get_scrap_review_image_storage] = lambda: storage
     ids = [str(item.id) for item in occurrences]
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://testserver") as client:
@@ -113,11 +112,22 @@ async def test_review_draft_finalize_and_immutable_contract(
     assert finalized.json()["status"] == "REVIEWED"
     assert finalized.json()["version"] == 2
 
-    immutable = await client.put(
+    # Edição de relatório finalizado é permitida
+    edited = await client.put(
         f"/api/v1/scrap/reviews/{occurrences[0]}",
         json={"title": "Changed", "description": "Changed", "expected_version": 2},
     )
-    assert immutable.status_code == 409
+    assert edited.status_code == 200
+    assert edited.json()["title"] == "Changed"
+    assert edited.json()["status"] == "REVIEWED"
+    assert edited.json()["version"] == 3
+
+    # Conflito de versão ainda gera 409
+    conflict = await client.put(
+        f"/api/v1/scrap/reviews/{occurrences[0]}",
+        json={"title": "Stale", "description": "Stale", "expected_version": 1},
+    )
+    assert conflict.status_code == 409
 
 
 @pytest.mark.asyncio
@@ -199,3 +209,40 @@ async def test_private_attachment_lifecycle(review_client: tuple[AsyncClient, li
     remaining = (await client.get(f"/api/v1/scrap/reviews/{occurrences[3]}")).json()["attachments"]
     assert len(remaining) == 1
     assert remaining[0]["position"] == 1
+
+
+@pytest.mark.asyncio
+async def test_non_superuser_can_create_and_update_review_type(
+    review_client: tuple[AsyncClient, list[str]],
+) -> None:
+    client, _ = review_client
+    create_resp = await client.post(
+        "/api/v1/scrap/review-types",
+        json={
+            "code": "COLLAB_DEFECT",
+            "name": "Collaborative Defect",
+            "description": "Created by analyst collaboratively",
+            "display_order": 5,
+        },
+    )
+    assert create_resp.status_code == 201
+    defect_type = create_resp.json()
+    assert defect_type["code"] == "COLLAB_DEFECT"
+    assert defect_type["name"] == "Collaborative Defect"
+    assert defect_type["is_active"] is True
+
+    update_resp = await client.patch(
+        f"/api/v1/scrap/review-types/{defect_type['id']}",
+        json={"name": "Updated Collaborative Defect", "is_active": False},
+    )
+    assert update_resp.status_code == 200
+    updated = update_resp.json()
+    assert updated["name"] == "Updated Collaborative Defect"
+    assert updated["is_active"] is False
+
+    del_resp = await client.delete(f"/api/v1/scrap/review-types/{defect_type['id']}")
+    assert del_resp.status_code == 204
+
+    all_types_resp = await client.get("/api/v1/scrap/review-types?include_inactive=true")
+    assert all_types_resp.status_code == 200
+    assert not any(t["id"] == defect_type["id"] for t in all_types_resp.json())

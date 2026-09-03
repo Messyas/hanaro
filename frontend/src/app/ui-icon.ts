@@ -30,6 +30,7 @@ export type IconName =
   | 'log-in'
   | 'mail'
   | 'plus'
+  | 'pencil'
   | 'sidebar'
   | 'shopping-bag'
   | 'store'
@@ -140,6 +141,7 @@ export type IconName =
         }
         @case ('heart') {
           <path
+            pathLength="1"
             d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"
           />
         }
@@ -184,6 +186,10 @@ export type IconName =
         }
         @case ('plus') {
           <path d="M12 5v14M5 12h14" />
+        }
+        @case ('pencil') {
+          <path pathLength="1" d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+          <path pathLength="1" d="m15 5 4 4" />
         }
         @case ('chevron-down') {
           <path d="m7 9.5 5 5 5-5" />

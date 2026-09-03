@@ -16,18 +16,26 @@ import { ScrapReviewAttachment } from '../scrap-review.models';
 
 const MAX_ATTACHMENTS = 8;
 const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MiB
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/pjpeg', 'image/png', 'image/webp'];
+const ALLOWED_EXTENSIONS = ['jpeg', 'jpg', 'png', 'webp'];
 
 export interface LocalAttachmentItem {
-  id: string; // generated client ID or attachment ID
+  id: string;
   name: string;
   sizeBytes: number;
   url: string;
   isLocalPreview: boolean;
-  persistedId?: string;
-  status: 'pending' | 'uploading' | 'done' | 'error';
-  errorMessage?: string;
   file?: File;
+}
+
+export interface DisplayAttachmentItem {
+  id: string;
+  name: string;
+  sizeBytes: number;
+  url: string;
+  isPersisted: boolean;
+  persistedAttachment?: ScrapReviewAttachment;
+  localItem?: LocalAttachmentItem;
 }
 
 @Component({
@@ -53,9 +61,37 @@ export class ScrapReviewAttachments implements OnDestroy {
   readonly lightboxItem = signal<{ url: string; name: string } | null>(null);
   readonly isDragOver = signal(false);
 
-  readonly totalCount = computed(
-    () => this.attachments().length + this.localItems().filter((item) => !item.persistedId).length,
-  );
+  readonly displayItems = computed<DisplayAttachmentItem[]>(() => {
+    const list: DisplayAttachmentItem[] = [];
+
+    for (const att of this.attachments()) {
+      list.push({
+        id: att.id,
+        name: att.original_filename,
+        sizeBytes: att.size_bytes,
+        url: att.url,
+        isPersisted: true,
+        persistedAttachment: att,
+      });
+    }
+
+    for (const item of this.localItems()) {
+      if (!list.some((existing) => existing.name === item.name)) {
+        list.push({
+          id: item.id,
+          name: item.name,
+          sizeBytes: item.sizeBytes,
+          url: item.url,
+          isPersisted: false,
+          localItem: item,
+        });
+      }
+    }
+
+    return list;
+  });
+
+  readonly totalCount = computed(() => this.displayItems().length);
   readonly canAddMore = computed(() => !this.readOnly() && this.totalCount() < MAX_ATTACHMENTS);
 
   @HostListener('window:keydown.escape')
@@ -119,7 +155,11 @@ export class ScrapReviewAttachments implements OnDestroy {
     const validFiles: File[] = [];
 
     for (const file of files) {
-      if (!ALLOWED_TYPES.includes(file.type)) {
+      const type = (file.type || '').toLowerCase();
+      const ext = file.name.split('.').pop()?.toLowerCase() || '';
+      const isAllowed = ALLOWED_MIME_TYPES.includes(type) || ALLOWED_EXTENSIONS.includes(ext);
+
+      if (!isAllowed) {
         this.activeError.set(this.t().scrapAttachmentTypeError);
         return;
       }
@@ -141,12 +181,22 @@ export class ScrapReviewAttachments implements OnDestroy {
         sizeBytes: file.size,
         url: URL.createObjectURL(file),
         isLocalPreview: true,
-        status: 'pending',
         file,
       }));
 
       this.localItems.update((items) => [...items, ...newItems]);
       this.filesSelected.emit(validFiles);
+    }
+  }
+
+  removeItem(item: DisplayAttachmentItem): void {
+    if (this.readOnly()) return;
+    if (item.isPersisted && item.persistedAttachment) {
+      if (confirm(this.t().scrapAttachmentDeleteConfirm)) {
+        this.attachmentDeleted.emit(item.persistedAttachment.id);
+      }
+    } else if (item.localItem) {
+      this.removeLocalItem(item.localItem);
     }
   }
 
@@ -156,13 +206,6 @@ export class ScrapReviewAttachments implements OnDestroy {
       URL.revokeObjectURL(item.url);
     }
     this.localItems.update((items) => items.filter((i) => i.id !== item.id));
-  }
-
-  removePersistedAttachment(att: ScrapReviewAttachment): void {
-    if (this.readOnly()) return;
-    if (confirm(this.t().scrapAttachmentDeleteConfirm)) {
-      this.attachmentDeleted.emit(att.id);
-    }
   }
 
   openLightbox(url: string, name: string): void {

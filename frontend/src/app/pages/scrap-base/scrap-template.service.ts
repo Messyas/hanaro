@@ -1,7 +1,11 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
-import { ScrapReviewTemplate, ScrapReviewTemplateCreate } from './scrap-template.models';
+import {
+  ScrapReviewTemplate,
+  ScrapReviewTemplateCreate,
+  ScrapReviewTemplateUpdate,
+} from './scrap-template.models';
 
 @Injectable({ providedIn: 'root' })
 export class ScrapTemplateService {
@@ -36,6 +40,24 @@ export class ScrapTemplateService {
         ]);
       }),
     );
+  }
+
+  updateTemplate(
+    templateId: string,
+    payload: ScrapReviewTemplateUpdate,
+  ): Observable<ScrapReviewTemplate> {
+    return this.http
+      .patch<ScrapReviewTemplate>(`${this.baseUrl}/${encodeURIComponent(templateId)}`, payload)
+      .pipe(
+        tap((updated) => {
+          this.templates.update((current) =>
+            current.map((template) => (template.id === updated.id ? updated : template)),
+          );
+          if (this.activeTemplate()?.id === updated.id) {
+            this.activeTemplate.set(updated);
+          }
+        }),
+      );
   }
 
   deleteTemplate(templateId: string): Observable<void> {

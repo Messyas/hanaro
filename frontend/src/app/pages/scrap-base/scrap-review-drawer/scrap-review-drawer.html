@@ -13,9 +13,9 @@
         <span class="meta-label">{{ t().scrapDrawerContext }}</span>
         <div class="title-row">
           <h3 id="drawer-review-title">
-            {{ occurrence()?.item_code || 'Ocorrência' }}
-            @if (occurrence()?.organization_code) {
-              <span class="org-tag">({{ occurrence()!.organization_code }})</span>
+            {{ currentOccurrence()?.item_code || 'Ocorrência' }}
+            @if (currentOccurrence()?.organization_code) {
+              <span class="org-tag">({{ currentOccurrence()!.organization_code }})</span>
             }
           </h3>
           <app-status-badge [label]="reviewStatusLabel()" [tone]="reviewStatusTone()" />
@@ -38,6 +38,23 @@
             >
               <ui-icon [name]="isFavoriteTemplate() ? 'heart-filled' : 'heart'" />
             </button>
+
+            @if (canEditFinalized()) {
+              <button
+                class="btn btn-ghost edit-report-btn"
+                [class.is-editing]="isEditingFinalized()"
+                type="button"
+                [title]="
+                  isEditingFinalized() ? t().scrapActionCancelEdit : t().scrapActionEditReview
+                "
+                [attr.aria-label]="
+                  isEditingFinalized() ? t().scrapActionCancelEdit : t().scrapActionEditReview
+                "
+                (click)="toggleEditFinalized()"
+              >
+                <ui-icon [name]="isEditingFinalized() ? 'x' : 'pencil'" />
+              </button>
+            }
           }
         }
         <button
@@ -50,6 +67,46 @@
         </button>
       </div>
     </header>
+
+    <!-- Barra da Fila de Relatórios -->
+    @if (isQueueMode()) {
+      <div class="drawer-queue-bar" role="region" aria-label="Progresso da fila de relatórios">
+        <div class="queue-bar-info">
+          <ui-icon name="clock" class="queue-bar-icon" />
+          <span class="queue-bar-title">{{ t().scrapQueueTitle }}</span>
+          <span class="queue-bar-progress"> {{ queueCurrentDisplay() }} / {{ queueTotal() }} </span>
+        </div>
+        <div class="queue-bar-nav">
+          <button
+            type="button"
+            class="btn btn-ghost btn-xs queue-nav-btn"
+            (click)="previousInQueue()"
+            [disabled]="isQueueFirst() || saving() || finalizing() || uploading()"
+            [title]="t().scrapQueuePrevious"
+          >
+            <ui-icon name="chevron-left" />
+            <span>{{ t().scrapQueuePrevious }}</span>
+          </button>
+          <button
+            type="button"
+            class="btn btn-ghost btn-xs queue-nav-btn"
+            (click)="nextInQueue()"
+            [disabled]="isQueueLast() || saving() || finalizing() || uploading()"
+            [title]="t().scrapQueueSkip"
+          >
+            <span>{{ t().scrapQueueSkip }}</span>
+            <ui-icon name="chevron-right" />
+          </button>
+        </div>
+      </div>
+    }
+
+    @if (saveStatusLabel(); as status) {
+      <div class="save-status" [class.is-unsaved]="isDirty()" role="status">
+        <span></span>
+        {{ status }}
+      </div>
+    }
 
     <!-- Corpo com Rolagem -->
     <div class="drawer-body">
@@ -74,61 +131,64 @@
           </div>
         }
 
-        <!-- Resumo compacto da ocorrência -->
+        <!-- Resumo compacto da ocorrência (visível apenas no modo de edição/formulário) -->
         @if (occurrence(); as occ) {
-          <section class="drawer-section occurrence-card">
-            <h4>{{ t().scrapDrawerSummaryTitle }}</h4>
-            <div class="occ-meta-grid">
-              <div class="occ-meta-item">
-                <span class="occ-label">{{ t().scrapColItem }}</span>
-                <span class="occ-value item-code">{{ occ.item_code }}</span>
-              </div>
-              <div class="occ-meta-item">
-                <span class="occ-label">{{ t().scrapColDescription }}</span>
-                <span class="occ-value text-ellipsis" [title]="occ.item_description || ''">
-                  {{ occ.item_description || '—' }}
-                </span>
-              </div>
-              <div class="occ-meta-item">
-                <span class="occ-label">{{ t().scrapColOrganization }}</span>
-                <span class="occ-value">{{ occ.organization_code }}</span>
-              </div>
-              <div class="occ-meta-item">
-                <span class="occ-label">{{ t().scrapColDate }}</span>
-                <span class="occ-value">{{ formatTransactionDate(occ.transaction_date) }}</span>
-              </div>
-              <div class="occ-meta-item">
-                <span class="occ-label">{{ t().scrapColQuantity }}</span>
-                <span class="occ-value">{{ occ.issue_quantity }}</span>
-              </div>
-              <div class="occ-meta-item">
-                <span class="occ-label">{{ t().scrapColAmountUsd }}</span>
-                <span class="occ-value font-semibold">{{ formatCurrency(occ.amount_usd) }}</span>
-              </div>
-              @if (occ.work_order) {
+          @if (!isPreviewMode()) {
+            <section class="drawer-section occurrence-card">
+              <h4>{{ t().scrapDrawerSummaryTitle }}</h4>
+              <div class="occ-meta-grid">
                 <div class="occ-meta-item">
-                  <span class="occ-label">{{ t().scrapColOrder }}</span>
-                  <span class="occ-value">{{ occ.work_order }}</span>
+                  <span class="occ-label">{{ t().scrapColItem }}</span>
+                  <span class="occ-value item-code">{{ occ.item_code }}</span>
                 </div>
-              }
-              @if (occ.occurrence_id) {
-                <div class="occ-meta-item full-width">
-                  <span class="occ-label">ID OCORRÊNCIA</span>
-                  <span class="occ-value id-code">{{ occ.occurrence_id }}</span>
+                <div class="occ-meta-item">
+                  <span class="occ-label">{{ t().scrapColDescription }}</span>
+                  <span class="occ-value text-ellipsis" [title]="occ.item_description || ''">
+                    {{ occ.item_description || '—' }}
+                  </span>
                 </div>
-              }
-            </div>
-          </section>
+                <div class="occ-meta-item">
+                  <span class="occ-label">{{ t().scrapColOrganization }}</span>
+                  <span class="occ-value">{{ occ.organization_code }}</span>
+                </div>
+                <div class="occ-meta-item">
+                  <span class="occ-label">{{ t().scrapColDate }}</span>
+                  <span class="occ-value">{{ formatTransactionDate(occ.transaction_date) }}</span>
+                </div>
+                <div class="occ-meta-item">
+                  <span class="occ-label">{{ t().scrapColQuantity }}</span>
+                  <span class="occ-value">{{ occ.issue_quantity }}</span>
+                </div>
+                <div class="occ-meta-item">
+                  <span class="occ-label">{{ t().scrapColAmountUsd }}</span>
+                  <span class="occ-value font-semibold">{{ formatCurrency(occ.amount_usd) }}</span>
+                </div>
+                @if (occ.work_order) {
+                  <div class="occ-meta-item">
+                    <span class="occ-label">{{ t().scrapColOrder }}</span>
+                    <span class="occ-value">{{ occ.work_order }}</span>
+                  </div>
+                }
+                @if (occ.occurrence_id) {
+                  <div class="occ-meta-item full-width">
+                    <span class="occ-label">ID OCORRÊNCIA</span>
+                    <span class="occ-value id-code">{{ occ.occurrence_id }}</span>
+                  </div>
+                }
+              </div>
+            </section>
+          }
         }
 
         <!-- Alternância entre Formulário e Preview -->
         @if (isPreviewMode()) {
           <app-scrap-review-preview
             [review]="review()"
-            [occurrence]="occurrence()"
+            [occurrence]="currentOccurrence()"
             [draftForm]="localFormModel()"
+            [draftAttachments]="draftAttachmentPreviews()"
             [isDraft]="!isReadOnly()"
-            [defectTypeName]="localFormModel().defectTypeId"
+            [defectTypeName]="selectedDefectTypeName()"
             (useAsReference)="useAsReference.emit($event)"
           />
         } @else {
@@ -150,12 +210,29 @@
     <footer class="drawer-footer">
       <div class="footer-left">
         <button type="button" class="btn btn-ghost" (click)="attemptClose()">
-          {{ t().cancel }}
+          {{ isReadOnly() ? t().close : t().cancel }}
         </button>
       </div>
 
       <div class="footer-right">
-        @if (!isReadOnly() && !loading()) {
+        @if (isEditingFinalized() && !loading()) {
+          <button
+            type="button"
+            class="btn btn-secondary"
+            (click)="cancelEditFinalized()"
+            [disabled]="saving()"
+          >
+            {{ t().scrapActionCancelEdit }}
+          </button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            (click)="saveFinalizedEdit()"
+            [disabled]="!canSaveFinalized() || saving()"
+          >
+            {{ saving() ? t().scrapActionSaving : t().scrapActionSaveEdit }}
+          </button>
+        } @else if (!isReadOnly() && !loading()) {
           <button
             type="button"
             class="btn btn-secondary"
@@ -165,14 +242,25 @@
             {{ isPreviewMode() ? t().scrapActionEdit : t().scrapActionPreview }}
           </button>
 
-          <button
-            type="button"
-            class="btn btn-secondary"
-            (click)="saveDraft()"
-            [disabled]="saving() || finalizing()"
-          >
-            {{ saving() ? t().scrapActionSaving : t().scrapActionSaveDraft }}
-          </button>
+          @if (isQueueMode() && !isQueueLast()) {
+            <button
+              type="button"
+              class="btn btn-secondary"
+              (click)="saveDraftAndAdvance()"
+              [disabled]="saving() || finalizing()"
+            >
+              {{ saving() ? t().scrapActionSaving : t().scrapQueueSaveDraftAndNext }}
+            </button>
+          } @else {
+            <button
+              type="button"
+              class="btn btn-secondary"
+              (click)="saveDraft()"
+              [disabled]="saving() || finalizing()"
+            >
+              {{ saving() ? t().scrapActionSaving : t().scrapActionSaveDraft }}
+            </button>
+          }
 
           <button
             type="button"
@@ -180,7 +268,15 @@
             (click)="promptFinalize()"
             [disabled]="!canFinalize() || saving() || finalizing()"
           >
-            {{ finalizing() ? t().scrapActionFinalizing : t().scrapActionFinalize }}
+            {{
+              finalizing()
+                ? t().scrapActionFinalizing
+                : isQueueMode()
+                  ? isQueueLast()
+                    ? t().scrapQueueFinalizeAndFinish
+                    : t().scrapQueueFinalizeAndNext
+                  : t().scrapActionFinalize
+            }}
           </button>
         }
       </div>
@@ -197,14 +293,28 @@
       aria-labelledby="confirm-title"
     >
       <div class="confirm-card" (click)="$event.stopPropagation()">
-        <h4 id="confirm-title" class="confirm-title">{{ t().scrapFinalizeConfirmTitle }}</h4>
+        <h4 id="confirm-title" class="confirm-title">
+          {{
+            isQueueMode()
+              ? isQueueLast()
+                ? t().scrapQueueFinalizeAndFinish
+                : t().scrapQueueFinalizeAndNext
+              : t().scrapFinalizeConfirmTitle
+          }}
+        </h4>
         <p class="confirm-message">{{ t().scrapFinalizeConfirmMessage }}</p>
         <div class="confirm-actions">
           <button type="button" class="btn btn-secondary" (click)="cancelFinalize()">
             {{ t().cancel }}
           </button>
           <button type="button" class="btn btn-primary" (click)="confirmFinalize()">
-            {{ t().scrapActionFinalize }}
+            {{
+              isQueueMode()
+                ? isQueueLast()
+                  ? t().scrapQueueFinalizeAndFinish
+                  : t().scrapQueueFinalizeAndNext
+                : t().scrapActionFinalize
+            }}
           </button>
         </div>
       </div>

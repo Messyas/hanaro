@@ -481,6 +481,19 @@ class ScrapReviewTemplateCreate(ContractModel):
     source_review_id: uuid.UUID | None = None
 
 
+class ScrapReviewTemplateUpdate(ContractModel):
+    name: str | None = Field(default=None, min_length=1, max_length=150)
+    title: str | None = Field(default=None, max_length=200)
+    description: str | None = Field(default=None, max_length=20_000)
+    defect_type_id: uuid.UUID | None = None
+
+    @model_validator(mode="after")
+    def require_change(self) -> "ScrapReviewTemplateUpdate":
+        if not self.model_fields_set:
+            raise ValueError("at least one field must be provided")
+        return self
+
+
 class ScrapReviewTemplateRead(BaseModel):
     id: uuid.UUID
     name: str
@@ -496,9 +509,16 @@ class ScrapReviewTemplateRead(BaseModel):
 
 
 class ScrapReviewBulkCreate(ContractModel):
-    reference_review_id: uuid.UUID
+    reference_review_id: uuid.UUID | None = None
+    template_id: uuid.UUID | None = None
     occurrence_ids: list[uuid.UUID] = Field(min_length=1, max_length=500)
     copy_attachments: bool = False
+
+    @model_validator(mode="after")
+    def require_single_source(self) -> "ScrapReviewBulkCreate":
+        if (self.reference_review_id is None) == (self.template_id is None):
+            raise ValueError("provide exactly one of reference_review_id or template_id")
+        return self
 
     @field_validator("occurrence_ids")
     @classmethod

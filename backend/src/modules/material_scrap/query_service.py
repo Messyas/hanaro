@@ -156,6 +156,7 @@ async def list_scrap(
     review_status: ScrapReviewFilterStatus | None = None,
     defect_type_ids: list[uuid.UUID] | None = None,
     responsible_user_ids: list[int] | None = None,
+    exclude_reviewed: bool = False,
 ) -> ScrapPage:
     attachment_counts = (
         select(
@@ -187,7 +188,9 @@ async def list_scrap(
         .where(ScrapOccurrence.status == "ACTIVE"),
         filters,
     )
-    if review_status == ScrapReviewFilterStatus.UNREVIEWED:
+    if exclude_reviewed:
+        statement = statement.where(or_(ScrapReview.id.is_(None), ScrapReview.status != ScrapReviewStatus.REVIEWED.value))
+    elif review_status == ScrapReviewFilterStatus.UNREVIEWED:
         statement = statement.where(ScrapReview.id.is_(None))
     elif review_status is not None:
         statement = statement.where(ScrapReview.status == review_status.value)

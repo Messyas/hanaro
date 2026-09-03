@@ -1,94 +1,382 @@
 @let t = language.translations();
 <section class="settings-page page-stack" aria-labelledby="settings-title">
-  <header class="settings-heading">
+  <header class="settings-header-container">
     <h1 class="page-title" id="settings-title">{{ t.settingsTitle }}</h1>
+
+    <!-- Barra de Abas -->
+    <nav class="settings-tabs-nav" role="tablist" [attr.aria-label]="t.settingsTitle">
+      <button
+        type="button"
+        role="tab"
+        class="settings-tab-btn"
+        [class.active]="activeTab() === 'preferences'"
+        [attr.aria-selected]="activeTab() === 'preferences'"
+        (click)="selectTab('preferences')"
+      >
+        <ui-icon name="cog" />
+        <span>{{ t.settingsTabPreferences }}</span>
+      </button>
+
+      <button
+        type="button"
+        role="tab"
+        class="settings-tab-btn"
+        [class.active]="activeTab() === 'system'"
+        [attr.aria-selected]="activeTab() === 'system'"
+        (click)="selectTab('system')"
+      >
+        <ui-icon name="building" />
+        <span>{{ t.settingsTabSystem }}</span>
+        @if (totalCount() > 0) {
+          <span class="tab-badge">{{ totalCount() }}</span>
+        }
+      </button>
+    </nav>
   </header>
 
-  <div class="settings-grid">
-    <article class="settings-card">
-      <header class="settings-card-header">
-        <h2>{{ t.themeTitle }}</h2>
-        <p>{{ t.themeSubtitle }}</p>
-      </header>
+  <!-- Conteúdo da Aba 1: Preferências (Tema e Idioma) -->
+  @if (activeTab() === 'preferences') {
+    <div class="settings-grid">
+      <article class="settings-card">
+        <header class="settings-card-header">
+          <h2>{{ t.themeTitle }}</h2>
+          <p>{{ t.themeSubtitle }}</p>
+        </header>
 
-      <div class="theme-options" role="group" [attr.aria-label]="t.themeGroupLabel">
-        <button
-          class="theme-preview light-preview"
-          type="button"
-          [class.selected]="theme.preference() === 'light'"
-          [attr.aria-pressed]="theme.preference() === 'light'"
-          (click)="theme.setPreference('light')"
-        >
-          <span class="preview-window" aria-hidden="true"
-            ><span class="preview-sidebar"></span
-            ><span class="preview-content"><i></i><i></i><i></i></span></span
-          ><strong>{{ t.themeLight }}</strong
-          ><small>{{ t.themeLightDesc }}</small>
-        </button>
-        <button
-          class="theme-preview dark-preview"
-          type="button"
-          [class.selected]="theme.preference() === 'dark'"
-          [attr.aria-pressed]="theme.preference() === 'dark'"
-          (click)="theme.setPreference('dark')"
-        >
-          <span class="preview-window" aria-hidden="true"
-            ><span class="preview-sidebar"></span
-            ><span class="preview-content"><i></i><i></i><i></i></span></span
-          ><strong>{{ t.themeDark }}</strong
-          ><small>{{ t.themeDarkDesc }}</small>
-        </button>
-      </div>
-
-      <div class="setting-row">
-        <div>
-          <strong>{{ t.darkToggle }}</strong>
-          <p>{{ t.darkToggleDesc }}</p>
-        </div>
-        <mat-slide-toggle
-          class="theme-toggle"
-          [checked]="theme.isDark()"
-          [disabled]="theme.followsSystem()"
-          [hideIcon]="true"
-          [attr.aria-label]="t.darkToggleAria"
-          (change)="theme.setDarkMode($event.checked)"
-        />
-      </div>
-      <div class="setting-row">
-        <div>
-          <strong>{{ t.systemToggle }}</strong>
-          <p>{{ t.systemToggleDesc }}</p>
-        </div>
-        <mat-slide-toggle
-          class="theme-toggle"
-          [checked]="theme.followsSystem()"
-          [hideIcon]="true"
-          [attr.aria-label]="t.systemToggleAria"
-          (change)="theme.followSystem($event.checked)"
-        />
-      </div>
-    </article>
-
-    <article class="settings-card language-card">
-      <header class="settings-card-header">
-        <h2>{{ t.languageTitle }}</h2>
-        <p>{{ t.languageSubtitle }}</p>
-      </header>
-
-      <div class="language-options" role="group" [attr.aria-label]="t.languageGroupLabel">
-        @for (opt of language.availableLanguages(); track opt.code) {
+        <div class="theme-options" role="group" [attr.aria-label]="t.themeGroupLabel">
           <button
-            class="language-button"
+            class="theme-preview light-preview"
             type="button"
-            [class.selected]="language.currentLanguage() === opt.code"
-            [attr.aria-pressed]="language.currentLanguage() === opt.code"
-            (click)="language.setLanguage(opt.code)"
+            [class.selected]="theme.preference() === 'light'"
+            [attr.aria-pressed]="theme.preference() === 'light'"
+            (click)="theme.setPreference('light')"
           >
-            <strong>{{ opt.nativeName }}</strong>
-            <small>{{ opt.label }}</small>
+            <span class="preview-window" aria-hidden="true"
+              ><span class="preview-sidebar"></span
+              ><span class="preview-content"><i></i><i></i><i></i></span></span
+            ><strong>{{ t.themeLight }}</strong
+            ><small>{{ t.themeLightDesc }}</small>
           </button>
+          <button
+            class="theme-preview dark-preview"
+            type="button"
+            [class.selected]="theme.preference() === 'dark'"
+            [attr.aria-pressed]="theme.preference() === 'dark'"
+            (click)="theme.setPreference('dark')"
+          >
+            <span class="preview-window" aria-hidden="true"
+              ><span class="preview-sidebar"></span
+              ><span class="preview-content"><i></i><i></i><i></i></span></span
+            ><strong>{{ t.themeDark }}</strong
+            ><small>{{ t.themeDarkDesc }}</small>
+          </button>
+        </div>
+
+        <div class="setting-row">
+          <div>
+            <strong>{{ t.darkToggle }}</strong>
+            <p>{{ t.darkToggleDesc }}</p>
+          </div>
+          <mat-slide-toggle
+            class="theme-toggle"
+            [checked]="theme.isDark()"
+            [disabled]="theme.followsSystem()"
+            [hideIcon]="true"
+            [attr.aria-label]="t.darkToggleAria"
+            (change)="theme.setDarkMode($event.checked)"
+          />
+        </div>
+        <div class="setting-row">
+          <div>
+            <strong>{{ t.systemToggle }}</strong>
+            <p>{{ t.systemToggleDesc }}</p>
+          </div>
+          <mat-slide-toggle
+            class="theme-toggle"
+            [checked]="theme.followsSystem()"
+            [hideIcon]="true"
+            [attr.aria-label]="t.systemToggleAria"
+            (change)="theme.followSystem($event.checked)"
+          />
+        </div>
+      </article>
+
+      <article class="settings-card language-card">
+        <header class="settings-card-header">
+          <h2>{{ t.languageTitle }}</h2>
+          <p>{{ t.languageSubtitle }}</p>
+        </header>
+
+        <div class="language-options" role="group" [attr.aria-label]="t.languageGroupLabel">
+          @for (opt of language.availableLanguages(); track opt.code) {
+            <button
+              class="language-button"
+              type="button"
+              [class.selected]="language.currentLanguage() === opt.code"
+              [attr.aria-pressed]="language.currentLanguage() === opt.code"
+              (click)="language.setLanguage(opt.code)"
+            >
+              <strong>{{ opt.nativeName }}</strong>
+              <small>{{ opt.label }}</small>
+            </button>
+          }
+        </div>
+      </article>
+    </div>
+  }
+
+  <!-- Conteúdo da Aba 2: Sistema (Tipos de Scrap) -->
+  @if (activeTab() === 'system') {
+    <div class="system-settings-stack">
+      @if (feedbackMessage(); as msg) {
+        <div
+          class="feedback-banner"
+          [class.success]="msg.type === 'success'"
+          [class.error]="msg.type === 'error'"
+        >
+          <ui-icon [name]="msg.type === 'success' ? 'check' : 'x'" />
+          <span>{{ msg.text }}</span>
+        </div>
+      }
+
+      <article class="defect-types-card">
+        <header class="settings-card-header">
+          <h2>{{ t.scrapDefectTypesTitle }}</h2>
+          <p>{{ t.scrapDefectTypesSubtitle }}</p>
+        </header>
+
+        <div class="card-intro-banner">
+          <ui-icon name="users" />
+          <span>
+            Categorias compartilhadas da organização: administradores e analistas trabalham em
+            equipe e visualizam as mesmas opções para classificar ocorrências nas revisões de
+            refugo.
+          </span>
+        </div>
+
+        <!-- Formulário de Adicionar Novo Tipo -->
+        <form class="defect-creation-panel" (ngSubmit)="createDefectType()">
+          <h3 class="panel-title">{{ t.scrapDefectTypeAddButton }}</h3>
+
+          <div class="defect-form-grid">
+            <div class="form-group">
+              <label class="form-label" for="new-defect-name">
+                {{ t.scrapDefectTypeNameLabel }} <span class="required-asterisk">*</span>
+              </label>
+              <input
+                id="new-defect-name"
+                type="text"
+                class="form-input"
+                [placeholder]="t.scrapDefectTypeNamePlaceholder"
+                [ngModel]="newName()"
+                (ngModelChange)="onNewNameInput($event)"
+                name="newName"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="new-defect-code">
+                {{ t.scrapDefectTypeCodeLabel }} <span class="required-asterisk">*</span>
+              </label>
+              <input
+                id="new-defect-code"
+                type="text"
+                class="form-input code-input"
+                [placeholder]="t.scrapDefectTypeCodePlaceholder"
+                [ngModel]="newCode()"
+                (ngModelChange)="onNewCodeInput($event)"
+                name="newCode"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="new-defect-desc">
+              {{ t.scrapDefectTypeDescLabel }}
+            </label>
+            <textarea
+              id="new-defect-desc"
+              class="form-textarea"
+              [placeholder]="t.scrapDefectTypeDescPlaceholder"
+              [ngModel]="newDesc()"
+              (ngModelChange)="newDesc.set($event)"
+              name="newDesc"
+              rows="2"
+            ></textarea>
+          </div>
+
+          <div class="form-actions">
+            <button
+              type="submit"
+              class="btn btn-primary"
+              [disabled]="!newName().trim() || !newCode().trim() || submitting()"
+            >
+              <ui-icon name="plus" />
+              <span>{{ t.scrapDefectTypeAddButton }}</span>
+            </button>
+          </div>
+        </form>
+
+        <!-- Lista de Tipos Cadastrados -->
+        <div class="defect-types-list-header">
+          <h3 class="list-title">{{ t.scrapDefectTypesTitle }}</h3>
+          <div class="list-summary-badges">
+            <span class="summary-pill">
+              {{ totalCount() }} {{ t.scrapDefectTypeCountSummary }}
+            </span>
+          </div>
+        </div>
+
+        @if (loadingDefectTypes()) {
+          <div class="empty-state-container">
+            <ui-icon name="clock" class="empty-state-icon" />
+            <p class="empty-state-desc">Carregando tipos de scrap...</p>
+          </div>
+        } @else if (defectTypes().length === 0) {
+          <div class="empty-state-container">
+            <div class="empty-state-icon">
+              <ui-icon name="folder" />
+            </div>
+            <strong class="empty-state-title">{{ t.scrapDefectTypeEmptyState }}</strong>
+          </div>
+        } @else {
+          <div class="types-table-card">
+            <table class="types-table">
+              <thead>
+                <tr>
+                  <th>Nome & Descrição</th>
+                  <th>Código</th>
+                  <th style="text-align: right">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of defectTypes(); track item.id) {
+                  @if (editingId() === item.id) {
+                    <!-- Linha em modo de edição -->
+                    <tr class="edit-inline-row">
+                      <td>
+                        <div class="edit-inputs-container">
+                          <input
+                            type="text"
+                            class="form-input"
+                            [ngModel]="editName()"
+                            (ngModelChange)="editName.set($event)"
+                            placeholder="Nome da categoria"
+                          />
+                          <input
+                            type="text"
+                            class="form-input"
+                            [ngModel]="editDesc()"
+                            (ngModelChange)="editDesc.set($event)"
+                            placeholder="Descrição (opcional)"
+                          />
+                        </div>
+                      </td>
+                      <td>
+                        <span class="type-code-badge">{{ item.code }}</span>
+                      </td>
+                      <td>
+                        <div class="actions-cell">
+                          <button
+                            type="button"
+                            class="btn btn-primary btn-sm"
+                            (click)="saveEdit(item)"
+                            [disabled]="!editName().trim() || submitting()"
+                          >
+                            <ui-icon name="check" />
+                            <span>{{ t.scrapDefectTypeSaveAction }}</span>
+                          </button>
+                          <button
+                            type="button"
+                            class="btn btn-secondary btn-sm"
+                            (click)="cancelEdit()"
+                          >
+                            <span>{{ t.scrapDefectTypeCancelAction }}</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  } @else {
+                    <tr>
+                      <td>
+                        <div class="type-name-cell">
+                          <span class="type-name-text">{{ item.name }}</span>
+                          @if (item.description) {
+                            <p class="type-desc-text">{{ item.description }}</p>
+                          }
+                        </div>
+                      </td>
+                      <td>
+                        <span class="type-code-badge">{{ item.code }}</span>
+                      </td>
+                      <td>
+                        <div class="actions-cell">
+                          <button
+                            type="button"
+                            class="btn btn-ghost btn-sm"
+                            (click)="startEdit(item)"
+                            title="Editar nome e descrição"
+                          >
+                            <ui-icon name="cog" />
+                            <span>{{ t.scrapDefectTypeEditAction }}</span>
+                          </button>
+                          <button
+                            type="button"
+                            class="btn btn-ghost btn-sm btn-delete-danger"
+                            (click)="promptDelete(item)"
+                            [title]="t.scrapDefectTypeDeleteAction"
+                          >
+                            <ui-icon name="trash" />
+                            <span>{{ t.scrapDefectTypeDeleteAction }}</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                }
+              </tbody>
+            </table>
+          </div>
         }
-      </div>
-    </article>
-  </div>
+
+        <!-- Modal de Confirmação de Exclusão -->
+        @if (confirmingDeleteItem(); as itemToDelete) {
+          <div
+            class="modal-backdrop"
+            (click)="cancelDelete()"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-type-title"
+          >
+            <div class="confirm-card" (click)="$event.stopPropagation()">
+              <h4 id="delete-type-title" class="confirm-title">
+                {{ t.scrapDefectTypeDeleteConfirmTitle }}
+              </h4>
+              <p class="confirm-message">
+                {{ t.scrapDefectTypeDeleteConfirmMessage }}
+                <strong>{{ itemToDelete.name }}</strong> (<code>{{ itemToDelete.code }}</code
+                >)?
+              </p>
+              <div class="confirm-actions">
+                <button type="button" class="btn btn-secondary" (click)="cancelDelete()">
+                  {{ t.scrapDefectTypeCancelAction }}
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-danger"
+                  (click)="confirmDelete(itemToDelete)"
+                  [disabled]="submitting()"
+                >
+                  <ui-icon name="trash" />
+                  <span>{{ t.scrapDefectTypeDeleteAction }}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+      </article>
+    </div>
+  }
 </section>
