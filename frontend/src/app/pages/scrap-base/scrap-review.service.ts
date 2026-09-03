@@ -23,6 +23,34 @@ export class ScrapReviewService {
     return this.http.get<ScrapDefectType[]>(`${this.baseUrl}/review-types`, { params });
   }
 
+  createDefectType(payload: {
+    code: string;
+    name: string;
+    description?: string | null;
+    display_order?: number;
+  }): Observable<ScrapDefectType> {
+    return this.http.post<ScrapDefectType>(`${this.baseUrl}/review-types`, payload);
+  }
+
+  updateDefectType(
+    id: string,
+    payload: {
+      name?: string;
+      description?: string | null;
+      display_order?: number;
+      is_active?: boolean;
+    },
+  ): Observable<ScrapDefectType> {
+    return this.http.patch<ScrapDefectType>(
+      `${this.baseUrl}/review-types/${encodeURIComponent(id)}`,
+      payload,
+    );
+  }
+
+  deleteDefectType(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/review-types/${encodeURIComponent(id)}`);
+  }
+
   getReview(occurrenceId: string): Observable<ScrapReview> {
     return this.http.get<ScrapReview>(
       `${this.baseUrl}/reviews/${encodeURIComponent(occurrenceId)}`,

@@ -3,28 +3,17 @@
     <h1 class="page-title" id="scrap-base-title">{{ t().scrapBaseTitle }}</h1>
     <div class="header-action-group">
       <!-- Botão e Popover de Modelos Salvos -->
-      <div class="template-popover-anchor">
-        <button
-          type="button"
-          class="btn btn-secondary template-menu-btn"
-          (click)="toggleTemplatePopover($event)"
-          aria-haspopup="dialog"
-          [attr.aria-expanded]="isTemplatePopoverOpen()"
-        >
-          <ui-icon name="heart-filled" class="template-btn-icon" />
-          <span>{{ t().scrapTemplatesButton }}</span>
-          <span class="template-count-chip">{{ templates().length }}</span>
-        </button>
-
-        <app-scrap-template-popover
-          [open]="isTemplatePopoverOpen()"
-          (openChange)="isTemplatePopoverOpen.set($event)"
-          [templates]="templates()"
-          [loading]="templatesLoading()"
-          (useTemplate)="onUseTemplate($event)"
-          (deleteTemplate)="onDeleteTemplate($event)"
-        />
-      </div>
+      <button
+        type="button"
+        class="btn btn-secondary template-menu-btn"
+        [class.btn-active]="isTemplatePopoverOpen() || !!activeTemplate()"
+        (click)="toggleTemplatePopover($event)"
+        [attr.aria-expanded]="isTemplatePopoverOpen()"
+      >
+        <ui-icon name="heart" class="template-btn-icon" />
+        <span>{{ t().scrapApplyTemplate }}</span>
+        <span class="template-count-chip">{{ templates().length }}</span>
+      </button>
 
       <!-- Botão de Selecionar Itens -->
       <button type="button" class="btn btn-primary select-mode-btn" (click)="toggleSelectionMode()">
@@ -34,65 +23,46 @@
     </div>
   </header>
 
-  <!-- Banner de Modelo Ativo para Aplicação em Lote -->
-  @if (activeTemplate(); as tpl) {
-    <div class="reference-active-banner template-active-banner" role="status">
-      <div class="banner-content">
-        <ui-icon name="heart-filled" class="template-banner-icon" />
-        <span class="banner-title">Modelo selecionado:</span>
-        <strong class="banner-ref-title">{{ tpl.name }}</strong>
-        <span class="banner-hint">({{ t().scrapSelectReferenceMode }})</span>
-      </div>
-      <div class="banner-actions">
-        <button
-          type="button"
-          class="btn btn-primary btn-sm"
-          (click)="openBulkDialog()"
-          [disabled]="selectedCount() < 1"
-        >
-          <ui-icon name="check" />
-          <span>{{ t().scrapApplyTemplate }}</span>
-        </button>
-        <button
-          type="button"
-          class="btn btn-ghost btn-sm"
-          (click)="removeActiveTemplate()"
-          [title]="t().scrapRemoveReference"
-        >
-          <ui-icon name="x" />
-        </button>
-      </div>
-    </div>
-  }
+  <app-scrap-template-popover
+    [open]="isTemplatePopoverOpen()"
+    (openChange)="isTemplatePopoverOpen.set($event)"
+    [templates]="templates()"
+    [defectTypes]="defectTypes()"
+    [loading]="templatesLoading()"
+    [activeTemplateId]="activeTemplate()?.id || null"
+    [mutationId]="templateMutationId()"
+    [feedback]="templateFeedback()"
+    [feedbackKind]="templateFeedbackKind()"
+    (useTemplate)="onUseTemplate($event)"
+    (updateTemplate)="onUpdateTemplate($event)"
+    (deleteTemplate)="onDeleteTemplate($event)"
+  />
 
-  <!-- Banner de Referência Ativa para Aplicação em Lote -->
-  @if (activeReferenceReview(); as ref) {
-    <div class="reference-active-banner" role="status">
-      <div class="banner-content">
+  @if (activeTemplate(); as template) {
+    <section class="workflow-banner" aria-labelledby="template-workflow-title">
+      <div class="workflow-copy">
+        <ui-icon name="heart" />
+        <div>
+          <span>{{ t().scrapTemplateSelectedBanner }}</span>
+          <strong id="template-workflow-title">{{ template.name }}</strong>
+          <small>{{ t().scrapSelectReferenceMode }}</small>
+        </div>
+      </div>
+      <button type="button" class="btn btn-ghost" (click)="isTemplatePopoverOpen.set(true)">
+        {{ t().scrapTemplateEdit }}
+      </button>
+    </section>
+  } @else if (activeReferenceReview(); as reference) {
+    <section class="workflow-banner" aria-labelledby="reference-workflow-title">
+      <div class="workflow-copy">
         <ui-icon name="copy" />
-        <span class="banner-title">{{ t().scrapReferenceSelectedBanner }}</span>
-        <strong class="banner-ref-title">{{ ref.title }}</strong>
-        <span class="banner-hint">({{ t().scrapSelectReferenceMode }})</span>
+        <div>
+          <span>{{ t().scrapReferenceSelectedBanner }}</span>
+          <strong id="reference-workflow-title">{{ reference.title }}</strong>
+          <small>{{ t().scrapSelectReferenceMode }}</small>
+        </div>
       </div>
-      <div class="banner-actions">
-        <button
-          type="button"
-          class="btn btn-secondary btn-sm"
-          (click)="openBulkDialog()"
-          [disabled]="selectedCount() < 1"
-        >
-          {{ t().scrapApplyReference }}
-        </button>
-        <button
-          type="button"
-          class="btn btn-ghost btn-sm"
-          (click)="removeActiveReference()"
-          [title]="t().scrapRemoveReference"
-        >
-          <ui-icon name="x" />
-        </button>
-      </div>
-    </div>
+    </section>
   }
 
   <app-list-panel
@@ -186,13 +156,18 @@
         <div class="selection-info">
           <span class="selection-count-badge">{{ selectedCount() }}</span>
           <span class="selection-label">{{ t().scrapSelectedCount }}</span>
-          <button type="button" class="btn btn-ghost btn-sm" (click)="clearSelection()">
-            {{ t().scrapClearSelection }}
+          <button type="button" class="btn btn-ghost btn-sm" (click)="cancelSelectionFlow()">
+            {{ t().cancel }}
           </button>
         </div>
 
         <div class="selection-buttons">
-          @if (selectedCount() === 1) {
+          @if (activeTemplate() || activeReferenceReview()) {
+            <button type="button" class="btn btn-primary btn-sm" (click)="openBulkDialog()">
+              <ui-icon name="heart" />
+              <span>{{ t().scrapTemplateChecklistApply }} ({{ selectedCount() }})</span>
+            </button>
+          } @else if (selectedCount() === 1) {
             <button
               type="button"
               class="btn btn-primary btn-sm"
@@ -201,22 +176,11 @@
               <ui-icon name="plus" />
               <span>{{ t().scrapCreateReview }}</span>
             </button>
-          } @else if (selectedCount() >= 2) {
-            @if (templates().length > 0 || activeTemplate() || activeReferenceReview()) {
-              <button type="button" class="btn btn-primary btn-sm" (click)="openBulkDialog()">
-                <ui-icon name="heart-filled" />
-                <span>{{ t().scrapApplyTemplate }}</span>
-              </button>
-            } @else {
-              <button
-                type="button"
-                class="btn btn-secondary btn-sm"
-                (click)="openReviewForFirstSelected()"
-              >
-                <ui-icon name="heart" />
-                <span>Analisar 1º Item e Criar Modelo</span>
-              </button>
-            }
+          } @else {
+            <button type="button" class="btn btn-primary btn-sm" (click)="startReviewQueue()">
+              <ui-icon name="clock" />
+              <span>{{ t().scrapStartQueue }} ({{ selectedCount() }})</span>
+            </button>
           }
         </div>
       </div>
@@ -238,11 +202,13 @@
         [retryLabel]="t().scrapRetry"
         (retried)="loadScrap()"
       />
-    } @else if (!data() || data()!.items.length === 0) {
+    } @else if (
+      !data() || data()!.items.length === 0 || (selectionMode() && displayedItems().length === 0)
+    ) {
       <app-list-feedback
         kind="empty"
-        [title]="t().scrapEmptyTitle"
-        [message]="t().scrapEmptyDesc"
+        [title]="selectionMode() ? t().scrapSelectionEmptyTitle : t().scrapEmptyTitle"
+        [message]="selectionMode() ? t().scrapSelectionEmptyDesc : t().scrapEmptyDesc"
       />
     } @else {
       @if (error()) {
@@ -276,22 +242,29 @@
             </tr>
           </thead>
           <tbody>
-            @for (item of data()!.items; track item.occurrence_id ?? item.id) {
+            @for (item of displayedItems(); track item.occurrence_id ?? item.id) {
               <tr
-                class="clickable-row"
-                [class.selected-row]="selectedOccurrenceIds().has(item.occurrence_id!)"
-                (click)="item.occurrence_id ? openReview(item) : null"
+                [class.clickable-row]="!selectionMode() || isItemSelectable(item)"
+                [class.selected-row]="
+                  selectionMode() && selectedOccurrenceIds().has(item.occurrence_id!)
+                "
+                [class.row-disabled]="selectionMode() && !isItemSelectable(item)"
+                (click)="onRowClick(item)"
               >
                 @if (selectionMode()) {
                   <td class="checkbox-col align-center" (click)="$event.stopPropagation()">
-                    <input
-                      type="checkbox"
-                      [checked]="selectedOccurrenceIds().has(item.occurrence_id!)"
-                      [disabled]="item.occurrence_id === null"
-                      [title]="item.occurrence_id === null ? t().scrapNoOccurrenceIdTooltip : ''"
-                      (change)="toggleItemSelection(item.occurrence_id, $event)"
-                      [attr.aria-label]="'Selecionar ocorrência ' + item.item_code"
-                    />
+                    @if (isItemSelectable(item)) {
+                      <input
+                        type="checkbox"
+                        [checked]="selectedOccurrenceIds().has(item.occurrence_id!)"
+                        (change)="toggleItemSelection(item, $event)"
+                        [attr.aria-label]="'Selecionar ocorrência ' + item.item_code"
+                      />
+                    } @else {
+                      <span class="unavail-indicator" [title]="t().scrapNoOccurrenceIdTooltip">
+                        —
+                      </span>
+                    }
                   </td>
                 }
                 <td>{{ formatTransactionDate(item.transaction_date) }}</td>
@@ -329,6 +302,7 @@
                     <button
                       type="button"
                       class="btn btn-ghost btn-sm action-btn"
+                      [disabled]="selectionMode()"
                       (click)="openReview(item)"
                       [attr.aria-label]="
                         (item.review_status === 'REVIEWED'
@@ -377,9 +351,12 @@
     <app-scrap-review-drawer
       [occurrenceId]="openedOccurrenceId()"
       [occurrence]="selectedOccurrenceForDrawer()"
+      [queueOccurrenceIds]="activeQueueIds()"
+      [queueOccurrences]="activeQueueOccurrences()"
       (closed)="closeDrawer()"
       (reviewSaved)="onReviewSaved($event)"
       (useAsReference)="onUseAsReference($event)"
+      (queueFinished)="onQueueFinished()"
     />
   }
 

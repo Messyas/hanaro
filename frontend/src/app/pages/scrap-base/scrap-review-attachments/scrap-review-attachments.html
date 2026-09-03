@@ -44,54 +44,17 @@
   }
 
   <!-- Grid de Miniaturas -->
-  @if (attachments().length > 0 || localItems().length > 0) {
+  @if (displayItems().length > 0) {
     <div class="thumbnails-grid" role="list" aria-label="Lista de evidências fotográficas">
-      <!-- Anexos já persistidos no servidor -->
-      @for (att of attachments(); track att.id) {
-        <div class="thumbnail-card" role="listitem">
-          <button
-            type="button"
-            class="thumbnail-btn"
-            (click)="openLightbox(att.url, att.original_filename)"
-            [attr.aria-label]="t().scrapAttachmentView + ': ' + att.original_filename"
-          >
-            <img
-              [src]="att.url"
-              [alt]="att.original_filename"
-              loading="lazy"
-              class="thumbnail-img"
-            />
-          </button>
-          <div class="thumbnail-meta">
-            <span class="thumbnail-name" [title]="att.original_filename">{{
-              att.original_filename
-            }}</span>
-            <span class="thumbnail-size">{{ formatFileSize(att.size_bytes) }}</span>
-          </div>
-          @if (!readOnly()) {
-            <button
-              type="button"
-              class="thumbnail-remove-btn"
-              (click)="removePersistedAttachment(att)"
-              [attr.aria-label]="t().scrapAttachmentRemove + ': ' + att.original_filename"
-              [title]="t().scrapAttachmentRemove"
-            >
-              <ui-icon name="trash" />
-            </button>
-          }
-        </div>
-      }
-
-      <!-- Anexos locais / fila de envio -->
-      @for (item of localItems(); track item.id) {
-        <div class="thumbnail-card pending-card" role="listitem">
+      @for (item of displayItems(); track item.id) {
+        <div class="thumbnail-card" [class.pending-card]="!item.isPersisted" role="listitem">
           <button
             type="button"
             class="thumbnail-btn"
             (click)="openLightbox(item.url, item.name)"
             [attr.aria-label]="t().scrapAttachmentView + ': ' + item.name"
           >
-            <img [src]="item.url" [alt]="item.name" class="thumbnail-img" />
+            <img [src]="item.url" [alt]="item.name" loading="lazy" class="thumbnail-img" />
           </button>
           <div class="thumbnail-meta">
             <span class="thumbnail-name" [title]="item.name">{{ item.name }}</span>
@@ -101,11 +64,11 @@
             <button
               type="button"
               class="thumbnail-remove-btn"
-              (click)="removeLocalItem(item)"
+              (click)="removeItem(item)"
               [attr.aria-label]="t().scrapAttachmentRemove + ': ' + item.name"
               [title]="t().scrapAttachmentRemove"
             >
-              <ui-icon name="x" />
+              <ui-icon [name]="item.isPersisted ? 'trash' : 'x'" />
             </button>
           }
         </div>

@@ -61,4 +61,5 @@ export interface ScrapFilterParams {
   review_status?: 'UNREVIEWED' | 'DRAFT' | 'REVIEWED';
   defect_type_ids?: string[];
   responsible_user_ids?: number[];
+  exclude_reviewed?: boolean;
 }

@@ -76,6 +76,7 @@ describe('ScrapBasePage', () => {
       activeTemplate: () => null,
       loadTemplates: vi.fn().mockReturnValue(of([])),
       createTemplate: vi.fn().mockReturnValue(of({})),
+      updateTemplate: vi.fn().mockReturnValue(of({})),
       deleteTemplate: vi.fn().mockReturnValue(of(undefined)),
       setActiveTemplate: vi.fn(),
     };
@@ -162,11 +163,98 @@ describe('ScrapBasePage', () => {
     component.reviewStatusFilter.set('DRAFT');
     component.defectTypeFilter.set('def-1');
     component.responsibleFilter.set('mine');
-
     component.clearFilters();
 
     expect(component.reviewStatusFilter()).toBe('');
     expect(component.defectTypeFilter()).toBe('');
     expect(component.responsibleFilter()).toBe('');
+    expect(component.dateFrom()).toBe('');
+    expect(component.dateTo()).toBe('');
+    expect(component.organization()).toBe('');
+    expect(component.searchQuery()).toBe('');
+  });
+
+  it('starts review queue when multiple items are selected', () => {
+    component.toggleSelectionMode();
+    const event = new MouseEvent('click');
+    component.toggleItemSelection('occurrence-1', event);
+
+    expect(component.selectedCount()).toBe(1);
+
+    component.startReviewQueue();
+    expect(component.activeQueueIds()).toEqual(['occurrence-1']);
+    expect(component.openedOccurrenceId()).toBe('occurrence-1');
+    expect(router.navigate).toHaveBeenCalledWith(['/base-de-scrap/revisao', 'occurrence-1'], {
+      queryParamsHandling: 'preserve',
+    });
+  });
+
+  it('selects a template and activates selection in the main table', () => {
+    const mockTemplate = {
+      id: 'tpl-1',
+      name: 'Modelo Oxidação',
+      title: 'Título Oxidação',
+      description: 'Desc',
+      defect_type_id: null,
+      created_by_user_id: 1,
+      source_review_id: 'rev-1',
+      defect_type: null,
+      is_active: true,
+      created_at: '',
+      updated_at: '',
+    };
+
+    expect(component.selectionMode()).toBe(false);
+    expect(component.showBulkDialog()).toBe(false);
+
+    component.onUseTemplate(mockTemplate);
+
+    expect(component.activeTemplate()).toBe(mockTemplate);
+    expect(component.showBulkDialog()).toBe(false);
+    expect(component.selectionMode()).toBe(true);
+  });
+
+  it('excludes reviewed occurrences from listing and prevents selection in selection mode', () => {
+    const reviewedItem = {
+      ...mockPage.items[0],
+      id: 'transaction-2',
+      occurrence_id: 'occurrence-2',
+      review_status: 'REVIEWED' as const,
+    };
+    const unreviewedItem = mockPage.items[0];
+
+    component.data.set({
+      ...mockPage,
+      items: [unreviewedItem, reviewedItem],
+    });
+
+    // In normal mode, both items are displayed
+    expect(component.selectionMode()).toBe(false);
+    expect(component.displayedItems()).toHaveLength(2);
+
+    // Enter selection mode
+    component.toggleSelectionMode();
+    expect(component.selectionMode()).toBe(true);
+
+    // In selection mode, reviewed items must NOT appear in the listing
+    expect(component.displayedItems()).toHaveLength(1);
+    expect(component.displayedItems()[0].occurrence_id).toBe('occurrence-1');
+
+    // Reviewed item is not selectable
+    expect(component.isItemSelectable(reviewedItem)).toBe(false);
+    expect(component.isItemSelectable(unreviewedItem)).toBe(true);
+
+    // Attempting to select reviewed item does nothing
+    component.toggleItemSelection(reviewedItem);
+    expect(component.selectedCount()).toBe(0);
+
+    // Clicking row of reviewed item does nothing in selection mode
+    component.onRowClick(reviewedItem);
+    expect(component.selectedCount()).toBe(0);
+
+    // Clicking row of unreviewed item selects it in selection mode
+    component.onRowClick(unreviewedItem);
+    expect(component.selectedCount()).toBe(1);
+    expect(component.selectedOccurrenceIds().has('occurrence-1')).toBe(true);
   });
 });

@@ -55,7 +55,8 @@ export interface ScrapReviewFormModel {
 }
 
 export interface ScrapReviewBulkCreate {
-  reference_review_id: string;
+  reference_review_id?: string;
+  template_id?: string;
   occurrence_ids: string[];
   copy_attachments: boolean;
 }

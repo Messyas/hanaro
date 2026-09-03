@@ -18,7 +18,9 @@ from src.modules.user.models import User
 
 
 @pytest_asyncio.fixture
-async def template_client(tmp_path: Path) -> AsyncGenerator[tuple[AsyncClient, list[str]], None]:
+async def template_client(
+    tmp_path: Path,
+) -> AsyncGenerator[tuple[AsyncClient, list[str], FastAPI, AsyncSession, int], None]:
     engine = create_async_engine("sqlite+aiosqlite:///:memory:")
     async with engine.begin() as connection:
         await connection.run_sync(Base.metadata.create_all)
@@ -73,16 +75,16 @@ async def template_client(tmp_path: Path) -> AsyncGenerator[tuple[AsyncClient, l
     app.dependency_overrides[get_scrap_review_image_storage] = lambda: storage
     ids = [str(item.id) for item in occurrences]
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://testserver") as client:
-        yield client, ids
+        yield client, ids, app, session, user.id
     await session.close()
     await engine.dispose()
 
 
 @pytest.mark.asyncio
-async def test_template_lifecycle_and_review_immutability(
-    template_client: tuple[AsyncClient, list[str]],
+async def test_editable_template_lifecycle_and_author_permissions(
+    template_client: tuple[AsyncClient, list[str], FastAPI, AsyncSession, int],
 ) -> None:
-    client, occurrences = template_client
+    client, occurrences, app, session, author_id = template_client
 
     # 1. Criar tipo de defeito
     defect_resp = await client.post(
@@ -123,18 +125,73 @@ async def test_template_lifecycle_and_review_immutability(
     assert tpl_data["description"] == "Corrosão verificada nos pinos 3 e 4 da placa mãe."
     template_id = tpl_data["id"]
 
-    # 4. Listar templates e checar se o modelo aparece
+    # 4. Editar o modelo como um preset independente do relatório fonte
+    edited_tpl_resp = await client.patch(
+        f"/api/v1/scrap/reviews/templates/{template_id}",
+        json={
+            "name": "Padrão SMT refinado",
+            "title": "Oxidação confirmada no processo",
+            "description": "Aplicar inspeção visual e registrar a causa raiz.",
+            "defect_type_id": defect_type_id,
+        },
+    )
+    assert edited_tpl_resp.status_code == 200
+    assert edited_tpl_resp.json()["name"] == "Padrão SMT refinado"
+
+    # 5. Outro usuário não vê nem edita o modelo e não altera o relatório finalizado
+    other_user = User(
+        name="Other Analyst",
+        username="other.analyst",
+        email="other.analyst@example.com",
+        hashed_password="not-used-in-test",
+    )
+    session.add(other_user)
+    await session.commit()
+
+    async def other_authenticated_user() -> dict[str, object]:
+        return {
+            "id": other_user.id,
+            "name": other_user.name,
+            "username": other_user.username,
+            "is_superuser": False,
+        }
+
+    app.dependency_overrides[get_current_user] = other_authenticated_user
+    assert (await client.get("/api/v1/scrap/reviews/templates")).json() == []
+    forbidden_template = await client.patch(
+        f"/api/v1/scrap/reviews/templates/{template_id}",
+        json={"name": "Tentativa sem permissão"},
+    )
+    assert forbidden_template.status_code == 403
+    forbidden_report = await client.put(
+        f"/api/v1/scrap/reviews/{occurrences[0]}",
+        json={"title": "Tentativa", "description": "Sem permissão", "expected_version": 2},
+    )
+    assert forbidden_report.status_code == 403
+
+    async def author_authenticated_user() -> dict[str, object]:
+        return {
+            "id": author_id,
+            "name": "Analyst User",
+            "username": "analyst",
+            "is_superuser": True,
+        }
+
+    app.dependency_overrides[get_current_user] = author_authenticated_user
+
+    # 6. Listar templates e checar se o modelo editado aparece
     list_resp = await client.get("/api/v1/scrap/reviews/templates")
     assert list_resp.status_code == 200
     items = list_resp.json()
     assert len(items) == 1
     assert items[0]["id"] == template_id
+    assert items[0]["title"] == "Oxidação confirmada no processo"
 
-    # 5. Aplicar o modelo em lote para ocorrências 1, 2 e 3
+    # 7. Aplicar o modelo editado nas ocorrências selecionadas
     bulk_resp = await client.post(
         "/api/v1/scrap/reviews/bulk",
         json={
-            "reference_review_id": source_review_id,
+            "template_id": template_id,
             "occurrence_ids": [occurrences[1], occurrences[2], occurrences[3]],
             "copy_attachments": False,
         },
@@ -144,7 +201,15 @@ async def test_template_lifecycle_and_review_immutability(
     assert bulk_data["created_count"] == 3
     assert bulk_data["skipped_count"] == 0
 
-    # 6. Remover (desfavoritar) o modelo
+    # O relatório gerado usa o conteúdo do preset editado, preservando a origem para auditoria.
+    rev1 = await client.get(f"/api/v1/scrap/reviews/{occurrences[1]}")
+    assert rev1.status_code == 200
+    assert rev1.json()["status"] == "REVIEWED"
+    assert rev1.json()["title"] == "Oxidação confirmada no processo"
+    assert rev1.json()["description"] == "Aplicar inspeção visual e registrar a causa raiz."
+    assert rev1.json()["source_review_id"] == source_review_id
+
+    # 8. Remover (desfavoritar) o modelo
     del_resp = await client.delete(f"/api/v1/scrap/reviews/templates/{template_id}")
     assert del_resp.status_code == 204
 
@@ -152,13 +217,8 @@ async def test_template_lifecycle_and_review_immutability(
     list_after_del = await client.get("/api/v1/scrap/reviews/templates")
     assert len(list_after_del.json()) == 0
 
-    # 7. Garantir IMUTABILIDADE: As 3 análises aplicadas via lote e a análise fonte continuam intactas
-    rev1 = await client.get(f"/api/v1/scrap/reviews/{occurrences[1]}")
-    assert rev1.status_code == 200
-    assert rev1.json()["status"] == "REVIEWED"
-    assert rev1.json()["title"] == "Oxidação de trilha por umidade"
-    assert rev1.json()["source_review_id"] == source_review_id
-
+    # Relatórios já gerados continuam independentes após remover o modelo.
+    assert (await client.get(f"/api/v1/scrap/reviews/{occurrences[1]}")).json()["title"] == ("Oxidação confirmada no processo")
     source_rev = await client.get(f"/api/v1/scrap/reviews/{occurrences[0]}")
     assert source_rev.status_code == 200
     assert source_rev.json()["status"] == "REVIEWED"
