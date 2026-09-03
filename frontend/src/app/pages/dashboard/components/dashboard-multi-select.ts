@@ -6,7 +6,12 @@ import { UiIcon } from '../../../ui-icon';
   imports: [UiIcon],
   template: `
     <label>{{ label() }}</label>
-      <details #details class="dashboard-multi" name="dashboard-multi-select-group" (toggle)="handleToggle()">
+    <details
+      #details
+      class="dashboard-multi"
+      name="dashboard-multi-select-group"
+      (toggle)="handleToggle()"
+    >
       <summary class="dashboard-multi-summary" [attr.aria-label]="label() + ': ' + summary()">
         <span>{{ summary() }}</span>
         @if (selected().length) {
@@ -83,7 +88,7 @@ export class DashboardMultiSelect {
   readonly searchPlaceholder = computed(
     () => `${this.searchLabel()} ${this.label().toLowerCase()}`,
   );
-  
+
   readonly filteredOptions = computed(() => {
     const search = this.normalize(this.searchTerm());
     if (!search) return this.options();

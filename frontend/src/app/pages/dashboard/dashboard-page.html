@@ -97,7 +97,11 @@
           @if (store.analysis() === 'relative') {
             <label class="dashboard-field">
               <span>{{ text().division }}</span>
-              <select [attr.aria-label]="text().division" disabled [title]="text().unavailableRelative">
+              <select
+                [attr.aria-label]="text().division"
+                disabled
+                [title]="text().unavailableRelative"
+              >
                 <option>{{ text().allMasculine }}</option>
               </select>
             </label>

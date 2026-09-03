@@ -1,4 +1,14 @@
-import { Component, ElementRef, OnDestroy, OnInit, inject, input, model, output, signal } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  OnDestroy,
+  OnInit,
+  inject,
+  input,
+  model,
+  output,
+  signal,
+} from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 import { UiIcon } from '../../ui-icon';
 
