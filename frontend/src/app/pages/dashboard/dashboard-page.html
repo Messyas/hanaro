@@ -118,7 +118,7 @@
       </div>
     </section>
   } @else {
-    <section class="kpi-summary-panel" [attr.aria-label]="text().relativeSummaryAria">
+    <section class="kpi-summary-panel compact" [attr.aria-label]="text().relativeSummaryAria">
       <div class="kpi-summary-lead">
         <span>{{ periodLabel() }}</span>
         <strong>{{ formatRate(store.relativeKpis().rate) }}</strong>
@@ -384,5 +384,39 @@
         <div class="chart-defer-placeholder" aria-hidden="true"></div>
       }
     </article>
+  </section>
+
+  <section class="dashboard-ranking-section">
+    <div class="dashboard-ranking-grid">
+      @for (panel of rankingPanels(); track panel.title) {
+        <article class="ranking-card">
+          <header>
+            <span>{{ panel.eyebrow }}</span>
+            <h3>{{ panel.title }}</h3>
+          </header>
+          <ol class="ranking-list">
+            @for (item of panel.items; track item.label) {
+              <li>
+                <div class="ranking-row" tabindex="0">
+                  <strong>{{ item.label }}</strong>
+                  <div class="ranking-progress" aria-hidden="true">
+                    <span [style.width.%]="item.progress"></span>
+                  </div>
+                  <em>{{ item.value }}</em>
+                  <div class="ranking-tooltip" role="tooltip">
+                    <strong>{{ item.label }}</strong>
+                    <span>
+                      <i aria-hidden="true"></i>
+                      {{ item.tooltipMetric }}
+                      <b>{{ item.tooltipValue }}</b>
+                    </span>
+                  </div>
+                </div>
+              </li>
+            }
+          </ol>
+        </article>
+      }
+    </div>
   </section>
 </div>

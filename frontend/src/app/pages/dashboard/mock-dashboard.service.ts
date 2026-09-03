@@ -169,7 +169,18 @@ const FILTER_FACTORS: Partial<Record<keyof DashboardFilters, Record<string, numb
   product: { BM: 0.27, VS: 0.25, AV: 0.21, TV: 0.17, MNT: 0.1 },
   line: { BMCELL: 0.31, Quale: 0.24, G08: 0.2, C02: 0.15, Ventito: 0.1 },
   division: { HE: 0.56, MS: 0.29, ES: 0.15 },
-  component: { Module: 0.32, PCBA: 0.27, Tape: 0.18, Cover: 0.13, Chassis: 0.1 },
+  component: {
+    Module: 0.32,
+    PCBA: 0.27,
+    Tape: 0.18,
+    Cover: 0.13,
+    Chassis: 0.1,
+    Panel: 0.09,
+    Backlight: 0.08,
+    Harness: 0.07,
+    Speaker: 0.06,
+    Housing: 0.05,
+  },
   week: { W31: 0.19, W32: 0.22, W33: 0.2, W34: 0.21, W35: 0.18 },
 };
 
@@ -188,7 +199,18 @@ export class MockDashboardService {
     lines: ['BMCELL', 'Quale', 'G08', 'C02', 'Ventito'],
     divisions: ['HE', 'MS', 'ES'],
     weeks: ['W31', 'W32', 'W33', 'W34', 'W35'],
-    components: ['Module', 'PCBA', 'Tape', 'Cover', 'Chassis'],
+    components: [
+      'Module',
+      'PCBA',
+      'Tape',
+      'Cover',
+      'Chassis',
+      'Panel',
+      'Backlight',
+      'Harness',
+      'Speaker',
+      'Housing',
+    ],
   };
 
   getSnapshot(filters: DashboardFilters): DashboardSnapshot {

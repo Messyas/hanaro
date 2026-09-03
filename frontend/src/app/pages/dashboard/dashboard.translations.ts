@@ -112,6 +112,16 @@ export interface DashboardTranslations {
   rankingLimitAria: string;
   topFive: string;
   topTen: string;
+  topLinesTitle: string;
+  topModelsTitle: string;
+  topOffendersTitle: string;
+  topComponentsTitle: string;
+  topLinesEyebrow: string;
+  topModelsEyebrow: string;
+  topOffendersEyebrow: string;
+  topComponentsEyebrow: string;
+  rankingMetricImpact: string;
+  rankingMetricRate: string;
 }
 
 export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations> = {
@@ -228,6 +238,16 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     rankingLimitAria: 'Quantidade de itens exibidos no ranking',
     topFive: 'Top 5',
     topTen: 'Top 10',
+    topLinesTitle: 'linhas',
+    topModelsTitle: 'modelos',
+    topOffendersTitle: 'ofensores',
+    topComponentsTitle: 'componentes',
+    topLinesEyebrow: 'TOP LINHAS',
+    topModelsEyebrow: 'Modelos',
+    topOffendersEyebrow: 'Ofensores',
+    topComponentsEyebrow: 'Componentes',
+    rankingMetricImpact: 'Impacto no recorte',
+    rankingMetricRate: 'Scrap Rate',
   },
   en: {
     filtersAria: 'Dashboard filters',
@@ -342,6 +362,16 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     rankingLimitAria: 'Number of ranking items displayed',
     topFive: 'Top 5',
     topTen: 'Top 10',
+    topLinesTitle: 'lines',
+    topModelsTitle: 'models',
+    topOffendersTitle: 'offenders',
+    topComponentsTitle: 'components',
+    topLinesEyebrow: 'TOP LINES',
+    topModelsEyebrow: 'Models',
+    topOffendersEyebrow: 'Offenders',
+    topComponentsEyebrow: 'Components',
+    rankingMetricImpact: 'Impact in selection',
+    rankingMetricRate: 'Scrap Rate',
   },
   ko: {
     filtersAria: '대시보드 필터',
@@ -455,6 +485,16 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     rankingLimitAria: '랭킹 표시 항목 수',
     topFive: '상위 5',
     topTen: '상위 10',
+    topLinesTitle: '라인',
+    topModelsTitle: '모델',
+    topOffendersTitle: '주요 원인',
+    topComponentsTitle: '부품',
+    topLinesEyebrow: 'TOP 라인',
+    topModelsEyebrow: '모델',
+    topOffendersEyebrow: '주요 원인',
+    topComponentsEyebrow: '부품',
+    rankingMetricImpact: '선택 범위 영향',
+    rankingMetricRate: 'Scrap Rate',
   },
 };
 
