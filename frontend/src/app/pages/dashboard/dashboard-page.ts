@@ -43,21 +43,6 @@ interface DashboardDistributionFilters {
 
 type DashboardDistributionMultiFilterKey = 'product' | 'line';
 
-interface DashboardRankingEntry {
-  label: string;
-  value: string;
-  hint: string;
-  tooltipMetric: string;
-  tooltipValue: string;
-  progress: number;
-}
-
-interface DashboardRankingPanel {
-  title: string;
-  eyebrow: string;
-  items: readonly DashboardRankingEntry[];
-}
-
 const INITIAL_EVOLUTION_FILTERS: DashboardEvolutionFilters = {
   period: 'ytd',
   product: [],
@@ -97,28 +82,9 @@ const COMPONENT_FACTORS: Record<string, number> = {
   Tape: 0.18,
   Cover: 0.13,
   Chassis: 0.1,
-  Panel: 0.09,
-  Backlight: 0.08,
-  Harness: 0.07,
-  Speaker: 0.06,
-  Housing: 0.05,
 };
 
-const MODEL_FACTORS: readonly { label: string; factor: number; hint: string }[] = [
-  { label: 'OLED C4 55"', factor: 0.18, hint: 'BM / BMCELL' },
-  { label: 'OLED C3 65"', factor: 0.15, hint: 'BM / Quale' },
-  { label: 'QNED 75"', factor: 0.13, hint: 'TV / G08' },
-  { label: 'UHD UR8750', factor: 0.11, hint: 'TV / C02' },
-  { label: 'Soundbar S95', factor: 0.1, hint: 'AV / Ventito' },
-  { label: 'Monitor UltraGear', factor: 0.09, hint: 'MNT / BMCELL' },
-  { label: 'Smart Monitor M8', factor: 0.08, hint: 'MNT / Quale' },
-  { label: 'Projector CineBeam', factor: 0.06, hint: 'AV / G08' },
-  { label: 'Panel Assembly V2', factor: 0.05, hint: 'BM / C02' },
-  { label: 'Main Board Rev.C', factor: 0.05, hint: 'SMT / Ventito' },
-];
-
 const COMPARISON_OPTIONS: readonly DashboardComparison[] = ['ytd', 'yoy', 'mom'];
-const RANKING_CARDS_LIMIT: DashboardRankingLimit = 5;
 
 @Component({
   selector: 'app-dashboard-page',
@@ -210,28 +176,6 @@ export class DashboardPage {
   readonly distributionData = computed(() => {
     return this.buildDistributionData();
   });
-  readonly rankingPanels = computed<readonly DashboardRankingPanel[]>(() => [
-    {
-      title: this.rankingPanelTitle(this.text().topLinesTitle),
-      eyebrow: this.text().topLinesEyebrow,
-      items: this.lineRankingItems(),
-    },
-    {
-      title: this.rankingPanelTitle(this.text().topModelsTitle),
-      eyebrow: this.text().topModelsEyebrow,
-      items: this.modelRankingItems(),
-    },
-    {
-      title: this.rankingPanelTitle(this.text().topOffendersTitle),
-      eyebrow: this.text().topOffendersEyebrow,
-      items: this.offenderRankingItems(),
-    },
-    {
-      title: this.rankingPanelTitle(this.text().topComponentsTitle),
-      eyebrow: this.text().topComponentsEyebrow,
-      items: this.componentRankingItems(),
-    },
-  ]);
   readonly hasPerformanceData = computed(() => {
     const metric = this.store.metric();
     const analysis = this.store.analysis();
@@ -621,9 +565,7 @@ export class DashboardPage {
       : [scaled[Number(filters.period)] ?? scaled[0]];
   }
 
-  private buildDistributionData(
-    limit: DashboardRankingLimit = this.store.rankingLimit(),
-  ): readonly DashboardDistributionItem[] {
+  private buildDistributionData(): readonly DashboardDistributionItem[] {
     const filters = this.distributionFilters();
     const data =
       this.store.analysis() === 'absolute'
@@ -635,122 +577,7 @@ export class DashboardPage {
     return data
       .filter((item) => !labelFilter.length || labelFilter.includes(item.label))
       .map((item) => this.scaleDistributionItem(item, factor))
-      .slice(0, limit);
-  }
-
-  private lineRankingItems(): readonly DashboardRankingEntry[] {
-    const values = this.store.snapshot().relativeDistribution.map((item) => {
-      const relativeValue = this.store.metric() === 'usd' ? item.relativeUsd : item.relativeQty;
-      const absoluteValue = this.store.metric() === 'usd' ? item.usd : item.qty;
-      const rawValue = relativeValue ?? absoluteValue;
-
-      return {
-        label: item.label,
-        rawValue,
-        value:
-          relativeValue === undefined
-            ? this.formatRankingImpact(absoluteValue)
-            : this.formatRate(rawValue),
-        hint:
-          relativeValue === undefined
-            ? this.text().rankingMetricImpact
-            : this.text().rankingMetricRate,
-      };
-    });
-
-    return this.normalizeRanking(values, RANKING_CARDS_LIMIT);
-  }
-
-  private modelRankingItems(): readonly DashboardRankingEntry[] {
-    const baseValue = this.currentMetricTotal();
-    const values = MODEL_FACTORS.map((model) => {
-      const rawValue = Math.round(baseValue * model.factor);
-      return {
-        label: model.label,
-        rawValue,
-        value: this.formatRankingImpact(rawValue),
-        hint: model.hint,
-      };
-    });
-
-    return this.normalizeRanking(values, RANKING_CARDS_LIMIT);
-  }
-
-  private offenderRankingItems(): readonly DashboardRankingEntry[] {
-    const values = this.buildDistributionData(RANKING_CARDS_LIMIT).map((item) => {
-      const rawValue = this.store.metric() === 'usd' ? item.usd : item.qty;
-      return {
-        label: item.label,
-        rawValue,
-        value: this.formatRankingImpact(rawValue),
-        hint: this.text().rankingMetricImpact,
-      };
-    });
-
-    return this.normalizeRanking(values, RANKING_CARDS_LIMIT);
-  }
-
-  private componentRankingItems(): readonly DashboardRankingEntry[] {
-    const baseValue = this.currentMetricTotal();
-    const values = this.store.options.components.map((component) => {
-      const rawValue = Math.round(baseValue * (COMPONENT_FACTORS[component] ?? 0.08));
-      return {
-        label: component,
-        rawValue,
-        value: this.formatRankingImpact(rawValue),
-        hint: this.text().rankingMetricImpact,
-      };
-    });
-
-    return this.normalizeRanking(values, RANKING_CARDS_LIMIT);
-  }
-
-  private normalizeRanking(
-    values: readonly {
-      label: string;
-      rawValue: number;
-      value: string;
-      hint: string;
-    }[],
-    limit: number,
-  ): readonly DashboardRankingEntry[] {
-    const sorted = [...values].sort((a, b) => b.rawValue - a.rawValue).slice(0, limit);
-    const maxValue = sorted[0]?.rawValue ?? 0;
-
-    return sorted.map((item) => ({
-      label: item.label,
-      value: item.value,
-      hint: item.hint,
-      tooltipMetric: this.rankingTooltipMetric(item.hint),
-      tooltipValue: this.rankingTooltipValue(item.rawValue, item.hint),
-      progress: maxValue > 0 ? Math.max(4, (item.rawValue / maxValue) * 100) : 0,
-    }));
-  }
-
-  private currentMetricTotal(): number {
-    return this.store.analysis() === 'relative'
-      ? this.store.relativeKpis().numerator
-      : this.store.kpis().actual;
-  }
-
-  private rankingPanelTitle(label: string): string {
-    return `${this.text().topFive} ${label}`;
-  }
-
-  private rankingTooltipMetric(hint: string): string {
-    if (hint === this.text().rankingMetricRate) return this.text().rankingMetricRate;
-    return this.store.metric() === 'usd' ? 'IF Cost' : 'QTY Scrap';
-  }
-
-  private rankingTooltipValue(value: number, hint: string): string {
-    if (hint === this.text().rankingMetricRate) return this.formatRate(value);
-    return this.formatNumber(value);
-  }
-
-  private formatRankingImpact(value: number): string {
-    return this.store.metric() === 'usd'
-      ? this.formatPrimaryValue(value)
-      : `${this.formatNumber(value)} ${this.text().units}`;
+      .slice(0, this.store.rankingLimit());
   }
 
   private buildWeeklyData(
