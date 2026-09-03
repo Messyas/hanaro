@@ -340,6 +340,7 @@ class ScrapItem(BaseModel):
     receipt_department: str | None
     receipt_description: str | None
     item_code: str
+    product_alias: str | None = None
     uit: str | None
     item_description: str | None
     item_specification: str | None
@@ -608,6 +609,50 @@ class ScrapTargetRead(BaseModel):
     updated_at: datetime
 
 
+ClassificationKind = Literal["PRODUCT_ALIAS", "ORGANIZATION", "DEPARTMENT", "COUNTING", "ITEM_TYPE"]
+ClassificationMatchMode = Literal["EXACT", "REGEX"]
+
+
+class ScrapClassificationRuleWrite(ContractModel):
+    kind: ClassificationKind
+    source_value: str = Field(min_length=1, max_length=500)
+    source_context: str | None = Field(default=None, max_length=120)
+    target_value: str | None = Field(default=None, max_length=120)
+    target_secondary: str | None = Field(default=None, max_length=120)
+    boolean_value: bool | None = None
+    match_mode: ClassificationMatchMode = "EXACT"
+    priority: int = Field(default=0, ge=0, le=10_000)
+    is_active: bool = True
+
+    @model_validator(mode="after")
+    def validate_shape(self) -> "ScrapClassificationRuleWrite":
+        required = {
+            "PRODUCT_ALIAS": ("target_value",),
+            "ORGANIZATION": ("target_value", "target_secondary"),
+            "DEPARTMENT": ("target_value",),
+            "ITEM_TYPE": ("target_value",),
+        }
+        if self.kind in required and any(not getattr(self, field) for field in required[self.kind]):
+            raise ValueError(f"{self.kind} requires its target fields")
+        if self.kind == "COUNTING" and (not self.source_context or self.boolean_value is None):
+            raise ValueError("COUNTING requires account alias and boolean_value")
+        if self.kind != "ITEM_TYPE" and self.match_mode != "EXACT":
+            raise ValueError("only ITEM_TYPE rules can use REGEX")
+        return self
+
+
+class ScrapClassificationRuleRead(ScrapClassificationRuleWrite):
+    id: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ScrapClassificationReapplyResult(ContractModel):
+    reclassified_records: int
+    dashboard_revision: uuid.UUID
+
+
 class DashboardMetadata(BaseModel):
     revision: uuid.UUID
     generated_at: datetime
@@ -627,7 +672,7 @@ class DashboardKpis(BaseModel):
 
 class DashboardSeriesPoint(BaseModel):
     period: str
-    actual: Decimal
+    actual: Decimal | None = None
     previous_year: Decimal | None = None
     target: Decimal | None = None
 

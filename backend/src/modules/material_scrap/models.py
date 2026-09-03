@@ -324,6 +324,36 @@ class ScrapDefectType(Base):
     display_order: Mapped[int] = mapped_column(Integer, default=0)
 
 
+class ScrapClassificationRule(Base):
+    """Business-owned mapping used to classify immutable GERP source fields.
+
+    The source columns are never changed.  A rule only controls the derived
+    dimensions consumed by the Scrap views (product, department, counting and
+    item type) or the friendly product alias shown to analysts.
+    """
+
+    __tablename__ = "scrap_classification_rules"
+    __table_args__ = (
+        UniqueConstraint("kind", "source_value", "source_context", name="uq_scrap_classification_rule_source"),
+        Index("ix_scrap_classification_rule_kind_active", "kind", "is_active"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default_factory=uuid.uuid4, init=False)
+    kind: Mapped[str] = mapped_column(String(30))
+    source_value: Mapped[str] = mapped_column(String(500))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    source_context: Mapped[str | None] = mapped_column(String(120), default=None)
+    target_value: Mapped[str | None] = mapped_column(String(120), default=None)
+    target_secondary: Mapped[str | None] = mapped_column(String(120), default=None)
+    boolean_value: Mapped[bool | None] = mapped_column(Boolean, default=None)
+    match_mode: Mapped[str] = mapped_column(String(20), default="EXACT")
+    priority: Mapped[int] = mapped_column(Integer, default=0)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"), default=None)
+    updated_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"), default=None)
+
+
 class ScrapReview(Base):
     """One user-authored analysis for one stable Scrap occurrence."""
 

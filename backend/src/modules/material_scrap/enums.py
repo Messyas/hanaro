@@ -122,6 +122,11 @@ class DashboardCurrency(StrEnum):
     USD = "USD"
 
 
+class DashboardMetric(StrEnum):
+    IF_COST = "if_cost"
+    QUANTITY = "quantity"
+
+
 class ImpactMode(StrEnum):
     ABSOLUTE = "absolute"
     SIGNED = "signed"

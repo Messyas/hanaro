@@ -7,6 +7,7 @@ from ...infrastructure.config.settings import settings
 from ...infrastructure.dependencies import AsyncSessionDep
 from ..api_keys.dependencies import APIKeyServiceDep
 from ..api_keys.enums import KeyPermissionAction, KeyPermissionResource
+from .classification_service import ScrapClassificationService
 from .dashboard_service import ScrapDashboardService
 from .review_image import ScrapReviewImageStorage
 from .target_service import ScrapTargetService
@@ -45,6 +46,11 @@ def get_scrap_dashboard_service() -> ScrapDashboardService:
 
 
 @lru_cache
+def get_scrap_classification_service() -> ScrapClassificationService:
+    return ScrapClassificationService()
+
+
+@lru_cache
 def get_scrap_target_service() -> ScrapTargetService:
     return ScrapTargetService()
 
@@ -60,5 +66,6 @@ def get_scrap_review_image_storage() -> ScrapReviewImageStorage:
 
 
 ScrapDashboardServiceDep = Annotated[ScrapDashboardService, Depends(get_scrap_dashboard_service)]
+ScrapClassificationServiceDep = Annotated[ScrapClassificationService, Depends(get_scrap_classification_service)]
 ScrapTargetServiceDep = Annotated[ScrapTargetService, Depends(get_scrap_target_service)]
 ScrapReviewImageStorageDep = Annotated[ScrapReviewImageStorage, Depends(get_scrap_review_image_storage)]

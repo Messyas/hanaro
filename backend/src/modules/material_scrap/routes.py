@@ -7,8 +7,9 @@ from pydantic import StringConstraints
 from starlette.concurrency import run_in_threadpool
 from starlette.responses import FileResponse
 
-from ...infrastructure.dependencies import AsyncSessionDep, CurrentUserDep, OptionalUserDep
+from ...infrastructure.dependencies import AsyncSessionDep, CurrentSuperUserDep, CurrentUserDep, OptionalUserDep
 from .dependencies import (
+    ScrapClassificationServiceDep,
     ScrapDashboardServiceDep,
     ScrapReviewImageStorageDep,
     ScrapTargetServiceDep,
@@ -22,6 +23,7 @@ from .enums import (
     BreakdownGroupBy,
     BreakdownMetric,
     DashboardCurrency,
+    DashboardMetric,
     ExecutionSortField,
     ExecutionStepCode,
     ImpactMode,
@@ -73,6 +75,9 @@ from .schemas import (
     IngestionAccepted,
     MaterialScrapPayload,
     ScrapBreakdownItem,
+    ScrapClassificationReapplyResult,
+    ScrapClassificationRuleRead,
+    ScrapClassificationRuleWrite,
     ScrapDefectTypeCreate,
     ScrapDefectTypeRead,
     ScrapDefectTypeUpdate,
@@ -98,6 +103,68 @@ scrap_router = APIRouter(tags=["Material Scrap"])
 dashboard_router = APIRouter(tags=["Material Scrap Dashboard"])
 
 FilterValue = Annotated[str, StringConstraints(min_length=1, max_length=120)]
+
+
+@scrap_router.get("/classifications", response_model=list[ScrapClassificationRuleRead])
+async def list_scrap_classifications(
+    db: AsyncSessionDep,
+    service: ScrapClassificationServiceDep,
+    _: CurrentSuperUserDep,
+) -> list[ScrapClassificationRuleRead]:
+    return await service.list(db)
+
+
+@scrap_router.post("/classifications", response_model=ScrapClassificationRuleRead, status_code=status.HTTP_201_CREATED)
+async def create_scrap_classification(
+    command: ScrapClassificationRuleWrite,
+    db: AsyncSessionDep,
+    service: ScrapClassificationServiceDep,
+    current_user: CurrentSuperUserDep,
+) -> ScrapClassificationRuleRead:
+    try:
+        return await service.create(command, int(current_user["id"]), db)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+
+
+@scrap_router.put("/classifications/{rule_id}", response_model=ScrapClassificationRuleRead)
+async def update_scrap_classification(
+    rule_id: uuid.UUID,
+    command: ScrapClassificationRuleWrite,
+    db: AsyncSessionDep,
+    service: ScrapClassificationServiceDep,
+    current_user: CurrentSuperUserDep,
+) -> ScrapClassificationRuleRead:
+    try:
+        return await service.update(rule_id, command, int(current_user["id"]), db)
+    except LookupError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+
+
+@scrap_router.delete("/classifications/{rule_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_scrap_classification(
+    rule_id: uuid.UUID,
+    db: AsyncSessionDep,
+    service: ScrapClassificationServiceDep,
+    _: CurrentSuperUserDep,
+) -> Response:
+    try:
+        await service.delete(rule_id, db)
+    except LookupError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@scrap_router.post("/classifications/reapply", response_model=ScrapClassificationReapplyResult)
+async def reapply_scrap_classifications(
+    db: AsyncSessionDep,
+    service: ScrapClassificationServiceDep,
+    _: CurrentSuperUserDep,
+) -> ScrapClassificationReapplyResult:
+    count, revision = await service.reapply(db)
+    return ScrapClassificationReapplyResult(reclassified_records=count, dashboard_revision=revision)
 
 
 def build_filters(
@@ -553,6 +620,7 @@ async def read_dashboard(
     service: ScrapDashboardServiceDep,
     year: int | None = Query(default=None, ge=2000, le=2100),
     currency: DashboardCurrency = DashboardCurrency.USD,
+    metric: DashboardMetric = DashboardMetric.IF_COST,
     impact_mode: ImpactMode = ImpactMode.ABSOLUTE,
     ranking_limit: int = Query(default=10, ge=1, le=20),
 ) -> DashboardResponse:
@@ -565,6 +633,7 @@ async def read_dashboard(
         filters,
         year=selected_year,
         currency=currency,
+        dashboard_metric=metric,
         impact_mode=impact_mode,
         ranking_limit=ranking_limit,
     )
