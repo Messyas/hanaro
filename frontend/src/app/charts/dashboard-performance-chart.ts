@@ -12,7 +12,7 @@ import { SVGRenderer } from 'echarts/renderers';
 import { NgxEchartsDirective, provideEchartsCore } from 'ngx-echarts';
 import { ThemeService } from '../theme/theme.service';
 import { LanguageCode } from '../i18n/language.service';
-import { CHART_DESIGN } from './chart-design.tokens';
+import { CHART_DESIGN, getChartTheme } from './chart-design.tokens';
 import {
   DashboardAnalysis,
   DashboardEvolutionView,
@@ -191,7 +191,8 @@ export class DashboardPerformanceChart {
   readonly initOptions = { renderer: 'svg' as const };
 
   readonly options = computed<EChartsCoreOption>(() => {
-    this.theme.isDark();
+    const isDark = this.theme.isDark();
+    const chartTheme = getChartTheme(isDark);
     const metric = this.metric();
     const analysis = this.analysis();
     const data = this.data();
@@ -209,7 +210,7 @@ export class DashboardPerformanceChart {
       animationEasing: 'cubicOut',
       animationDelay: (idx: number) => idx * staggerDelay,
       animationDurationUpdate: 0,
-      textStyle: { fontFamily: CHART_DESIGN.fontFamily },
+      textStyle: { fontFamily: chartTheme.fontFamily },
       aria: {
         show: true,
         description:
@@ -221,8 +222,8 @@ export class DashboardPerformanceChart {
         itemWidth: 14,
         itemHeight: 8,
         textStyle: {
-          color: CHART_DESIGN.mutedText,
-          fontFamily: CHART_DESIGN.fontFamily,
+          color: chartTheme.mutedText,
+          fontFamily: chartTheme.fontFamily,
           fontSize: 12,
         },
       },
@@ -230,16 +231,21 @@ export class DashboardPerformanceChart {
       tooltip: {
         show: !hidden,
         trigger: 'axis',
-        backgroundColor: CHART_DESIGN.surface,
-        borderColor: CHART_DESIGN.grid,
+        backgroundColor: chartTheme.surface,
+        borderColor: chartTheme.grid,
         borderWidth: 1,
-        padding: [8, 10],
+        padding: [8, 12],
+        extraCssText:
+          'pointer-events: none; box-shadow: 0 4px 16px rgba(0,0,0,0.35); border-radius: 6px;',
         textStyle: {
-          color: CHART_DESIGN.text,
-          fontFamily: CHART_DESIGN.fontFamily,
+          color: chartTheme.text,
+          fontFamily: chartTheme.fontFamily,
           fontSize: 12,
         },
-        axisPointer: { type: 'line', lineStyle: { color: CHART_DESIGN.grid } },
+        axisPointer: {
+          type: 'line',
+          lineStyle: { color: chartTheme.grid, width: 1, type: 'dashed' },
+        },
       },
       xAxis: {
         type: 'category',
@@ -247,8 +253,8 @@ export class DashboardPerformanceChart {
         axisLine: { show: false },
         axisTick: { show: false },
         axisLabel: {
-          color: CHART_DESIGN.mutedText,
-          fontFamily: CHART_DESIGN.fontFamily,
+          color: chartTheme.mutedText,
+          fontFamily: chartTheme.fontFamily,
           fontSize: 12,
           margin: 12,
         },
@@ -259,8 +265,8 @@ export class DashboardPerformanceChart {
         axisLine: { show: false },
         axisTick: { show: false },
         axisLabel: {
-          color: CHART_DESIGN.mutedText,
-          fontFamily: CHART_DESIGN.fontFamily,
+          color: chartTheme.mutedText,
+          fontFamily: chartTheme.fontFamily,
           fontSize: 11,
           formatter: hidden
             ? () => '•••'
@@ -271,7 +277,7 @@ export class DashboardPerformanceChart {
                     ? this.compactCurrency(value)
                     : `${value}`,
         },
-        splitLine: { lineStyle: { color: CHART_DESIGN.grid } },
+        splitLine: { lineStyle: { color: chartTheme.grid } },
       },
       series: [
         {
@@ -285,25 +291,51 @@ export class DashboardPerformanceChart {
           data: data.map((item) => this.actualValue(item)),
           smooth: true,
           symbol: 'circle',
-          lineStyle: { width: 3, color: CHART_DESIGN.primary },
-          itemStyle: { color: CHART_DESIGN.primary },
+          symbolSize: 6,
+          lineStyle: { width: 3, color: chartTheme.primary },
+          itemStyle: { color: chartTheme.primary },
+          emphasis: {
+            focus: 'series',
+            lineStyle: { width: 3.5, color: chartTheme.primary },
+            itemStyle: {
+              color: chartTheme.primary,
+              borderColor: chartTheme.surface,
+              borderWidth: 2,
+              scale: 1.4,
+            },
+          },
           animationDuration: 750,
           animationEasing: 'cubicOut',
           animationDelay: (idx: number) => idx * staggerDelay,
         },
-        {
-          name: `${copy.reference} ${previousYear}`,
-          type: 'line',
-          data: data.map((item) => this.previousValue(item)),
-          smooth: true,
-          symbol: 'circle',
-          lineStyle: { width: 2, color: '#66728d' },
-          itemStyle: { color: '#66728d' },
-          animationDuration: 750,
-          animationEasing: 'cubicOut',
-          animationDelay: (idx: number) => idx * staggerDelay,
-        },
-        ...(analysis === 'absolute'
+        ...(data.some((item) => (this.previousValue(item) ?? 0) > 0)
+          ? [
+              {
+                name: `${copy.reference} ${previousYear}`,
+                type: 'line',
+                data: data.map((item) => this.previousValue(item)),
+                smooth: true,
+                symbol: 'circle',
+                symbolSize: 5,
+                lineStyle: { width: 2, color: chartTheme.reference },
+                itemStyle: { color: chartTheme.reference },
+                emphasis: {
+                  focus: 'series',
+                  lineStyle: { width: 2.5, color: chartTheme.reference },
+                  itemStyle: {
+                    color: chartTheme.reference,
+                    borderColor: chartTheme.surface,
+                    borderWidth: 2,
+                    scale: 1.3,
+                  },
+                },
+                animationDuration: 750,
+                animationEasing: 'cubicOut',
+                animationDelay: (idx: number) => idx * staggerDelay,
+              },
+            ]
+          : []),
+        ...(analysis === 'absolute' && data.some((item) => this.targetValue(item) > 0)
           ? [
               {
                 name: metric === 'usd' ? 'Target IF Cost' : 'Target QTY',
@@ -311,8 +343,19 @@ export class DashboardPerformanceChart {
                 data: data.map((item) => this.targetValue(item)),
                 smooth: true,
                 symbol: 'circle',
-                lineStyle: { width: 2, type: 'dashed', color: '#5ad6b3' },
-                itemStyle: { color: '#5ad6b3' },
+                symbolSize: 5,
+                lineStyle: { width: 2, type: 'dashed', color: chartTheme.target },
+                itemStyle: { color: chartTheme.target },
+                emphasis: {
+                  focus: 'series',
+                  lineStyle: { width: 2.5, type: 'dashed', color: chartTheme.target },
+                  itemStyle: {
+                    color: chartTheme.target,
+                    borderColor: chartTheme.surface,
+                    borderWidth: 2,
+                    scale: 1.3,
+                  },
+                },
                 animationDuration: 750,
                 animationEasing: 'cubicOut',
                 animationDelay: (idx: number) => idx * staggerDelay,

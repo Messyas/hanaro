@@ -5,7 +5,7 @@ import * as echarts from 'echarts/core';
 import type { EChartsCoreOption } from 'echarts/core';
 import { SVGRenderer } from 'echarts/renderers';
 import { NgxEchartsDirective, provideEchartsCore } from 'ngx-echarts';
-import { CHART_DESIGN } from '../../../charts/chart-design.tokens';
+import { CHART_DESIGN, getChartTheme } from '../../../charts/chart-design.tokens';
 import { ThemeService } from '../../../theme/theme.service';
 import { LanguageCode } from '../../../i18n/language.service';
 import { DashboardAnalysis, DashboardDistributionItem, DashboardMetric } from '../dashboard.models';
@@ -61,7 +61,8 @@ export class DashboardDistributionChart {
   readonly copy = computed(() => DASHBOARD_TRANSLATIONS[this.language()]);
   readonly initOptions = { renderer: 'svg' as const };
   readonly options = computed<EChartsCoreOption>(() => {
-    this.theme.isDark();
+    const isDark = this.theme.isDark();
+    const chartTheme = getChartTheme(isDark);
     const metric = this.metric();
     const analysis = this.analysis();
     const hidden = analysis === 'absolute' && metric === 'usd' && this.monetaryValuesHidden();
@@ -69,7 +70,7 @@ export class DashboardDistributionChart {
 
     return {
       animationDuration: 450,
-      textStyle: { fontFamily: CHART_DESIGN.fontFamily },
+      textStyle: { fontFamily: chartTheme.fontFamily },
       aria: {
         show: true,
         description:
@@ -80,23 +81,39 @@ export class DashboardDistributionChart {
       grid: { top: 6, right: 78, bottom: 8, left: 6, containLabel: true },
       tooltip: {
         show: !hidden,
-        trigger: 'axis',
-        axisPointer: { type: 'shadow' },
-        backgroundColor: CHART_DESIGN.surface,
-        borderColor: CHART_DESIGN.grid,
-        textStyle: { color: CHART_DESIGN.text, fontFamily: CHART_DESIGN.fontFamily },
+        trigger: 'item',
+        backgroundColor: chartTheme.surface,
+        borderColor: chartTheme.grid,
+        borderWidth: 1,
+        padding: [6, 10],
+        extraCssText:
+          'pointer-events: none; box-shadow: 0 4px 16px rgba(0,0,0,0.4); border-radius: 6px;',
+        textStyle: { color: chartTheme.text, fontFamily: chartTheme.fontFamily, fontSize: 12 },
+        position: (
+          point: [number, number],
+          _params: unknown,
+          _dom: unknown,
+          _rect: unknown,
+          size: { contentSize: [number, number] },
+        ) => {
+          const x = Math.max(8, point[0] - size.contentSize[0] / 2);
+          const y = point[1] - size.contentSize[1] - 10;
+          if (y < 4) {
+            return [point[0] + 16, Math.max(4, point[1] - size.contentSize[1] / 2)];
+          }
+          return [x, y];
+        },
         formatter: (params: unknown) => {
-          const items = Array.isArray(params) ? params : [params];
-          const first = items[0] as { name?: string; value?: number };
-          if (!first || first.name === undefined) return '';
-          const rawVal = first.value ?? 0;
+          const item = params as { name?: string; value?: number };
+          if (!item || item.name === undefined) return '';
+          const rawVal = item.value ?? 0;
           const displayVal =
             analysis === 'relative'
               ? `${rawVal.toLocaleString(DASHBOARD_LOCALES[this.language()], { minimumFractionDigits: 2, maximumFractionDigits: 4 })}%`
               : metric === 'usd'
                 ? this.compactCurrency(rawVal)
                 : `${new Intl.NumberFormat(DASHBOARD_LOCALES[this.language()]).format(rawVal)} ${this.copy().units}`;
-          return `<div style="font-weight:600;margin-bottom:2px">${first.name}</div><div>${displayVal}</div>`;
+          return `<div style="font-weight:600;margin-bottom:2px">${item.name}</div><div>${displayVal}</div>`;
         },
       },
       xAxis: { type: 'value', show: false },
@@ -105,7 +122,7 @@ export class DashboardDistributionChart {
         data: data.map((item) => item.label),
         axisLine: { show: false },
         axisTick: { show: false },
-        axisLabel: { color: CHART_DESIGN.mutedText, fontFamily: CHART_DESIGN.fontFamily },
+        axisLabel: { color: chartTheme.mutedText, fontFamily: chartTheme.fontFamily },
       },
       series: [
         {
@@ -134,12 +151,21 @@ export class DashboardDistributionChart {
             };
           }),
           barWidth: 16,
-          itemStyle: { color: CHART_DESIGN.primary, borderRadius: [0, 6, 6, 0] },
+          itemStyle: {
+            color: chartTheme.primary,
+            borderRadius: [0, 6, 6, 0],
+          },
+          emphasis: {
+            itemStyle: {
+              color: chartTheme.primaryHover,
+              borderRadius: [0, 6, 6, 0],
+            },
+          },
           label: {
             show: true,
             position: 'right',
-            color: CHART_DESIGN.mutedText,
-            fontFamily: CHART_DESIGN.fontFamily,
+            color: chartTheme.mutedText,
+            fontFamily: chartTheme.fontFamily,
           },
         },
       ],
