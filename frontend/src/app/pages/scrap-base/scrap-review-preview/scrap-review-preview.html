@@ -1,156 +1,135 @@
-<div class="review-preview-container">
-  @if (isDraft()) {
-    <div class="preview-notice draft-notice" role="status">
-      <ui-icon name="clock" />
-      <span>{{ t().scrapPreviewNotice }}</span>
+<article class="report-document">
+  <header class="report-header">
+    <div class="document-status-line">
+      <span class="document-status" [class.is-reviewed]="isReviewed()">
+        <ui-icon [name]="isReviewed() ? 'check' : 'clock'" />
+        {{ isReviewed() ? t().scrapReviewStatusReviewed : t().scrapPreviewNotice }}
+      </span>
+      @if (review()?.source_review_id) {
+        <span class="document-origin">
+          <ui-icon name="copy" />
+          {{ t().scrapCreatedFromReference }}
+        </span>
+      }
     </div>
+
+    <h1>{{ displayTitle() }}</h1>
+
+    <dl class="essential-metadata">
+      <div>
+        <dt>{{ t().scrapFieldDefectType }}</dt>
+        <dd>{{ displayDefectType() }}</dd>
+      </div>
+      <div>
+        <dt>{{ t().scrapFieldResponsible }}</dt>
+        <dd>{{ displayResponsible() }}</dd>
+      </div>
+      <div>
+        <dt>{{ t().scrapColDate }}</dt>
+        <dd>{{ displayDate() || formatTransactionDate(occurrence()?.transaction_date) }}</dd>
+      </div>
+      <div>
+        <dt>{{ t().scrapColItem }}</dt>
+        <dd class="item-code">{{ occurrence()?.item_code || '—' }}</dd>
+      </div>
+    </dl>
+
+    <details class="technical-details">
+      <summary>{{ t().scrapDrawerSummaryTitle }}</summary>
+      <dl>
+        <div>
+          <dt>{{ t().scrapColDescription }}</dt>
+          <dd>{{ occurrence()?.item_description || '—' }}</dd>
+        </div>
+        <div>
+          <dt>{{ t().scrapColOrganization }}</dt>
+          <dd>{{ occurrence()?.organization_code || '—' }}</dd>
+        </div>
+        <div>
+          <dt>{{ t().scrapColQuantity }}</dt>
+          <dd>{{ occurrence()?.issue_quantity ?? '—' }}</dd>
+        </div>
+        <div>
+          <dt>{{ t().scrapColAmountUsd }}</dt>
+          <dd>{{ formatCurrency(occurrence()?.amount_usd) }}</dd>
+        </div>
+        @if (occurrence()?.work_order) {
+          <div>
+            <dt>{{ t().scrapColOrder }}</dt>
+            <dd>{{ occurrence()!.work_order }}</dd>
+          </div>
+        }
+        @if (occurrence()?.occurrence_id) {
+          <div class="details-wide">
+            <dt>ID</dt>
+            <dd class="item-code">{{ occurrence()!.occurrence_id }}</dd>
+          </div>
+        }
+      </dl>
+    </details>
+  </header>
+
+  <section class="report-section">
+    <h2>{{ t().scrapFieldDescription }}</h2>
+    @if (renderedDescriptionHtml()) {
+      <div class="markdown-body" [innerHTML]="renderedDescriptionHtml()"></div>
+    } @else {
+      <p class="empty-text">—</p>
+    }
+  </section>
+
+  @if (allImages().length > 0) {
+    <section class="report-section evidence-section">
+      <h2>
+        {{ t().scrapAttachmentsTitle }} <span>({{ allImages().length }})</span>
+      </h2>
+      <div class="evidence-grid">
+        @for (image of allImages(); track image.url) {
+          <figure>
+            <button type="button" (click)="openLightbox(image.url, image.name)">
+              <img [src]="image.url" [alt]="image.name" loading="lazy" />
+              <span><ui-icon name="eye" /> {{ t().scrapAttachmentView }}</span>
+            </button>
+            <figcaption>{{ image.name }}</figcaption>
+          </figure>
+        }
+      </div>
+    </section>
   }
 
-  @if (review()?.source_review_id) {
-    <div class="preview-notice reference-notice" role="status">
-      <ui-icon name="copy" />
-      <span>{{ t().scrapCreatedFromReference }}</span>
-    </div>
-  }
-
-  <header class="preview-header">
-    <div class="title-and-badge">
-      <h3 class="preview-title">{{ displayTitle() }}</h3>
-      <app-status-badge
-        [label]="isReviewed() ? t().scrapReviewStatusReviewed : t().scrapReviewStatusDraft"
-        [tone]="isReviewed() ? 'success' : 'warning'"
-      />
-    </div>
-
-    @if (isReviewed()) {
-      <button type="button" class="btn btn-secondary btn-reference" (click)="onUseAsReference()">
+  @if (isReviewed() && review()) {
+    <footer class="report-actions">
+      <button type="button" class="btn btn-secondary" (click)="onUseAsReference()">
         <ui-icon name="copy" />
         <span>{{ t().scrapActionUseReference }}</span>
       </button>
-    }
-  </header>
+    </footer>
+  }
+</article>
 
-  <!-- Grade de Metadados -->
-  <div class="preview-meta-grid">
-    <div class="meta-card">
-      <span class="meta-label">{{ t().scrapFieldDefectType }}</span>
-      <span class="meta-value">{{ displayDefectType() }}</span>
-    </div>
-    <div class="meta-card">
-      <span class="meta-label">{{ t().scrapFieldResponsible }}</span>
-      <span class="meta-value">{{ displayResponsible() }}</span>
-    </div>
-    @if (displayDate()) {
-      <div class="meta-card">
-        <span class="meta-label">{{ t().scrapReadOnlyNotice }}</span>
-        <span class="meta-value">{{ displayDate() }}</span>
+@if (lightboxItem(); as item) {
+  <div
+    class="lightbox-backdrop"
+    (click)="closeLightbox()"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-label]="item.name"
+  >
+    <div class="lightbox-dialog" (click)="$event.stopPropagation()">
+      <header class="lightbox-header">
+        <strong class="lightbox-title">{{ item.name }}</strong>
+        <button
+          type="button"
+          class="btn btn-ghost lightbox-close"
+          (click)="closeLightbox()"
+          [attr.aria-label]="t().close"
+        >
+          <ui-icon name="x" />
+        </button>
+      </header>
+      <div class="lightbox-body">
+        <img [src]="item.url" [alt]="item.name" class="lightbox-image" />
       </div>
-    }
+    </div>
   </div>
-
-  <!-- Resumo da Ocorrência Base -->
-  @if (occurrence(); as occ) {
-    <section class="preview-occurrence-section">
-      <h4 class="section-title">{{ t().scrapDrawerSummaryTitle }}</h4>
-      <div class="occurrence-compact-grid">
-        <div class="occ-item">
-          <span class="occ-label">{{ t().scrapColItem }}</span>
-          <span class="occ-value item-code">{{ occ.item_code }}</span>
-        </div>
-        <div class="occ-item">
-          <span class="occ-label">{{ t().scrapColDescription }}</span>
-          <span class="occ-value" [title]="occ.item_description || ''">{{
-            occ.item_description || '—'
-          }}</span>
-        </div>
-        <div class="occ-item">
-          <span class="occ-label">{{ t().scrapColOrganization }}</span>
-          <span class="occ-value">{{ occ.organization_code }}</span>
-        </div>
-        <div class="occ-item">
-          <span class="occ-label">{{ t().scrapColDate }}</span>
-          <span class="occ-value">{{ formatTransactionDate(occ.transaction_date) }}</span>
-        </div>
-        <div class="occ-item">
-          <span class="occ-label">{{ t().scrapColQuantity }}</span>
-          <span class="occ-value">{{ occ.issue_quantity }}</span>
-        </div>
-        <div class="occ-item">
-          <span class="occ-label">{{ t().scrapColAmountUsd }}</span>
-          <span class="occ-value font-semibold">{{ formatCurrency(occ.amount_usd) }}</span>
-        </div>
-        @if (occ.work_order) {
-          <div class="occ-item">
-            <span class="occ-label">{{ t().scrapColOrder }}</span>
-            <span class="occ-value">{{ occ.work_order }}</span>
-          </div>
-        }
-        @if (occ.occurrence_id) {
-          <div class="occ-item full-width">
-            <span class="occ-label">ID OCORRÊNCIA</span>
-            <span class="occ-value id-code">{{ occ.occurrence_id }}</span>
-          </div>
-        }
-      </div>
-    </section>
-  }
-
-  <!-- Descrição e Causa Raiz -->
-  <section class="preview-description-section">
-    <h4 class="section-title">{{ t().scrapFieldDescription }}</h4>
-    <div class="description-box">
-      {{ displayDescription() || 'Sem descrição informada.' }}
-    </div>
-  </section>
-
-  <!-- Galeria de Fotos / Evidências -->
-  @if (allImages().length > 0) {
-    <section class="preview-gallery-section">
-      <h4 class="section-title">
-        {{ t().scrapAttachmentsTitle }}
-        <span class="count-tag">({{ allImages().length }})</span>
-      </h4>
-      <div class="gallery-grid">
-        @for (img of allImages(); track img.url) {
-          <button
-            type="button"
-            class="gallery-card"
-            (click)="openLightbox(img.url, img.name)"
-            [attr.aria-label]="t().scrapAttachmentView + ': ' + img.name"
-          >
-            <img [src]="img.url" [alt]="img.name" loading="lazy" class="gallery-img" />
-            <span class="gallery-caption">{{ img.name }}</span>
-          </button>
-        }
-      </div>
-    </section>
-  }
-
-  <!-- Lightbox Modal -->
-  @if (lightboxItem(); as item) {
-    <div
-      class="lightbox-backdrop"
-      (click)="closeLightbox()"
-      role="dialog"
-      aria-modal="true"
-      [attr.aria-label]="item.name"
-    >
-      <div class="lightbox-dialog" (click)="$event.stopPropagation()">
-        <header class="lightbox-header">
-          <span class="lightbox-title">{{ item.name }}</span>
-          <button
-            type="button"
-            class="btn btn-ghost lightbox-close"
-            (click)="closeLightbox()"
-            aria-label="Fechar visualização"
-          >
-            <ui-icon name="x" />
-          </button>
-        </header>
-        <div class="lightbox-body">
-          <img [src]="item.url" [alt]="item.name" class="lightbox-image" />
-        </div>
-      </div>
-    </div>
-  }
-</div>
+}

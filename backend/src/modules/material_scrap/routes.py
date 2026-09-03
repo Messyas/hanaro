@@ -7,7 +7,7 @@ from pydantic import StringConstraints
 from starlette.concurrency import run_in_threadpool
 from starlette.responses import FileResponse
 
-from ...infrastructure.dependencies import AsyncSessionDep, CurrentSuperUserDep, CurrentUserDep
+from ...infrastructure.dependencies import AsyncSessionDep, CurrentSuperUserDep, CurrentUserDep, OptionalUserDep
 from .dependencies import (
     ScrapDashboardServiceDep,
     ScrapReviewImageStorageDep,
@@ -51,6 +51,7 @@ from .review_service import (
     create_bulk_reviews,
     create_defect_type,
     create_review_template,
+    delete_defect_type,
     delete_review_attachment,
     delete_review_template,
     finalize_review,
@@ -60,6 +61,7 @@ from .review_service import (
     list_review_templates,
     save_review_draft,
     update_defect_type,
+    update_review_template,
 )
 from .schemas import (
     AutomationExecutionStart,
@@ -82,6 +84,7 @@ from .schemas import (
     ScrapReviewRead,
     ScrapReviewTemplateCreate,
     ScrapReviewTemplateRead,
+    ScrapReviewTemplateUpdate,
     ScrapReviewWrite,
     ScrapSummary,
     ScrapTargetRead,
@@ -264,6 +267,7 @@ async def read_scrap(
     review_status: ScrapReviewFilterStatus | None = None,
     defect_type_ids: Annotated[list[uuid.UUID] | None, Query(max_length=50)] = None,
     responsible_user_ids: Annotated[list[int] | None, Query(max_length=50)] = None,
+    exclude_reviewed: bool = False,
 ) -> ScrapPage:
     return await list_scrap(
         db,
@@ -276,6 +280,7 @@ async def read_scrap(
         review_status=review_status,
         defect_type_ids=defect_type_ids,
         responsible_user_ids=responsible_user_ids,
+        exclude_reviewed=exclude_reviewed,
     )
 
 
@@ -309,7 +314,7 @@ async def read_scrap_review_types(
 async def create_scrap_review_type(
     command: ScrapDefectTypeCreate,
     db: AsyncSessionDep,
-    _: CurrentSuperUserDep,
+    _: CurrentUserDep,
 ) -> ScrapDefectTypeRead:
     try:
         return await create_defect_type(db, command)
@@ -322,10 +327,22 @@ async def update_scrap_review_type(
     command: ScrapDefectTypeUpdate,
     defect_type_id: uuid.UUID,
     db: AsyncSessionDep,
-    _: CurrentSuperUserDep,
+    _: CurrentUserDep,
 ) -> ScrapDefectTypeRead:
     try:
         return await update_defect_type(db, defect_type_id, command)
+    except (ScrapReviewNotFoundError, ScrapReviewConflictError) as error:
+        raise _review_http_exception(error) from error
+
+
+@scrap_router.delete("/review-types/{defect_type_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_scrap_review_type(
+    defect_type_id: uuid.UUID,
+    db: AsyncSessionDep,
+    _: CurrentUserDep,
+) -> None:
+    try:
+        await delete_defect_type(db, defect_type_id)
     except (ScrapReviewNotFoundError, ScrapReviewConflictError) as error:
         raise _review_http_exception(error) from error
 
@@ -350,6 +367,23 @@ async def create_scrap_review_template(
         raise _review_http_exception(error) from error
 
 
+@scrap_router.patch("/reviews/templates/{template_id}", response_model=ScrapReviewTemplateRead)
+async def update_scrap_review_template(
+    command: ScrapReviewTemplateUpdate,
+    template_id: uuid.UUID,
+    db: AsyncSessionDep,
+    current_user: CurrentUserDep,
+) -> ScrapReviewTemplateRead:
+    try:
+        return await update_review_template(db, template_id, command, current_user)
+    except (
+        ScrapReviewNotFoundError,
+        ScrapReviewPermissionError,
+        ScrapReviewValidationError,
+    ) as error:
+        raise _review_http_exception(error) from error
+
+
 @scrap_router.delete("/reviews/templates/{template_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_scrap_review_template(
     template_id: uuid.UUID,
@@ -371,7 +405,11 @@ async def create_scrap_reviews_in_bulk(
 ) -> ScrapReviewBulkResult:
     try:
         return await create_bulk_reviews(db, command, current_user, storage)
-    except (ScrapReviewValidationError, ScrapReviewConflictError) as error:
+    except (
+        ScrapReviewValidationError,
+        ScrapReviewConflictError,
+        ScrapReviewPermissionError,
+    ) as error:
         raise _review_http_exception(error) from error
 
 
@@ -466,7 +504,7 @@ async def read_scrap_review_attachment(
     review_id: uuid.UUID,
     attachment_id: uuid.UUID,
     db: AsyncSessionDep,
-    _: CurrentUserDep,
+    _: OptionalUserDep,
     storage: ScrapReviewImageStorageDep,
 ) -> FileResponse:
     try:

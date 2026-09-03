@@ -28,6 +28,7 @@ from .schemas import (
     ScrapReviewRead,
     ScrapReviewTemplateCreate,
     ScrapReviewTemplateRead,
+    ScrapReviewTemplateUpdate,
     ScrapReviewWrite,
 )
 
@@ -152,6 +153,37 @@ async def update_defect_type(
     return ScrapDefectTypeRead.model_validate(item)
 
 
+async def delete_defect_type(
+    db: AsyncSession,
+    defect_type_id: uuid.UUID,
+) -> None:
+    item = await db.get(ScrapDefectType, defect_type_id)
+    if item is None:
+        raise ScrapReviewNotFoundError("Defect type not found")
+
+    review_count = (
+        await db.execute(select(func.count()).select_from(ScrapReview).where(ScrapReview.defect_type_id == defect_type_id))
+    ).scalar() or 0
+
+    if review_count > 0:
+        raise ScrapReviewConflictError(
+            "Não é possível excluir este tipo de scrap pois existem "
+            f"{review_count} relatório(s) vinculados a ele. Você pode desativá-lo "
+            "para que não seja mais selecionado."
+        )
+
+    templates = (
+        (await db.execute(select(ScrapReviewTemplate).where(ScrapReviewTemplate.defect_type_id == defect_type_id)))
+        .scalars()
+        .all()
+    )
+    for tpl in templates:
+        tpl.defect_type_id = None
+
+    await db.delete(item)
+    await db.commit()
+
+
 async def get_review_for_occurrence(db: AsyncSession, occurrence_id: uuid.UUID) -> ScrapReviewRead:
     review = (await db.execute(select(ScrapReview).where(ScrapReview.occurrence_id == occurrence_id))).scalar_one_or_none()
     if review is None:
@@ -177,7 +209,7 @@ async def _active_defect_type(db: AsyncSession, defect_type_id: uuid.UUID | None
 
 def _assert_owner(review: ScrapReview, user_id: int) -> None:
     if review.responsible_user_id != user_id:
-        raise ScrapReviewPermissionError("Only the responsible user can change this review")
+        raise ScrapReviewPermissionError("Only the review author can edit this report")
 
 
 async def save_review_draft(
@@ -210,8 +242,6 @@ async def save_review_draft(
         db.add(review)
     else:
         _assert_owner(review, user_id)
-        if review.status == ScrapReviewStatus.REVIEWED.value:
-            raise ScrapReviewConflictError("A finalized review cannot be edited")
         if command.expected_version is not None and command.expected_version != review.version:
             raise ScrapReviewConflictError("The review was changed by another request")
         review.defect_type_id = command.defect_type_id
@@ -264,8 +294,6 @@ async def assert_review_accepts_attachment(
     if review is None:
         raise ScrapReviewNotFoundError("Review not found")
     _assert_owner(review, int(current_user["id"]))
-    if review.status != ScrapReviewStatus.DRAFT.value:
-        raise ScrapReviewConflictError("Attachments can only be changed while the review is a draft")
     count = int(
         (
             await db.execute(
@@ -328,8 +356,6 @@ async def delete_review_attachment(
     if review is None:
         raise ScrapReviewNotFoundError("Review not found")
     _assert_owner(review, int(current_user["id"]))
-    if review.status != ScrapReviewStatus.DRAFT.value:
-        raise ScrapReviewConflictError("Attachments can only be changed while the review is a draft")
     attachment = await get_review_attachment(db, review_id, attachment_id)
     await db.delete(attachment)
     await db.flush()
@@ -361,9 +387,33 @@ async def create_bulk_reviews(
     current_user: dict[str, Any],
     storage: ScrapReviewImageStorage,
 ) -> ScrapReviewBulkResult:
-    reference = await db.get(ScrapReview, command.reference_review_id)
+    template: ScrapReviewTemplate | None = None
+    reference_id: uuid.UUID
+    if command.template_id is not None:
+        template = await db.get(ScrapReviewTemplate, command.template_id)
+        if template is None or not template.is_active:
+            raise ScrapReviewValidationError("The selected template is not available")
+        if template.created_by_user_id != int(current_user["id"]):
+            raise ScrapReviewPermissionError("Only the template author can apply this template")
+        source_review_id = template.source_review_id
+        if source_review_id is None:
+            raise ScrapReviewValidationError("The selected template has no source report")
+        reference_id = source_review_id
+    else:
+        source_reference_id = command.reference_review_id
+        if source_reference_id is None:
+            raise ScrapReviewValidationError("A reference review or template is required")
+        reference_id = source_reference_id
+
+    reference = await db.get(ScrapReview, reference_id)
     if reference is None or reference.status != ScrapReviewStatus.REVIEWED.value:
         raise ScrapReviewValidationError("The reference review must be finalized")
+    title = template.title if template is not None else reference.title
+    description = template.description if template is not None else reference.description
+    defect_type_id = template.defect_type_id if template is not None else reference.defect_type_id
+    if defect_type_id is None or not title.strip() or not description.strip():
+        raise ScrapReviewValidationError("Defect type, title and description are required to apply a template")
+    await _active_defect_type(db, defect_type_id)
     reference_attachments = list(
         (
             await db.execute(
@@ -410,7 +460,10 @@ async def create_bulk_reviews(
         created_count=len(eligible),
         skipped_count=len(skipped),
         copy_attachments=command.copy_attachments,
-        selection_snapshot={"occurrence_ids": [str(item) for item in command.occurrence_ids]},
+        selection_snapshot={
+            "occurrence_ids": [str(item) for item in command.occurrence_ids],
+            "template_id": str(template.id) if template is not None else None,
+        },
         created_at=now,
     )
     db.add(operation)
@@ -423,12 +476,12 @@ async def create_bulk_reviews(
                 responsible_user_id=user_id,
                 responsible_name=responsible_name,
                 status=ScrapReviewStatus.REVIEWED.value,
-                title=reference.title,
-                description=reference.description,
+                title=title,
+                description=description,
                 version=1,
                 created_at=now,
                 updated_at=now,
-                defect_type_id=reference.defect_type_id,
+                defect_type_id=defect_type_id,
                 source_review_id=reference.id,
                 bulk_operation_id=operation.id,
                 reviewed_at=now,
@@ -479,6 +532,8 @@ async def list_review_templates(
         .where(ScrapReviewTemplate.is_active.is_(True))
         .order_by(ScrapReviewTemplate.name, ScrapReviewTemplate.created_at.desc())
     )
+    if user_id is not None:
+        statement = statement.where(ScrapReviewTemplate.created_by_user_id == user_id)
     templates = list((await db.execute(statement)).scalars().all())
     result: list[ScrapReviewTemplateRead] = []
     for t in templates:
@@ -543,6 +598,52 @@ async def create_review_template(
     if template.defect_type_id:
         defect_type = await db.get(ScrapDefectType, template.defect_type_id)
 
+    return ScrapReviewTemplateRead(
+        id=template.id,
+        name=template.name,
+        title=template.title,
+        description=template.description,
+        defect_type_id=template.defect_type_id,
+        defect_type=ScrapDefectTypeRead.model_validate(defect_type) if defect_type else None,
+        created_by_user_id=template.created_by_user_id,
+        source_review_id=template.source_review_id,
+        is_active=template.is_active,
+        created_at=template.created_at,
+        updated_at=template.updated_at,
+    )
+
+
+async def update_review_template(
+    db: AsyncSession,
+    template_id: uuid.UUID,
+    command: ScrapReviewTemplateUpdate,
+    current_user: dict[str, Any],
+) -> ScrapReviewTemplateRead:
+    template = await db.get(ScrapReviewTemplate, template_id)
+    if template is None or not template.is_active:
+        raise ScrapReviewNotFoundError(f"Template {template_id} not found")
+
+    user_id = int(current_user["id"])
+    if template.created_by_user_id != user_id:
+        raise ScrapReviewPermissionError("Only the template author can edit this template")
+
+    if "name" in command.model_fields_set and command.name is not None:
+        template.name = command.name.strip()
+    if "title" in command.model_fields_set and command.title is not None:
+        template.title = command.title.strip()
+    if "description" in command.model_fields_set and command.description is not None:
+        template.description = command.description.strip()
+    if "defect_type_id" in command.model_fields_set:
+        await _active_defect_type(db, command.defect_type_id)
+        template.defect_type_id = command.defect_type_id
+
+    template.updated_at = _now()
+    await db.commit()
+    await db.refresh(template)
+
+    defect_type = None
+    if template.defect_type_id:
+        defect_type = await db.get(ScrapDefectType, template.defect_type_id)
     return ScrapReviewTemplateRead(
         id=template.id,
         name=template.name,

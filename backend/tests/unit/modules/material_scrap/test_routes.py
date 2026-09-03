@@ -183,3 +183,10 @@ async def test_dashboard_rejects_invalid_window_and_unbounded_filters(scrap_clie
         json={"currency": "USD", "amount": "1000.00"},
     )
     assert regular_user_target_write.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_scrap_list_exclude_reviewed(scrap_client: AsyncClient) -> None:
+    response = await scrap_client.get("/api/v1/scrap", params={"exclude_reviewed": True})
+    assert response.status_code == 200
+    assert len(response.json()["items"]) > 0

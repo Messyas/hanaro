@@ -31,6 +31,34 @@ export interface AppTranslations {
   loginButton: string;
   loginHint: string;
   settingsTitle: string;
+  settingsTabPreferences: string;
+  settingsTabSystem: string;
+  scrapDefectTypesTitle: string;
+  scrapDefectTypesSubtitle: string;
+  scrapDefectTypeNameLabel: string;
+  scrapDefectTypeNamePlaceholder: string;
+  scrapDefectTypeCodeLabel: string;
+  scrapDefectTypeCodePlaceholder: string;
+  scrapDefectTypeDescLabel: string;
+  scrapDefectTypeDescPlaceholder: string;
+  scrapDefectTypeAddButton: string;
+  scrapDefectTypeStatusActive: string;
+  scrapDefectTypeStatusInactive: string;
+  scrapDefectTypeEmptyState: string;
+  scrapDefectTypeSuccessCreate: string;
+  scrapDefectTypeSuccessUpdate: string;
+  scrapDefectTypeErrorCreate: string;
+  scrapDefectTypeErrorUpdate: string;
+  scrapDefectTypeEditAction: string;
+  scrapDefectTypeDeleteAction: string;
+  scrapDefectTypeDeleteConfirmTitle: string;
+  scrapDefectTypeDeleteConfirmMessage: string;
+  scrapDefectTypeSuccessDelete: string;
+  scrapDefectTypeErrorDelete: string;
+  scrapDefectTypeCancelAction: string;
+  scrapDefectTypeSaveAction: string;
+  scrapDefectTypeCountSummary: string;
+  scrapDefectTypeActiveCountSummary: string;
   themeTitle: string;
   themeSubtitle: string;
   themeGroupLabel: string;
@@ -198,6 +226,8 @@ export interface AppTranslations {
   scrapRetry: string;
   scrapEmptyTitle: string;
   scrapEmptyDesc: string;
+  scrapSelectionEmptyTitle: string;
+  scrapSelectionEmptyDesc: string;
   scrapColDate: string;
   scrapColOrganization: string;
   scrapColItem: string;
@@ -257,6 +287,9 @@ export interface AppTranslations {
   scrapActionFinalizing: string;
   scrapActionPreview: string;
   scrapActionEdit: string;
+  scrapActionEditReview: string;
+  scrapActionCancelEdit: string;
+  scrapActionSaveEdit: string;
   scrapActionUseReference: string;
   scrapDiscardChangesConfirm: string;
   scrapFinalizeConfirmTitle: string;
@@ -268,6 +301,7 @@ export interface AppTranslations {
   scrapPreviewNotice: string;
   scrapCreatedFromReference: string;
   scrapReferenceSelectedBanner: string;
+  scrapTemplateSelectedBanner: string;
   scrapRemoveReference: string;
   scrapSelectReferenceMode: string;
 
@@ -284,6 +318,29 @@ export interface AppTranslations {
   scrapApplyTemplate: string;
   scrapUseThisTemplate: string;
   scrapSaveAsTemplateCheckbox: string;
+  scrapTemplatesLibraryHint: string;
+  scrapTemplatesLoading: string;
+  scrapTemplateFieldName: string;
+  scrapTemplateSelectType: string;
+  scrapTemplateTypeRequired: string;
+  scrapTemplateSaveChanges: string;
+  scrapTemplateEdit: string;
+  scrapTemplateDelete: string;
+  scrapTemplateDeleteConfirm: string;
+  scrapTemplateNoType: string;
+  scrapTemplateUpdated: string;
+  scrapTemplateUpdatedSuccess: string;
+  scrapTemplateUpdateError: string;
+  scrapTemplateDeleteError: string;
+  scrapTemplateValidationName: string;
+  scrapTemplateValidationTitle: string;
+  scrapTemplateValidationDescription: string;
+  scrapTemplateValidationMaxLength: string;
+  scrapTemplateConfirmConnector: string;
+  scrapTemplateSkipNotice: string;
+  scrapSaveStatusSaving: string;
+  scrapSaveStatusUnsaved: string;
+  scrapSaveStatusSaved: string;
 
   scrapAttachmentsTitle: string;
   scrapAttachmentsHint: string;
@@ -308,6 +365,22 @@ export interface AppTranslations {
   scrapBulkSkippedSummary: string;
   scrapBulkReasonNotActive: string;
   scrapBulkReasonAlreadyReviewed: string;
+
+  scrapQueueTitle: string;
+  scrapQueueProgress: string;
+  scrapQueuePrevious: string;
+  scrapQueueNext: string;
+  scrapQueueSkip: string;
+  scrapQueueFinalizeAndNext: string;
+  scrapQueueFinalizeAndFinish: string;
+  scrapQueueSaveDraftAndNext: string;
+  scrapStartQueue: string;
+  scrapCreateSingleReport: string;
+  scrapItemsSelected: string;
+  scrapTemplateChecklistTitle: string;
+  scrapTemplateChecklistHint: string;
+  scrapTemplateChecklistApply: string;
+  scrapTemplateChecklistSelectAll: string;
 
   reportsTitle: string;
   reportsSubtitle: string;
@@ -339,6 +412,37 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     loginButton: 'Entrar',
     loginHint: 'Acessar sua conta',
     settingsTitle: 'Configurações',
+    settingsTabPreferences: 'Preferências',
+    settingsTabSystem: 'Sistema',
+    scrapDefectTypesTitle: 'Tipos de Scrap',
+    scrapDefectTypesSubtitle:
+      'Categorias compartilhadas do sistema para classificação e análise de refugo pela equipe.',
+    scrapDefectTypeNameLabel: 'Nome da categoria',
+    scrapDefectTypeNamePlaceholder: 'Ex: Oxidação, Avaria de Transporte, Trinca...',
+    scrapDefectTypeCodeLabel: 'Código identificador',
+    scrapDefectTypeCodePlaceholder: 'Ex: OXIDACAO, AVARIA_TRANSPORTE',
+    scrapDefectTypeDescLabel: 'Descrição (opcional)',
+    scrapDefectTypeDescPlaceholder:
+      'Descreva os critérios e características deste tipo de refugo...',
+    scrapDefectTypeAddButton: 'Cadastrar Tipo de Scrap',
+    scrapDefectTypeStatusActive: 'Ativo',
+    scrapDefectTypeStatusInactive: 'Inativo',
+    scrapDefectTypeEmptyState:
+      'Nenhum tipo de scrap cadastrado ainda. Preencha o formulário acima para criar o primeiro e disponibilizá-lo para toda a equipe.',
+    scrapDefectTypeSuccessCreate: 'Tipo de scrap cadastrado com sucesso!',
+    scrapDefectTypeSuccessUpdate: 'Tipo de scrap atualizado com sucesso!',
+    scrapDefectTypeErrorCreate: 'Erro ao cadastrar tipo de scrap. Verifique se o código já existe.',
+    scrapDefectTypeErrorUpdate: 'Erro ao atualizar tipo de scrap.',
+    scrapDefectTypeEditAction: 'Editar',
+    scrapDefectTypeDeleteAction: 'Excluir',
+    scrapDefectTypeDeleteConfirmTitle: 'Excluir Tipo de Scrap',
+    scrapDefectTypeDeleteConfirmMessage: 'Tem certeza que deseja excluir o tipo de scrap',
+    scrapDefectTypeSuccessDelete: 'Tipo de scrap excluído com sucesso!',
+    scrapDefectTypeErrorDelete: 'Erro ao excluir tipo de scrap.',
+    scrapDefectTypeCancelAction: 'Cancelar',
+    scrapDefectTypeSaveAction: 'Salvar alterações',
+    scrapDefectTypeCountSummary: 'tipos cadastrados',
+    scrapDefectTypeActiveCountSummary: 'ativos',
     themeTitle: 'Tema da interface',
     themeSubtitle: 'Escolha como o painel deve ser exibido.',
     themeGroupLabel: 'Escolha de tema',
@@ -506,6 +610,8 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     scrapRetry: 'Tentar novamente',
     scrapEmptyTitle: 'Nenhuma ocorrência encontrada',
     scrapEmptyDesc: 'Ajuste os filtros ou aguarde a publicação de uma nova execução.',
+    scrapSelectionEmptyTitle: 'Nenhuma ocorrência pendente para revisar',
+    scrapSelectionEmptyDesc: 'Todas as ocorrências deste período já foram revisadas.',
     scrapColDate: 'DATA',
     scrapColOrganization: 'ORGANIZAÇÃO',
     scrapColItem: 'ITEM',
@@ -565,12 +671,15 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     scrapActionFinalizing: 'Finalizando...',
     scrapActionPreview: 'Visualizar relatório',
     scrapActionEdit: 'Voltar para edição',
+    scrapActionEditReview: 'Editar relatório',
+    scrapActionCancelEdit: 'Cancelar edição',
+    scrapActionSaveEdit: 'Salvar alterações',
     scrapActionUseReference: 'Usar como referência',
     scrapDiscardChangesConfirm:
       'Existem alterações não salvas. Deseja realmente fechar e descartar as alterações?',
     scrapFinalizeConfirmTitle: 'Finalizar análise',
     scrapFinalizeConfirmMessage:
-      'Após a finalização, este relatório se tornará somente leitura e não poderá mais ser alterado ou ter fotos removidas. Deseja continuar?',
+      'O relatório será finalizado e continuará editável apenas por quem o criou. Deseja continuar?',
     scrapConflictError:
       'Este relatório foi alterado em outra sessão. Recarregue a versão mais recente antes de continuar.',
     scrapReloadReview: 'Recarregar relatório',
@@ -579,6 +688,7 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     scrapPreviewNotice: 'Pré-visualização — ainda não finalizado',
     scrapCreatedFromReference: 'Criado a partir de outro relatório',
     scrapReferenceSelectedBanner: 'Referência selecionada:',
+    scrapTemplateSelectedBanner: 'Modelo selecionado:',
     scrapRemoveReference: 'Remover referência',
     scrapSelectReferenceMode:
       'Modo de aplicação em lote ativo. Selecione as ocorrências na tabela abaixo e clique em Aplicar referência.',
@@ -597,6 +707,29 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     scrapApplyTemplate: 'Aplicar Modelo',
     scrapUseThisTemplate: 'Usar este modelo',
     scrapSaveAsTemplateCheckbox: 'Salvar esta análise como modelo favorito (❤️) para o futuro',
+    scrapTemplatesLibraryHint: 'Escolha um modelo para aplicar ou edite seus campos nesta lista.',
+    scrapTemplatesLoading: 'Carregando modelos...',
+    scrapTemplateFieldName: 'Nome do modelo',
+    scrapTemplateSelectType: 'Selecione o tipo de scrap',
+    scrapTemplateTypeRequired: 'Selecione o tipo de scrap.',
+    scrapTemplateSaveChanges: 'Salvar alterações',
+    scrapTemplateEdit: 'Editar modelo',
+    scrapTemplateDelete: 'Excluir',
+    scrapTemplateDeleteConfirm: 'Excluir este modelo?',
+    scrapTemplateNoType: 'Sem tipo',
+    scrapTemplateUpdated: 'Atualizado em',
+    scrapTemplateUpdatedSuccess: 'Modelo atualizado.',
+    scrapTemplateUpdateError: 'Não foi possível atualizar o modelo. Tente novamente.',
+    scrapTemplateDeleteError: 'Não foi possível excluir o modelo. Tente novamente.',
+    scrapTemplateValidationName: 'Informe um nome para o modelo.',
+    scrapTemplateValidationTitle: 'Informe o título do relatório.',
+    scrapTemplateValidationDescription: 'Informe a descrição do relatório.',
+    scrapTemplateValidationMaxLength: 'O texto ultrapassa o limite permitido.',
+    scrapTemplateConfirmConnector: 'em',
+    scrapTemplateSkipNotice: 'Ocorrências inativas ou que já possuem relatório serão ignoradas.',
+    scrapSaveStatusSaving: 'Salvando alterações...',
+    scrapSaveStatusUnsaved: 'Alterações não salvas',
+    scrapSaveStatusSaved: 'Salvo às',
 
     scrapAttachmentsTitle: 'Evidências e fotos',
     scrapAttachmentsHint:
@@ -623,6 +756,23 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     scrapBulkSkippedSummary: 'Itens ignorados:',
     scrapBulkReasonNotActive: 'Item inativo no período',
     scrapBulkReasonAlreadyReviewed: 'Item já possui análise prévia',
+
+    scrapQueueTitle: 'Fila de Relatórios',
+    scrapQueueProgress: 'Item {current} de {total}',
+    scrapQueuePrevious: 'Anterior',
+    scrapQueueNext: 'Próximo',
+    scrapQueueSkip: 'Pular',
+    scrapQueueFinalizeAndNext: 'Finalizar e ir para o próximo',
+    scrapQueueFinalizeAndFinish: 'Finalizar e concluir fila',
+    scrapQueueSaveDraftAndNext: 'Salvar rascunho e avançar',
+    scrapStartQueue: 'Iniciar fila de relatórios',
+    scrapCreateSingleReport: 'Criar relatório',
+    scrapItemsSelected: 'item(ns) selecionado(s)',
+    scrapTemplateChecklistTitle: 'Aplicar Modelo em Lote',
+    scrapTemplateChecklistHint:
+      'Marque no checklist as ocorrências pendentes que receberão este modelo:',
+    scrapTemplateChecklistApply: 'Aplicar modelo aos itens selecionados',
+    scrapTemplateChecklistSelectAll: 'Marcar todos os pendentes',
 
     reportsTitle: 'Relatórios de Scrap',
     reportsSubtitle: 'Catálogo de ocorrências revisadas e análises de causa raiz finalizadas.',
@@ -653,6 +803,38 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     loginButton: 'Sign in',
     loginHint: 'Access your account',
     settingsTitle: 'Settings',
+    settingsTabPreferences: 'Preferences',
+    settingsTabSystem: 'System',
+    scrapDefectTypesTitle: 'Scrap Defect Types',
+    scrapDefectTypesSubtitle:
+      'Shared system categories for team scrap classification and analysis.',
+    scrapDefectTypeNameLabel: 'Category Name',
+    scrapDefectTypeNamePlaceholder: 'E.g., Oxidation, Transport Damage, Crack...',
+    scrapDefectTypeCodeLabel: 'Identifier Code',
+    scrapDefectTypeCodePlaceholder: 'E.g., OXIDATION, TRANSPORT_DAMAGE',
+    scrapDefectTypeDescLabel: 'Description (optional)',
+    scrapDefectTypeDescPlaceholder:
+      'Describe the criteria and characteristics of this scrap type...',
+    scrapDefectTypeAddButton: 'Register Scrap Type',
+    scrapDefectTypeStatusActive: 'Active',
+    scrapDefectTypeStatusInactive: 'Inactive',
+    scrapDefectTypeEmptyState:
+      'No scrap defect types registered yet. Fill in the form above to create the first one for the team.',
+    scrapDefectTypeSuccessCreate: 'Scrap defect type registered successfully!',
+    scrapDefectTypeSuccessUpdate: 'Scrap defect type updated successfully!',
+    scrapDefectTypeErrorCreate:
+      'Error registering scrap defect type. Check if the code already exists.',
+    scrapDefectTypeErrorUpdate: 'Error updating scrap defect type.',
+    scrapDefectTypeEditAction: 'Edit',
+    scrapDefectTypeDeleteAction: 'Delete',
+    scrapDefectTypeDeleteConfirmTitle: 'Delete Scrap Type',
+    scrapDefectTypeDeleteConfirmMessage: 'Are you sure you want to delete the scrap type',
+    scrapDefectTypeSuccessDelete: 'Scrap type deleted successfully!',
+    scrapDefectTypeErrorDelete: 'Error deleting scrap type.',
+    scrapDefectTypeCancelAction: 'Cancel',
+    scrapDefectTypeSaveAction: 'Save changes',
+    scrapDefectTypeCountSummary: 'registered types',
+    scrapDefectTypeActiveCountSummary: 'active',
     themeTitle: 'Interface theme',
     themeSubtitle: 'Choose how the dashboard should be displayed.',
     themeGroupLabel: 'Theme selection',
@@ -819,6 +1001,8 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     scrapRetry: 'Try again',
     scrapEmptyTitle: 'No occurrences found',
     scrapEmptyDesc: 'Adjust the filters or wait for a new execution to be published.',
+    scrapSelectionEmptyTitle: 'No occurrences pending review',
+    scrapSelectionEmptyDesc: 'All occurrences for this period have already been reviewed.',
     scrapColDate: 'DATE',
     scrapColOrganization: 'ORGANIZATION',
     scrapColItem: 'ITEM',
@@ -878,12 +1062,15 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     scrapActionFinalizing: 'Finalizing...',
     scrapActionPreview: 'Preview report',
     scrapActionEdit: 'Back to edit',
+    scrapActionEditReview: 'Edit report',
+    scrapActionCancelEdit: 'Cancel edit',
+    scrapActionSaveEdit: 'Save changes',
     scrapActionUseReference: 'Use as reference',
     scrapDiscardChangesConfirm:
       'There are unsaved changes. Do you really want to close and discard your changes?',
     scrapFinalizeConfirmTitle: 'Finalize review',
     scrapFinalizeConfirmMessage:
-      'After finalization, this report becomes read-only and can no longer be modified or have photos removed. Do you want to proceed?',
+      'The report will be finalized and will remain editable only by its author. Do you want to proceed?',
     scrapConflictError:
       'This report was modified in another session. Please reload the latest version before continuing.',
     scrapReloadReview: 'Reload report',
@@ -892,6 +1079,7 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     scrapPreviewNotice: 'Preview — not finalized',
     scrapCreatedFromReference: 'Created from another report',
     scrapReferenceSelectedBanner: 'Selected reference:',
+    scrapTemplateSelectedBanner: 'Selected template:',
     scrapRemoveReference: 'Remove reference',
     scrapSelectReferenceMode:
       'Bulk mode active. Select occurrences in the table below and click Apply reference.',
@@ -910,6 +1098,30 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     scrapApplyTemplate: 'Apply Template',
     scrapUseThisTemplate: 'Use this template',
     scrapSaveAsTemplateCheckbox: 'Save this review as a favorite template (❤️) for the future',
+    scrapTemplatesLibraryHint: 'Choose a template to apply or edit its fields in this list.',
+    scrapTemplatesLoading: 'Loading templates...',
+    scrapTemplateFieldName: 'Template name',
+    scrapTemplateSelectType: 'Select scrap type',
+    scrapTemplateTypeRequired: 'Select the scrap type.',
+    scrapTemplateSaveChanges: 'Save changes',
+    scrapTemplateEdit: 'Edit template',
+    scrapTemplateDelete: 'Delete',
+    scrapTemplateDeleteConfirm: 'Delete this template?',
+    scrapTemplateNoType: 'No type',
+    scrapTemplateUpdated: 'Updated',
+    scrapTemplateUpdatedSuccess: 'Template updated.',
+    scrapTemplateUpdateError: 'Could not update the template. Try again.',
+    scrapTemplateDeleteError: 'Could not delete the template. Try again.',
+    scrapTemplateValidationName: 'Enter a name for the template.',
+    scrapTemplateValidationTitle: 'Enter the report title.',
+    scrapTemplateValidationDescription: 'Enter the report description.',
+    scrapTemplateValidationMaxLength: 'The text exceeds the allowed limit.',
+    scrapTemplateConfirmConnector: 'to',
+    scrapTemplateSkipNotice:
+      'Inactive occurrences or occurrences with an existing report will be skipped.',
+    scrapSaveStatusSaving: 'Saving changes...',
+    scrapSaveStatusUnsaved: 'Unsaved changes',
+    scrapSaveStatusSaved: 'Saved at',
 
     scrapAttachmentsTitle: 'Evidence and photos',
     scrapAttachmentsHint:
@@ -936,6 +1148,22 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     scrapBulkSkippedSummary: 'Items skipped:',
     scrapBulkReasonNotActive: 'Item inactive during period',
     scrapBulkReasonAlreadyReviewed: 'Item already reviewed',
+
+    scrapQueueTitle: 'Report Queue',
+    scrapQueueProgress: 'Item {current} of {total}',
+    scrapQueuePrevious: 'Previous',
+    scrapQueueNext: 'Next',
+    scrapQueueSkip: 'Skip',
+    scrapQueueFinalizeAndNext: 'Finalize and go to next',
+    scrapQueueFinalizeAndFinish: 'Finalize and finish queue',
+    scrapQueueSaveDraftAndNext: 'Save draft and advance',
+    scrapStartQueue: 'Start report queue',
+    scrapCreateSingleReport: 'Create report',
+    scrapItemsSelected: 'item(s) selected',
+    scrapTemplateChecklistTitle: 'Apply Template in Bulk',
+    scrapTemplateChecklistHint: 'Check the pending occurrences that should receive this template:',
+    scrapTemplateChecklistApply: 'Apply template to selected items',
+    scrapTemplateChecklistSelectAll: 'Select all pending',
 
     reportsTitle: 'Scrap Reports',
     reportsSubtitle: 'Catalog of reviewed occurrences and finalized root cause analyses.',
@@ -965,6 +1193,36 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     loginButton: '로그인',
     loginHint: '계정에 접속',
     settingsTitle: '설정',
+    settingsTabPreferences: '환경설정',
+    settingsTabSystem: '시스템',
+    scrapDefectTypesTitle: '스크랩 불량 유형',
+    scrapDefectTypesSubtitle: '팀 스크랩 분류 및 분석을 위한 공유 시스템 카테고리입니다.',
+    scrapDefectTypeNameLabel: '카테고리 이름',
+    scrapDefectTypeNamePlaceholder: '예: 산화, 운송 파손, 크랙...',
+    scrapDefectTypeCodeLabel: '식별 코드',
+    scrapDefectTypeCodePlaceholder: '예: OXIDATION, TRANSPORT_DAMAGE',
+    scrapDefectTypeDescLabel: '설명 (선택사항)',
+    scrapDefectTypeDescPlaceholder: '이 스크랩 유형의 기준과 특성을 설명하세요...',
+    scrapDefectTypeAddButton: '스크랩 유형 등록',
+    scrapDefectTypeStatusActive: '활성',
+    scrapDefectTypeStatusInactive: '비활성',
+    scrapDefectTypeEmptyState:
+      '등록된 스크랩 불량 유형이 없습니다. 위 양식을 작성하여 팀을 위한 첫 번째 유형을 등록하세요.',
+    scrapDefectTypeSuccessCreate: '스크랩 불량 유형이 성공적으로 등록되었습니다!',
+    scrapDefectTypeSuccessUpdate: '스크랩 불량 유형이 성공적으로 업데이트되었습니다!',
+    scrapDefectTypeErrorCreate:
+      '스크랩 불량 유형 등록 중 오류가 발생했습니다. 코드가 이미 존재하는지 확인하세요.',
+    scrapDefectTypeErrorUpdate: '스크랩 불량 유형 업데이트 중 오류가 발생했습니다.',
+    scrapDefectTypeEditAction: '수정',
+    scrapDefectTypeDeleteAction: '삭제',
+    scrapDefectTypeDeleteConfirmTitle: '스크랩 유형 삭제',
+    scrapDefectTypeDeleteConfirmMessage: '스크랩 유형을 삭제하시겠습니까:',
+    scrapDefectTypeSuccessDelete: '스크랩 유형이 성공적으로 삭제되었습니다.',
+    scrapDefectTypeErrorDelete: '스크랩 유형 삭제 중 오류가 발생했습니다.',
+    scrapDefectTypeCancelAction: '취소',
+    scrapDefectTypeSaveAction: '변경사항 저장',
+    scrapDefectTypeCountSummary: '등록된 유형',
+    scrapDefectTypeActiveCountSummary: '활성',
     themeTitle: '인터페이스 테마',
     themeSubtitle: '대시보드 표시 방식을 선택하세요.',
     themeGroupLabel: '테마 선택',
@@ -1131,6 +1389,8 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     scrapRetry: '다시 시도',
     scrapEmptyTitle: '발생 내역이 없습니다',
     scrapEmptyDesc: '필터를 조정하거나 새 실행이 게시될 때까지 기다리세요.',
+    scrapSelectionEmptyTitle: '검토 대기 중인 발생 건이 없습니다',
+    scrapSelectionEmptyDesc: '이 기간의 모든 발생 건이 이미 검토되었습니다.',
     scrapColDate: '날짜',
     scrapColOrganization: '조직',
     scrapColItem: '품목',
@@ -1189,11 +1449,14 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     scrapActionFinalizing: '완료 처리 중...',
     scrapActionPreview: '보고서 미리보기',
     scrapActionEdit: '편집으로 돌아가기',
+    scrapActionEditReview: '보고서 수정',
+    scrapActionCancelEdit: '수정 취소',
+    scrapActionSaveEdit: '변경사항 저장',
     scrapActionUseReference: '기준 보고서로 사용',
     scrapDiscardChangesConfirm: '저장되지 않은 변경사항이 있습니다. 닫으시겠습니까?',
     scrapFinalizeConfirmTitle: '분석 완료 확정',
     scrapFinalizeConfirmMessage:
-      '완료 후에는 읽기 전용으로 전환되어 수정하거나 이미지를 삭제할 수 없습니다. 계속하시겠습니까?',
+      '보고서가 완료되며 작성자만 계속 수정할 수 있습니다. 계속하시겠습니까?',
     scrapConflictError: '다른 세션에서 보고서가 수정되었습니다. 최신 버전을 다시 불러오세요.',
     scrapReloadReview: '보고서 다시 불러오기',
     scrapReadOnlyNotice: '보고서 완료 일시:',
@@ -1201,6 +1464,7 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     scrapPreviewNotice: '미리보기 — 아직 완료되지 않음',
     scrapCreatedFromReference: '다른 보고서를 기반으로 생성됨',
     scrapReferenceSelectedBanner: '선택된 기준 보고서:',
+    scrapTemplateSelectedBanner: '선택된 템플릿:',
     scrapRemoveReference: '기준 해제',
     scrapSelectReferenceMode: '일괄 적용 모드 활성화됨. 아래 목록에서 대상을 선택 후 적용하세요.',
 
@@ -1218,6 +1482,29 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     scrapApplyTemplate: '템플릿 적용',
     scrapUseThisTemplate: '이 템플릿 사용',
     scrapSaveAsTemplateCheckbox: '이 분석을 향후 사용을 위해 즐겨찾기 템플릿(❤️)으로 저장',
+    scrapTemplatesLibraryHint: '적용할 템플릿을 선택하거나 이 목록에서 내용을 수정하세요.',
+    scrapTemplatesLoading: '템플릿을 불러오는 중...',
+    scrapTemplateFieldName: '템플릿 이름',
+    scrapTemplateSelectType: '스크랩 유형 선택',
+    scrapTemplateTypeRequired: '스크랩 유형을 선택하세요.',
+    scrapTemplateSaveChanges: '변경사항 저장',
+    scrapTemplateEdit: '템플릿 편집',
+    scrapTemplateDelete: '삭제',
+    scrapTemplateDeleteConfirm: '이 템플릿을 삭제하시겠습니까?',
+    scrapTemplateNoType: '유형 없음',
+    scrapTemplateUpdated: '업데이트',
+    scrapTemplateUpdatedSuccess: '템플릿이 업데이트되었습니다.',
+    scrapTemplateUpdateError: '템플릿을 업데이트할 수 없습니다. 다시 시도하세요.',
+    scrapTemplateDeleteError: '템플릿을 삭제할 수 없습니다. 다시 시도하세요.',
+    scrapTemplateValidationName: '템플릿 이름을 입력하세요.',
+    scrapTemplateValidationTitle: '보고서 제목을 입력하세요.',
+    scrapTemplateValidationDescription: '보고서 설명을 입력하세요.',
+    scrapTemplateValidationMaxLength: '텍스트가 허용된 길이를 초과합니다.',
+    scrapTemplateConfirmConnector: '적용 대상',
+    scrapTemplateSkipNotice: '비활성 항목 또는 이미 보고서가 있는 항목은 제외됩니다.',
+    scrapSaveStatusSaving: '변경사항 저장 중...',
+    scrapSaveStatusUnsaved: '저장되지 않은 변경사항',
+    scrapSaveStatusSaved: '저장 시간',
 
     scrapAttachmentsTitle: '증빙 사진 및 첨부파일',
     scrapAttachmentsHint:
@@ -1244,6 +1531,22 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     scrapBulkSkippedSummary: '제외된 항목:',
     scrapBulkReasonNotActive: '비활성 상태 항목',
     scrapBulkReasonAlreadyReviewed: '이미 분석 완료된 항목',
+
+    scrapQueueTitle: '보고서 대기열',
+    scrapQueueProgress: '항목 {current} / {total}',
+    scrapQueuePrevious: '이전',
+    scrapQueueNext: '다음',
+    scrapQueueSkip: '건너뛰기',
+    scrapQueueFinalizeAndNext: '완료하고 다음으로 이동',
+    scrapQueueFinalizeAndFinish: '완료하고 대기열 종료',
+    scrapQueueSaveDraftAndNext: '임시저장 후 다음으로 이동',
+    scrapStartQueue: '보고서 대기열 시작',
+    scrapCreateSingleReport: '보고서 작성',
+    scrapItemsSelected: '개 항목 선택됨',
+    scrapTemplateChecklistTitle: '템플릿 일괄 적용',
+    scrapTemplateChecklistHint: '이 템플릿을 적용할 미완료 발생 항목을 체크하세요:',
+    scrapTemplateChecklistApply: '선택한 항목에 템플릿 적용',
+    scrapTemplateChecklistSelectAll: '미완료 항목 전체 선택',
 
     reportsTitle: '스크랩 보고서',
     reportsSubtitle: '완료된 스크랩 불량 분석 및 원인 보고서 목록입니다.',

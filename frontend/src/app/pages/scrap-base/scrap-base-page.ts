@@ -33,7 +33,10 @@ import { ScrapReviewDrawer } from './scrap-review-drawer/scrap-review-drawer';
 import { ScrapDefectType, ScrapReview, ScrapReviewBulkResult } from './scrap-review.models';
 import { ScrapReviewService } from './scrap-review.service';
 import { ScrapReviewTemplate } from './scrap-template.models';
-import { ScrapTemplatePopover } from './scrap-template-popover/scrap-template-popover';
+import {
+  ScrapTemplatePopover,
+  TemplateUpdateRequest,
+} from './scrap-template-popover/scrap-template-popover';
 import { ScrapTemplateService } from './scrap-template.service';
 
 const PAGE_SIZES = [25, 50, 100, 200] as const;
@@ -106,6 +109,8 @@ export class ScrapBasePage implements OnInit {
   // Drawer de análise e referência em massa
   readonly openedOccurrenceId = signal<string | null>(null);
   readonly selectedOccurrenceForDrawer = signal<ScrapListItem | null>(null);
+  readonly activeQueueIds = signal<string[]>([]);
+  readonly activeQueueOccurrences = signal<ScrapListItem[]>([]);
   readonly activeReferenceReview = signal<ScrapReview | null>(null);
   readonly showBulkDialog = signal(false);
 
@@ -114,12 +119,30 @@ export class ScrapBasePage implements OnInit {
   readonly templatesLoading = computed(() => this.templateService.loading());
   readonly isTemplatePopoverOpen = signal(false);
   readonly activeTemplate = signal<ScrapReviewTemplate | null>(null);
+  readonly templateMutationId = signal<string | null>(null);
+  readonly templateFeedback = signal<string | null>(null);
+  readonly templateFeedbackKind = signal<'success' | 'error'>('success');
 
   readonly selectedCount = computed(() => this.selectedOccurrenceIds().size);
 
-  readonly isAllPageSelected = computed(() => {
+  readonly displayedItems = computed(() => {
     const items = this.data()?.items || [];
-    const eligible = items.filter((item) => item.occurrence_id !== null);
+    if (!this.selectionMode()) {
+      return items;
+    }
+    return items.filter((item) => item.review_status !== 'REVIEWED');
+  });
+
+  isItemSelectable(item: ScrapListItem | null | undefined): boolean {
+    if (!item || !item.occurrence_id) return false;
+    if (item.occurrence_status !== 'ACTIVE') return false;
+    if (item.review_status === 'REVIEWED') return false;
+    return true;
+  }
+
+  readonly isAllPageSelected = computed(() => {
+    const items = this.displayedItems();
+    const eligible = items.filter((item) => this.isItemSelectable(item));
     if (eligible.length === 0) return false;
     const selected = this.selectedOccurrenceIds();
     return eligible.every((item) => selected.has(item.occurrence_id!));
@@ -268,14 +291,18 @@ export class ScrapBasePage implements OnInit {
   toggleSelectionMode(): void {
     const nextMode = !this.selectionMode();
     this.selectionMode.set(nextMode);
+    this.clearSelection();
     if (!nextMode) {
-      this.clearSelection();
+      this.activeTemplate.set(null);
+      this.activeReferenceReview.set(null);
     }
+    this.page.set(1);
+    this.loadScrap();
   }
 
   toggleSelectAllOnPage(): void {
-    const items = this.data()?.items || [];
-    const eligible = items.filter((item) => item.occurrence_id !== null);
+    const items = this.displayedItems();
+    const eligible = items.filter((item) => this.isItemSelectable(item));
     const selected = new Set(this.selectedOccurrenceIds());
 
     if (this.isAllPageSelected()) {
@@ -291,9 +318,23 @@ export class ScrapBasePage implements OnInit {
     this.selectedOccurrenceIds.set(selected);
   }
 
-  toggleItemSelection(occurrenceId: string | null, event: Event): void {
-    event.stopPropagation();
+  toggleItemSelection(target: ScrapListItem | string | null, event?: Event): void {
+    event?.stopPropagation();
+    if (!target) return;
+
+    let occurrenceId: string | null = null;
+    let item: ScrapListItem | undefined;
+
+    if (typeof target === 'string') {
+      occurrenceId = target;
+      item = this.data()?.items.find((i) => i.occurrence_id === target);
+    } else {
+      occurrenceId = target.occurrence_id;
+      item = target;
+    }
+
     if (!occurrenceId) return;
+    if (item && !this.isItemSelectable(item)) return;
 
     const selected = new Set(this.selectedOccurrenceIds());
     if (selected.has(occurrenceId)) {
@@ -306,6 +347,18 @@ export class ScrapBasePage implements OnInit {
       selected.add(occurrenceId);
     }
     this.selectedOccurrenceIds.set(selected);
+  }
+
+  onRowClick(item: ScrapListItem): void {
+    if (this.selectionMode()) {
+      if (this.isItemSelectable(item)) {
+        this.toggleItemSelection(item);
+      }
+      return;
+    }
+    if (item.occurrence_id) {
+      this.openReview(item);
+    }
   }
 
   clearSelection(): void {
@@ -336,7 +389,9 @@ export class ScrapBasePage implements OnInit {
   }
 
   openBulkDialog(): void {
-    if (this.selectedCount() < 1) return;
+    if (this.selectedCount() < 1 || (!this.activeTemplate() && !this.activeReferenceReview())) {
+      return;
+    }
     this.showBulkDialog.set(true);
   }
 
@@ -354,6 +409,8 @@ export class ScrapBasePage implements OnInit {
 
     // Se aplicou a referência, pode desativar
     this.activeReferenceReview.set(null);
+    this.activeTemplate.set(null);
+    if (currentSelected.size === 0) this.selectionMode.set(false);
     this.loadScrap();
   }
 
@@ -367,27 +424,101 @@ export class ScrapBasePage implements OnInit {
   }
 
   onUseTemplate(template: ScrapReviewTemplate): void {
+    this.isTemplatePopoverOpen.set(false);
     this.activeTemplate.set(template);
+    this.activeReferenceReview.set(null);
+    this.clearSelection();
     this.selectionMode.set(true);
-    if (this.selectedCount() >= 1) {
-      this.openBulkDialog();
-    }
+    this.page.set(1);
+    this.loadScrap();
   }
 
   onDeleteTemplate(templateId: string): void {
+    this.templateMutationId.set(templateId);
+    this.templateFeedback.set(null);
     this.templateService
       .deleteTemplate(templateId)
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe();
+      .subscribe({
+        next: () => {
+          this.templateMutationId.set(null);
+          this.templateFeedbackKind.set('success');
+          this.templateFeedback.set(this.t().scrapTemplateRemovedSuccess);
+          if (this.activeTemplate()?.id === templateId) this.cancelSelectionFlow();
+        },
+        error: () => {
+          this.templateMutationId.set(null);
+          this.templateFeedbackKind.set('error');
+          this.templateFeedback.set(this.t().scrapTemplateDeleteError);
+        },
+      });
+  }
+
+  onUpdateTemplate(request: TemplateUpdateRequest): void {
+    this.templateMutationId.set(request.id);
+    this.templateFeedback.set(null);
+    this.templateService
+      .updateTemplate(request.id, request.payload)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (updated) => {
+          this.templateMutationId.set(null);
+          this.templateFeedbackKind.set('success');
+          this.templateFeedback.set(this.t().scrapTemplateUpdatedSuccess);
+          if (this.activeTemplate()?.id === updated.id) this.activeTemplate.set(updated);
+        },
+        error: () => {
+          this.templateMutationId.set(null);
+          this.templateFeedbackKind.set('error');
+          this.templateFeedback.set(this.t().scrapTemplateUpdateError);
+        },
+      });
   }
 
   removeActiveTemplate(): void {
     this.activeTemplate.set(null);
   }
 
+  cancelSelectionFlow(): void {
+    this.clearSelection();
+    this.selectionMode.set(false);
+    this.activeTemplate.set(null);
+    this.activeReferenceReview.set(null);
+    this.page.set(1);
+    this.loadScrap();
+  }
+
+  startReviewQueue(): void {
+    const ids = Array.from(this.selectedOccurrenceIds());
+    if (ids.length === 0) return;
+    const items = this.data()?.items || [];
+    const occurrences = ids
+      .map((id) => items.find((i) => i.occurrence_id === id))
+      .filter((i): i is ScrapListItem => !!i);
+
+    this.activeQueueIds.set(ids);
+    this.activeQueueOccurrences.set(occurrences);
+    this.openedOccurrenceId.set(ids[0]);
+    this.selectedOccurrenceForDrawer.set(occurrences[0] || null);
+    this.router.navigate(['/base-de-scrap/revisao', ids[0]], {
+      queryParamsHandling: 'preserve',
+    });
+  }
+
+  onQueueFinished(): void {
+    this.activeQueueIds.set([]);
+    this.activeQueueOccurrences.set([]);
+    this.clearSelection();
+    this.selectionMode.set(false);
+    this.closeDrawer();
+    this.loadScrap();
+  }
+
   closeDrawer(): void {
     this.openedOccurrenceId.set(null);
     this.selectedOccurrenceForDrawer.set(null);
+    this.activeQueueIds.set([]);
+    this.activeQueueOccurrences.set([]);
     this.router.navigate(['/base-de-scrap'], {
       queryParamsHandling: 'preserve',
     });
@@ -422,6 +553,8 @@ export class ScrapBasePage implements OnInit {
     this.activeReferenceReview.set(review);
     this.selectionMode.set(true);
     this.closeDrawer();
+    this.page.set(1);
+    this.loadScrap();
   }
 
   onSearchInput(value: string): void {
@@ -558,6 +691,7 @@ export class ScrapBasePage implements OnInit {
       ...(this.reviewStatusFilter() ? { review_status: this.reviewStatusFilter() as any } : {}),
       ...(this.defectTypeFilter() ? { defect_type_ids: [this.defectTypeFilter()] } : {}),
       ...(responsibleIds ? { responsible_user_ids: responsibleIds } : {}),
+      ...(this.selectionMode() ? { exclude_reviewed: true } : {}),
     };
   }
 }

@@ -13,7 +13,20 @@ import {
   viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import {
+  Observable,
+  catchError,
+  concatMap,
+  finalize,
+  from,
+  map,
+  of,
+  switchMap,
+  tap,
+  toArray,
+} from 'rxjs';
 import { LanguageService } from '../../../i18n/language.service';
+import { AuthService } from '../../../core/auth/auth.service';
 import { InlineAlert } from '../../../shared/list-view/inline-alert/inline-alert';
 import { StatusBadge } from '../../../shared/list-view/status-badge/status-badge';
 import { UiIcon } from '../../../ui-icon';
@@ -39,20 +52,25 @@ export class ScrapReviewDrawer implements OnInit {
   private readonly reviewService = inject(ScrapReviewService);
   private readonly templateService = inject(ScrapTemplateService);
   private readonly language = inject(LanguageService);
+  private readonly authService = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly t = computed(() => this.language.translations());
 
   readonly occurrence = input<ScrapListItem | null>(null);
   readonly occurrenceId = input<string | null>(null);
+  readonly queueOccurrenceIds = input<string[]>([]);
+  readonly queueOccurrences = input<ScrapListItem[]>([]);
 
   readonly closed = output<void>();
   readonly reviewSaved = output<ScrapReview>();
   readonly useAsReference = output<ScrapReview>();
+  readonly queueFinished = output<void>();
 
   readonly drawerDialog = viewChild<ElementRef<HTMLElement>>('drawerDialog');
   readonly reviewFormCmp = viewChild<ScrapReviewForm>('reviewFormCmp');
 
+  readonly queueIndex = signal<number>(0);
   readonly review = signal<ScrapReview | null>(null);
   readonly defectTypes = signal<ScrapDefectType[]>([]);
   readonly loading = signal(false);
@@ -63,9 +81,26 @@ export class ScrapReviewDrawer implements OnInit {
   readonly isConflict = signal(false);
   readonly isDirty = signal(false);
   readonly isPreviewMode = signal(false);
+  readonly isEditingFinalized = signal(false);
   readonly showFinalizeConfirm = signal(false);
   readonly showTemplateNamePrompt = signal(false);
   readonly customTemplateName = signal('');
+  readonly lastSavedAt = signal<Date | null>(null);
+
+  readonly isQueueMode = computed(() => this.queueOccurrenceIds().length > 1);
+  readonly queueTotal = computed(() => this.queueOccurrenceIds().length);
+  readonly queueCurrentDisplay = computed(() => this.queueIndex() + 1);
+  readonly isQueueLast = computed(() => this.queueIndex() >= this.queueTotal() - 1);
+  readonly isQueueFirst = computed(() => this.queueIndex() <= 0);
+
+  readonly currentOccurrence = computed<ScrapListItem | null>(() => {
+    if (this.isQueueMode()) {
+      const q = this.queueOccurrences();
+      const idx = this.queueIndex();
+      if (q && q[idx]) return q[idx];
+    }
+    return this.occurrence();
+  });
 
   readonly matchingTemplate = computed(() => {
     const revId = this.review()?.id;
@@ -83,30 +118,80 @@ export class ScrapReviewDrawer implements OnInit {
 
   readonly pendingUploadFiles = signal<File[]>([]);
 
+  readonly selectedDefectTypeName = computed(() => {
+    const id = this.localFormModel().defectTypeId;
+    if (!id) return null;
+    const found = this.defectTypes().find((d) => d.id === id);
+    return found ? found.name : null;
+  });
+
+  readonly draftAttachmentPreviews = computed(() => {
+    return this.pendingUploadFiles().map((file) => ({
+      url: URL.createObjectURL(file),
+      name: file.name,
+      original_filename: file.name,
+    }));
+  });
+
   readonly activeOccurrenceId = computed(() => {
+    if (this.isQueueMode()) {
+      const q = this.queueOccurrenceIds();
+      return q[this.queueIndex()] || null;
+    }
     return this.occurrenceId() || this.occurrence()?.occurrence_id || null;
   });
 
   readonly isReadOnly = computed(() => {
-    return this.review()?.status === 'REVIEWED';
+    return this.review()?.status === 'REVIEWED' && !this.isEditingFinalized();
+  });
+
+  readonly canEditFinalized = computed(() => {
+    const review = this.review();
+    const user = this.authService.user();
+    return review?.status === 'REVIEWED' && !!user && review.responsible_user_id === user.id;
+  });
+
+  readonly saveStatusLabel = computed(() => {
+    if (this.saving()) return this.t().scrapSaveStatusSaving;
+    if (this.isDirty()) return this.t().scrapSaveStatusUnsaved;
+    const savedAt = this.lastSavedAt();
+    if (savedAt) {
+      return `${this.t().scrapSaveStatusSaved} ${savedAt.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+      })}`;
+    }
+    return null;
   });
 
   readonly reviewStatusLabel = computed(() => {
-    const status = this.review()?.status || this.occurrence()?.review_status;
+    const status = this.review()?.status || this.currentOccurrence()?.review_status;
     if (status === 'REVIEWED') return this.t().scrapReviewStatusReviewed;
     if (status === 'DRAFT') return this.t().scrapReviewStatusDraft;
     return this.t().scrapReviewStatusUnreviewed;
   });
 
   readonly reviewStatusTone = computed<'success' | 'warning' | 'neutral'>(() => {
-    const status = this.review()?.status || this.occurrence()?.review_status;
+    const status = this.review()?.status || this.currentOccurrence()?.review_status;
     if (status === 'REVIEWED') return 'success';
     if (status === 'DRAFT') return 'warning';
     return 'neutral';
   });
 
   readonly canFinalize = computed(() => {
-    if (this.isReadOnly() || this.saving() || this.finalizing()) return false;
+    if (this.isReadOnly() || this.saving() || this.finalizing() || this.uploading()) return false;
+    const m = this.localFormModel();
+    return (
+      Boolean(m.defectTypeId) &&
+      Boolean(m.title.trim()) &&
+      m.title.length <= 200 &&
+      Boolean(m.description.trim()) &&
+      m.description.length <= 20000
+    );
+  });
+
+  readonly canSaveFinalized = computed(() => {
+    if (this.saving() || this.uploading()) return false;
     const m = this.localFormModel();
     return (
       Boolean(m.defectTypeId) &&
@@ -152,6 +237,7 @@ export class ScrapReviewDrawer implements OnInit {
     this.isConflict.set(false);
     this.isDirty.set(false);
     this.pendingUploadFiles.set([]);
+    this.lastSavedAt.set(null);
 
     this.reviewService
       .getReview(occurrenceId)
@@ -164,6 +250,7 @@ export class ScrapReviewDrawer implements OnInit {
             title: rev.title || '',
             description: rev.description || '',
           });
+          this.isEditingFinalized.set(false);
           if (rev.status === 'REVIEWED') {
             this.isPreviewMode.set(true);
           }
@@ -194,7 +281,13 @@ export class ScrapReviewDrawer implements OnInit {
     // Se a revisão já existe no servidor, podemos fazer o upload imediatamente
     const currentRev = this.review();
     if (currentRev?.id) {
-      this.uploadPendingFiles(currentRev.id);
+      this.uploadPendingFilesSequentially(currentRev.id)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (updated) => {
+            this.reviewSaved.emit(updated);
+          },
+        });
     }
   }
 
@@ -242,18 +335,19 @@ export class ScrapReviewDrawer implements OnInit {
 
     this.reviewService
       .saveDraft(occId, payload)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (savedReview) => {
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        switchMap((savedReview) => {
           this.review.set(savedReview);
+          return this.uploadPendingFilesSequentially(savedReview.id);
+        }),
+      )
+      .subscribe({
+        next: (updatedReview) => {
           this.saving.set(false);
           this.isDirty.set(false);
-          this.reviewSaved.emit(savedReview);
-
-          // Se existirem fotos na fila, envia agora com o id persistido
-          if (this.pendingUploadFiles().length > 0) {
-            this.uploadPendingFiles(savedReview.id);
-          }
+          this.lastSavedAt.set(new Date());
+          this.reviewSaved.emit(updatedReview);
         },
         error: (err) => {
           this.saving.set(false);
@@ -265,6 +359,81 @@ export class ScrapReviewDrawer implements OnInit {
           }
         },
       });
+  }
+
+  saveDraftAndAdvance(): void {
+    if (!this.isQueueMode() || this.isQueueLast()) {
+      this.saveDraft();
+      return;
+    }
+    const occId = this.activeOccurrenceId();
+    if (!occId || this.saving() || this.finalizing()) return;
+
+    this.saving.set(true);
+    this.error.set(null);
+    this.isConflict.set(false);
+
+    const m = this.localFormModel();
+    const payload: ScrapReviewWrite = {
+      defect_type_id: m.defectTypeId || null,
+      title: m.title.trim(),
+      description: m.description.trim(),
+      expected_version: this.review()?.version ?? null,
+    };
+
+    this.reviewService
+      .saveDraft(occId, payload)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        switchMap((savedReview) => {
+          this.review.set(savedReview);
+          return this.uploadPendingFilesSequentially(savedReview.id);
+        }),
+      )
+      .subscribe({
+        next: (updatedReview) => {
+          this.saving.set(false);
+          this.isDirty.set(false);
+          this.lastSavedAt.set(new Date());
+          this.reviewSaved.emit(updatedReview);
+          this.nextInQueue();
+        },
+        error: (err) => {
+          this.saving.set(false);
+          if (err.status === 409) {
+            this.isConflict.set(true);
+            this.error.set(this.t().scrapConflictError);
+          } else {
+            this.error.set(err.error?.detail || err.message || 'Erro ao salvar rascunho.');
+          }
+        },
+      });
+  }
+
+  nextInQueue(): void {
+    if (!this.isQueueLast()) {
+      this.queueIndex.update((i) => i + 1);
+      this.resetDrawerForNextOccurrence();
+    }
+  }
+
+  previousInQueue(): void {
+    if (!this.isQueueFirst()) {
+      this.queueIndex.update((i) => i - 1);
+      this.resetDrawerForNextOccurrence();
+    }
+  }
+
+  private resetDrawerForNextOccurrence(): void {
+    this.review.set(null);
+    this.localFormModel.set({ defectTypeId: '', title: '', description: '' });
+    this.isDirty.set(false);
+    this.pendingUploadFiles.set([]);
+    this.error.set(null);
+    this.isConflict.set(false);
+    this.isPreviewMode.set(false);
+    this.isEditingFinalized.set(false);
+    this.showFinalizeConfirm.set(false);
   }
 
   promptFinalize(): void {
@@ -285,7 +454,6 @@ export class ScrapReviewDrawer implements OnInit {
     this.error.set(null);
     this.isConflict.set(false);
 
-    // Primeiro salva rascunho se houver alterações
     const m = this.localFormModel();
     const payload: ScrapReviewWrite = {
       defect_type_id: m.defectTypeId,
@@ -296,91 +464,163 @@ export class ScrapReviewDrawer implements OnInit {
 
     this.reviewService
       .saveDraft(occId, payload)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (savedReview) => {
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        switchMap((savedReview) => {
           this.review.set(savedReview);
-
-          // Agora chama finalize
-          this.reviewService
-            .finalize(occId, savedReview.version)
-            .pipe(takeUntilDestroyed(this.destroyRef))
-            .subscribe({
-              next: (finalReview) => {
-                this.review.set(finalReview);
-                this.finalizing.set(false);
-                this.isDirty.set(false);
-                this.isPreviewMode.set(true);
-                this.reviewSaved.emit(finalReview);
-              },
-              error: (finalizeErr) => {
-                this.finalizing.set(false);
-                if (finalizeErr.status === 409) {
-                  this.isConflict.set(true);
-                  this.error.set(this.t().scrapConflictError);
-                } else {
-                  this.error.set(
-                    finalizeErr.error?.detail ||
-                      finalizeErr.message ||
-                      'Erro ao finalizar relatório.',
-                  );
-                }
-              },
-            });
-        },
-        error: (draftErr) => {
+          return this.uploadPendingFilesSequentially(savedReview.id);
+        }),
+        switchMap((reviewWithAttachments) => {
+          return this.reviewService.finalize(occId, reviewWithAttachments.version);
+        }),
+      )
+      .subscribe({
+        next: (finalReview) => {
+          this.review.set(finalReview);
           this.finalizing.set(false);
-          if (draftErr.status === 409) {
+          this.isDirty.set(false);
+          this.reviewSaved.emit(finalReview);
+
+          if (this.isQueueMode()) {
+            if (!this.isQueueLast()) {
+              this.nextInQueue();
+            } else {
+              this.queueFinished.emit();
+              this.attemptClose();
+            }
+          } else {
+            this.isPreviewMode.set(true);
+          }
+        },
+        error: (err) => {
+          this.finalizing.set(false);
+          if (err.status === 409) {
             this.isConflict.set(true);
             this.error.set(this.t().scrapConflictError);
           } else {
-            this.error.set(draftErr.error?.detail || draftErr.message || 'Erro ao salvar análise.');
+            this.error.set(err.error?.detail || err.message || 'Erro ao finalizar relatório.');
           }
         },
       });
   }
 
-  private uploadPendingFiles(reviewId: string): void {
+  private uploadPendingFilesSequentially(reviewId: string): Observable<ScrapReview> {
     const files = [...this.pendingUploadFiles()];
-    if (files.length === 0 || this.uploading()) return;
+    if (files.length === 0) {
+      return of(this.review()!);
+    }
 
     this.uploading.set(true);
     this.pendingUploadFiles.set([]);
 
-    // Upload sequencial de cada arquivo
-    const uploadNext = (index: number) => {
-      if (index >= files.length) {
-        this.uploading.set(false);
-        return;
-      }
-
-      this.reviewService
-        .uploadAttachment(reviewId, files[index])
-        .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe({
-          next: (attachment) => {
+    return from(files).pipe(
+      concatMap((file) =>
+        this.reviewService.uploadAttachment(reviewId, file).pipe(
+          tap((attachment) => {
             this.review.update((r) => {
               if (!r) return null;
               return {
                 ...r,
                 attachments: [...r.attachments, attachment],
+                version: r.version + 1,
               };
             });
-            if (this.review()) {
-              this.reviewSaved.emit(this.review()!);
-            }
-            uploadNext(index + 1);
-          },
-          error: (err) => {
+          }),
+          catchError((err) => {
             this.error.set(
-              `${this.t().scrapAttachmentUploadError} (${files[index].name}): ${err.error?.detail || err.message}`,
+              `${this.t().scrapAttachmentUploadError} (${file.name}): ${err.error?.detail || err.message}`,
             );
-            uploadNext(index + 1);
-          },
-        });
+            return of(null);
+          }),
+        ),
+      ),
+      toArray(),
+      map(() => this.review()!),
+      finalize(() => {
+        this.uploading.set(false);
+      }),
+    );
+  }
+
+  toggleEditFinalized(): void {
+    if (this.isEditingFinalized()) {
+      this.cancelEditFinalized();
+    } else {
+      this.startEditFinalized();
+    }
+  }
+
+  startEditFinalized(): void {
+    const rev = this.review();
+    if (!rev || !this.canEditFinalized()) return;
+    this.localFormModel.set({
+      defectTypeId: rev.defect_type?.id || '',
+      title: rev.title || '',
+      description: rev.description || '',
+    });
+    this.isEditingFinalized.set(true);
+    this.isPreviewMode.set(false);
+    this.isDirty.set(false);
+  }
+
+  cancelEditFinalized(): void {
+    const rev = this.review();
+    if (rev) {
+      this.localFormModel.set({
+        defectTypeId: rev.defect_type?.id || '',
+        title: rev.title || '',
+        description: rev.description || '',
+      });
+    }
+    this.isEditingFinalized.set(false);
+    this.isPreviewMode.set(true);
+    this.isDirty.set(false);
+  }
+
+  saveFinalizedEdit(): void {
+    const occId = this.activeOccurrenceId();
+    if (!occId || this.saving() || !this.canSaveFinalized()) return;
+
+    this.saving.set(true);
+    this.error.set(null);
+    this.isConflict.set(false);
+
+    const m = this.localFormModel();
+    const payload: ScrapReviewWrite = {
+      defect_type_id: m.defectTypeId || null,
+      title: m.title.trim(),
+      description: m.description.trim(),
+      expected_version: this.review()?.version ?? null,
     };
 
-    uploadNext(0);
+    this.reviewService
+      .saveDraft(occId, payload)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        switchMap((savedReview) => {
+          this.review.set(savedReview);
+          return this.uploadPendingFilesSequentially(savedReview.id);
+        }),
+      )
+      .subscribe({
+        next: (updatedReview) => {
+          this.saving.set(false);
+          this.isDirty.set(false);
+          this.lastSavedAt.set(new Date());
+          this.isEditingFinalized.set(false);
+          this.isPreviewMode.set(true);
+          this.reviewSaved.emit(updatedReview);
+        },
+        error: (err) => {
+          this.saving.set(false);
+          if (err.status === 409) {
+            this.isConflict.set(true);
+            this.error.set(this.t().scrapConflictError);
+          } else {
+            this.error.set(err.error?.detail || err.message || 'Erro ao salvar alterações.');
+          }
+        },
+      });
   }
 
   togglePreviewMode(): void {

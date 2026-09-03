@@ -21,3 +21,10 @@ export interface ScrapReviewTemplateCreate {
   defect_type_id?: string | null;
   source_review_id?: string | null;
 }
+
+export interface ScrapReviewTemplateUpdate {
+  name?: string;
+  title?: string;
+  description?: string;
+  defect_type_id?: string | null;
+}
