@@ -30,4 +30,15 @@ export class ExecutionsService {
       {},
     );
   }
+
+  uploadManualReport(
+    file: File,
+  ): Observable<{ task_id: string; execution_id: string; status: 'QUEUED' }> {
+    const body = new FormData();
+    body.append('file', file, file.name);
+    return this.http.post<{ task_id: string; execution_id: string; status: 'QUEUED' }>(
+      '/api/v1/scrap/manual-ingestions',
+      body,
+    );
+  }
 }

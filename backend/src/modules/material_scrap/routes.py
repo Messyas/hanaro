@@ -2,7 +2,7 @@ import uuid
 from datetime import UTC, date, datetime, time
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, HTTPException, Path, Query, Response, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Path, Query, Response, UploadFile, status
 from pydantic import StringConstraints
 from starlette.concurrency import run_in_threadpool
 from starlette.responses import FileResponse
@@ -44,6 +44,7 @@ from .execution_service import (
     start_execution,
     update_step,
 )
+from .manual_upload import ManualUploadValidationError, build_manual_upload_payload
 from .query_service import ScrapFilters, get_breakdown, get_filter_options, get_summary, get_trend, list_scrap
 from .review_image import ALLOWED_IMAGE_CONTENT_TYPES, ScrapReviewImageValidationError
 from .review_service import (
@@ -100,7 +101,7 @@ from .schemas import (
     ScrapTargetUpsert,
     ScrapTrendPoint,
 )
-from .tasks import enqueue_execution_notification, enqueue_material_scrap
+from .tasks import enqueue_execution_notification, enqueue_material_scrap, ingest_material_scrap_in_web_process
 
 scrap_router = APIRouter(tags=["Material Scrap"])
 dashboard_router = APIRouter(tags=["Material Scrap Dashboard"])
@@ -239,31 +240,73 @@ async def create_scrap_ingestion(
     return IngestionAccepted(task_id=task_id, execution_id=payload.execution.execution_id)
 
 
+@scrap_router.post("/manual-ingestions", response_model=IngestionAccepted, status_code=status.HTTP_202_ACCEPTED)
+async def create_manual_scrap_ingestion(
+    background_tasks: BackgroundTasks,
+    db: AsyncSessionDep,
+    _: CurrentSuperUserDep,
+    file: UploadFile = File(...),
+) -> IngestionAccepted:
+    """Upload the approved GERP report and process it through the canonical pipeline."""
+    raw_bytes = await file.read()
+    try:
+        payload = await build_manual_upload_payload(filename=file.filename, raw_bytes=raw_bytes, db=db)
+    except ManualUploadValidationError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    finally:
+        await file.close()
+
+    await ensure_execution_from_payload(payload, db, mark_running=False)
+    if get_settings().TASKIQ_ENABLED:
+        try:
+            task_id = await enqueue_material_scrap(payload)
+        except Exception as error:
+            await mark_execution_failed(
+                payload.execution.execution_id,
+                ExecutionFailure(
+                    failure_category="QUEUE",
+                    failure_code=type(error).__name__,
+                    failure_message="Unable to queue manual Material Scrap ingestion",
+                    step_code=ExecutionStepCode.JSON_VALIDATION,
+                ),
+                db,
+            )
+            raise HTTPException(status_code=503, detail="Unable to queue manual ingestion") from error
+    else:
+        task_id = f"web-demo-{payload.execution.execution_id}"
+        background_tasks.add_task(ingest_material_scrap_in_web_process, payload)
+    await record_enqueued_task(payload.execution.execution_id, task_id, db)
+    return IngestionAccepted(task_id=task_id, execution_id=payload.execution.execution_id)
+
+
 @scrap_router.post("/executions/{execution_id}/retry", response_model=ExecutionDetail)
 async def retry_automation_execution(
     execution_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
     db: AsyncSessionDep,
     _: CurrentSuperUserDep,
 ) -> ExecutionDetail:
     """Retry a failed ingestion from the payload retained in its execution record."""
-    if not get_settings().TASKIQ_ENABLED:
-        raise HTTPException(status_code=503, detail="Material Scrap worker is disabled")
     _execution, payload = await prepare_execution_retry(execution_id, db)
-    try:
-        task_id = await enqueue_material_scrap(payload)
-        await record_enqueued_task(execution_id, task_id, db)
-    except Exception as error:
-        await mark_execution_failed(
-            execution_id,
-            ExecutionFailure(
-                failure_category="QUEUE",
-                failure_code=type(error).__name__,
-                failure_message="Unable to enqueue Material Scrap retry",
-                step_code=ExecutionStepCode.JSON_VALIDATION,
-            ),
-            db,
-        )
-        raise HTTPException(status_code=503, detail="Unable to queue Material Scrap retry") from error
+    if get_settings().TASKIQ_ENABLED:
+        try:
+            task_id = await enqueue_material_scrap(payload)
+        except Exception as error:
+            await mark_execution_failed(
+                execution_id,
+                ExecutionFailure(
+                    failure_category="QUEUE",
+                    failure_code=type(error).__name__,
+                    failure_message="Unable to enqueue Material Scrap retry",
+                    step_code=ExecutionStepCode.JSON_VALIDATION,
+                ),
+                db,
+            )
+            raise HTTPException(status_code=503, detail="Unable to queue Material Scrap retry") from error
+    else:
+        task_id = f"web-demo-{execution_id}"
+        background_tasks.add_task(ingest_material_scrap_in_web_process, payload)
+    await record_enqueued_task(execution_id, task_id, db)
     return await get_execution_detail(execution_id, db)
 
 

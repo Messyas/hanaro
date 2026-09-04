@@ -28,6 +28,7 @@ class ExecutionMetadata(ContractModel):
     execution_id: uuid.UUID
     source_system: Literal["GERP"] = "GERP"
     report_name: Literal["Other Account Transaction Text Download"]
+    trigger: AutomationTrigger = AutomationTrigger.SCHEDULED
     mode: Literal["LOCAL_FILE_SIMULATION", "GERP_RPA"]
     timezone: Literal["America/Manaus"] = "America/Manaus"
     processing_date: date

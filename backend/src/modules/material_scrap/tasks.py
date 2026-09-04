@@ -1,10 +1,12 @@
 import asyncio
+import logging
 import smtplib
 from datetime import UTC, datetime
 from email.message import EmailMessage
 from typing import Any, cast
 
 from ...infrastructure.config.settings import get_settings
+from ...infrastructure.database.session import local_session
 from ...infrastructure.taskiq.brokers import default_broker
 from ...infrastructure.taskiq.deps import DBSession
 from ...infrastructure.taskiq.registry import register_task
@@ -14,24 +16,45 @@ from .models import ScrapAutomationExecution, ScrapExecutionNotification
 from .schemas import ExecutionStepUpdate, IngestionResult, MaterialScrapPayload
 from .service import ingest_material_scrap
 
+logger = logging.getLogger(__name__)
 
-@default_broker.task(task_name="material_scrap.ingest")
-async def ingest_material_scrap_task(payload: dict[str, Any], db: DBSession) -> dict[str, Any]:
-    """Worker-ready entry point for the future Smart Office payload."""
-    canonical_payload = MaterialScrapPayload.model_validate(payload)
-    attempt = await begin_execution_attempt(canonical_payload.execution.execution_id, db)
+
+async def run_material_scrap_ingestion(payload: MaterialScrapPayload, db: DBSession) -> IngestionResult:
+    """Run one canonical batch and expose its worker state to the execution monitor."""
+    attempt = await begin_execution_attempt(payload.execution.execution_id, db)
     await update_step(
-        canonical_payload.execution.execution_id,
+        payload.execution.execution_id,
         ExecutionStepCode.JSON_VALIDATION,
         ExecutionStepUpdate(
             status=ExecutionStepStatus.RUNNING,
             attempt=attempt,
             message="Worker is validating and publishing the Material Scrap ingestion.",
-            metadata={"records_total": canonical_payload.statistics.source_rows},
+            metadata={"records_total": payload.statistics.source_rows},
         ),
         db,
     )
-    result: IngestionResult = await ingest_material_scrap(canonical_payload, db, attempt=attempt)
+    return await ingest_material_scrap(payload, db, attempt=attempt)
+
+
+async def ingest_material_scrap_in_web_process(payload: MaterialScrapPayload) -> None:
+    """Demo-only fallback for hosts without a separate worker service.
+
+    The durable Taskiq path remains the default. Render's free demo does not
+    provide a worker, so this path lets a manual video demonstration show the
+    same execution lifecycle without importing the external RPA package.
+    """
+    try:
+        async with local_session() as db:
+            await run_material_scrap_ingestion(payload, db)
+    except Exception:
+        logger.exception("manual_material_scrap_ingestion_failed", extra={"execution_id": str(payload.execution.execution_id)})
+
+
+@default_broker.task(task_name="material_scrap.ingest")
+async def ingest_material_scrap_task(payload: dict[str, Any], db: DBSession) -> dict[str, Any]:
+    """Worker-ready entry point for the future Smart Office payload."""
+    canonical_payload = MaterialScrapPayload.model_validate(payload)
+    result = await run_material_scrap_ingestion(canonical_payload, db)
     return result.model_dump(mode="json")
 
 

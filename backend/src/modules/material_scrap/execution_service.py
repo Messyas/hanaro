@@ -174,6 +174,7 @@ async def ensure_execution_from_payload(
             execution_id=payload.execution.execution_id,
             source_system=payload.execution.source_system,
             report_name=payload.execution.report_name,
+            trigger=payload.execution.trigger,
             mode=AutomationMode(payload.execution.mode),
             organization_parameter=payload.execution.organization_parameter,
             query_date_from=payload.execution.query_date_from,

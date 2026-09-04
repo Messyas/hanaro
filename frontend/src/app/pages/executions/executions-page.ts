@@ -162,6 +162,10 @@ export class ExecutionsPage implements OnInit {
   readonly loadingDetail = signal<boolean>(false);
   readonly detailError = signal<string | null>(null);
   readonly retrying = signal<boolean>(false);
+  readonly manualUploadOpen = signal<boolean>(false);
+  readonly manualUploadFile = signal<File | null>(null);
+  readonly manualUploadError = signal<string | null>(null);
+  readonly manualUploadSubmitting = signal<boolean>(false);
 
   ngOnInit(): void {
     this.searchSubject
@@ -479,6 +483,65 @@ export class ExecutionsPage implements OnInit {
 
   refresh(): void {
     this.loadExecutions();
+  }
+
+  openManualUpload(): void {
+    this.manualUploadFile.set(null);
+    this.manualUploadError.set(null);
+    this.manualUploadOpen.set(true);
+  }
+
+  closeManualUpload(): void {
+    if (this.manualUploadSubmitting()) return;
+    this.manualUploadOpen.set(false);
+    this.manualUploadFile.set(null);
+    this.manualUploadError.set(null);
+  }
+
+  selectManualUploadFile(event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.item(0) ?? null;
+    if (!file) return;
+    if (!file.name.startsWith('Other_Account_Transaction_Text')) {
+      this.manualUploadFile.set(null);
+      this.manualUploadError.set(
+        'Selecione o relatório Other Account Transaction Text exportado do GERP.',
+      );
+      return;
+    }
+    if (file.size > 15 * 1024 * 1024) {
+      this.manualUploadFile.set(null);
+      this.manualUploadError.set('O arquivo deve ter no máximo 15 MB.');
+      return;
+    }
+    this.manualUploadFile.set(file);
+    this.manualUploadError.set(null);
+  }
+
+  submitManualUpload(): void {
+    const file = this.manualUploadFile();
+    if (!file || this.manualUploadSubmitting()) return;
+    this.manualUploadSubmitting.set(true);
+    this.manualUploadError.set(null);
+    this.executionsService
+      .uploadManualReport(file)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (accepted) => {
+          this.manualUploadSubmitting.set(false);
+          this.manualUploadOpen.set(false);
+          this.page.set(1);
+          this.loadExecutions();
+          this.openDetail(accepted.execution_id);
+        },
+        error: (err: { error?: { detail?: string }; message?: string }) => {
+          this.manualUploadError.set(
+            err.error?.detail ||
+              err.message ||
+              'Não foi possível enviar o relatório para processamento.',
+          );
+          this.manualUploadSubmitting.set(false);
+        },
+      });
   }
 
   clearFilters(): void {
