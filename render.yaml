@@ -17,6 +17,8 @@ services:
         value: "false"
       - key: RUN_MIGRATIONS_ON_STARTUP
         value: "true"
+      - key: CONFIRM_PRODUCTION_MIGRATION
+        value: "yes"
       - key: BOOTSTRAP_INITIAL_DATA
         value: "true"
       - key: SEED_DEMO_DATA

@@ -24,7 +24,13 @@ def _enabled(name: str, default: bool = False) -> bool:
 
 def _run_migrations() -> None:
     if _enabled("RUN_MIGRATIONS_ON_STARTUP", True):
-        subprocess.run(["alembic", "upgrade", "head"], check=True)  # noqa: S603, S607
+        migration_environment = os.environ.copy()
+        migration_environment["CONFIRM_PRODUCTION_MIGRATION"] = "yes"
+        subprocess.run(  # noqa: S603, S607
+            ["alembic", "upgrade", "head"],
+            check=True,
+            env=migration_environment,
+        )
 
 
 async def _prepare_initial_data() -> None:
