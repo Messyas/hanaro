@@ -3,6 +3,7 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
+from typing import Literal
 from zoneinfo import ZoneInfo
 
 from .exchange import ExchangeRateProvider
@@ -27,7 +28,7 @@ def build_canonical_batch(
     exchange_rate_provider: ExchangeRateProvider,
     *,
     extracted_at: datetime | None = None,
-    mode: str = "LOCAL_FILE_SIMULATION",
+    mode: Literal["LOCAL_FILE_SIMULATION", "GERP_RPA"] = "LOCAL_FILE_SIMULATION",
 ) -> CanonicalMaterialScrapBatch:
     source_file = source_file.resolve()
     parsed = parse_gerp_tsv(source_file)

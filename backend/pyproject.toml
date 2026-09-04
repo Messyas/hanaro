@@ -88,6 +88,7 @@ warn_no_return = true
 warn_unreachable = true
 namespace_packages = true
 explicit_package_bases = true
+mypy_path = [".."]
 
 [[tool.mypy.overrides]]
 module = "aiomcache"
