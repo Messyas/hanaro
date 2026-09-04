@@ -99,15 +99,21 @@ async def _run_migrations() -> None:
 
 
 async def _prepare_initial_data() -> None:
-    if _enabled("BOOTSTRAP_INITIAL_DATA"):
+    if _enabled("BOOTSTRAP_INITIAL_DATA", True):
+        print("Bootstrapping initial administrator and tier")
         validate_admin_configuration()
         await setup_initial_data(create_schema=False)
+    else:
+        print("Initial administrator bootstrap is disabled")
 
-    if _enabled("SEED_DEMO_DATA"):
+    if _enabled("SEED_DEMO_DATA", True):
+        print("Loading idempotent demo Material Scrap data")
         seed_path = Path(os.getenv("DEMO_DATA_PATH", "seed/material_scrap_payload_example.json"))
         payload = MaterialScrapPayload.model_validate_json(seed_path.read_text(encoding="utf-8"))
         async with local_session() as session:
             await ingest_material_scrap(payload, session)
+    else:
+        print("Demo Material Scrap seed is disabled")
 
 
 def _serve() -> None:
