@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 from src.modules.material_scrap.manual_upload import ManualUploadValidationError, _decode, _records
+from src.modules.material_scrap.schemas import SourceFileMetadata
 
 PROJECT_ROOT = Path(__file__).parents[5]
 GERP_FIXTURE = PROJECT_ROOT / "automation" / "fixtures" / "Other_Account_Transaction_Text_anonymized"
@@ -29,3 +30,15 @@ def test_manual_gerp_report_layout_is_normalized(fixture: Path, expected_rows: i
 def test_manual_report_rejects_unknown_header() -> None:
     with pytest.raises(ManualUploadValidationError, match="layout Other Account Transaction Text"):
         _records("unknown\theader\nvalue\tvalue\n", Decimal("5.15"))
+
+
+@pytest.mark.unit
+def test_source_file_metadata_has_no_application_size_ceiling() -> None:
+    source = SourceFileMetadata(
+        name="Other_Account_Transaction_Text_large",
+        sha256="a" * 64,
+        encoding="utf-8",
+        size_bytes=2_000_000_000,
+    )
+
+    assert source.size_bytes == 2_000_000_000

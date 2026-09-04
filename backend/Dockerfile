@@ -73,7 +73,7 @@ COPY --chown=app:app backend/scripts ./scripts
 COPY --chown=app:app backend/alembic.ini ./alembic.ini
 
 USER app
-CMD ["fastapi", "dev", "src/interfaces/main.py", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "-m", "src.infrastructure.start_development"]
 
 # One-off image for database migrations.
 FROM base AS migrate

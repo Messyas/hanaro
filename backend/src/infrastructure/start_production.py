@@ -28,6 +28,7 @@ MIGRATION_ORDER = {
     "20260901_08": 8,
     "20260902_09": 9,
     "20260903_10": 10,
+    "20260904_11": 11,
 }
 
 
@@ -48,6 +49,17 @@ def _legacy_schema_revision(tables: set[str], columns: dict[str, set[str]]) -> s
     }
     if not revision_02_tables <= tables:
         return None
+    automation_columns = columns.get("scrap_automation_executions", set())
+    if (
+        "scrap_classification_rules" in tables
+        and {
+            "task_id",
+            "ingestion_payload",
+            "last_heartbeat_at",
+        }
+        <= automation_columns
+    ):
+        return "20260904_11"
     if "scrap_classification_rules" in tables:
         return "20260903_10"
     if "scrap_review_templates" in tables:
@@ -94,7 +106,7 @@ async def _detect_legacy_schema_revision() -> tuple[str | None, str | None]:
             tables = set(inspector.get_table_names())
             columns = {
                 table: {column["name"] for column in inspector.get_columns(table)}
-                for table in tables & {"scrap_ingestion_runs", "scrap_transactions"}
+                for table in tables & {"scrap_ingestion_runs", "scrap_transactions", "scrap_automation_executions"}
             }
             return tables, columns
 

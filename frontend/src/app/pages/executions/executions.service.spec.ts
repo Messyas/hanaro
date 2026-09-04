@@ -133,4 +133,20 @@ describe('ExecutionsService', () => {
     expect(req.request.method).toBe('GET');
     req.flush(mockDetail);
   });
+
+  it('should upload a manual GERP report as multipart data', () => {
+    const file = new File(['report'], 'Other_Account_Transaction_Text_test', {
+      type: 'text/plain',
+    });
+
+    service.uploadManualReport(file).subscribe();
+
+    const req = httpTesting.expectOne('/api/v1/scrap/manual-ingestions');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toBeInstanceOf(FormData);
+    const uploadedFile = (req.request.body as FormData).get('file') as File;
+    expect(uploadedFile.name).toBe(file.name);
+    expect(uploadedFile.size).toBe(file.size);
+    req.flush({ task_id: 'task-1', execution_id: 'execution-1', status: 'QUEUED' });
+  });
 });

@@ -11,6 +11,7 @@ describe('ExecutionsPage', () => {
   let mockExecutionsService: {
     list: ReturnType<typeof vi.fn>;
     getDetail: ReturnType<typeof vi.fn>;
+    uploadManualReport: ReturnType<typeof vi.fn>;
   };
 
   const mockPageData: ExecutionPage = {
@@ -76,6 +77,7 @@ describe('ExecutionsPage', () => {
     mockExecutionsService = {
       list: vi.fn().mockReturnValue(of(mockPageData)),
       getDetail: vi.fn().mockReturnValue(of(mockDetailData)),
+      uploadManualReport: vi.fn(),
     };
 
     await TestBed.configureTestingModule({
@@ -233,6 +235,19 @@ describe('ExecutionsPage', () => {
     );
 
     setItemSpy.mockRestore();
+  });
+
+  it('should accept a matching manual report regardless of file size', () => {
+    const file = {
+      name: 'Other_Account_Transaction_Text_large',
+      size: 2_000_000_000,
+    } as File;
+    const event = { target: { files: { item: () => file } } } as unknown as Event;
+
+    component.selectManualUploadFile(event);
+
+    expect(component.manualUploadFile()).toBe(file);
+    expect(component.manualUploadError()).toBeNull();
   });
 
   it('should toggle custom datepicker, select date and set today', () => {

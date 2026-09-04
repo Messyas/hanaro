@@ -508,11 +508,6 @@ export class ExecutionsPage implements OnInit {
       );
       return;
     }
-    if (file.size > 15 * 1024 * 1024) {
-      this.manualUploadFile.set(null);
-      this.manualUploadError.set('O arquivo deve ter no máximo 15 MB.');
-      return;
-    }
     this.manualUploadFile.set(file);
     this.manualUploadError.set(null);
   }
@@ -533,11 +528,14 @@ export class ExecutionsPage implements OnInit {
           this.loadExecutions();
           this.openDetail(accepted.execution_id);
         },
-        error: (err: { error?: { detail?: string }; message?: string }) => {
+        error: (err: { status?: number; error?: { detail?: string }; message?: string }) => {
+          const serverDetail = err.error?.detail;
           this.manualUploadError.set(
-            err.error?.detail ||
-              err.message ||
-              'Não foi possível enviar o relatório para processamento.',
+            err.status && err.status >= 500
+              ? 'O servidor não conseguiu iniciar a ingestão. Tente novamente após verificar o serviço.'
+              : serverDetail ||
+                  err.message ||
+                  'Não foi possível enviar o relatório para processamento.',
           );
           this.manualUploadSubmitting.set(false);
         },

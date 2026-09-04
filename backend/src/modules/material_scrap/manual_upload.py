@@ -84,7 +84,6 @@ CANONICAL_FIELDS = (
     "make_item",
     "created_by",
 )
-MAX_MANUAL_UPLOAD_BYTES = 15 * 1024 * 1024
 FILE_NAME_PREFIX = "Other_Account_Transaction_Text"
 NULL_TEXTS = frozenset({"", "-", "nan", "n/a", "null", "none"})
 CONTROL_CHARACTERS = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
@@ -241,8 +240,6 @@ async def build_manual_upload_payload(*, filename: str | None, raw_bytes: bytes,
     """Validate an approved GERP TSV and convert it into the canonical ingestion contract."""
     if not filename or not filename.startswith(FILE_NAME_PREFIX):
         raise ManualUploadValidationError(f"Envie um arquivo iniciado por {FILE_NAME_PREFIX}.")
-    if len(raw_bytes) > MAX_MANUAL_UPLOAD_BYTES:
-        raise ManualUploadValidationError("O arquivo excede o limite de 15 MB para upload manual.")
     text, encoding = _decode(raw_bytes)
     daily_rate = (
         await db.execute(select(DailyExchangeRate).order_by(desc(DailyExchangeRate.rate_date)).limit(1))

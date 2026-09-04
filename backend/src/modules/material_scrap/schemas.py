@@ -67,7 +67,7 @@ class SourceFileMetadata(ContractModel):
     sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     encoding: str = Field(min_length=1, max_length=30)
     delimiter: Literal["TAB"] = "TAB"
-    size_bytes: int = Field(ge=1, le=100_000_000)
+    size_bytes: int = Field(ge=1)
 
 
 def _require_decimal_string(value: object) -> object:
