@@ -1,7 +1,15 @@
 <section class="executions-page list-page page-stack" aria-labelledby="executions-title">
   <!-- Header da Página -->
-  <header class="executions-heading">
+  <header class="executions-header">
     <h1 class="page-title" id="executions-title">{{ t().executionsTitle }}</h1>
+    <button
+      type="button"
+      class="btn btn-primary manual-upload-trigger"
+      (click)="openManualUpload()"
+    >
+      <ui-icon name="plus" />
+      Enviar relatório
+    </button>
   </header>
 
   <!-- Tabela de Histórico com Filtro Integrado no Cabeçalho -->
@@ -10,14 +18,6 @@
     [meta]="data() ? t().executionsTotalLabel + ' ' + data()!.total_items : ''"
   >
     <div list-actions class="execution-list-actions">
-      <button
-        type="button"
-        class="btn btn-primary manual-upload-trigger"
-        (click)="openManualUpload()"
-      >
-        <ui-icon name="plus" />
-        Enviar relatório
-      </button>
       <!-- Pílulas de Filtros Ativos (se houver algum ativo) -->
       @if (activeFiltersCount() > 0) {
         <div class="active-filters-bar">
@@ -426,10 +426,6 @@
               (change)="selectManualUploadFile($event)"
             />
           </label>
-          <p class="manual-upload-note">
-            O sistema valida o layout, cria uma execução e atualiza os gráficos após a publicação do
-            snapshot.
-          </p>
           @if (manualUploadError()) {
             <app-inline-alert [message]="manualUploadError()!" />
           }
