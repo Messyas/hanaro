@@ -23,4 +23,11 @@ export class ExecutionsService {
   getDetail(executionId: string): Observable<ExecutionDetail> {
     return this.http.get<ExecutionDetail>(`${this.baseUrl}/${encodeURIComponent(executionId)}`);
   }
+
+  retry(executionId: string): Observable<ExecutionDetail> {
+    return this.http.post<ExecutionDetail>(
+      `${this.baseUrl}/${encodeURIComponent(executionId)}/retry`,
+      {},
+    );
+  }
 }

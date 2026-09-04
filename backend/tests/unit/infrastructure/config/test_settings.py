@@ -228,14 +228,17 @@ class TestTaskiqSettings:
 
     @patch.dict(
         os.environ,
-        {"REDIS_URL": "rediss://avnadmin:secret@valkey.example.com:6380/0"},
+        {
+            "REDIS_URL": "rediss://avnadmin:secret@valkey.example.com:6380/0",
+            "TASKIQ_REDIS_URL": "rediss://taskiq:secret@valkey.example.com:6380/3",
+        },
         clear=False,
     )
-    def test_taskiq_redis_broker_url_prefers_shared_tls_url(self):
-        """Taskiq keeps the rediss scheme required by managed Valkey."""
+    def test_taskiq_redis_broker_url_prefers_dedicated_tls_url(self):
+        """Taskiq isolates queue traffic when managed Valkey is also used as cache."""
         settings = Settings()
 
-        assert settings.TASKIQ_BROKER_URL == "rediss://avnadmin:secret@valkey.example.com:6380/0"
+        assert settings.TASKIQ_BROKER_URL == "rediss://taskiq:secret@valkey.example.com:6380/3"
 
     @patch.dict(
         os.environ,

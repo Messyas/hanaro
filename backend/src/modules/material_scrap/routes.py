@@ -7,6 +7,7 @@ from pydantic import StringConstraints
 from starlette.concurrency import run_in_threadpool
 from starlette.responses import FileResponse
 
+from ...infrastructure.config import get_settings
 from ...infrastructure.dependencies import AsyncSessionDep, CurrentSuperUserDep, CurrentUserDep, OptionalUserDep
 from .dependencies import (
     ScrapClassificationServiceDep,
@@ -38,6 +39,8 @@ from .execution_service import (
     get_execution_detail,
     list_executions,
     mark_execution_failed,
+    prepare_execution_retry,
+    record_enqueued_task,
     start_execution,
     update_step,
 )
@@ -215,9 +218,12 @@ async def create_scrap_ingestion(
     _: Annotated[int, Depends(require_material_scrap_ingestion_key)],
 ) -> IngestionAccepted:
     # The execution is created before queueing so queue/worker failures remain observable.
-    await ensure_execution_from_payload(payload, db)
+    if not get_settings().TASKIQ_ENABLED:
+        raise HTTPException(status_code=503, detail="Material Scrap worker is disabled")
+    await ensure_execution_from_payload(payload, db, mark_running=False)
     try:
         task_id = await enqueue_material_scrap(payload)
+        await record_enqueued_task(payload.execution.execution_id, task_id, db)
     except Exception as error:
         await mark_execution_failed(
             payload.execution.execution_id,
@@ -231,6 +237,34 @@ async def create_scrap_ingestion(
         )
         raise HTTPException(status_code=503, detail="Unable to queue Material Scrap ingestion") from error
     return IngestionAccepted(task_id=task_id, execution_id=payload.execution.execution_id)
+
+
+@scrap_router.post("/executions/{execution_id}/retry", response_model=ExecutionDetail)
+async def retry_automation_execution(
+    execution_id: uuid.UUID,
+    db: AsyncSessionDep,
+    _: CurrentSuperUserDep,
+) -> ExecutionDetail:
+    """Retry a failed ingestion from the payload retained in its execution record."""
+    if not get_settings().TASKIQ_ENABLED:
+        raise HTTPException(status_code=503, detail="Material Scrap worker is disabled")
+    _execution, payload = await prepare_execution_retry(execution_id, db)
+    try:
+        task_id = await enqueue_material_scrap(payload)
+        await record_enqueued_task(execution_id, task_id, db)
+    except Exception as error:
+        await mark_execution_failed(
+            execution_id,
+            ExecutionFailure(
+                failure_category="QUEUE",
+                failure_code=type(error).__name__,
+                failure_message="Unable to enqueue Material Scrap retry",
+                step_code=ExecutionStepCode.JSON_VALIDATION,
+            ),
+            db,
+        )
+        raise HTTPException(status_code=503, detail="Unable to queue Material Scrap retry") from error
+    return await get_execution_detail(execution_id, db)
 
 
 @scrap_router.post("/executions", response_model=ExecutionDetail, status_code=status.HTTP_201_CREATED)

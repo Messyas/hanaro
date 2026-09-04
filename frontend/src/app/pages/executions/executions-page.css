@@ -641,6 +641,11 @@
   color: var(--app-text-muted-detail);
 }
 
+.execution-progress {
+  color: var(--app-text-muted-detail);
+  font-size: 0.75rem;
+}
+
 /* ─── Badges ───────────────────────────────────────────────────────── */
 .badge {
   display: inline-flex;
@@ -835,6 +840,11 @@
   font-size: 0.8125rem;
   margin: 0;
   line-height: 1.35;
+}
+
+.retry-execution-button {
+  align-self: flex-start;
+  margin-top: 0.4rem;
 }
 
 /* ─── Timeline ─────────────────────────────────────────────────────── */

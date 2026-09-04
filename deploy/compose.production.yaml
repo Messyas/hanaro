@@ -52,6 +52,7 @@ x-backend-environment: &backend-environment
   TASKIQ_REDIS_PORT: "6379"
   TASKIQ_REDIS_DB: "3"
   TASKIQ_REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD}
+  TASKIQ_EXECUTION_STALE_AFTER_MINUTES: ${TASKIQ_EXECUTION_STALE_AFTER_MINUTES:-30}
   LOG_FORMAT: json
   LOG_LEVEL: INFO
   PROFILE_IMAGE_DIR: /app/backend/data/profile-images
@@ -186,7 +187,6 @@ services:
 
   worker:
     <<: *service-defaults
-    profiles: ["worker"]
     build:
       context: ..
       dockerfile: backend/Dockerfile

@@ -70,7 +70,9 @@ def validate_canonical_batch(payload: MaterialScrapPayload) -> None:
         raise CanonicalBatchValidationError("quality_flag_counts does not reconcile")
 
 
-async def ingest_material_scrap(payload: MaterialScrapPayload, db: AsyncSession) -> IngestionResult:
+async def ingest_material_scrap(
+    payload: MaterialScrapPayload, db: AsyncSession, *, attempt: int = 1
+) -> IngestionResult:
     """Validate and atomically publish one logical Material Scrap snapshot."""
     await ensure_execution_from_payload(payload, db)
     try:
@@ -86,7 +88,7 @@ async def ingest_material_scrap(payload: MaterialScrapPayload, db: AsyncSession)
                 rejected_count=replay.rejected_count,
                 is_replay=True,
             )
-            await link_ingestion_result(payload, db, ingestion_run_id=replay.id, is_replay=True)
+            await link_ingestion_result(payload, db, ingestion_run_id=replay.id, is_replay=True, attempt=attempt)
             return result
 
         run = await repository.create_pending_run(payload, db)
@@ -106,7 +108,9 @@ async def ingest_material_scrap(payload: MaterialScrapPayload, db: AsyncSession)
                 rejected_count=len(payload.records),
                 error_message=getattr(error, "code", type(error).__name__),
             )
-        await link_ingestion_result(payload, db, ingestion_run_id=None, is_replay=False, failed=error)
+        await link_ingestion_result(
+            payload, db, ingestion_run_id=None, is_replay=False, failed=error, attempt=attempt
+        )
         logger.exception(
             "material_scrap_ingestion_failed",
             extra={"run_id": str(locals().get("run_id", "")), "execution_id": str(payload.execution.execution_id)},
@@ -126,5 +130,5 @@ async def ingest_material_scrap(payload: MaterialScrapPayload, db: AsyncSession)
         accepted_count=run.accepted_count,
         rejected_count=run.rejected_count,
     )
-    await link_ingestion_result(payload, db, ingestion_run_id=run.id, is_replay=False)
+    await link_ingestion_result(payload, db, ingestion_run_id=run.id, is_replay=False, attempt=attempt)
     return result

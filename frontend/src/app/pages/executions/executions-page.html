@@ -163,6 +163,11 @@
                       {{ formatShortId(item.execution_id) }}
                     </span>
                     <span class="execution-report-name">{{ item.report_name }}</span>
+                    @if (item.status === 'RUNNING' && item.current_step) {
+                      <span class="execution-progress">{{
+                        formatStepName(item.current_step)
+                      }}</span>
+                    }
                   </div>
                 </td>
                 <td>
@@ -260,6 +265,14 @@
                   <span class="meta-label">{{ detail.failure_category }}</span>
                 }
                 <p>{{ detail.failure_message || '—' }}</p>
+                <button
+                  class="btn btn-primary retry-execution-button"
+                  type="button"
+                  [disabled]="retrying()"
+                  (click)="retrySelectedExecution()"
+                >
+                  {{ retrying() ? t().executionsLoading : t().executionsRetry }}
+                </button>
               </div>
             }
 

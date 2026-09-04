@@ -10,7 +10,7 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Subject, Subscription, debounceTime, distinctUntilChanged } from 'rxjs';
+import { Subject, Subscription, debounceTime, distinctUntilChanged, timer } from 'rxjs';
 import { LanguageService } from '../../i18n/language.service';
 import { ListFilterDateRange } from '../../shared/list-filters/list-filter-date-range';
 import { ListFilterInput } from '../../shared/list-filters/list-filter-input';
@@ -44,6 +44,7 @@ import { ExecutionsService } from './executions.service';
 const ALLOWED_PAGE_SIZES = [10, 25, 50, 100] as const;
 const PAGE_SIZE_STORAGE_KEY = 'hanaro-executions-page-size';
 const DEFAULT_PAGE_SIZE = 25;
+const EXECUTION_POLL_INTERVAL_MS = 5_000;
 
 export interface CalendarDay {
   dateStr: string;
@@ -160,6 +161,7 @@ export class ExecutionsPage implements OnInit {
   readonly selectedDetail = signal<ExecutionDetail | null>(null);
   readonly loadingDetail = signal<boolean>(false);
   readonly detailError = signal<string | null>(null);
+  readonly retrying = signal<boolean>(false);
 
   ngOnInit(): void {
     this.searchSubject
@@ -171,6 +173,15 @@ export class ExecutionsPage implements OnInit {
       });
 
     this.loadExecutions();
+
+    timer(EXECUTION_POLL_INTERVAL_MS, EXECUTION_POLL_INTERVAL_MS)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        if (!this.hasActiveExecution()) return;
+        this.loadExecutions();
+        const selectedId = this.selectedExecutionId();
+        if (selectedId) this.loadDetail(selectedId, false);
+      });
   }
 
   @HostListener('document:click', ['$event'])
@@ -573,11 +584,15 @@ export class ExecutionsPage implements OnInit {
   openDetail(executionId: string): void {
     this.selectedExecutionId.set(executionId);
     this.selectedDetail.set(null);
-    this.loadingDetail.set(true);
     this.detailError.set(null);
+    this.loadDetail(executionId, true);
+  }
 
+  private loadDetail(executionId: string, showLoading: boolean): void {
+    if (showLoading) this.loadingDetail.set(true);
     this.executionsService.getDetail(executionId).subscribe({
       next: (detail) => {
+        if (this.selectedExecutionId() !== executionId) return;
         this.selectedDetail.set(detail);
         this.loadingDetail.set(false);
       },
@@ -590,11 +605,45 @@ export class ExecutionsPage implements OnInit {
     });
   }
 
+  retrySelectedExecution(): void {
+    const detail = this.selectedDetail();
+    if (!detail || detail.status !== 'FAILED' || this.retrying()) return;
+
+    this.retrying.set(true);
+    this.detailError.set(null);
+    this.executionsService
+      .retry(detail.execution_id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (updated) => {
+          this.selectedDetail.set(updated);
+          this.retrying.set(false);
+          this.loadExecutions();
+        },
+        error: (err: { error?: { detail?: string }; message?: string }) => {
+          this.detailError.set(
+            err.error?.detail || err.message || 'Não foi possível reenviar a execução.',
+          );
+          this.retrying.set(false);
+        },
+      });
+  }
+
   closeDetail(): void {
     this.selectedExecutionId.set(null);
     this.selectedDetail.set(null);
     this.loadingDetail.set(false);
     this.detailError.set(null);
+    this.retrying.set(false);
+  }
+
+  private hasActiveExecution(): boolean {
+    const isActive = (status: AutomationExecutionStatus) =>
+      status === 'QUEUED' || status === 'RUNNING';
+    return (
+      this.data()?.items.some((item) => isActive(item.status)) === true ||
+      (this.selectedDetail() !== null && isActive(this.selectedDetail()!.status))
+    );
   }
 
   private readInitialPageSize(): number {

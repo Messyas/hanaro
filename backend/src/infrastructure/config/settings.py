@@ -398,16 +398,19 @@ class TaskiqSettings(BaseSettings):
 
     TASKIQ_WORKER_CONCURRENCY: int = config("TASKIQ_WORKER_CONCURRENCY", default=2, cast=int)
     TASKIQ_MAX_TASKS_PER_WORKER: int = config("TASKIQ_MAX_TASKS_PER_WORKER", default=1000, cast=int)
+    TASKIQ_EXECUTION_STALE_AFTER_MINUTES: int = config(
+        "TASKIQ_EXECUTION_STALE_AFTER_MINUTES", default=30, cast=int
+    )
 
     @property
     def TASKIQ_BROKER_URL(self) -> str:
         """Generate broker URL based on configured backend."""
         if self.TASKIQ_BROKER_TYPE == TaskiqBrokerType.REDIS.value:
+            if self.TASKIQ_REDIS_URL:
+                return self.TASKIQ_REDIS_URL
             shared_redis_url = getattr(self, "REDIS_URL", "")
             if shared_redis_url:
                 return shared_redis_url
-            if self.TASKIQ_REDIS_URL:
-                return self.TASKIQ_REDIS_URL
             password_part = f":{self.TASKIQ_REDIS_PASSWORD}@" if self.TASKIQ_REDIS_PASSWORD else ""
             return f"redis://{password_part}{self.TASKIQ_REDIS_HOST}:{self.TASKIQ_REDIS_PORT}/{self.TASKIQ_REDIS_DB}"
         elif self.TASKIQ_BROKER_TYPE == TaskiqBrokerType.RABBITMQ.value:

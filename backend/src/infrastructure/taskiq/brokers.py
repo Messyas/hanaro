@@ -25,10 +25,10 @@ def create_default_broker() -> AsyncBroker:
 
 def _create_redis_broker() -> AsyncBroker:
     """Create Redis-based broker for taskiq."""
-    if settings.REDIS_URL:
-        redis_url = settings.REDIS_URL
-    elif settings.TASKIQ_REDIS_URL:
+    if settings.TASKIQ_REDIS_URL:
         redis_url = settings.TASKIQ_REDIS_URL
+    elif settings.REDIS_URL:
+        redis_url = settings.REDIS_URL
     else:
         redis_host = settings.TASKIQ_REDIS_HOST
         redis_port = settings.TASKIQ_REDIS_PORT

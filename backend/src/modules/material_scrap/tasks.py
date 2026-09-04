@@ -8,15 +8,30 @@ from ...infrastructure.config.settings import get_settings
 from ...infrastructure.taskiq.brokers import default_broker
 from ...infrastructure.taskiq.deps import DBSession
 from ...infrastructure.taskiq.registry import register_task
+from .enums import ExecutionStepCode, ExecutionStepStatus
+from .execution_service import begin_execution_attempt, update_step
 from .models import ScrapAutomationExecution, ScrapExecutionNotification
-from .schemas import IngestionResult, MaterialScrapPayload
+from .schemas import ExecutionStepUpdate, IngestionResult, MaterialScrapPayload
 from .service import ingest_material_scrap
 
 
 @default_broker.task(task_name="material_scrap.ingest")
 async def ingest_material_scrap_task(payload: dict[str, Any], db: DBSession) -> dict[str, Any]:
     """Worker-ready entry point for the future Smart Office payload."""
-    result: IngestionResult = await ingest_material_scrap(MaterialScrapPayload.model_validate(payload), db)
+    canonical_payload = MaterialScrapPayload.model_validate(payload)
+    attempt = await begin_execution_attempt(canonical_payload.execution.execution_id, db)
+    await update_step(
+        canonical_payload.execution.execution_id,
+        ExecutionStepCode.JSON_VALIDATION,
+        ExecutionStepUpdate(
+            status=ExecutionStepStatus.RUNNING,
+            attempt=attempt,
+            message="Worker is validating and publishing the Material Scrap ingestion.",
+            metadata={"records_total": canonical_payload.statistics.source_rows},
+        ),
+        db,
+    )
+    result: IngestionResult = await ingest_material_scrap(canonical_payload, db, attempt=attempt)
     return result.model_dump(mode="json")
 
 
