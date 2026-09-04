@@ -1,0 +1,117 @@
+:host {
+  display: block;
+  margin-top: 0.9rem;
+}
+
+.chart-filter-panel {
+  position: relative;
+  z-index: 15;
+  border: 1px solid var(--app-border-soft);
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--app-surface-muted) 44%, transparent);
+  padding: 0.75rem;
+}
+
+.chart-filter-panel-header {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--app-border-soft);
+  padding-bottom: 0.65rem;
+}
+
+.chart-filter-panel-header > div {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.chart-filter-panel-header span {
+  color: var(--app-text);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.chart-filter-panel-header small {
+  overflow: hidden;
+  color: var(--app-text-subtle);
+  font-size: 0.66rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chart-filter-panel-fields {
+  display: grid;
+  grid-template-columns: minmax(7rem, 0.75fr) repeat(2, minmax(8rem, 1fr));
+  gap: 0.65rem;
+  align-items: end;
+  padding-top: 0.7rem;
+}
+
+.distribution-filter-panel .chart-filter-panel-fields {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+}
+
+.chart-filter-clear {
+  display: inline-flex;
+  min-height: 2rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  align-self: end;
+  border: 0;
+  border-radius: 0.62rem;
+  background: transparent;
+  color: var(--brand-primary);
+  cursor: pointer;
+  padding: 0.4rem 0.65rem;
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 750;
+}
+
+.chart-filter-clear ui-icon {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+.chart-filter-clear:disabled {
+  cursor: default;
+  opacity: 0.42;
+}
+
+.distribution-filter-panel .chart-filter-clear {
+  justify-self: end;
+}
+
+@media (max-width: 760px) {
+  .chart-filter-panel-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .chart-filter-clear {
+    justify-self: end;
+  }
+}
+
+@media (max-width: 480px) {
+  .chart-filter-panel-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .chart-filter-panel-fields,
+  .distribution-filter-panel .chart-filter-panel-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .chart-filter-clear {
+    width: 100%;
+    justify-self: stretch;
+  }
+}

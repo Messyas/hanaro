@@ -1,0 +1,156 @@
+@if (open()) {
+  <section class="template-library" aria-labelledby="template-library-title">
+    <header class="library-header">
+      <div>
+        <h2 id="template-library-title">{{ t().scrapTemplatesButton }}</h2>
+        <p>{{ t().scrapTemplatesLibraryHint }}</p>
+      </div>
+      <div class="library-heading-actions">
+        <span class="count-badge">{{ templates().length }}</span>
+        <button type="button" class="btn btn-ghost close-btn" (click)="close()">
+          <ui-icon name="x" />
+          <span>{{ t().close }}</span>
+        </button>
+      </div>
+    </header>
+
+    @if (feedback()) {
+      <p class="library-feedback" [class.is-error]="feedbackKind() === 'error'" role="status">
+        {{ feedback() }}
+      </p>
+    }
+
+    @if (loading()) {
+      <div class="loading-state" role="status">
+        <ui-icon name="clock" />
+        <span>{{ t().scrapTemplatesLoading }}</span>
+      </div>
+    } @else if (templates().length === 0) {
+      <div class="empty-state">
+        <ui-icon name="heart" />
+        <strong>{{ t().scrapTemplatesEmptyTitle }}</strong>
+        <p>{{ t().scrapTemplatesEmptyHint }}</p>
+      </div>
+    } @else {
+      <div class="template-list" role="list">
+        @for (template of templates(); track template.id) {
+          <article
+            class="template-row"
+            [class.is-active]="activeTemplateId() === template.id"
+            role="listitem"
+          >
+            @if (editingTemplateId() === template.id) {
+              <form class="template-editor" (submit)="saveEdit(); $event.preventDefault()">
+                <div class="editor-grid">
+                  <label class="editor-field">
+                    <span>{{ t().scrapTemplateFieldName }}</span>
+                    <input [formField]="editorForm.name" />
+                    @if (editorForm.name().touched() && editorForm.name().errors()[0]; as error) {
+                      <small class="field-error">{{ error.message }}</small>
+                    }
+                  </label>
+                  <label class="editor-field">
+                    <span>{{ t().scrapFieldDefectType }}</span>
+                    <select
+                      [value]="editorModel().defectTypeId"
+                      (change)="onDefectTypeChange($event)"
+                    >
+                      <option value="">{{ t().scrapTemplateSelectType }}</option>
+                      @for (type of defectTypes(); track type.id) {
+                        <option [value]="type.id">{{ type.name }}</option>
+                      }
+                    </select>
+                    @if (!editorModel().defectTypeId && editorForm.defectTypeId().touched()) {
+                      <small class="field-error">{{ t().scrapTemplateTypeRequired }}</small>
+                    }
+                  </label>
+                  <label class="editor-field editor-field-wide">
+                    <span>{{ t().scrapFieldTitle }}</span>
+                    <input [formField]="editorForm.title" />
+                    @if (editorForm.title().touched() && editorForm.title().errors()[0]; as error) {
+                      <small class="field-error">{{ error.message }}</small>
+                    }
+                  </label>
+                  <label class="editor-field editor-field-wide">
+                    <span>{{ t().scrapFieldDescription }}</span>
+                    <textarea rows="5" [formField]="editorForm.description"></textarea>
+                    @if (
+                      editorForm.description().touched() && editorForm.description().errors()[0];
+                      as error
+                    ) {
+                      <small class="field-error">{{ error.message }}</small>
+                    }
+                  </label>
+                </div>
+                <div class="row-actions">
+                  <button type="button" class="btn btn-ghost" (click)="cancelEdit()">
+                    {{ t().cancel }}
+                  </button>
+                  <button
+                    type="submit"
+                    class="btn btn-primary"
+                    [disabled]="editorForm().invalid() || mutationId() === template.id"
+                  >
+                    {{
+                      mutationId() === template.id
+                        ? t().scrapActionSaving
+                        : t().scrapTemplateSaveChanges
+                    }}
+                  </button>
+                </div>
+              </form>
+            } @else {
+              <div class="template-copy">
+                <div class="template-title-line">
+                  <strong>{{ template.name }}</strong>
+                  <span>{{ template.defect_type?.name || t().scrapTemplateNoType }}</span>
+                </div>
+                <p class="template-report-title">{{ template.title }}</p>
+                <p class="template-description">{{ template.description }}</p>
+                <small
+                  >{{ t().scrapTemplateUpdated }} {{ template.updated_at | date: 'short' }}</small
+                >
+              </div>
+
+              @if (deletingTemplateId() === template.id) {
+                <div class="delete-confirm" role="alert">
+                  <span>{{ t().scrapTemplateDeleteConfirm }}</span>
+                  <button
+                    type="button"
+                    class="btn btn-ghost btn-sm"
+                    (click)="deletingTemplateId.set(null)"
+                  >
+                    {{ t().cancel }}
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-danger btn-sm"
+                    (click)="confirmDelete(template.id)"
+                    [disabled]="mutationId() === template.id"
+                  >
+                    {{ t().scrapTemplateDelete }}
+                  </button>
+                </div>
+              } @else {
+                <div class="row-actions">
+                  <button type="button" class="btn btn-ghost" (click)="startEdit(template)">
+                    <ui-icon name="pencil" />
+                    <span>{{ t().scrapTemplateEdit }}</span>
+                  </button>
+                  <button type="button" class="btn btn-ghost" (click)="requestDelete(template.id)">
+                    <ui-icon name="trash" />
+                    <span>{{ t().scrapTemplateDelete }}</span>
+                  </button>
+                  <button type="button" class="btn btn-primary" (click)="onSelect(template)">
+                    <ui-icon name="check" />
+                    <span>{{ t().scrapUseThisTemplate }}</span>
+                  </button>
+                </div>
+              }
+            }
+          </article>
+        }
+      </div>
+    }
+  </section>
+}

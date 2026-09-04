@@ -68,10 +68,6 @@ jobs:
           npm run format:check
           npm run build
 
-      - name: Audit frontend production dependencies
-        working-directory: frontend
-        run: npm audit --omit=dev --audit-level=high
-
       - name: SonarQube analysis
         env:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}

@@ -1,4 +1,5 @@
 import math
+import uuid
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
@@ -13,12 +14,24 @@ from .enums import (
     BreakdownGroupBy,
     BreakdownMetric,
     IngestionStatus,
+    ScrapReviewFilterStatus,
+    ScrapReviewStatus,
     ScrapSortField,
     SortOrder,
     ToBeCountedFilter,
     TrendGroupBy,
 )
-from .models import DailyExchangeRate, IngestionRun, ScrapDashboardAggregate, ScrapTransaction
+from .models import (
+    DailyExchangeRate,
+    IngestionRun,
+    ScrapClassificationRule,
+    ScrapDashboardAggregate,
+    ScrapDefectType,
+    ScrapOccurrence,
+    ScrapReview,
+    ScrapReviewAttachment,
+    ScrapTransaction,
+)
 from .projection import UNMAPPED_DIMENSION
 from .schemas import (
     ScrapBreakdownItem,
@@ -110,17 +123,15 @@ def _aggregate_filter_conditions(filters: ScrapFilters) -> list[ColumnElement[bo
 
 def _active_query(*columns: Any) -> Select[Any]:
     statement: Select[Any] = select(*columns) if columns else select(ScrapTransaction)
-    return statement.join(IngestionRun, IngestionRun.id == ScrapTransaction.run_id).where(
-        IngestionRun.is_active.is_(True),
-        IngestionRun.status == IngestionStatus.COMPLETED.value,
+    return statement.join(ScrapOccurrence, ScrapOccurrence.current_transaction_id == ScrapTransaction.id).where(
+        ScrapOccurrence.status == "ACTIVE",
     )
 
 
 def _active_aggregate_query(*columns: Any) -> Select[Any]:
     statement: Select[Any] = select(*columns) if columns else select(ScrapDashboardAggregate)
-    return statement.join(IngestionRun, IngestionRun.id == ScrapDashboardAggregate.run_id).where(
-        IngestionRun.is_active.is_(True),
-        IngestionRun.status == IngestionStatus.COMPLETED.value,
+    return statement.join(ScrapOccurrence, ScrapOccurrence.id == ScrapDashboardAggregate.occurrence_id).where(
+        ScrapOccurrence.status == "ACTIVE",
     )
 
 
@@ -143,8 +154,51 @@ async def list_scrap(
     page_size: int,
     sort_by: ScrapSortField,
     sort_order: SortOrder,
+    review_status: ScrapReviewFilterStatus | None = None,
+    defect_type_ids: list[uuid.UUID] | None = None,
+    responsible_user_ids: list[int] | None = None,
+    exclude_reviewed: bool = False,
 ) -> ScrapPage:
-    statement = _apply_filters(_active_query(ScrapTransaction), filters)
+    attachment_counts = (
+        select(
+            ScrapReviewAttachment.review_id.label("review_id"),
+            func.count(ScrapReviewAttachment.id).label("attachment_count"),
+        )
+        .group_by(ScrapReviewAttachment.review_id)
+        .subquery()
+    )
+    statement = _apply_filters(
+        select(
+            ScrapTransaction,
+            ScrapOccurrence.id.label("occurrence_id"),
+            ScrapOccurrence.status.label("occurrence_status"),
+            ScrapReview.id.label("review_id"),
+            ScrapReview.status.label("review_status"),
+            ScrapReview.defect_type_id.label("defect_type_id"),
+            ScrapDefectType.name.label("defect_type_name"),
+            ScrapReview.responsible_user_id.label("responsible_user_id"),
+            ScrapReview.responsible_name.label("responsible_name"),
+            ScrapReview.reviewed_at.label("reviewed_at"),
+            ScrapReview.updated_at.label("review_updated_at"),
+            func.coalesce(attachment_counts.c.attachment_count, 0).label("attachment_count"),
+        )
+        .join(ScrapOccurrence, ScrapOccurrence.current_transaction_id == ScrapTransaction.id)
+        .outerjoin(ScrapReview, ScrapReview.occurrence_id == ScrapOccurrence.id)
+        .outerjoin(ScrapDefectType, ScrapDefectType.id == ScrapReview.defect_type_id)
+        .outerjoin(attachment_counts, attachment_counts.c.review_id == ScrapReview.id)
+        .where(ScrapOccurrence.status == "ACTIVE"),
+        filters,
+    )
+    if exclude_reviewed:
+        statement = statement.where(or_(ScrapReview.id.is_(None), ScrapReview.status != ScrapReviewStatus.REVIEWED.value))
+    elif review_status == ScrapReviewFilterStatus.UNREVIEWED:
+        statement = statement.where(ScrapReview.id.is_(None))
+    elif review_status is not None:
+        statement = statement.where(ScrapReview.status == review_status.value)
+    if defect_type_ids:
+        statement = statement.where(ScrapReview.defect_type_id.in_(defect_type_ids))
+    if responsible_user_ids:
+        statement = statement.where(ScrapReview.responsible_user_id.in_(responsible_user_ids))
     if search and search.strip():
         term = search.strip()
         statement = statement.where(
@@ -172,14 +226,57 @@ async def list_scrap(
     statement = (
         statement.order_by(
             order_function(sort_columns[sort_by]),
-            asc(ScrapTransaction.source_line),
+            asc(ScrapTransaction.id),
         )
         .offset((page - 1) * page_size)
         .limit(page_size)
     )
-    items = list((await db.execute(statement)).scalars().all())
+    rows = (await db.execute(statement)).all()
+    aliases = {
+        " ".join(rule.source_value.split()).upper(): rule.target_value
+        for rule in (
+            await db.execute(
+                select(ScrapClassificationRule).where(
+                    ScrapClassificationRule.kind == "PRODUCT_ALIAS",
+                    ScrapClassificationRule.is_active.is_(True),
+                )
+            )
+        ).scalars()
+    }
     return ScrapPage(
-        items=[ScrapItem.model_validate(item) for item in items],
+        items=[
+            ScrapItem.model_validate(transaction).model_copy(
+                update={
+                    "occurrence_id": occurrence_id,
+                    "current_transaction_id": transaction.id,
+                    "occurrence_status": occurrence_status,
+                    "review_id": review_id,
+                    "review_status": ScrapReviewStatus(item_review_status) if item_review_status else None,
+                    "defect_type_id": defect_type_id,
+                    "defect_type_name": defect_type_name,
+                    "responsible_user_id": responsible_user_id,
+                    "responsible_name": responsible_name,
+                    "reviewed_at": reviewed_at,
+                    "review_updated_at": review_updated_at,
+                    "attachment_count": int(attachment_count),
+                    "product_alias": aliases.get(" ".join(transaction.item_code.split()).upper()),
+                }
+            )
+            for (
+                transaction,
+                occurrence_id,
+                occurrence_status,
+                review_id,
+                item_review_status,
+                defect_type_id,
+                defect_type_name,
+                responsible_user_id,
+                responsible_name,
+                reviewed_at,
+                review_updated_at,
+                attachment_count,
+            ) in rows
+        ],
         page=page,
         page_size=page_size,
         total_items=total_items,
@@ -236,7 +333,8 @@ async def get_summary(db: AsyncSession, filters: ScrapFilters) -> ScrapSummary:
         select(DailyExchangeRate.brl_per_usd, IngestionRun.ingestion_finished_at)
         .join(IngestionRun, IngestionRun.exchange_rate_id == DailyExchangeRate.id)
         .join(ScrapTransaction, ScrapTransaction.run_id == IngestionRun.id)
-        .where(IngestionRun.is_active.is_(True), IngestionRun.status == IngestionStatus.COMPLETED.value)
+        .join(ScrapOccurrence, ScrapOccurrence.current_transaction_id == ScrapTransaction.id)
+        .where(ScrapOccurrence.status == "ACTIVE", IngestionRun.status == IngestionStatus.COMPLETED.value)
         .order_by(IngestionRun.ingestion_finished_at.desc())
         .limit(1)
     )

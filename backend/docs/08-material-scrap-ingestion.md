@@ -43,6 +43,31 @@ participam de índices ou colunas limitadas são validadas antes de chegar ao
 banco. Campos extras são rejeitados e todo decimal canônico deve ser string
 JSON.
 
+## Identidade estavel e reconciliacao
+
+A migration `20260831_07` introduz `scrap_occurrences` como a identidade de
+negocio estavel, `scrap_occurrence_observations` para registrar cada execucao
+que observou uma ocorrencia e `scrap_reconciliation_partitions` para serializar
+publicacoes concorrentes por `organization_code + transaction_date`.
+
+`record_key` v1 e SHA-256 de organizacao, data da transacao, conta, item,
+ordem de producao, referencia, quantidade e valor BRL. Textos sao NFKC,
+aparados, com espacos normalizados e em maiusculas; `null` e string vazia
+continuam distintos, codigos preservam zeros a esquerda e decimais usam
+`Decimal`, nunca `float`. `content_hash` permanece o hash do contrato completo
+da versao e portanto pode mudar sem mudar a ocorrencia.
+
+Linhas repetidas indistinguiveis usam um `identity_slot` persistente por
+`record_key`, que expressa multiplicidade sem usar a linha de origem como
+identidade. Linhas com o mesmo nucleo de identidade e conteudo semantico
+diferente falham com `OCCURRENCE_IDENTITY_COLLISION` e preservam o ultimo
+estado valido publicado.
+
+Uma nova consulta completa reconcilia somente as particoes cobertas. Conteudo
+igual cria apenas uma observacao; conteudo alterado cria uma nova
+`ScrapTransaction` imutavel; uma ocorrencia ausente passa a `NOT_PRESENT`.
+Outras datas e organizacoes nao sao alteradas e a publicacao e atomica.
+
 ## Read model e cache
 
 O dashboard não agrega `scrap_transactions` durante a requisição. O worker usa
@@ -83,6 +108,12 @@ de escrita exige `X-API-Key` com permissão `material_scrap:create`.
 - `POST /api/v1/scrap/ingestions` (assíncrono, retorna `task_id`)
 - `GET /api/v1/scrap`
 - `GET /api/v1/scrap/filters`
+- `GET /api/v1/scrap/review-types`
+- `POST/PATCH /api/v1/scrap/review-types` (superusuario)
+- `GET/PUT /api/v1/scrap/reviews/{occurrence_id}`
+- `POST /api/v1/scrap/reviews/{occurrence_id}/finalize`
+- `POST /api/v1/scrap/reviews/bulk`
+- `POST/GET/DELETE /api/v1/scrap/reviews/by-id/{review_id}/attachments/...`
 - `GET /api/v1/dashboard/scrap` (contrato completo para a tela)
 - `GET /api/v1/dashboard/scrap/summary`
 - `GET /api/v1/dashboard/scrap/trend?group_by=day|week|month`
@@ -93,6 +124,34 @@ de escrita exige `X-API-Key` com permissão `material_scrap:create`.
 Exemplos: `?organizations=NWK&account_aliases=D-DIRECT`,
 `?to_be_counted=true|false|unmapped`, e
 `?date_from=2026-08-01&date_to=2026-08-31`.
+
+`GET /api/v1/scrap` preserva `id` como UUID da transacao atual por
+compatibilidade e acrescenta `occurrence_id`, `current_transaction_id` e
+`occurrence_status`. Consumidores novos devem usar `occurrence_id` como a
+referencia estavel; `id` permanece temporariamente como campo legado para esse
+fim.
+
+## Analises das ocorrencias
+
+Cada analise pertence a uma `ScrapOccurrence`, nunca a uma versao de
+`ScrapTransaction`. O usuario autenticado e sempre o responsavel: o backend nao
+aceita atribuicao de outro usuario e preserva nome e ID para auditoria.
+Rascunhos aceitam campos incompletos; a finalizacao exige classificacao ativa,
+titulo e descricao e torna a analise imutavel.
+
+Classificacoes ficam em `scrap_defect_types` e sao administradas por
+superusuarios. Evidencias JPEG, PNG e WebP sao decodificadas, normalizadas para
+WebP e armazenadas de forma privada; somente metadados ficam no banco. O limite
+padrao e oito imagens de entrada de ate 10 MiB por analise.
+
+A criacao em massa recebe ate 500 `occurrence_id`, clona uma analise finalizada
+e registra `source_review_id` e `bulk_operation_id`. Ocorrencias inativas ou que
+ja possuem analise sao ignoradas e retornadas com o motivo, sem sobrescrita.
+Imagens so sao copiadas quando `copy_attachments=true`.
+
+`GET /api/v1/scrap` acrescenta o resumo da analise e aceita
+`review_status=UNREVIEWED|DRAFT|REVIEWED`, `defect_type_ids` e
+`responsible_user_ids`.
 
 O endpoint completo aceita `year`, `currency=BRL|USD`,
 `impact_mode=absolute|signed`, `week=1..53`, `ranking_limit=1..20` e os filtros
@@ -107,6 +166,12 @@ dimensionais existentes. A resposta entrega:
 Mapeamento atual: linha = `receipt_department`, componente = `item_type`, modelo
 = `item_code` e ofensor = `account_alias`. O frontend não deve reinterpretar
 essas dimensões nem recalcular percentuais.
+
+## Limitações de Escopo e Dados Atuais (Scrap Rate e QTY)
+
+Atualmente, o pipeline de ingestão do GERP consome apenas o relatório de descartes de estoque (MATERIAL_SCRAP). O backend ainda não possui as tabelas nem a ingestão dos dados de produção total ou consumo de matéria-prima da fábrica para compor esse denominador.
+
+Por isso, na tela, tanto a Taxa de Scrap (análise relativa) quanto a Quantidade (QTY) utilizam dados mockados: a base de dados real do backend hoje só tem o valor financeiro absoluto/com sinal dos descartes.
 
 ## Pendências de homologação
 

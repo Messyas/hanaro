@@ -1,0 +1,25 @@
+<div
+  class="list-table-frame skeleton-frame"
+  role="status"
+  aria-live="polite"
+  [attr.aria-label]="loadingLabel()"
+>
+  <table class="list-table skeleton-table" [style.--list-table-min-width]="minWidth()">
+    <thead>
+      <tr>
+        @for (column of columns(); track $index) {
+          <th>{{ column }}</th>
+        }
+      </tr>
+    </thead>
+    <tbody aria-hidden="true">
+      @for (row of rowIndexes(); track row) {
+        <tr>
+          @for (column of columns(); track $index) {
+            <td><span class="skeleton-cell"></span></td>
+          }
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>

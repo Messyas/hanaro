@@ -24,12 +24,11 @@ def validate_admin_configuration() -> None:
     if missing:
         joined = ", ".join(missing)
         raise RuntimeError(
-            f"Missing required admin configuration: {joined}. "
-            "Set the values in the root .env file and run the command again."
+            f"Missing required admin configuration: {joined}. Set the values in the root .env file and run the command again."
         )
 
 
-async def setup_initial_data() -> None:
+async def setup_initial_data(*, create_schema: bool = True) -> None:
     """Create the database schema, default tier and configured administrator."""
     validate_admin_configuration()
     logger.info("Admin configuration found. Loading backend modules...")
@@ -43,9 +42,10 @@ async def setup_initial_data() -> None:
 
     logger.info("Setting up initial data...")
 
-    logger.info("Creating database tables...")
-    await create_tables()
-    logger.info("Database tables created successfully")
+    if create_schema:
+        logger.info("Creating database tables...")
+        await create_tables()
+        logger.info("Database tables created successfully")
 
     logger.info("Creating first tier...")
     await create_first_tier()

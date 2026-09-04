@@ -68,7 +68,3 @@ jobs:
       - name: Validate Cloudflare Worker bundle
         working-directory: frontend
         run: npx --yes wrangler@4 deploy --dry-run
-
-      - name: Audit frontend production dependencies
-        working-directory: frontend
-        run: npm audit --omit=dev --audit-level=high

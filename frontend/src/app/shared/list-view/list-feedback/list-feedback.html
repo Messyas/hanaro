@@ -1,0 +1,21 @@
+<div
+  class="feedback"
+  [class.feedback-loading]="kind() === 'loading'"
+  [class.feedback-error]="kind() === 'error'"
+  [attr.role]="kind() === 'error' ? 'alert' : 'status'"
+>
+  <span class="feedback-icon">
+    <ui-icon [name]="kind() === 'loading' ? 'clock' : kind() === 'error' ? 'x' : 'folder'" />
+  </span>
+  @if (title()) {
+    <strong>{{ title() }}</strong>
+  }
+  @if (message()) {
+    <p>{{ message() }}</p>
+  }
+  @if (kind() === 'error') {
+    <button type="button" class="retry-button" (click)="retried.emit()">
+      {{ retryLabel() }}
+    </button>
+  }
+</div>

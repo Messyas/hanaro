@@ -1,0 +1,244 @@
+<section class="reports-page list-page page-stack" aria-labelledby="reports-title">
+  <header class="reports-header">
+    <h1 class="page-title" id="reports-title">{{ t().reportsTitle }}</h1>
+    <p class="page-subtitle">{{ t().reportsSubtitle }}</p>
+  </header>
+
+  <app-list-panel
+    [title]="t().reportsTitle"
+    [meta]="data() ? t().scrapTotalLabel + ' ' + data()!.total_items : ''"
+  >
+    <div list-actions class="list-actions">
+      <app-delayed-progress-spinner [active]="loading()" [ariaLabel]="t().scrapLoading" />
+
+      <app-list-filter-popover
+        [(open)]="filterOpen"
+        [activeCount]="activeFiltersCount()"
+        [triggerLabel]="t().scrapFilterButton"
+        [title]="t().scrapFilterTitle"
+        [clearLabel]="t().scrapClearFilters"
+        [applyLabel]="t().scrapApplyFilters"
+        (cleared)="clearFilters()"
+        (applied)="loadReports()"
+      >
+        <app-list-filter-input
+          [(value)]="searchText"
+          [label]="t().scrapSearchLabel"
+          [placeholder]="t().reportsSearchPlaceholder"
+          type="search"
+          (changed)="onSearchInput($event)"
+        />
+        <app-list-filter-date-range
+          [(from)]="dateFrom"
+          [(to)]="dateTo"
+          [fromLabel]="t().scrapDateFrom"
+          [toLabel]="t().scrapDateTo"
+          [locale]="calendarLocale()"
+          [clearLabel]="t().calendarClear"
+          [todayLabel]="t().calendarToday"
+          (changed)="onDateChange()"
+        />
+        <app-list-filter-input
+          [(value)]="organization"
+          [label]="t().scrapOrganizations"
+          [placeholder]="t().scrapOrganizationsPlaceholder"
+          (changed)="onOrganizationChange()"
+        />
+        <app-list-filter-select
+          [value]="defectTypeFilter()"
+          [options]="defectTypeOptions()"
+          [label]="t().scrapFilterDefectType"
+          [ariaLabel]="t().scrapFilterDefectType"
+          (changed)="onDefectTypeFilterChange($event)"
+        />
+        <app-list-filter-select
+          [value]="responsibleFilter()"
+          [options]="responsibleOptions()"
+          [label]="t().scrapFilterResponsible"
+          [ariaLabel]="t().scrapFilterResponsible"
+          (changed)="onResponsibleFilterChange($event)"
+        />
+        @if (dateRangeError()) {
+          <app-inline-alert [message]="t().scrapDateRangeError" />
+        }
+      </app-list-filter-popover>
+
+      <span class="sort-label">{{ t().scrapSortBy }}</span>
+      <app-list-filter-select
+        class="sort-field-select"
+        [(value)]="sortBy"
+        [options]="sortOptions()"
+        [ariaLabel]="t().scrapSortAriaLabel"
+        (changed)="onSortChange($event)"
+      />
+      <button type="button" class="btn btn-secondary sort-order-button" (click)="toggleSortOrder()">
+        {{ sortOrder() === 'desc' ? t().scrapSortDescending : t().scrapSortAscending }}
+      </button>
+    </div>
+
+    <!-- Estados de Carga / Erro / Vazio -->
+    @if (loading() && (!data() || data()!.items.length === 0)) {
+      <app-list-table-skeleton
+        [columns]="tableColumns()"
+        [rows]="6"
+        minWidth="100%"
+        [loadingLabel]="t().scrapLoading"
+      />
+    } @else if (error() && (!data() || data()!.items.length === 0)) {
+      <app-list-feedback
+        kind="error"
+        [title]="t().scrapErrorTitle"
+        [message]="error()!"
+        [retryLabel]="t().scrapRetry"
+        (retried)="loadReports()"
+      />
+    } @else if (!data() || data()!.items.length === 0) {
+      <app-list-feedback
+        kind="empty"
+        [title]="t().reportsEmptyTitle"
+        [message]="t().reportsEmptyDesc"
+      />
+    } @else {
+      @if (error()) {
+        <app-inline-alert class="table-refresh-error" [message]="error()!" />
+      }
+      <div class="list-table-frame" [attr.aria-busy]="loading()">
+        <table class="list-table reports-table">
+          <thead>
+            <tr>
+              <th>{{ t().scrapColDate }}</th>
+              <th>{{ t().scrapColOrganization }}</th>
+              <th>{{ t().scrapColItem }}</th>
+              <th>{{ t().scrapColDescription }}</th>
+              <th class="align-right">{{ t().scrapColAmountUsd }}</th>
+              <th>{{ t().scrapColDefectType }}</th>
+              <th>{{ t().scrapColResponsible }}</th>
+              <th class="align-center">FOTOS</th>
+              <th class="align-center">{{ t().scrapColAction }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of data()!.items; track item.occurrence_id ?? item.id) {
+              <tr
+                class="clickable-row"
+                (click)="item.occurrence_id ? openReportDetail(item.occurrence_id, item) : null"
+              >
+                <td>{{ formatTransactionDate(item.transaction_date) }}</td>
+                <td>{{ item.organization_code }}</td>
+                <td>
+                  <span class="item-code">{{ item.item_code }}</span>
+                </td>
+                <td class="description-cell" [title]="item.item_description || ''">
+                  {{ item.item_description || '—' }}
+                </td>
+                <td class="align-right font-semibold">{{ formatCurrency(item.amount_usd) }}</td>
+                <td class="defect-cell">{{ item.defect_type_name || '—' }}</td>
+                <td>
+                  <div class="responsible-cell">
+                    @if (item.responsible_name) {
+                      <span class="resp-name">{{ item.responsible_name }}</span>
+                      @if (item.reviewed_at) {
+                        <span class="resp-date">{{ formatTransactionDate(item.reviewed_at) }}</span>
+                      }
+                    } @else {
+                      <span class="text-muted">—</span>
+                    }
+                  </div>
+                </td>
+                <td class="align-center">
+                  @if (item.attachment_count > 0) {
+                    <span class="photos-badge">
+                      <ui-icon name="image" />
+                      <span>{{ item.attachment_count }}</span>
+                    </span>
+                  } @else {
+                    <span class="text-muted">—</span>
+                  }
+                </td>
+                <td class="align-center" (click)="$event.stopPropagation()">
+                  @if (item.occurrence_id) {
+                    <button
+                      type="button"
+                      class="btn btn-ghost btn-sm action-btn"
+                      (click)="openReportDetail(item.occurrence_id, item)"
+                      [attr.aria-label]="t().scrapActionView + ' ' + item.item_code"
+                    >
+                      <ui-icon name="eye" />
+                      <span>{{ t().scrapActionView }}</span>
+                    </button>
+                  } @else {
+                    <span class="text-muted">—</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <app-list-pagination
+        [page]="page()"
+        [totalPages]="data()!.total_pages"
+        [pageSize]="pageSize()"
+        [pageSizes]="pageSizes"
+        [pageLabel]="t().executionsPaginationPage"
+        [ofLabel]="t().executionsPaginationOf"
+        [perPageLabel]="t().executionsPaginationPerPage"
+        (pageSizeChanged)="onPageSizeChange($event)"
+        (previous)="previousPage()"
+        (next)="nextPage()"
+      />
+    }
+  </app-list-panel>
+
+  <!-- Drawer de Detalhe do Relatório -->
+  @if (selectedOccurrenceId()) {
+    <div class="modal-backdrop" (click)="closeDetail()">
+      <div
+        class="detail-drawer"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="report-drawer-title"
+        (click)="$event.stopPropagation()"
+      >
+        <header class="drawer-header">
+          <div class="drawer-title-group">
+            <span class="meta-label">Relatório de Scrap</span>
+            <h3 id="report-drawer-title">
+              {{
+                selectedOccurrence()?.item_code ||
+                  selectedReview()?.title ||
+                  'Detalhes do Relatório'
+              }}
+            </h3>
+          </div>
+          <button
+            type="button"
+            class="btn btn-ghost drawer-close-btn"
+            (click)="closeDetail()"
+            aria-label="Fechar relatório"
+          >
+            <ui-icon name="x" />
+          </button>
+        </header>
+
+        <div class="drawer-body">
+          @if (loadingDetail()) {
+            <div class="loading-state">
+              <ui-icon name="clock" />
+              <p>Carregando detalhes do relatório...</p>
+            </div>
+          } @else if (detailError()) {
+            <app-inline-alert [message]="detailError()!" />
+          } @else if (selectedReview()) {
+            <app-scrap-review-preview
+              [review]="selectedReview()"
+              [occurrence]="selectedOccurrence()"
+              (useAsReference)="onUseAsReference($event)"
+            />
+          }
+        </div>
+      </div>
+    </div>
+  }
+</section>

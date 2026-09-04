@@ -264,12 +264,6 @@ class AuthSettings(BaseSettings):
     # peer (no proxy). Set to 1 behind a single nginx/Caddy, 2 if Cloudflare is also in front.
     TRUSTED_PROXY_HOPS: int = config("TRUSTED_PROXY_HOPS", default=0, cast=int)
 
-    OAUTH_GOOGLE_CLIENT_ID: str = config("OAUTH_GOOGLE_CLIENT_ID", default="")
-    OAUTH_GOOGLE_CLIENT_SECRET: str = config("OAUTH_GOOGLE_CLIENT_SECRET", default="")
-    OAUTH_GITHUB_CLIENT_ID: str = config("OAUTH_GITHUB_CLIENT_ID", default="")
-    OAUTH_GITHUB_CLIENT_SECRET: str = config("OAUTH_GITHUB_CLIENT_SECRET", default="")
-    OAUTH_REDIRECT_BASE_URL: str = config("OAUTH_REDIRECT_BASE_URL", default="http://localhost:8000")
-
 
 class APISettings(BaseSettings):
     """API-related settings."""
@@ -308,10 +302,13 @@ class ProfileImageSettings(BaseSettings):
     PROFILE_IMAGE_MAX_DIMENSION: int = config("PROFILE_IMAGE_MAX_DIMENSION", default=4096, cast=int)
 
 
-class SQLAdminSettings(BaseSettings):
-    """SQLAdmin interface settings."""
+class ScrapReviewImageSettings(BaseSettings):
+    """Private normalized image storage for Scrap review evidence."""
 
-    ADMIN_ENABLED: bool = config("ADMIN_ENABLED", default=True, cast=bool)
+    SCRAP_REVIEW_IMAGE_DIR: str = config("SCRAP_REVIEW_IMAGE_DIR", default="data/scrap-review-images")
+    SCRAP_REVIEW_IMAGE_MAX_BYTES: int = config("SCRAP_REVIEW_IMAGE_MAX_BYTES", default=10 * 1024 * 1024, cast=int)
+    SCRAP_REVIEW_IMAGE_MAX_DIMENSION: int = config("SCRAP_REVIEW_IMAGE_MAX_DIMENSION", default=8192, cast=int)
+    SCRAP_REVIEW_MAX_ATTACHMENTS: int = config("SCRAP_REVIEW_MAX_ATTACHMENTS", default=8, cast=int)
 
 
 class SecuritySettings(BaseSettings):
@@ -360,6 +357,25 @@ class LoggingSettings(BaseSettings):
             LogLevel.CRITICAL.value: logging.CRITICAL,
         }
         return level_map.get(self.LOG_LEVEL.upper(), logging.INFO)
+
+
+class NotificationSettings(BaseSettings):
+    """Optional SMTP delivery for operational alerts.
+
+    Empty recipients intentionally keep the durable outbox in ``SKIPPED`` state.
+    """
+
+    SMTP_HOST: str = config("SMTP_HOST", default="")
+    SMTP_PORT: int = config("SMTP_PORT", default=587, cast=int)
+    SMTP_USERNAME: str = config("SMTP_USERNAME", default="")
+    SMTP_PASSWORD: str = config("SMTP_PASSWORD", default="")
+    SMTP_FROM: str = config("SMTP_FROM", default="")
+    SMTP_USE_TLS: bool = config("SMTP_USE_TLS", default=True, cast=bool)
+    MATERIAL_SCRAP_DEVELOPER_EMAILS: str = config("MATERIAL_SCRAP_DEVELOPER_EMAILS", default="")
+
+    @property
+    def MATERIAL_SCRAP_DEVELOPER_EMAIL_LIST(self) -> list[str]:
+        return [email.strip() for email in self.MATERIAL_SCRAP_DEVELOPER_EMAILS.split(",") if email.strip()]
 
 
 class TaskiqSettings(BaseSettings):
@@ -416,9 +432,10 @@ class Settings(
     AppSettings,
     AdminSettings,
     ProfileImageSettings,
-    SQLAdminSettings,
+    ScrapReviewImageSettings,
     SecuritySettings,
     LoggingSettings,
+    NotificationSettings,
     TaskiqSettings,
 ):
     """Main settings class that combines all setting categories."""

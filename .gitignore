@@ -114,6 +114,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+.venv-asr
 
 # Spyder project settings
 .spyderproject
@@ -143,7 +144,8 @@ cython_debug/
 
 .scannerwork/
 .sonar/
-
+scripts/
+.agents/
 # Node / Angular
 node_modules/
 .angular/
@@ -161,7 +163,8 @@ pnpm-debug.log*
 logs/
 tmp/
 temp/
-automation/artifacts/*.json
+automation/artifacts/
+automation/artifacts/**
 
 .idea
 
@@ -170,3 +173,17 @@ automation/artifacts/*.json
 # Config files:
 src/.env
 
+# Graphify
+graphify-out/
+.graphify/
+
+# Codex & Agents
+.codex/
+.agents/skills/
+.agents/hooks/
+.impeccable/
+.github/skills/impeccable/
+.github/agents/
+.github/hooks/
+skills-lock.json
+transcripts/

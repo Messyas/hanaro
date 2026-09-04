@@ -2,18 +2,33 @@ services:
   - type: web
     name: hanaro-api
     runtime: docker
+    plan: free
+    branch: main
     dockerfilePath: ./backend/Dockerfile
     dockerContext: .
-    preDeployCommand: CONFIRM_PRODUCTION_MIGRATION=yes alembic upgrade head
     healthCheckPath: /health
-    autoDeploy: true
+    autoDeployTrigger: checksPass
     envVars:
       - key: ENVIRONMENT
         value: production
       - key: DEBUG
         value: "false"
       - key: CREATE_TABLES_ON_STARTUP
+        value: "false"
+      - key: RUN_MIGRATIONS_ON_STARTUP
         value: "true"
+      - key: BOOTSTRAP_INITIAL_DATA
+        value: "true"
+      - key: SEED_DEMO_DATA
+        value: "true"
+      - key: ADMIN_NAME
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_USERNAME
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
       - key: ENABLE_DOCS_IN_PRODUCTION
         value: "false"
       - key: PRODUCTION_SECURITY_VALIDATION_ENABLED
@@ -47,8 +62,6 @@ services:
       - key: TRUSTED_PROXY_HOPS
         value: "1"
       - key: TRUSTED_HOSTS
-        sync: false
-      - key: OAUTH_REDIRECT_BASE_URL
         sync: false
       - key: DATABASE_URL
         sync: false

@@ -3,9 +3,7 @@ import { Service, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { AuthUser } from '../../core/auth/auth.service';
 
-export interface UserProfile extends AuthUser {
-  email_verified: boolean;
-}
+export type UserProfile = AuthUser;
 
 export interface ProfileUpdate {
   name: string;

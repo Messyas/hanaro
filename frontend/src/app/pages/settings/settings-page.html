@@ -1,94 +1,903 @@
 @let t = language.translations();
 <section class="settings-page page-stack" aria-labelledby="settings-title">
-  <header class="settings-heading">
+  <header class="settings-header-container">
     <h1 class="page-title" id="settings-title">{{ t.settingsTitle }}</h1>
+
+    <!-- Barra de Abas -->
+    <nav class="settings-tabs-nav" role="tablist" [attr.aria-label]="t.settingsTitle">
+      <button
+        type="button"
+        role="tab"
+        class="settings-tab-btn"
+        [class.active]="activeTab() === 'preferences'"
+        [attr.aria-selected]="activeTab() === 'preferences'"
+        (click)="selectTab('preferences')"
+      >
+        <ui-icon name="cog" />
+        <span>{{ t.settingsTabPreferences }}</span>
+      </button>
+
+      <button
+        type="button"
+        role="tab"
+        class="settings-tab-btn"
+        [class.active]="activeTab() === 'classifications'"
+        [attr.aria-selected]="activeTab() === 'classifications'"
+        (click)="selectTab('classifications')"
+      >
+        <ui-icon name="filter" />
+        <span>{{ t.settingsTabClassifications }}</span>
+        @if (classificationRules().length > 0) {
+          <span class="tab-badge">{{ classificationRules().length }}</span>
+        }
+      </button>
+
+      <button
+        type="button"
+        role="tab"
+        class="settings-tab-btn"
+        [class.active]="activeTab() === 'system'"
+        [attr.aria-selected]="activeTab() === 'system'"
+        (click)="selectTab('system')"
+      >
+        <ui-icon name="building" />
+        <span>{{ t.settingsTabDefectTypes }}</span>
+        @if (totalCount() > 0) {
+          <span class="tab-badge">{{ totalCount() }}</span>
+        }
+      </button>
+
+      <button
+        type="button"
+        role="tab"
+        class="settings-tab-btn"
+        [class.active]="activeTab() === 'targets'"
+        [attr.aria-selected]="activeTab() === 'targets'"
+        (click)="selectTab('targets')"
+      >
+        <ui-icon name="chart-line" />
+        <span>{{ t.settingsTabTargets }}</span>
+      </button>
+    </nav>
   </header>
 
-  <div class="settings-grid">
-    <article class="settings-card">
-      <header class="settings-card-header">
-        <h2>{{ t.themeTitle }}</h2>
-        <p>{{ t.themeSubtitle }}</p>
-      </header>
+  <!-- Conteúdo da Aba 1: Preferências (Tema e Idioma) -->
+  @if (activeTab() === 'preferences') {
+    <div class="settings-grid">
+      <article class="settings-card">
+        <header class="settings-card-header">
+          <h2>{{ t.themeTitle }}</h2>
+          <p>{{ t.themeSubtitle }}</p>
+        </header>
 
-      <div class="theme-options" role="group" [attr.aria-label]="t.themeGroupLabel">
-        <button
-          class="theme-preview light-preview"
-          type="button"
-          [class.selected]="theme.preference() === 'light'"
-          [attr.aria-pressed]="theme.preference() === 'light'"
-          (click)="theme.setPreference('light')"
-        >
-          <span class="preview-window" aria-hidden="true"
-            ><span class="preview-sidebar"></span
-            ><span class="preview-content"><i></i><i></i><i></i></span></span
-          ><strong>{{ t.themeLight }}</strong
-          ><small>{{ t.themeLightDesc }}</small>
-        </button>
-        <button
-          class="theme-preview dark-preview"
-          type="button"
-          [class.selected]="theme.preference() === 'dark'"
-          [attr.aria-pressed]="theme.preference() === 'dark'"
-          (click)="theme.setPreference('dark')"
-        >
-          <span class="preview-window" aria-hidden="true"
-            ><span class="preview-sidebar"></span
-            ><span class="preview-content"><i></i><i></i><i></i></span></span
-          ><strong>{{ t.themeDark }}</strong
-          ><small>{{ t.themeDarkDesc }}</small>
-        </button>
-      </div>
-
-      <div class="setting-row">
-        <div>
-          <strong>{{ t.darkToggle }}</strong>
-          <p>{{ t.darkToggleDesc }}</p>
-        </div>
-        <mat-slide-toggle
-          class="theme-toggle"
-          [checked]="theme.isDark()"
-          [disabled]="theme.followsSystem()"
-          [hideIcon]="true"
-          [attr.aria-label]="t.darkToggleAria"
-          (change)="theme.setDarkMode($event.checked)"
-        />
-      </div>
-      <div class="setting-row">
-        <div>
-          <strong>{{ t.systemToggle }}</strong>
-          <p>{{ t.systemToggleDesc }}</p>
-        </div>
-        <mat-slide-toggle
-          class="theme-toggle"
-          [checked]="theme.followsSystem()"
-          [hideIcon]="true"
-          [attr.aria-label]="t.systemToggleAria"
-          (change)="theme.followSystem($event.checked)"
-        />
-      </div>
-    </article>
-
-    <article class="settings-card language-card">
-      <header class="settings-card-header">
-        <h2>{{ t.languageTitle }}</h2>
-        <p>{{ t.languageSubtitle }}</p>
-      </header>
-
-      <div class="language-options" role="group" [attr.aria-label]="t.languageGroupLabel">
-        @for (opt of language.availableLanguages(); track opt.code) {
+        <div class="theme-options" role="group" [attr.aria-label]="t.themeGroupLabel">
           <button
-            class="language-button"
+            class="theme-preview light-preview"
             type="button"
-            [class.selected]="language.currentLanguage() === opt.code"
-            [attr.aria-pressed]="language.currentLanguage() === opt.code"
-            (click)="language.setLanguage(opt.code)"
+            [class.selected]="theme.preference() === 'light'"
+            [attr.aria-pressed]="theme.preference() === 'light'"
+            (click)="theme.setPreference('light')"
           >
-            <strong>{{ opt.nativeName }}</strong>
-            <small>{{ opt.label }}</small>
+            <span class="preview-window" aria-hidden="true"
+              ><span class="preview-sidebar"></span
+              ><span class="preview-content"><i></i><i></i><i></i></span></span
+            ><strong>{{ t.themeLight }}</strong
+            ><small>{{ t.themeLightDesc }}</small>
           </button>
+          <button
+            class="theme-preview dark-preview"
+            type="button"
+            [class.selected]="theme.preference() === 'dark'"
+            [attr.aria-pressed]="theme.preference() === 'dark'"
+            (click)="theme.setPreference('dark')"
+          >
+            <span class="preview-window" aria-hidden="true"
+              ><span class="preview-sidebar"></span
+              ><span class="preview-content"><i></i><i></i><i></i></span></span
+            ><strong>{{ t.themeDark }}</strong
+            ><small>{{ t.themeDarkDesc }}</small>
+          </button>
+        </div>
+
+        <div class="setting-row">
+          <div>
+            <strong>{{ t.darkToggle }}</strong>
+            <p>{{ t.darkToggleDesc }}</p>
+          </div>
+          <mat-slide-toggle
+            class="theme-toggle"
+            [checked]="theme.isDark()"
+            [disabled]="theme.followsSystem()"
+            [hideIcon]="true"
+            [attr.aria-label]="t.darkToggleAria"
+            (change)="theme.setDarkMode($event.checked)"
+          />
+        </div>
+        <div class="setting-row">
+          <div>
+            <strong>{{ t.systemToggle }}</strong>
+            <p>{{ t.systemToggleDesc }}</p>
+          </div>
+          <mat-slide-toggle
+            class="theme-toggle"
+            [checked]="theme.followsSystem()"
+            [hideIcon]="true"
+            [attr.aria-label]="t.systemToggleAria"
+            (change)="theme.followSystem($event.checked)"
+          />
+        </div>
+      </article>
+
+      <article class="settings-card language-card">
+        <header class="settings-card-header">
+          <h2>{{ t.languageTitle }}</h2>
+          <p>{{ t.languageSubtitle }}</p>
+        </header>
+
+        <div class="language-options" role="group" [attr.aria-label]="t.languageGroupLabel">
+          @for (opt of language.availableLanguages(); track opt.code) {
+            <button
+              class="language-button"
+              type="button"
+              [class.selected]="language.currentLanguage() === opt.code"
+              [attr.aria-pressed]="language.currentLanguage() === opt.code"
+              (click)="language.setLanguage(opt.code)"
+            >
+              <strong>{{ opt.nativeName }}</strong>
+              <small>{{ opt.label }}</small>
+            </button>
+          }
+        </div>
+      </article>
+    </div>
+  }
+
+  <!-- Conteúdo da Aba 2: Classificações de Material -->
+  @if (activeTab() === 'classifications') {
+    <div class="system-settings-stack">
+      <article class="classification-card">
+        <header class="settings-card-header">
+          <h2>Classificações de material</h2>
+          <p>
+            Regras auditáveis que substituem os ajustes manuais na planilha. O código original do
+            GERP não é alterado.
+          </p>
+        </header>
+
+        @if (classificationFeedback(); as message) {
+          <div
+            class="feedback-banner"
+            [class.success]="message.type === 'success'"
+            [class.error]="message.type === 'error'"
+          >
+            <ui-icon [name]="message.type === 'success' ? 'check' : 'x'" />
+            <span>{{ message.text }}</span>
+          </div>
         }
-      </div>
-    </article>
-  </div>
+
+        <form class="classification-form" (ngSubmit)="saveClassification()">
+          <h3 class="panel-title">
+            {{
+              editingClassificationId() ? 'Editar regra de classificação' : 'Cadastrar nova regra'
+            }}
+          </h3>
+          <div class="classification-grid">
+            <div class="form-group">
+              <label class="form-label" for="classification-kind">Tipo de regra</label>
+              <select
+                id="classification-kind"
+                class="form-input"
+                [ngModel]="classificationKind()"
+                (ngModelChange)="classificationKind.set($event)"
+                name="classificationKind"
+              >
+                <option value="PRODUCT_ALIAS">Apelido de produto</option>
+                <option value="ORGANIZATION">Organização → produto/divisão</option>
+                <option value="DEPARTMENT">Setor → departamento</option>
+                <option value="COUNTING">Conta → entra no IF Cost</option>
+                <option value="ITEM_TYPE">Descrição → tipo de item</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="classification-source">
+                {{
+                  classificationKind() === 'ITEM_TYPE'
+                    ? 'Descrição ou padrão'
+                    : 'Código/valor de origem'
+                }}
+              </label>
+              <input
+                id="classification-source"
+                class="form-input"
+                [ngModel]="classificationSource()"
+                (ngModelChange)="classificationSource.set($event)"
+                name="classificationSource"
+                required
+              />
+            </div>
+            @if (classificationKind() === 'COUNTING') {
+              <div class="form-group">
+                <label class="form-label" for="classification-context">Alias da conta</label>
+                <input
+                  id="classification-context"
+                  class="form-input"
+                  [ngModel]="classificationContext()"
+                  (ngModelChange)="classificationContext.set($event)"
+                  name="classificationContext"
+                  required
+                />
+              </div>
+            }
+            @if (classificationKind() !== 'COUNTING') {
+              <div class="form-group">
+                <label class="form-label" for="classification-target">
+                  {{
+                    classificationKind() === 'PRODUCT_ALIAS'
+                      ? 'Apelido visível'
+                      : 'Resultado principal'
+                  }}
+                </label>
+                <input
+                  id="classification-target"
+                  class="form-input"
+                  [ngModel]="classificationTarget()"
+                  (ngModelChange)="classificationTarget.set($event)"
+                  name="classificationTarget"
+                />
+              </div>
+            }
+            @if (classificationKind() === 'ORGANIZATION') {
+              <div class="form-group">
+                <label class="form-label" for="classification-secondary">Divisão</label>
+                <input
+                  id="classification-secondary"
+                  class="form-input"
+                  [ngModel]="classificationSecondary()"
+                  (ngModelChange)="classificationSecondary.set($event)"
+                  name="classificationSecondary"
+                />
+              </div>
+            }
+            @if (classificationKind() === 'COUNTING') {
+              <div class="form-group">
+                <label class="form-label" for="classification-boolean">Entrar no IF Cost?</label>
+                <select
+                  id="classification-boolean"
+                  class="form-input"
+                  [ngModel]="classificationBoolean()"
+                  (ngModelChange)="classificationBoolean.set($event)"
+                  name="classificationBoolean"
+                >
+                  <option value="true">Sim</option>
+                  <option value="false">Não</option>
+                </select>
+              </div>
+            }
+            @if (classificationKind() === 'ITEM_TYPE') {
+              <div class="form-group">
+                <label class="form-label" for="classification-mode">Correspondência</label>
+                <select
+                  id="classification-mode"
+                  class="form-input"
+                  [ngModel]="classificationMode()"
+                  (ngModelChange)="classificationMode.set($event)"
+                  name="classificationMode"
+                >
+                  <option value="EXACT">Texto exato</option>
+                  <option value="REGEX">Expressão regular</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="classification-priority">Prioridade</label>
+                <input
+                  id="classification-priority"
+                  type="number"
+                  min="0"
+                  class="form-input"
+                  [ngModel]="classificationPriority()"
+                  (ngModelChange)="classificationPriority.set(+$event)"
+                  name="classificationPriority"
+                />
+              </div>
+            }
+          </div>
+          <div class="form-actions">
+            @if (editingClassificationId()) {
+              <button type="button" class="btn btn-secondary" (click)="resetClassificationForm()">
+                Cancelar
+              </button>
+            }
+            <button
+              type="submit"
+              class="btn btn-primary"
+              [disabled]="savingClassification() || !classificationSource().trim()"
+            >
+              <ui-icon [name]="editingClassificationId() ? 'check' : 'plus'" />
+              <span>{{ editingClassificationId() ? 'Salvar regra' : 'Adicionar regra' }}</span>
+            </button>
+          </div>
+        </form>
+
+        <div class="classification-actions">
+          <span>{{ classificationRules().length }} regras cadastradas</span>
+          <button
+            type="button"
+            class="btn btn-secondary"
+            (click)="reapplyClassifications()"
+            [disabled]="savingClassification()"
+          >
+            <ui-icon name="chart-line" />
+            <span>Reaplicar ao histórico</span>
+          </button>
+        </div>
+        @if (loadingClassifications()) {
+          <p class="classification-empty">Carregando regras…</p>
+        } @else if (classificationRules().length === 0) {
+          <p class="classification-empty">Nenhuma regra cadastrada.</p>
+        } @else {
+          <div class="classification-list">
+            @for (rule of classificationRules(); track rule.id) {
+              <article class="classification-rule">
+                <div>
+                  <strong>{{ classificationKindLabel(rule.kind) }}</strong>
+                  <p>
+                    <code>{{ rule.source_value }}</code> →
+                    {{ rule.target_value || (rule.boolean_value ? 'Sim' : 'Não')
+                    }}{{ rule.target_secondary ? ' / ' + rule.target_secondary : '' }}
+                  </p>
+                </div>
+                <div class="actions-cell">
+                  <button
+                    type="button"
+                    class="btn btn-ghost btn-sm"
+                    (click)="editClassification(rule)"
+                  >
+                    Editar
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-ghost btn-sm btn-delete-danger"
+                    (click)="deleteClassification(rule)"
+                  >
+                    Excluir
+                  </button>
+                </div>
+              </article>
+            }
+          </div>
+        }
+      </article>
+    </div>
+  }
+
+  <!-- Conteúdo da Aba 3: Tipos de Scrap -->
+  @if (activeTab() === 'system') {
+    <div class="system-settings-stack">
+      @if (feedbackMessage(); as msg) {
+        <div
+          class="feedback-banner"
+          [class.success]="msg.type === 'success'"
+          [class.error]="msg.type === 'error'"
+        >
+          <ui-icon [name]="msg.type === 'success' ? 'check' : 'x'" />
+          <span>{{ msg.text }}</span>
+        </div>
+      }
+
+      <article class="defect-types-card">
+        <header class="settings-card-header">
+          <h2>{{ t.scrapDefectTypesTitle }}</h2>
+          <p>{{ t.scrapDefectTypesSubtitle }}</p>
+        </header>
+
+        <div class="card-intro-banner">
+          <ui-icon name="users" />
+          <span>
+            Categorias compartilhadas da organização: administradores e analistas trabalham em
+            equipe e visualizam as mesmas opções para classificar ocorrências nas revisões de
+            refugo.
+          </span>
+        </div>
+
+        <!-- Formulário de Adicionar Novo Tipo -->
+        <form class="defect-creation-panel" (ngSubmit)="createDefectType()">
+          <h3 class="panel-title">{{ t.scrapDefectTypeAddButton }}</h3>
+
+          <div class="defect-form-grid">
+            <div class="form-group">
+              <label class="form-label" for="new-defect-name">
+                {{ t.scrapDefectTypeNameLabel }} <span class="required-asterisk">*</span>
+              </label>
+              <input
+                id="new-defect-name"
+                type="text"
+                class="form-input"
+                [placeholder]="t.scrapDefectTypeNamePlaceholder"
+                [ngModel]="newName()"
+                (ngModelChange)="onNewNameInput($event)"
+                name="newName"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="new-defect-code">
+                {{ t.scrapDefectTypeCodeLabel }} <span class="required-asterisk">*</span>
+              </label>
+              <input
+                id="new-defect-code"
+                type="text"
+                class="form-input code-input"
+                [placeholder]="t.scrapDefectTypeCodePlaceholder"
+                [ngModel]="newCode()"
+                (ngModelChange)="onNewCodeInput($event)"
+                name="newCode"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="new-defect-desc">
+              {{ t.scrapDefectTypeDescLabel }}
+            </label>
+            <textarea
+              id="new-defect-desc"
+              class="form-textarea"
+              [placeholder]="t.scrapDefectTypeDescPlaceholder"
+              [ngModel]="newDesc()"
+              (ngModelChange)="newDesc.set($event)"
+              name="newDesc"
+              rows="2"
+            ></textarea>
+          </div>
+
+          <div class="form-actions">
+            <button
+              type="submit"
+              class="btn btn-primary"
+              [disabled]="!newName().trim() || !newCode().trim() || submitting()"
+            >
+              <ui-icon name="plus" />
+              <span>{{ t.scrapDefectTypeAddButton }}</span>
+            </button>
+          </div>
+        </form>
+
+        <!-- Lista de Tipos Cadastrados -->
+        <div class="defect-types-list-header">
+          <h3 class="list-title">{{ t.scrapDefectTypesTitle }}</h3>
+          <div class="list-summary-badges">
+            <span class="summary-pill">
+              {{ totalCount() }} {{ t.scrapDefectTypeCountSummary }}
+            </span>
+          </div>
+        </div>
+
+        @if (loadingDefectTypes()) {
+          <div class="empty-state-container">
+            <ui-icon name="clock" class="empty-state-icon" />
+            <p class="empty-state-desc">Carregando tipos de scrap...</p>
+          </div>
+        } @else if (defectTypes().length === 0) {
+          <div class="empty-state-container">
+            <div class="empty-state-icon">
+              <ui-icon name="folder" />
+            </div>
+            <strong class="empty-state-title">{{ t.scrapDefectTypeEmptyState }}</strong>
+          </div>
+        } @else {
+          <div class="types-table-card">
+            <table class="types-table">
+              <thead>
+                <tr>
+                  <th>Nome & Descrição</th>
+                  <th>Código</th>
+                  <th style="text-align: right">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of defectTypes(); track item.id) {
+                  @if (editingId() === item.id) {
+                    <!-- Linha em modo de edição -->
+                    <tr class="edit-inline-row">
+                      <td>
+                        <div class="edit-inputs-container">
+                          <input
+                            type="text"
+                            class="form-input"
+                            [ngModel]="editName()"
+                            (ngModelChange)="editName.set($event)"
+                            placeholder="Nome da categoria"
+                          />
+                          <input
+                            type="text"
+                            class="form-input"
+                            [ngModel]="editDesc()"
+                            (ngModelChange)="editDesc.set($event)"
+                            placeholder="Descrição (opcional)"
+                          />
+                        </div>
+                      </td>
+                      <td>
+                        <span class="type-code-badge">{{ item.code }}</span>
+                      </td>
+                      <td>
+                        <div class="actions-cell">
+                          <button
+                            type="button"
+                            class="btn btn-primary btn-sm"
+                            (click)="saveEdit(item)"
+                            [disabled]="!editName().trim() || submitting()"
+                          >
+                            <ui-icon name="check" />
+                            <span>{{ t.scrapDefectTypeSaveAction }}</span>
+                          </button>
+                          <button
+                            type="button"
+                            class="btn btn-secondary btn-sm"
+                            (click)="cancelEdit()"
+                          >
+                            <span>{{ t.scrapDefectTypeCancelAction }}</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  } @else {
+                    <tr>
+                      <td>
+                        <div class="type-name-cell">
+                          <span class="type-name-text">{{ item.name }}</span>
+                          @if (item.description) {
+                            <p class="type-desc-text">{{ item.description }}</p>
+                          }
+                        </div>
+                      </td>
+                      <td>
+                        <span class="type-code-badge">{{ item.code }}</span>
+                      </td>
+                      <td>
+                        <div class="actions-cell">
+                          <button
+                            type="button"
+                            class="btn btn-ghost btn-sm"
+                            (click)="startEdit(item)"
+                            title="Editar nome e descrição"
+                          >
+                            <ui-icon name="cog" />
+                            <span>{{ t.scrapDefectTypeEditAction }}</span>
+                          </button>
+                          <button
+                            type="button"
+                            class="btn btn-ghost btn-sm btn-delete-danger"
+                            (click)="promptDelete(item)"
+                            [title]="t.scrapDefectTypeDeleteAction"
+                          >
+                            <ui-icon name="trash" />
+                            <span>{{ t.scrapDefectTypeDeleteAction }}</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+
+        <!-- Modal de Confirmação de Exclusão -->
+        @if (confirmingDeleteItem(); as itemToDelete) {
+          <div
+            class="modal-backdrop"
+            (click)="cancelDelete()"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-type-title"
+          >
+            <div class="confirm-card" (click)="$event.stopPropagation()">
+              <h4 id="delete-type-title" class="confirm-title">
+                {{ t.scrapDefectTypeDeleteConfirmTitle }}
+              </h4>
+              <p class="confirm-message">
+                {{ t.scrapDefectTypeDeleteConfirmMessage }}
+                <strong>{{ itemToDelete.name }}</strong> (<code>{{ itemToDelete.code }}</code
+                >)?
+              </p>
+              <div class="confirm-actions">
+                <button type="button" class="btn btn-secondary" (click)="cancelDelete()">
+                  {{ t.scrapDefectTypeCancelAction }}
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-danger"
+                  (click)="confirmDelete(itemToDelete)"
+                  [disabled]="submitting()"
+                >
+                  <ui-icon name="trash" />
+                  <span>{{ t.scrapDefectTypeDeleteAction }}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+      </article>
+    </div>
+  }
+
+  <!-- Conteúdo da Aba 3: Metas de IF Cost (Targets) -->
+  @if (activeTab() === 'targets') {
+    <div class="settings-grid targets-layout">
+      <!-- Read-only warning for unauthenticated users -->
+      @if (!canEditTargets()) {
+        <div class="targets-auth-banner" role="alert">
+          <ui-icon name="bell" />
+          <div class="auth-banner-content">
+            <strong>{{ t.targetLoginRequiredNotice }}</strong>
+          </div>
+          <button type="button" class="btn btn-primary btn-sm" (click)="openLoginDialog()">
+            <ui-icon name="log-in" />
+            <span>{{ t.targetLoginAction }}</span>
+          </button>
+        </div>
+      }
+
+      <!-- Target Feedback Message -->
+      @if (targetFeedback(); as fb) {
+        <div
+          class="settings-feedback-toast"
+          [class.success]="fb.type === 'success'"
+          [class.error]="fb.type === 'error'"
+        >
+          <ui-icon [name]="fb.type === 'success' ? 'check' : 'x'" />
+          <span>{{ fb.text }}</span>
+        </div>
+      }
+
+      <!-- Year Selector & Executive Summary -->
+      <article class="settings-card targets-overview-card">
+        <header class="settings-card-header targets-overview-header">
+          <div>
+            <h2>{{ t.targetYearPlanTitle }}</h2>
+            <p>{{ t.targetYearPlanSubtitle }}</p>
+          </div>
+          <div class="year-selector-group">
+            <label for="target-year-select">{{ t.targetSelectYear }}:</label>
+            <select
+              id="target-year-select"
+              class="target-year-select"
+              [value]="selectedTargetYear()"
+              (change)="selectTargetYear(+$any($event.target).value)"
+            >
+              @for (year of availableTargetYears(); track year) {
+                <option [value]="year">{{ year }}</option>
+              }
+            </select>
+          </div>
+        </header>
+
+        <!-- KPI Cards of the Plan -->
+        <div class="targets-kpis-grid">
+          <div class="target-kpi-box primary">
+            <span class="kpi-label">{{ t.targetAnnualTotal }}</span>
+            <strong class="kpi-value">{{
+              currentYearTotal() | currency: 'USD' : 'symbol' : '1.0-0'
+            }}</strong>
+            <small class="kpi-hint">Ano {{ selectedTargetYear() }}</small>
+          </div>
+          <div class="target-kpi-box">
+            <span class="kpi-label">{{ t.targetMonthlyAverage }}</span>
+            <strong class="kpi-value">{{
+              currentYearAverage() | currency: 'USD' : 'symbol' : '1.0-0'
+            }}</strong>
+            <small class="kpi-hint">/ mês</small>
+          </div>
+          <div class="target-kpi-box">
+            <span class="kpi-label">{{ t.targetComparisonPreviousYear }}</span>
+            @if (previousYearTotal() !== null && previousYearVariationPercent() !== null) {
+              <div class="kpi-comparison">
+                <strong
+                  [class.favorable]="previousYearVariationPercent()! <= 0"
+                  [class.unfavorable]="previousYearVariationPercent()! > 0"
+                >
+                  {{ previousYearVariationPercent()! > 0 ? '+' : ''
+                  }}{{ previousYearVariationPercent() | number: '1.1-1' }}%
+                </strong>
+                <span>
+                  {{
+                    previousYearVariationPercent()! <= 0
+                      ? t.targetReductionVsPrevious
+                      : t.targetIncreaseVsPrevious
+                  }}
+                  {{ selectedTargetYear() - 1 }} ({{
+                    previousYearTotal() | currency: 'USD' : 'symbol' : '1.0-0'
+                  }})
+                </span>
+              </div>
+            } @else {
+              <span class="kpi-muted">{{ t.targetNoPreviousYear }}</span>
+            }
+          </div>
+        </div>
+      </article>
+
+      <!-- Pre-fill Assistant Card (enabled only if logged in) -->
+      @if (canEditTargets()) {
+        <article class="settings-card prefill-card">
+          <header class="settings-card-header">
+            <div class="prefill-title-badge">
+              <ui-icon name="cog" />
+              <h3>{{ t.prefillAssistantTitle }}</h3>
+            </div>
+            <p>{{ t.prefillAssistantDesc }}</p>
+          </header>
+
+          <div class="prefill-body">
+            <div class="prefill-modes" role="radiogroup">
+              <button
+                type="button"
+                class="btn-toggle"
+                [class.active]="prefillMode() === 'curve'"
+                (click)="prefillMode.set('curve')"
+              >
+                <ui-icon name="chart-line" />
+                <span>{{ t.prefillModeCurve }}</span>
+              </button>
+              <button
+                type="button"
+                class="btn-toggle"
+                [class.active]="prefillMode() === 'linear'"
+                (click)="prefillMode.set('linear')"
+              >
+                <ui-icon name="chart-columns" />
+                <span>{{ t.prefillModeLinear }}</span>
+              </button>
+            </div>
+
+            <div class="prefill-inputs">
+              @if (prefillMode() === 'curve') {
+                <div class="field-group">
+                  <label for="prefill-jan">{{ t.prefillJanValueLabel }}</label>
+                  <div class="input-currency-wrapper">
+                    <span>US$</span>
+                    <input
+                      id="prefill-jan"
+                      type="number"
+                      min="0"
+                      step="500"
+                      [value]="prefillJanValue()"
+                      (input)="prefillJanValue.set(+$any($event.target).value)"
+                    />
+                  </div>
+                </div>
+                <span class="curve-range-label">{{ t.prefillRangeConnector }}</span>
+                <div class="field-group">
+                  <label for="prefill-dec">{{ t.prefillDecValueLabel }}</label>
+                  <div class="input-currency-wrapper">
+                    <span>US$</span>
+                    <input
+                      id="prefill-dec"
+                      type="number"
+                      min="0"
+                      step="500"
+                      [value]="prefillDecValue()"
+                      (input)="prefillDecValue.set(+$any($event.target).value)"
+                    />
+                  </div>
+                </div>
+              } @else {
+                <div class="field-group full">
+                  <label for="prefill-annual">{{ t.prefillAnnualTotalLabel }}</label>
+                  <div class="input-currency-wrapper">
+                    <span>US$</span>
+                    <input
+                      id="prefill-annual"
+                      type="number"
+                      min="0"
+                      step="1000"
+                      [value]="prefillAnnualTotal()"
+                      (input)="prefillAnnualTotal.set(+$any($event.target).value)"
+                    />
+                  </div>
+                </div>
+              }
+
+              <button
+                type="button"
+                class="btn btn-secondary prefill-apply-btn"
+                (click)="applyPrefill()"
+              >
+                <ui-icon name="check" />
+                <span>{{ t.prefillApplyBtn }}</span>
+              </button>
+            </div>
+          </div>
+        </article>
+      }
+
+      <!-- Interactive 12-Month Table and Sparkline -->
+      <article class="settings-card targets-table-card">
+        <header class="settings-card-header targets-table-header">
+          <div>
+            <h3>{{ t.targetCurveTrajectory }}</h3>
+            <p>Ano {{ selectedTargetYear() }} · {{ t.targetMonthCol }} a {{ t.targetMonthCol }}</p>
+          </div>
+        </header>
+
+        <div class="table-responsive">
+          <table class="targets-table">
+            <thead>
+              <tr>
+                <th>{{ t.targetMonthCol }}</th>
+                <th>{{ t.targetValueCol }}</th>
+                <th>{{ t.targetShareCol }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of monthlyTargets(); track item.month) {
+                <tr>
+                  <td class="month-cell">
+                    <span class="month-badge">{{
+                      item.month < 10 ? '0' + item.month : item.month
+                    }}</span>
+                    <span class="month-name">{{ item.name }}</span>
+                  </td>
+                  <td class="value-cell">
+                    <div class="input-currency-wrapper target-input-wrapper">
+                      <span>US$</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="100"
+                        [disabled]="!canEditTargets()"
+                        [value]="item.amount"
+                        (input)="updateMonthAmount(item.month, $any($event.target).value)"
+                      />
+                    </div>
+                  </td>
+                  <td class="share-cell">
+                    @let total = currentYearTotal();
+                    @let share = total > 0 ? (item.amount / total) * 100 : 0;
+                    <div class="share-bar-container">
+                      <div class="share-bar" [style.width.%]="share"></div>
+                      <span class="share-pct">{{ share | number: '1.1-1' }}%</span>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Footer Actions (only enabled if logged in) -->
+        <footer class="targets-footer-actions">
+          <div class="footer-status">
+            @if (submittingTargets()) {
+              <span class="saving-indicator">{{ t.targetSavingPlan }}</span>
+            }
+          </div>
+          <div class="footer-buttons">
+            <button
+              type="button"
+              class="btn btn-outline-danger"
+              [disabled]="!canEditTargets() || submittingTargets() || currentYearTotal() === 0"
+              (click)="clearTargetsPlan()"
+            >
+              <ui-icon name="trash" />
+              <span>{{ t.targetClearPlanBtn }}</span>
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              [disabled]="!canEditTargets() || submittingTargets()"
+              (click)="saveTargetsPlan()"
+            >
+              <ui-icon name="check" />
+              <span>{{ t.targetSavePlanBtn }}</span>
+            </button>
+          </div>
+        </footer>
+      </article>
+    </div>
+  }
 </section>

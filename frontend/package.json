@@ -10,6 +10,7 @@
     "test": "ng test",
     "test:coverage": "ng test --watch=false --coverage --coverage-reporters=lcov --coverage-reporters=text-summary",
     "test:sonar": "npm run test:coverage && node scripts/prepare-sonar-lcov.mjs",
+    "audit:prod": "npm audit --omit=dev --audit-level=high",
     "format": "prettier --write \"src/**/*.{ts,html,css}\"",
     "format:check": "prettier --check \"src/**/*.{ts,html,css}\"",
     "serve:ssr:frontend": "node dist/frontend/server/server.mjs"

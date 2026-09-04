@@ -1,0 +1,168 @@
+:host {
+  display: block;
+}
+:host(.select-inline) {
+  display: inline-block;
+  min-width: 12rem;
+}
+:host(.select-inline.select-inline-compact) {
+  min-width: 0 !important;
+}
+.select-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  color: var(--app-text-secondary);
+  font-size: 0.775rem;
+  font-weight: 600;
+}
+.select-anchor {
+  position: relative;
+  min-width: 0;
+}
+:host(.select-inline) .select-field {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.55rem;
+  white-space: nowrap;
+}
+:host(.select-inline) .select-field > span {
+  color: var(--app-text-muted-detail);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+:host(.select-inline) .select-anchor {
+  width: auto;
+  min-width: 5.9rem;
+}
+:host(.select-inline) .select-trigger {
+  min-height: 2.25rem;
+  height: 2.25rem;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.825rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  gap: 0.5rem;
+  box-sizing: border-box;
+}
+.select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 2.6rem;
+  gap: 0.75rem;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--app-card-border);
+  border-radius: 0.55rem;
+  background: var(--app-surface);
+  color: var(--app-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-align: left;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    background-color 150ms ease;
+}
+.select-trigger:hover {
+  border-color: var(--brand-primary-border);
+}
+.select-trigger.open,
+.select-trigger:focus-visible {
+  outline: none;
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 2px var(--app-focus-ring);
+}
+.select-trigger > span {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+.select-trigger ui-icon {
+  width: 0.95rem;
+  height: 0.95rem;
+  flex: 0 0 0.95rem;
+  color: var(--app-text-muted-detail);
+  transition:
+    transform 150ms ease,
+    color 150ms ease;
+}
+.select-trigger ui-icon.rotated {
+  transform: rotate(180deg);
+  color: var(--brand-primary);
+}
+.select-menu {
+  position: absolute;
+  z-index: 90;
+  top: calc(100% + 0.45rem);
+  right: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.4rem;
+  border: 1px solid var(--app-card-border);
+  border-radius: 0.6rem;
+  background: var(--app-surface);
+  box-shadow:
+    0 10px 25px -4px rgb(0 0 0 / 35%),
+    0 4px 10px -2px rgb(0 0 0 / 25%);
+  animation: menu-in 120ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+:host(.select-menu-content-width) .select-menu {
+  left: auto;
+  width: max-content;
+  min-width: max(14rem, 100%);
+  max-width: min(24rem, calc(100vw - 2rem));
+}
+:host(.select-menu-content-width) .select-option {
+  width: auto;
+  min-width: max-content;
+}
+:host(.menu-up) .select-menu {
+  top: auto;
+  bottom: calc(100% + 0.45rem);
+}
+.select-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 2.4rem;
+  padding: 0.55rem 0.7rem;
+  border: 0;
+  border-radius: 0.4rem;
+  background: transparent;
+  color: var(--app-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
+}
+.select-option:hover,
+.select-option.selected {
+  background: var(--brand-primary-soft);
+  color: var(--brand-primary);
+}
+.selected-indicator {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--brand-primary);
+}
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

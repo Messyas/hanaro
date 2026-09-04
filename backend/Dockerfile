@@ -51,7 +51,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 RUN groupadd --system app \
     && useradd --system --gid app --create-home app \
-    && mkdir -p /app/backend/data/profile-images \
+    && mkdir -p /app/backend/data/profile-images /app/backend/data/scrap-review-images \
     && chown -R app:app /app/backend/data
 
 COPY --chown=app:app backend/src ./src
@@ -88,7 +88,9 @@ CMD ["alembic", "upgrade", "head"]
 FROM base AS prod
 
 COPY --chown=app:app backend/migrations ./migrations
+COPY --chown=app:app backend/scripts ./scripts
 COPY --chown=app:app backend/alembic.ini ./alembic.ini
+COPY --chown=app:app automation/fixtures/material_scrap_payload_example.json ./seed/material_scrap_payload_example.json
 
 USER app
-CMD ["sh", "-c", "exec fastapi run src/interfaces/main.py --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["python", "-m", "src.infrastructure.start_production"]

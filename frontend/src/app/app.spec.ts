@@ -46,7 +46,18 @@ describe('App', () => {
     const childPaths = shellRoute?.children?.map((route) => route.path);
 
     expect(routes.some((route) => route.path === 'login')).toBe(false);
-    expect(childPaths).toEqual(['dashboard', 'relatorios', 'configuracoes', 'perfil', '', '**']);
+    expect(childPaths).toEqual([
+      'dashboard',
+      'execucoes',
+      'base-de-scrap',
+      'base-de-scrap/revisao/:occurrenceId',
+      'relatorios',
+      'relatorios/:occurrenceId',
+      'configuracoes',
+      'perfil',
+      '',
+      '**',
+    ]);
   });
 
   it('should update sidebar and breadcrumb labels when the runtime language changes', () => {
@@ -56,18 +67,24 @@ describe('App', () => {
     language.setLanguage('en');
     expect(shell.navigation().map((item) => item.label)).toEqual([
       'Dashboard',
+      'Executions',
+      'Scrap Base',
       'Reports',
       'Settings',
       'Profile',
     ]);
 
     language.setLanguage('ko');
-    expect(shell.navigation().map((item) => item.label)).toEqual([
-      '대시보드',
-      '보고서',
-      '설정',
-      '프로필',
-    ]);
+    expect(shell.navigation().map((item) => item.label)).toEqual(
+      expect.arrayContaining([
+        language.translations().navScrapBase,
+        '대시보드',
+        '실행 내역',
+        '보고서',
+        '설정',
+        '프로필',
+      ]),
+    );
   });
 
   it('should apply and persist the dark theme without keeping the transition blocker', async () => {

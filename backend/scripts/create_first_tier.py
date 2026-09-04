@@ -44,6 +44,7 @@ async def create_first_tier() -> None:
 
     except Exception as e:
         logger.error(f"Error creating tier: {e}")
+        raise
 
 
 async def main() -> None:

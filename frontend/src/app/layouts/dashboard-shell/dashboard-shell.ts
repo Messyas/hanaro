@@ -20,6 +20,7 @@ import { BRAND_CONFIG } from '../../theme/brand.config';
 import { AuthService } from '../../core/auth/auth.service';
 import { LoginDialog } from './login-dialog';
 import { LogoutConfirmDialog } from './logout-confirm-dialog';
+import { DashboardStatusService } from '../../pages/dashboard/dashboard-status.service';
 
 interface NavigationItem {
   icon: IconName;
@@ -55,6 +56,7 @@ export class DashboardShell {
   readonly auth = inject(AuthService);
   readonly theme = inject(ThemeService);
   readonly language = inject(LanguageService);
+  readonly dashboardStatus = inject(DashboardStatusService);
   readonly brand = BRAND_CONFIG;
   readonly sidebarOpen = signal(true);
   readonly isMobile = signal(false);
@@ -93,6 +95,18 @@ export class DashboardShell {
         path: '/dashboard',
         icon: 'chart-columns',
         label: t.navDashboard,
+      },
+      {
+        path: '/execucoes',
+        icon: 'clock',
+        label: t.navExecutions,
+        requiresAuthentication: true,
+      },
+      {
+        path: '/base-de-scrap',
+        icon: 'folder',
+        label: t.navScrapBase,
+        requiresAuthentication: true,
       },
       {
         path: '/relatorios',

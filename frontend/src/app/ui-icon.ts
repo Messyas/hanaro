@@ -2,6 +2,8 @@ import { Component, input } from '@angular/core';
 
 export type IconName =
   | 'arrow-left'
+  | 'arrow-down'
+  | 'arrow-up'
   | 'bell'
   | 'building'
   | 'calendar'
@@ -9,22 +11,33 @@ export type IconName =
   | 'chart-columns'
   | 'chart-line'
   | 'chevron-down'
+  | 'chevron-left'
+  | 'chevron-right'
+  | 'check'
   | 'clock'
   | 'cog'
+  | 'copy'
   | 'credit-card'
   | 'ellipsis-v'
+  | 'filter'
   | 'folder'
+  | 'filter'
   | 'globe'
+  | 'heart'
+  | 'heart-filled'
   | 'home'
+  | 'image'
   | 'eye'
   | 'eye-off'
   | 'life-buoy'
   | 'log-in'
   | 'mail'
   | 'plus'
+  | 'pencil'
   | 'sidebar'
   | 'shopping-bag'
   | 'store'
+  | 'trash'
   | 'user-plus'
   | 'users'
   | 'x';
@@ -44,6 +57,21 @@ export type IconName =
       @switch (name()) {
         @case ('arrow-left') {
           <path d="M19 12H5M12 19l-7-7 7-7" />
+        }
+        @case ('arrow-up') {
+          <path d="M12 19V5M5 12l7-7 7 7" />
+        }
+        @case ('arrow-down') {
+          <path d="M12 5v14m7-7-7 7-7-7" />
+        }
+        @case ('chevron-left') {
+          <path d="m15 18-6-6 6-6" />
+        }
+        @case ('chevron-right') {
+          <path d="m9 18 6-6-6-6" />
+        }
+        @case ('filter') {
+          <path d="M4 6h16M7 12h10M10 18h4" />
         }
         @case ('home') {
           <path d="m3.5 10.5 8.5-7 8.5 7" />
@@ -103,8 +131,12 @@ export type IconName =
         }
         @case ('folder') {
           <path
+            pathLength="1"
             d="M3 7.5A2.5 2.5 0 0 1 5.5 5H10l2 2h6.5A2.5 2.5 0 0 1 21 9.5v7a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 16.5Z"
           />
+        }
+        @case ('filter') {
+          <path d="M4 5h16M7 12h10M10 19h4" />
         }
         @case ('globe') {
           <circle cx="12" cy="12" r="9" />
@@ -118,6 +150,19 @@ export type IconName =
         @case ('mail') {
           <rect x="3" y="5" width="18" height="14" rx="2.5" />
           <path d="m4 7 8 6 8-6" />
+        }
+        @case ('heart') {
+          <path
+            pathLength="1"
+            d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"
+          />
+        }
+        @case ('heart-filled') {
+          <path
+            fill="currentColor"
+            stroke="currentColor"
+            d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"
+          />
         }
         @case ('log-in') {
           <path d="M14 4h5a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-5M3 12h12M10 7l5 5-5 5" />
@@ -144,8 +189,8 @@ export type IconName =
           <path pathLength="1" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
         }
         @case ('clock') {
-          <circle cx="12" cy="12" r="9" />
-          <path d="M12 7v5l3.5 2" />
+          <path pathLength="1" d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" />
+          <path pathLength="1" d="M12 7v5l3.5 2" />
         }
         @case ('sidebar') {
           <rect x="3" y="4" width="18" height="16" rx="2" />
@@ -154,6 +199,10 @@ export type IconName =
         @case ('plus') {
           <path d="M12 5v14M5 12h14" />
         }
+        @case ('pencil') {
+          <path pathLength="1" d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+          <path pathLength="1" d="m15 5 4 4" />
+        }
         @case ('chevron-down') {
           <path d="m7 9.5 5 5 5-5" />
         }
@@ -161,6 +210,23 @@ export type IconName =
           <circle cx="12" cy="5" r="1" fill="currentColor" stroke="none" />
           <circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" />
           <circle cx="12" cy="19" r="1" fill="currentColor" stroke="none" />
+        }
+        @case ('check') {
+          <path d="M20 6 9 17l-5-5" />
+        }
+        @case ('copy') {
+          <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+          <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+        }
+        @case ('image') {
+          <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+          <circle cx="9" cy="9" r="2" />
+          <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+        }
+        @case ('trash') {
+          <path
+            d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2M10 11v6M14 11v6"
+          />
         }
         @case ('x') {
           <path d="m6 6 12 12M18 6 6 18" />
