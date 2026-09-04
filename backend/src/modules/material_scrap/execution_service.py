@@ -185,9 +185,7 @@ async def ensure_execution_from_payload(
         )
         execution = await start_execution(command, db)
     if execution.status not in TERMINAL_EXECUTION_STATES:
-        execution.status = (
-            AutomationExecutionStatus.RUNNING.value if mark_running else AutomationExecutionStatus.QUEUED.value
-        )
+        execution.status = AutomationExecutionStatus.RUNNING.value if mark_running else AutomationExecutionStatus.QUEUED.value
         execution.organizations_found = payload.execution.organizations_found
         execution.source_file_name = payload.source_file.name
         execution.source_file_sha256 = payload.source_file.sha256
@@ -476,8 +474,7 @@ async def recover_stale_executions(db: AsyncSession, *, stale_after: timedelta) 
                     ),
                     or_(
                         ScrapAutomationExecution.last_heartbeat_at < cutoff,
-                        (ScrapAutomationExecution.last_heartbeat_at.is_(None))
-                        & (ScrapAutomationExecution.updated_at < cutoff),
+                        (ScrapAutomationExecution.last_heartbeat_at.is_(None)) & (ScrapAutomationExecution.updated_at < cutoff),
                     ),
                 )
                 .with_for_update()

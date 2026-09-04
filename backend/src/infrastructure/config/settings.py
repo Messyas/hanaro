@@ -398,9 +398,7 @@ class TaskiqSettings(BaseSettings):
 
     TASKIQ_WORKER_CONCURRENCY: int = config("TASKIQ_WORKER_CONCURRENCY", default=2, cast=int)
     TASKIQ_MAX_TASKS_PER_WORKER: int = config("TASKIQ_MAX_TASKS_PER_WORKER", default=1000, cast=int)
-    TASKIQ_EXECUTION_STALE_AFTER_MINUTES: int = config(
-        "TASKIQ_EXECUTION_STALE_AFTER_MINUTES", default=30, cast=int
-    )
+    TASKIQ_EXECUTION_STALE_AFTER_MINUTES: int = config("TASKIQ_EXECUTION_STALE_AFTER_MINUTES", default=30, cast=int)
 
     @property
     def TASKIQ_BROKER_URL(self) -> str:
