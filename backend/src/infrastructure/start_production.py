@@ -19,6 +19,12 @@ MIGRATION_ORDER = {
     "20260826_02": 2,
     "20260827_03": 3,
     "20260827_04": 4,
+    "20260830_05": 5,
+    "20260830_06": 6,
+    "20260831_07": 7,
+    "20260901_08": 8,
+    "20260902_09": 9,
+    "20260903_10": 10,
 }
 
 
@@ -39,6 +45,29 @@ def _legacy_schema_revision(tables: set[str], columns: dict[str, set[str]]) -> s
     }
     if not revision_02_tables <= tables:
         return None
+    if "scrap_classification_rules" in tables:
+        return "20260903_10"
+    if "scrap_review_templates" in tables:
+        return "20260902_09"
+    if {
+        "scrap_defect_types",
+        "scrap_reviews",
+        "scrap_review_attachments",
+        "scrap_review_bulk_operations",
+    } <= tables:
+        return "20260901_08"
+    if {
+        "scrap_occurrences",
+        "scrap_occurrence_observations",
+        "scrap_reconciliation_partitions",
+    } <= tables:
+        return "20260831_07"
+    if {
+        "scrap_automation_executions",
+        "scrap_execution_steps",
+        "scrap_execution_notifications",
+    } <= tables:
+        return "20260830_05"
     if {
         "scrap_dashboard_aggregates",
         "scrap_dashboard_state",
