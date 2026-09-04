@@ -174,6 +174,8 @@ class RateLimiterSettings(BaseSettings):
 
     RATE_LIMITER_ENABLED: bool = config("RATE_LIMITER_ENABLED", default=True, cast=bool)
     RATE_LIMITER_BACKEND: str = config("RATE_LIMITER_BACKEND", default=CacheBackend.MEMCACHED.value)
+    # Keep local development usable without a running limiter; production must
+    # set RATE_LIMITER_FAIL_OPEN=false explicitly (see deployment checklist).
     RATE_LIMITER_FAIL_OPEN: bool = config("RATE_LIMITER_FAIL_OPEN", default=True, cast=bool)
 
     DEFAULT_RATE_LIMIT_LIMIT: int = config("DEFAULT_RATE_LIMIT_LIMIT", default=100, cast=int)
@@ -252,6 +254,7 @@ class AuthSettings(BaseSettings):
     SECRET_KEY: str = config("SECRET_KEY", default="insecure-secret-key-change-this")
 
     SESSION_TIMEOUT_MINUTES: int = config("SESSION_TIMEOUT_MINUTES", default=30, cast=int)
+    LOGIN_MAX_ATTEMPTS: int = config("LOGIN_MAX_ATTEMPTS", default=3, cast=int)
     SESSION_CLEANUP_INTERVAL_MINUTES: int = config("SESSION_CLEANUP_INTERVAL_MINUTES", default=15, cast=int)
     MAX_SESSIONS_PER_USER: int = config("MAX_SESSIONS_PER_USER", default=5, cast=int)
     SESSION_SECURE_COOKIES: bool = config("SESSION_SECURE_COOKIES", default=True, cast=bool)

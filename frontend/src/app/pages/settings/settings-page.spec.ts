@@ -115,6 +115,27 @@ describe('SettingsPage', () => {
     expect(text).toContain('Tema da interface');
   });
 
+  it('keeps anonymous users on Preferences and does not load protected settings', () => {
+    authServiceMock.isAuthenticated.mockReturnValue(false);
+    scrapReviewServiceMock.getDefectTypes.mockClear();
+    scrapTargetServiceMock.getTargets.mockClear();
+    scrapClassificationServiceMock.list.mockClear();
+    fixture = TestBed.createComponent(SettingsPage);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    expect(component.activeTab()).toBe('preferences');
+    expect(scrapReviewServiceMock.getDefectTypes).not.toHaveBeenCalled();
+    expect(scrapTargetServiceMock.getTargets).not.toHaveBeenCalled();
+    expect(scrapClassificationServiceMock.list).not.toHaveBeenCalled();
+
+    component.selectTab('classifications');
+    component.selectTab('system');
+    component.selectTab('targets');
+    expect(component.activeTab()).toBe('preferences');
+    expect(fixture.nativeElement.querySelector('.settings-tab-btn:nth-child(2)')).toBeNull();
+  });
+
   it('switches to classifications tab and renders material classifications', () => {
     component.selectTab('classifications');
     fixture.detectChanges();
@@ -122,6 +143,22 @@ describe('SettingsPage', () => {
     expect(component.activeTab()).toBe('classifications');
     const text = fixture.nativeElement.textContent;
     expect(text).toContain('Classificações de material');
+  });
+
+  it('renders user-controlled text as text, not executable HTML', () => {
+    component.defectTypes.set([
+      {
+        ...mockTypes[0],
+        name: '<script>alert(1)</script>',
+        description: '"><img src=x onerror=alert(1)>',
+      },
+    ]);
+    component.selectTab('system');
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('script')).toBeNull();
+    expect(fixture.nativeElement.querySelector('img[onerror]')).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('<script>alert(1)</script>');
   });
 
   it('switches to system tab and renders scrap defect types table', () => {
