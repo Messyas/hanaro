@@ -163,8 +163,12 @@ pnpm-debug.log*
 logs/
 tmp/
 temp/
-automation/artifacts/
-automation/artifacts/**
+# Canonical payloads are runtime output and may include imported source data.
+# The deterministic synthetic history below is intentionally versioned as a
+# production/demo fixture.
+automation/artifacts/*.json
+!automation/artifacts/synthetic/
+!automation/artifacts/synthetic/**
 
 .idea
 

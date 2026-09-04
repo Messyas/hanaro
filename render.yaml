@@ -23,6 +23,12 @@ services:
         value: "true"
       - key: SEED_DEMO_DATA
         value: "true"
+      - key: DEMO_DATA_PATH
+        value: seed/synthetic
+      - key: DEMO_DATA_REFERENCE_DATE
+        value: "2026-09-03"
+      - key: DEMO_DATA_EXCHANGE_RATE
+        value: "5.15"
       - key: ADMIN_NAME
         sync: false
       - key: ADMIN_EMAIL

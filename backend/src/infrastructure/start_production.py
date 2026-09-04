@@ -5,6 +5,8 @@ from __future__ import annotations
 import asyncio
 import os
 import subprocess
+from datetime import date
+from decimal import Decimal
 from pathlib import Path
 
 import sqlalchemy as sa
@@ -136,13 +138,51 @@ async def _prepare_initial_data() -> None:
         print("Initial administrator bootstrap is disabled")
 
     if _enabled("SEED_DEMO_DATA", True):
-        print("Loading idempotent demo Material Scrap data")
-        seed_path = Path(os.getenv("DEMO_DATA_PATH", "seed/material_scrap_payload_example.json"))
-        payload = MaterialScrapPayload.model_validate_json(seed_path.read_text(encoding="utf-8"))
+        seed_path = Path(os.getenv("DEMO_DATA_PATH", "seed/synthetic"))
+        payloads = _load_demo_payloads(seed_path)
+        print(f"Loading {len(payloads)} idempotent demo Material Scrap batch(es) from {seed_path}")
         async with local_session() as session:
-            await ingest_material_scrap(payload, session)
+            for payload in payloads:
+                result = await ingest_material_scrap(payload, session)
+                replay = " (already loaded)" if result.is_replay else ""
+                print(
+                    f"Loaded {result.accepted_count} Material Scrap records "
+                    f"for {payload.execution.query_date_from}..{payload.execution.query_date_to}{replay}"
+                )
     else:
         print("Demo Material Scrap seed is disabled")
+
+
+def _load_demo_payloads(seed_path: Path) -> list[MaterialScrapPayload]:
+    """Load one canonical JSON seed or build batches from synthetic GERP files."""
+    if seed_path.is_file():
+        return [MaterialScrapPayload.model_validate_json(seed_path.read_text(encoding="utf-8"))]
+    if not seed_path.is_dir():
+        raise FileNotFoundError(f"Demo data path does not exist: {seed_path}")
+
+    source_files = sorted(path for path in seed_path.iterdir() if path.is_file())
+    if not source_files:
+        raise RuntimeError(f"Demo data directory is empty: {seed_path}")
+
+    # Import the automation pipeline only for raw multi-file seeds. This keeps
+    # the canonical JSON path usable by maintenance commands and small tests.
+    from automation.material_scrap.builder import build_canonical_batch  # noqa: PLC0415
+    from automation.material_scrap.exchange import ManualExchangeRateProvider  # noqa: PLC0415
+    from automation.material_scrap.source import RunContext  # noqa: PLC0415
+
+    reference_date = date.fromisoformat(os.getenv("DEMO_DATA_REFERENCE_DATE", "2026-09-03"))
+    exchange_rate = Decimal(os.getenv("DEMO_DATA_EXCHANGE_RATE", "5.15"))
+    rate_source = os.getenv("DEMO_DATA_EXCHANGE_RATE_SOURCE", "synthetic_seed")
+    payloads: list[MaterialScrapPayload] = []
+    for source_file in source_files:
+        batch = build_canonical_batch(
+            source_file,
+            RunContext(reference_date=reference_date, organization_parameter="ALL"),
+            ManualExchangeRateProvider(rate=exchange_rate, source=rate_source),
+            mode="LOCAL_FILE_SIMULATION",
+        )
+        payloads.append(MaterialScrapPayload.model_validate_json(batch.model_dump_json()))
+    return payloads
 
 
 def _serve() -> None:
