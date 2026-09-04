@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import os
 import subprocess
+import sys
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
@@ -137,6 +138,9 @@ async def _prepare_initial_data() -> None:
     else:
         print("Initial administrator bootstrap is disabled")
 
+
+async def seed_demo_data() -> None:
+    """Load the optional demo history after the web process is available."""
     if _enabled("SEED_DEMO_DATA", True):
         seed_path = Path(os.getenv("DEMO_DATA_PATH", "seed/synthetic"))
         payloads = _load_demo_payloads(seed_path)
@@ -151,6 +155,16 @@ async def _prepare_initial_data() -> None:
                 )
     else:
         print("Demo Material Scrap seed is disabled")
+
+
+def _start_demo_seed_process() -> None:
+    if not _enabled("SEED_DEMO_DATA", True):
+        return
+    print("Starting demo Material Scrap seed in the background")
+    subprocess.Popen(  # noqa: S603
+        [sys.executable, "-m", "src.infrastructure.seed_demo"],
+        close_fds=True,
+    )
 
 
 def _load_demo_payloads(seed_path: Path) -> list[MaterialScrapPayload]:
@@ -196,6 +210,7 @@ def _serve() -> None:
 async def _prepare_production() -> None:
     await _run_migrations()
     await _prepare_initial_data()
+    _start_demo_seed_process()
 
 
 def main() -> None:
