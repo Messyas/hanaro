@@ -196,11 +196,6 @@ dd {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.report-actions {
-  display: flex;
-  justify-content: flex-end;
-  padding-top: 1.25rem;
-}
 .empty-text {
   color: var(--app-text-muted);
 }

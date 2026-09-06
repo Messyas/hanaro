@@ -137,11 +137,4 @@ describe('ReportsPage', () => {
       queryParamsHandling: 'preserve',
     });
   });
-
-  it('navigates back to scrap base with reference on onUseAsReference', () => {
-    component.onUseAsReference(mockReview);
-    expect(router.navigate).toHaveBeenCalledWith(['/base-de-scrap'], {
-      state: { referenceReview: mockReview },
-    });
-  });
 });

@@ -531,12 +531,9 @@ export class DashboardStore {
         usd: this.toNumber(item.amount),
         qty: quantityMetric ? this.toNumber(item.amount) : item.record_count,
       })),
-      lastUpdatedAt: new Intl.DateTimeFormat('pt-BR', {
-        day: '2-digit',
-        month: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-      }).format(new Date(response.metadata.generated_at)),
+      // Keep the source timestamp; the page formats only the time according
+      // to the currently selected language.
+      lastUpdatedAt: response.metadata.generated_at,
     };
   }
 

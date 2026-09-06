@@ -184,7 +184,11 @@
   </section>
 
   @if (store.analysis() === 'absolute') {
-    <section class="kpi-summary-panel" [attr.aria-label]="text().absoluteSummaryAria">
+    <section
+      class="kpi-summary-panel"
+      [class.quantity-mode]="store.metric() === 'qty'"
+      [attr.aria-label]="text().absoluteSummaryAria"
+    >
       <div class="kpi-summary-lead">
         <span>{{ periodLabel() }}</span>
         <strong>{{ formatPrimaryValue(store.kpis().actual) }}</strong>
@@ -195,9 +199,19 @@
           <div class="kpi-summary-metric">
             <span>{{ text().ifCostTarget }}</span>
             <strong>{{ formatPrimaryValue(store.kpis().target) }}</strong>
-            <small>{{ text().targetRegistered }} {{ store.filters().year }}</small>
+            <small>
+              {{
+                store.comparison() === 'ytd'
+                  ? text().targetAccumulated
+                  : text().targetRegistered + ' ' + store.filters().year
+              }}
+            </small>
           </div>
-          <div class="kpi-summary-metric positive">
+          <div
+            class="kpi-summary-metric"
+            [class.positive]="targetGapReached()"
+            [class.negative]="!targetGapReached()"
+          >
             <span class="kpi-metric-label">{{ text().targetAchievement }}</span>
             <strong class="kpi-value-with-icon">
               {{ formatPercentage(store.kpis().achievement, false) }}
@@ -236,11 +250,6 @@
             <span>{{ text().quantityReference }}</span>
             <strong>{{ formatPrimaryValue(store.kpis().reference) }}</strong>
             <small>{{ comparisonLabel() }}</small>
-          </div>
-          <div class="kpi-summary-metric">
-            <span>{{ text().qtyTarget }}</span>
-            <strong>{{ text().quantityTargetUnavailable }}</strong>
-            <small>{{ text().quantityTargetHint }}</small>
           </div>
           <div
             class="kpi-summary-metric"

@@ -64,7 +64,6 @@ export class ScrapReviewDrawer implements OnInit {
 
   readonly closed = output<void>();
   readonly reviewSaved = output<ScrapReview>();
-  readonly useAsReference = output<ScrapReview>();
   readonly queueFinished = output<void>();
 
   readonly drawerDialog = viewChild<ElementRef<HTMLElement>>('drawerDialog');
