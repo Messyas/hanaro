@@ -15,3 +15,6 @@
 *.pdf binary
 *.woff binary
 *.woff2 binary
+
+# The final tab in this GERP export represents its required empty last column.
+automation/fixtures/demo-history/Other_Account_Transaction_Text_synthetic_* whitespace=-trailing-space

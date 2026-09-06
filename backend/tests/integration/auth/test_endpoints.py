@@ -28,6 +28,13 @@ async def test_login_success(client: AsyncClient, test_user: dict):
     assert response.json()["csrf_token"]
     assert any(cookie == "session_id" for cookie in response.cookies)
 
+    # Session cookies must not be readable by scripts and must use the secure,
+    # same-site policy configured by the auth composition root.
+    set_cookie = "\n".join(response.headers.get_list("set-cookie")).lower()
+    assert "session_id=" in set_cookie
+    assert "httponly" in set_cookie
+    assert "samesite=lax" in set_cookie
+
 
 @pytest.mark.asyncio
 async def test_login_wrong_password(client: AsyncClient, test_user: dict):

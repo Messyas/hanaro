@@ -172,13 +172,16 @@ export class SettingsPage implements OnInit {
   private feedbackTimeout: ReturnType<typeof setTimeout> | null = null;
 
   ngOnInit(): void {
-    // Carrega os tipos de scrap e metas em segundo plano
-    this.loadDefectTypes();
-    this.loadTargets(this.selectedTargetYear());
-    this.loadClassifications();
+    // Preferences é pública; dados de configuração exigem sessão.
+    if (this.authService.isAuthenticated()) {
+      this.loadDefectTypes();
+      this.loadTargets(this.selectedTargetYear());
+      this.loadClassifications();
+    }
   }
 
   selectTab(tab: 'preferences' | 'classifications' | 'system' | 'targets'): void {
+    if (tab !== 'preferences' && !this.authService.isAuthenticated()) return;
     this.activeTab.set(tab);
     if (tab === 'system' && this.defectTypes().length === 0) {
       this.loadDefectTypes();

@@ -28,6 +28,7 @@ class ExecutionMetadata(ContractModel):
     execution_id: uuid.UUID
     source_system: Literal["GERP"] = "GERP"
     report_name: Literal["Other Account Transaction Text Download"]
+    trigger: AutomationTrigger = AutomationTrigger.SCHEDULED
     mode: Literal["LOCAL_FILE_SIMULATION", "GERP_RPA"]
     timezone: Literal["America/Manaus"] = "America/Manaus"
     processing_date: date
@@ -66,7 +67,7 @@ class SourceFileMetadata(ContractModel):
     sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     encoding: str = Field(min_length=1, max_length=30)
     delimiter: Literal["TAB"] = "TAB"
-    size_bytes: int = Field(ge=1, le=100_000_000)
+    size_bytes: int = Field(ge=1)
 
 
 def _require_decimal_string(value: object) -> object:

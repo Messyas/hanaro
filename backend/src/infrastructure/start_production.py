@@ -5,12 +5,31 @@ from __future__ import annotations
 import asyncio
 import os
 import subprocess
+import sys
+from datetime import date
+from decimal import Decimal
 from pathlib import Path
 
+import sqlalchemy as sa
+
 from scripts.setup_initial_data import setup_initial_data, validate_admin_configuration
-from src.infrastructure.database.session import local_session
+from src.infrastructure.database.session import engine, local_session
 from src.modules.material_scrap.schemas import MaterialScrapPayload
 from src.modules.material_scrap.service import ingest_material_scrap
+
+MIGRATION_ORDER = {
+    "20260810_01": 1,
+    "20260826_02": 2,
+    "20260827_03": 3,
+    "20260827_04": 4,
+    "20260830_05": 5,
+    "20260830_06": 6,
+    "20260831_07": 7,
+    "20260901_08": 8,
+    "20260902_09": 9,
+    "20260903_10": 10,
+    "20260904_11": 11,
+}
 
 
 def _enabled(name: str, default: bool = False) -> bool:
@@ -22,21 +41,174 @@ def _enabled(name: str, default: bool = False) -> bool:
     raise RuntimeError(f"{name} must be true or false")
 
 
-def _run_migrations() -> None:
+def _legacy_schema_revision(tables: set[str], columns: dict[str, set[str]]) -> str | None:
+    revision_02_tables = {
+        "scrap_ingestion_runs",
+        "scrap_ingestion_source_files",
+        "scrap_transactions",
+    }
+    if not revision_02_tables <= tables:
+        return None
+    automation_columns = columns.get("scrap_automation_executions", set())
+    if (
+        "scrap_classification_rules" in tables
+        and {
+            "task_id",
+            "ingestion_payload",
+            "last_heartbeat_at",
+        }
+        <= automation_columns
+    ):
+        return "20260904_11"
+    if "scrap_classification_rules" in tables:
+        return "20260903_10"
+    if "scrap_review_templates" in tables:
+        return "20260902_09"
+    if {
+        "scrap_defect_types",
+        "scrap_reviews",
+        "scrap_review_attachments",
+        "scrap_review_bulk_operations",
+    } <= tables:
+        return "20260901_08"
+    if {
+        "scrap_occurrences",
+        "scrap_occurrence_observations",
+        "scrap_reconciliation_partitions",
+    } <= tables:
+        return "20260831_07"
+    if {
+        "scrap_automation_executions",
+        "scrap_execution_steps",
+        "scrap_execution_notifications",
+    } <= tables:
+        return "20260830_05"
+    if {
+        "scrap_dashboard_aggregates",
+        "scrap_dashboard_state",
+        "scrap_targets",
+    } <= tables:
+        return "20260827_04"
+    if (
+        "daily_exchange_rates" in tables
+        and "exchange_rate_id" in columns.get("scrap_ingestion_runs", set())
+        and "content_hash" in columns.get("scrap_transactions", set())
+    ):
+        return "20260827_03"
+    return "20260826_02"
+
+
+async def _detect_legacy_schema_revision() -> tuple[str | None, str | None]:
+    async with engine.connect() as connection:
+
+        def inspect_schema(sync_connection: sa.Connection) -> tuple[set[str], dict[str, set[str]]]:
+            inspector = sa.inspect(sync_connection)
+            tables = set(inspector.get_table_names())
+            columns = {
+                table: {column["name"] for column in inspector.get_columns(table)}
+                for table in tables & {"scrap_ingestion_runs", "scrap_transactions", "scrap_automation_executions"}
+            }
+            return tables, columns
+
+        tables, columns = await connection.run_sync(inspect_schema)
+        current_revision = None
+        if "alembic_version" in tables:
+            result = await connection.execute(sa.text("SELECT version_num FROM alembic_version LIMIT 1"))
+            current_revision = result.scalar_one_or_none()
+    return current_revision, _legacy_schema_revision(tables, columns)
+
+
+def _migration_environment() -> dict[str, str]:
+    migration_environment = os.environ.copy()
+    migration_environment["CONFIRM_PRODUCTION_MIGRATION"] = "yes"
+    return migration_environment
+
+
+async def _run_migrations() -> None:
     if _enabled("RUN_MIGRATIONS_ON_STARTUP", True):
-        subprocess.run(["alembic", "upgrade", "head"], check=True)  # noqa: S603, S607
+        migration_environment = _migration_environment()
+        current_revision, legacy_revision = await _detect_legacy_schema_revision()
+        if legacy_revision and MIGRATION_ORDER.get(current_revision or "", 0) < MIGRATION_ORDER[legacy_revision]:
+            print(f"Reconciling legacy create_all schema at Alembic revision {legacy_revision}")
+            subprocess.run(  # noqa: S603, S607
+                ["alembic", "stamp", legacy_revision],
+                check=True,
+                env=migration_environment,
+            )
+        subprocess.run(  # noqa: S603, S607
+            ["alembic", "upgrade", "head"],
+            check=True,
+            env=migration_environment,
+        )
 
 
 async def _prepare_initial_data() -> None:
-    if _enabled("BOOTSTRAP_INITIAL_DATA"):
+    if _enabled("BOOTSTRAP_INITIAL_DATA", True):
+        print("Bootstrapping initial administrator and tier")
         validate_admin_configuration()
         await setup_initial_data(create_schema=False)
+    else:
+        print("Initial administrator bootstrap is disabled")
 
-    if _enabled("SEED_DEMO_DATA"):
-        seed_path = Path(os.getenv("DEMO_DATA_PATH", "seed/material_scrap_payload_example.json"))
-        payload = MaterialScrapPayload.model_validate_json(seed_path.read_text(encoding="utf-8"))
+
+async def seed_demo_data() -> None:
+    """Load the optional demo history after the web process is available."""
+    if _enabled("SEED_DEMO_DATA", True):
+        seed_path = Path(os.getenv("DEMO_DATA_PATH", "seed/synthetic"))
+        payloads = _load_demo_payloads(seed_path)
+        print(f"Loading {len(payloads)} idempotent demo Material Scrap batch(es) from {seed_path}")
         async with local_session() as session:
-            await ingest_material_scrap(payload, session)
+            for payload in payloads:
+                result = await ingest_material_scrap(payload, session)
+                replay = " (already loaded)" if result.is_replay else ""
+                print(
+                    f"Loaded {result.accepted_count} Material Scrap records "
+                    f"for {payload.execution.query_date_from}..{payload.execution.query_date_to}{replay}"
+                )
+    else:
+        print("Demo Material Scrap seed is disabled")
+
+
+def _start_demo_seed_process() -> None:
+    if not _enabled("SEED_DEMO_DATA", True):
+        return
+    print("Starting demo Material Scrap seed in the background")
+    subprocess.Popen(  # noqa: S603
+        [sys.executable, "-m", "src.infrastructure.seed_demo"],
+        close_fds=True,
+    )
+
+
+def _load_demo_payloads(seed_path: Path) -> list[MaterialScrapPayload]:
+    """Load one canonical JSON seed or build batches from synthetic GERP files."""
+    if seed_path.is_file():
+        return [MaterialScrapPayload.model_validate_json(seed_path.read_text(encoding="utf-8"))]
+    if not seed_path.is_dir():
+        raise FileNotFoundError(f"Demo data path does not exist: {seed_path}")
+
+    source_files = sorted(path for path in seed_path.iterdir() if path.is_file())
+    if not source_files:
+        raise RuntimeError(f"Demo data directory is empty: {seed_path}")
+
+    # Import the automation pipeline only for raw multi-file seeds. This keeps
+    # the canonical JSON path usable by maintenance commands and small tests.
+    from automation.material_scrap.builder import build_canonical_batch  # noqa: PLC0415
+    from automation.material_scrap.exchange import ManualExchangeRateProvider  # noqa: PLC0415
+    from automation.material_scrap.source import RunContext  # noqa: PLC0415
+
+    reference_date = date.fromisoformat(os.getenv("DEMO_DATA_REFERENCE_DATE", "2026-09-03"))
+    exchange_rate = Decimal(os.getenv("DEMO_DATA_EXCHANGE_RATE", "5.15"))
+    rate_source = os.getenv("DEMO_DATA_EXCHANGE_RATE_SOURCE", "synthetic_seed")
+    payloads: list[MaterialScrapPayload] = []
+    for source_file in source_files:
+        batch = build_canonical_batch(
+            source_file,
+            RunContext(reference_date=reference_date, organization_parameter="ALL"),
+            ManualExchangeRateProvider(rate=exchange_rate, source=rate_source),
+            mode="LOCAL_FILE_SIMULATION",
+        )
+        payloads.append(MaterialScrapPayload.model_validate_json(batch.model_dump_json()))
+    return payloads
 
 
 def _serve() -> None:
@@ -47,9 +219,14 @@ def _serve() -> None:
     )
 
 
+async def _prepare_production() -> None:
+    await _run_migrations()
+    await _prepare_initial_data()
+    _start_demo_seed_process()
+
+
 def main() -> None:
-    _run_migrations()
-    asyncio.run(_prepare_initial_data())
+    asyncio.run(_prepare_production())
     _serve()
 
 

@@ -37,7 +37,7 @@ FROM python:${PYTHON_VERSION} AS base
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/app/backend:/app/backend/src \
+    PYTHONPATH=/app:/app/backend:/app/backend/src \
     UV_LINK_MODE=copy
 
 WORKDIR /app/backend
@@ -73,7 +73,7 @@ COPY --chown=app:app backend/scripts ./scripts
 COPY --chown=app:app backend/alembic.ini ./alembic.ini
 
 USER app
-CMD ["fastapi", "dev", "src/interfaces/main.py", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "-m", "src.infrastructure.start_development"]
 
 # One-off image for database migrations.
 FROM base AS migrate
@@ -91,6 +91,9 @@ COPY --chown=app:app backend/migrations ./migrations
 COPY --chown=app:app backend/scripts ./scripts
 COPY --chown=app:app backend/alembic.ini ./alembic.ini
 COPY --chown=app:app automation/fixtures/material_scrap_payload_example.json ./seed/material_scrap_payload_example.json
+COPY --chown=app:app automation/__init__.py /app/automation/__init__.py
+COPY --chown=app:app automation/material_scrap /app/automation/material_scrap
+COPY --chown=app:app automation/fixtures/demo-history ./seed/synthetic
 
 USER app
 CMD ["python", "-m", "src.infrastructure.start_production"]

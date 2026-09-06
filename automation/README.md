@@ -52,8 +52,9 @@ Copie `.env.example` para `.env`, informe uma `HANARO_API_KEY` com a permissão
 docker compose --profile simulation up --build
 ```
 
-Os serviços `material-scrap-simulation` e `material-scrap-worker-simulation`
-sobem juntos: o primeiro gera/enfileira o lote e o segundo o persiste. A
+Os serviços `material-scrap-simulation` e `material-scrap-worker`
+sobem juntos: o primeiro gera/enfileira o lote e o segundo o persiste. O worker
+também faz parte do ambiente local padrão para processar uploads manuais. A
 simulação usa a fixture anonimizada por padrão, salva o JSON em
 `automation/artifacts/` e o envia ao backend. Para apenas gerar o artefato sem enviar, defina
 `HANARO_SIMULATION_SEND=false`. Para usar o arquivo real em Downloads, defina

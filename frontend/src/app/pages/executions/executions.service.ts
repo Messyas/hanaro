@@ -23,4 +23,22 @@ export class ExecutionsService {
   getDetail(executionId: string): Observable<ExecutionDetail> {
     return this.http.get<ExecutionDetail>(`${this.baseUrl}/${encodeURIComponent(executionId)}`);
   }
+
+  retry(executionId: string): Observable<ExecutionDetail> {
+    return this.http.post<ExecutionDetail>(
+      `${this.baseUrl}/${encodeURIComponent(executionId)}/retry`,
+      {},
+    );
+  }
+
+  uploadManualReport(
+    file: File,
+  ): Observable<{ task_id: string; execution_id: string; status: 'QUEUED' }> {
+    const body = new FormData();
+    body.append('file', file, file.name);
+    return this.http.post<{ task_id: string; execution_id: string; status: 'QUEUED' }>(
+      '/api/v1/scrap/manual-ingestions',
+      body,
+    );
+  }
 }

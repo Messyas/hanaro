@@ -8,7 +8,7 @@
     "binding": "ASSETS",
   },
   "vars": {
-    "API_ORIGIN": "https://hanaro-api.onrender.com",
+    "API_ORIGIN": "https://hanaro.onrender.com",
   },
   "observability": {
     "enabled": true,
