@@ -1,6 +1,7 @@
 """Initialize all modules and models to ensure SQLAlchemy registration."""
 
 from .api_keys.models import APIKey, KeyPermission, KeyUsage
+from .governance import models as governance_models
 from .material_scrap.models import (
     DailyExchangeRate,
     IngestionRun,
@@ -18,6 +19,7 @@ from .tier.models import Tier
 from .user.models import User
 
 __all__ = [
+    "governance_models",
     "User",
     "Tier",
     "RateLimit",
