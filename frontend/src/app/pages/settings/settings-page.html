@@ -17,47 +17,51 @@
         <span>{{ t.settingsTabPreferences }}</span>
       </button>
 
-      <button
-        type="button"
-        role="tab"
-        class="settings-tab-btn"
-        [class.active]="activeTab() === 'classifications'"
-        [attr.aria-selected]="activeTab() === 'classifications'"
-        (click)="selectTab('classifications')"
-      >
-        <ui-icon name="filter" />
-        <span>{{ t.settingsTabClassifications }}</span>
-        @if (classificationRules().length > 0) {
-          <span class="tab-badge">{{ classificationRules().length }}</span>
-        }
-      </button>
+      @if (authService.isAuthenticated()) {
+        <button
+          type="button"
+          role="tab"
+          class="settings-tab-btn"
+          [class.active]="activeTab() === 'classifications'"
+          [attr.aria-selected]="activeTab() === 'classifications'"
+          (click)="selectTab('classifications')"
+        >
+          <ui-icon name="filter" />
+          <span>{{ t.settingsTabClassifications }}</span>
+          @if (classificationRules().length > 0) {
+            <span class="tab-badge">{{ classificationRules().length }}</span>
+          }
+        </button>
 
-      <button
-        type="button"
-        role="tab"
-        class="settings-tab-btn"
-        [class.active]="activeTab() === 'system'"
-        [attr.aria-selected]="activeTab() === 'system'"
-        (click)="selectTab('system')"
-      >
-        <ui-icon name="building" />
-        <span>{{ t.settingsTabDefectTypes }}</span>
-        @if (totalCount() > 0) {
-          <span class="tab-badge">{{ totalCount() }}</span>
-        }
-      </button>
+        <button
+          type="button"
+          role="tab"
+          class="settings-tab-btn"
+          [class.active]="activeTab() === 'system'"
+          [attr.aria-selected]="activeTab() === 'system'"
+          (click)="selectTab('system')"
+        >
+          <ui-icon name="building" />
+          <span>{{ t.settingsTabDefectTypes }}</span>
+          @if (totalCount() > 0) {
+            <span class="tab-badge">{{ totalCount() }}</span>
+          }
+        </button>
+      }
 
-      <button
-        type="button"
-        role="tab"
-        class="settings-tab-btn"
-        [class.active]="activeTab() === 'targets'"
-        [attr.aria-selected]="activeTab() === 'targets'"
-        (click)="selectTab('targets')"
-      >
-        <ui-icon name="chart-line" />
-        <span>{{ t.settingsTabTargets }}</span>
-      </button>
+      @if (authService.isAuthenticated()) {
+        <button
+          type="button"
+          role="tab"
+          class="settings-tab-btn"
+          [class.active]="activeTab() === 'targets'"
+          [attr.aria-selected]="activeTab() === 'targets'"
+          (click)="selectTab('targets')"
+        >
+          <ui-icon name="chart-line" />
+          <span>{{ t.settingsTabTargets }}</span>
+        </button>
+      }
     </nav>
   </header>
 

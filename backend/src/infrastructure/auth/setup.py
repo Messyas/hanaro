@@ -40,6 +40,7 @@ auth = CRUDAuth(
             csrf=settings.CSRF_ENABLED,
             max_sessions_per_user=settings.MAX_SESSIONS_PER_USER,
             session_timeout_minutes=settings.SESSION_TIMEOUT_MINUTES,
+            login_max_attempts=settings.LOGIN_MAX_ATTEMPTS,
             cleanup_interval_minutes=settings.SESSION_CLEANUP_INTERVAL_MINUTES,
         )
     ],

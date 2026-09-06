@@ -1,5 +1,6 @@
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from datetime import timedelta
 
 from fastapi import FastAPI, Response, status
 from sqlalchemy import text
@@ -8,10 +9,11 @@ from starlette.middleware.sessions import SessionMiddleware
 from ..infrastructure.app_factory import create_application, lifespan_factory
 from ..infrastructure.cache import cache_provider
 from ..infrastructure.config.settings import get_settings
-from ..infrastructure.database.session import engine
+from ..infrastructure.database.session import engine, local_session
 from ..infrastructure.logging import get_logger
 from ..infrastructure.security import validate_production_security
 from ..interfaces.api import router
+from ..modules.material_scrap.execution_service import recover_stale_executions
 
 settings = get_settings()
 logger = get_logger()
@@ -26,6 +28,17 @@ async def lifespan_with_security(app: FastAPI) -> AsyncGenerator[None, None]:
     default_lifespan = lifespan_factory(settings)
 
     async with default_lifespan(app):
+        try:
+            async with local_session() as db:
+                recovered = await recover_stale_executions(
+                    db,
+                    stale_after=timedelta(minutes=settings.TASKIQ_EXECUTION_STALE_AFTER_MINUTES),
+                )
+            if recovered:
+                logger.warning("Recovered %s stale Material Scrap execution(s)", recovered)
+        except Exception:
+            # Observability recovery must never prevent the API from becoming available.
+            logger.exception("Unable to recover stale Material Scrap executions")
         yield
 
 

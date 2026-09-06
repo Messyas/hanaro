@@ -2,7 +2,7 @@
 
 import re
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from fastapi import HTTPException, status
 from sqlalchemy import func, or_, select
@@ -141,6 +141,7 @@ async def start_execution(command: AutomationExecutionStart, db: AsyncSession) -
         started_at=command.started_at or now,
         created_at=now,
         updated_at=now,
+        last_heartbeat_at=now,
     )
     db.add(execution)
     try:
@@ -152,7 +153,17 @@ async def start_execution(command: AutomationExecutionStart, db: AsyncSession) -
     return execution
 
 
-async def ensure_execution_from_payload(payload: MaterialScrapPayload, db: AsyncSession) -> ScrapAutomationExecution:
+async def ensure_execution_from_payload(
+    payload: MaterialScrapPayload,
+    db: AsyncSession,
+    *,
+    mark_running: bool = True,
+) -> ScrapAutomationExecution:
+    """Persist the canonical payload and move an execution into the requested state.
+
+    Producers leave an execution as ``QUEUED``. Only a worker changes it to
+    ``RUNNING`` so the operations page describes what is actually happening.
+    """
     execution = (
         await db.execute(
             select(ScrapAutomationExecution).where(ScrapAutomationExecution.execution_id == payload.execution.execution_id)
@@ -163,6 +174,7 @@ async def ensure_execution_from_payload(payload: MaterialScrapPayload, db: Async
             execution_id=payload.execution.execution_id,
             source_system=payload.execution.source_system,
             report_name=payload.execution.report_name,
+            trigger=payload.execution.trigger,
             mode=AutomationMode(payload.execution.mode),
             organization_parameter=payload.execution.organization_parameter,
             query_date_from=payload.execution.query_date_from,
@@ -174,14 +186,75 @@ async def ensure_execution_from_payload(payload: MaterialScrapPayload, db: Async
         )
         execution = await start_execution(command, db)
     if execution.status not in TERMINAL_EXECUTION_STATES:
-        execution.status = AutomationExecutionStatus.RUNNING.value
+        execution.status = AutomationExecutionStatus.RUNNING.value if mark_running else AutomationExecutionStatus.QUEUED.value
         execution.organizations_found = payload.execution.organizations_found
         execution.source_file_name = payload.source_file.name
         execution.source_file_sha256 = payload.source_file.sha256
         execution.records_received = payload.statistics.source_rows
+        execution.ingestion_payload = payload.model_dump(mode="json")
         execution.updated_at = now_utc()
+        execution.last_heartbeat_at = execution.updated_at
         await db.commit()
     return execution
+
+
+async def record_enqueued_task(execution_id: uuid.UUID, task_id: str, db: AsyncSession) -> None:
+    """Associate a durable execution record with its broker message."""
+    execution = await get_execution(execution_id, db, lock=True)
+    if execution.status in TERMINAL_EXECUTION_STATES:
+        return
+    now = now_utc()
+    execution.task_id = task_id
+    execution.status = AutomationExecutionStatus.QUEUED.value
+    execution.updated_at = now
+    execution.last_heartbeat_at = now
+    await db.commit()
+
+
+async def begin_execution_attempt(execution_id: uuid.UUID, db: AsyncSession) -> int:
+    """Mark the broker-delivered attempt as running and return its attempt number."""
+    execution = await get_execution(execution_id, db, lock=True)
+    if execution.status in TERMINAL_EXECUTION_STATES:
+        raise HTTPException(status_code=409, detail="Terminal automation execution cannot be started")
+    now = now_utc()
+    execution.status = AutomationExecutionStatus.RUNNING.value
+    execution.current_step = ExecutionStepCode.JSON_VALIDATION.value
+    execution.updated_at = now
+    execution.last_heartbeat_at = now
+    await db.commit()
+    return execution.retry_count + 1
+
+
+async def prepare_execution_retry(
+    execution_id: uuid.UUID, db: AsyncSession
+) -> tuple[ScrapAutomationExecution, MaterialScrapPayload]:
+    """Reset a failed execution for a new worker attempt using its stored payload."""
+    execution = await get_execution(execution_id, db, lock=True)
+    if execution.status not in {AutomationExecutionStatus.FAILED.value, AutomationExecutionStatus.CANCELLED.value}:
+        raise HTTPException(status_code=409, detail="Only failed or cancelled executions can be retried")
+    if not execution.ingestion_payload:
+        raise HTTPException(status_code=409, detail="This execution has no stored ingestion payload to retry")
+    try:
+        payload = MaterialScrapPayload.model_validate(execution.ingestion_payload)
+    except Exception as error:
+        raise HTTPException(status_code=409, detail="Stored ingestion payload is no longer valid") from error
+
+    now = now_utc()
+    execution.status = AutomationExecutionStatus.QUEUED.value
+    execution.current_step = None
+    execution.task_id = None
+    execution.failure_category = None
+    execution.failure_code = None
+    execution.failure_message = None
+    execution.snapshot_status = AutomationSnapshotStatus.NOT_PUBLISHED.value
+    execution.finished_at = None
+    execution.records_accepted = 0
+    execution.records_rejected = 0
+    execution.retry_count += 1
+    execution.updated_at = now
+    execution.last_heartbeat_at = now
+    await db.commit()
+    return execution, payload
 
 
 def _validate_step_transition(existing: ScrapExecutionStep | None, command: ExecutionStepUpdate) -> None:
@@ -239,6 +312,7 @@ async def update_step(
     execution.status = AutomationExecutionStatus.RUNNING.value
     execution.current_step = step_code.value
     execution.updated_at = now
+    execution.last_heartbeat_at = now
     await db.commit()
     return execution
 
@@ -262,6 +336,41 @@ async def mark_execution_failed(
     execution.snapshot_status = AutomationSnapshotStatus.PRESERVED_PREVIOUS.value
     execution.finished_at = now
     execution.updated_at = now
+    execution.last_heartbeat_at = now
+    attempt = execution.retry_count + 1
+    step = (
+        await db.execute(
+            select(ScrapExecutionStep).where(
+                ScrapExecutionStep.execution_id == execution.id,
+                ScrapExecutionStep.step_code == command.step_code.value,
+                ScrapExecutionStep.attempt == attempt,
+            )
+        )
+    ).scalar_one_or_none()
+    if step is None:
+        db.add(
+            ScrapExecutionStep(
+                execution_id=execution.id,
+                step_code=command.step_code.value,
+                sequence=STEP_SEQUENCE[command.step_code],
+                attempt=attempt,
+                status=ExecutionStepStatus.FAILED.value,
+                started_at=now,
+                finished_at=now,
+                duration_ms=0,
+                message=execution.failure_message,
+                error_code=command.failure_code,
+                created_at=now,
+                updated_at=now,
+            )
+        )
+    elif step.status not in TERMINAL_STEP_STATES:
+        step.status = ExecutionStepStatus.FAILED.value
+        step.finished_at = now
+        step.duration_ms = duration_ms(step.started_at, now)
+        step.message = execution.failure_message
+        step.error_code = command.failure_code
+        step.updated_at = now
     notification_id: uuid.UUID | None = None
     if command.notify_developers:
         notification = ScrapExecutionNotification(
@@ -289,6 +398,7 @@ async def link_ingestion_result(
     ingestion_run_id: uuid.UUID | None,
     is_replay: bool,
     failed: Exception | None = None,
+    attempt: int = 1,
 ) -> None:
     execution = await ensure_execution_from_payload(payload, db)
     if failed is not None:
@@ -316,13 +426,14 @@ async def link_ingestion_result(
     )
     execution.finished_at = now
     execution.updated_at = now
+    execution.last_heartbeat_at = now
     for code in (ExecutionStepCode.JSON_VALIDATION, ExecutionStepCode.SNAPSHOT_PUBLICATION):
         step = (
             await db.execute(
                 select(ScrapExecutionStep).where(
                     ScrapExecutionStep.execution_id == execution.id,
                     ScrapExecutionStep.step_code == code.value,
-                    ScrapExecutionStep.attempt == 1,
+                    ScrapExecutionStep.attempt == attempt,
                 )
             )
         ).scalar_one_or_none()
@@ -332,7 +443,7 @@ async def link_ingestion_result(
                     execution_id=execution.id,
                     step_code=code.value,
                     sequence=STEP_SEQUENCE[code],
-                    attempt=1,
+                    attempt=attempt,
                     status=ExecutionStepStatus.COMPLETED.value,
                     started_at=now,
                     finished_at=now,
@@ -348,6 +459,41 @@ async def link_ingestion_result(
             step.duration_ms = duration_ms(step.started_at, now)
             step.updated_at = now
     await db.commit()
+
+
+async def recover_stale_executions(db: AsyncSession, *, stale_after: timedelta) -> int:
+    """Fail orphaned queued/running work so it can be retried instead of lying forever."""
+    now = now_utc()
+    cutoff = now - stale_after
+    stale = list(
+        (
+            await db.execute(
+                select(ScrapAutomationExecution)
+                .where(
+                    ScrapAutomationExecution.status.in_(
+                        (AutomationExecutionStatus.QUEUED.value, AutomationExecutionStatus.RUNNING.value)
+                    ),
+                    or_(
+                        ScrapAutomationExecution.last_heartbeat_at < cutoff,
+                        (ScrapAutomationExecution.last_heartbeat_at.is_(None)) & (ScrapAutomationExecution.updated_at < cutoff),
+                    ),
+                )
+                .with_for_update()
+            )
+        ).scalars()
+    )
+    for execution in stale:
+        execution.status = AutomationExecutionStatus.FAILED.value
+        execution.snapshot_status = AutomationSnapshotStatus.PRESERVED_PREVIOUS.value
+        execution.failure_category = "WORKER"
+        execution.failure_code = "WORKER_HEARTBEAT_TIMEOUT"
+        execution.failure_message = "The worker stopped before this ingestion finished; retry the execution."
+        execution.finished_at = now
+        execution.updated_at = now
+        execution.last_heartbeat_at = now
+    if stale:
+        await db.commit()
+    return len(stale)
 
 
 async def list_executions(

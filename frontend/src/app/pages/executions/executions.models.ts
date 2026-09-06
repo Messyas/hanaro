@@ -3,7 +3,7 @@ export type AutomationExecutionStatus = 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FA
 export type AutomationSnapshotStatus =
   'NOT_PUBLISHED' | 'PUBLISHED' | 'UNCHANGED_REPLAY' | 'PRESERVED_PREVIOUS';
 
-export type AutomationTrigger = 'SCHEDULED';
+export type AutomationTrigger = 'SCHEDULED' | 'MANUAL';
 
 export type AutomationMode = 'LOCAL_FILE_SIMULATION' | 'GERP_RPA';
 

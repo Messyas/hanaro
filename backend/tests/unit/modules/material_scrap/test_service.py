@@ -1,5 +1,5 @@
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 import pytest
@@ -9,7 +9,13 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from src.infrastructure.database.session import Base
-from src.modules.material_scrap.enums import DashboardCurrency
+from src.modules.material_scrap.enums import AutomationExecutionStatus, DashboardCurrency, ExecutionStepCode
+from src.modules.material_scrap.execution_service import (
+    ensure_execution_from_payload,
+    mark_execution_failed,
+    prepare_execution_retry,
+    recover_stale_executions,
+)
 from src.modules.material_scrap.models import (
     DailyExchangeRate,
     IngestionRun,
@@ -20,7 +26,7 @@ from src.modules.material_scrap.models import (
     ScrapTransaction,
 )
 from src.modules.material_scrap.repository import OccurrenceIdentityCollisionError
-from src.modules.material_scrap.schemas import MaterialScrapPayload, ScrapTargetUpsert
+from src.modules.material_scrap.schemas import ExecutionFailure, MaterialScrapPayload, ScrapTargetUpsert
 from src.modules.material_scrap.service import CanonicalBatchValidationError, ingest_material_scrap
 from src.modules.material_scrap.target_service import ScrapTargetService
 
@@ -54,6 +60,48 @@ async def test_first_load_and_exact_replay_are_idempotent(scrap_db: AsyncSession
     assert await scrap_db.scalar(select(func.count(DailyExchangeRate.id))) == 1
     assert await scrap_db.scalar(select(func.sum(ScrapDashboardAggregate.record_count))) == 6
     assert await scrap_db.get(ScrapDashboardState, 1) is not None
+
+
+@pytest.mark.asyncio
+async def test_failed_execution_retains_payload_for_a_new_worker_attempt(scrap_db: AsyncSession) -> None:
+    payload = canonical_fixture()
+    execution = await ensure_execution_from_payload(payload, scrap_db, mark_running=False)
+
+    assert execution.status == AutomationExecutionStatus.QUEUED.value
+    assert execution.ingestion_payload is not None
+
+    await mark_execution_failed(
+        payload.execution.execution_id,
+        ExecutionFailure(
+            failure_category="WORKER",
+            failure_code="WORKER_EXITED",
+            failure_message="Worker process ended unexpectedly.",
+            step_code=ExecutionStepCode.JSON_VALIDATION,
+            notify_developers=False,
+        ),
+        scrap_db,
+    )
+    retried, restored_payload = await prepare_execution_retry(payload.execution.execution_id, scrap_db)
+
+    assert retried.status == AutomationExecutionStatus.QUEUED.value
+    assert retried.retry_count == 1
+    assert restored_payload.execution.execution_id == payload.execution.execution_id
+    assert restored_payload.records == payload.records
+
+
+@pytest.mark.asyncio
+async def test_stale_execution_is_marked_failed_instead_of_remaining_running(scrap_db: AsyncSession) -> None:
+    payload = canonical_fixture()
+    execution = await ensure_execution_from_payload(payload, scrap_db)
+    execution.last_heartbeat_at = datetime.now(UTC) - timedelta(minutes=31)
+    await scrap_db.commit()
+
+    recovered = await recover_stale_executions(scrap_db, stale_after=timedelta(minutes=30))
+    await scrap_db.refresh(execution)
+
+    assert recovered == 1
+    assert execution.status == AutomationExecutionStatus.FAILED.value
+    assert execution.failure_code == "WORKER_HEARTBEAT_TIMEOUT"
 
 
 @pytest.mark.asyncio

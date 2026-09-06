@@ -49,6 +49,7 @@ class AutomationMode(StrEnum):
 
 class AutomationTrigger(StrEnum):
     SCHEDULED = "SCHEDULED"
+    MANUAL = "MANUAL"
 
 
 class ExecutionSortField(StrEnum):

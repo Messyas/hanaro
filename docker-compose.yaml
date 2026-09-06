@@ -111,6 +111,7 @@ services:
       dockerfile: backend/Dockerfile
       target: dev
     init: true
+    command: ["python", "-m", "src.infrastructure.start_development"]
     environment: *backend-environment
     ports:
       - "${BACKEND_PORT:-8000}:8000"
@@ -192,12 +193,11 @@ services:
     depends_on:
       backend:
         condition: service_healthy
-      material-scrap-worker-simulation:
+      material-scrap-worker:
         condition: service_started
     restart: "no"
 
-  material-scrap-worker-simulation:
-    profiles: ["simulation"]
+  material-scrap-worker:
     image: hanaro-backend:dev
     environment: *backend-environment
     working_dir: /app/backend

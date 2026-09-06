@@ -1,7 +1,15 @@
 <section class="executions-page list-page page-stack" aria-labelledby="executions-title">
   <!-- Header da Página -->
-  <header class="executions-heading">
+  <header class="executions-header">
     <h1 class="page-title" id="executions-title">{{ t().executionsTitle }}</h1>
+    <button
+      type="button"
+      class="btn btn-primary manual-upload-trigger"
+      (click)="openManualUpload()"
+    >
+      <ui-icon name="plus" />
+      Enviar relatório
+    </button>
   </header>
 
   <!-- Tabela de Histórico com Filtro Integrado no Cabeçalho -->
@@ -163,6 +171,11 @@
                       {{ formatShortId(item.execution_id) }}
                     </span>
                     <span class="execution-report-name">{{ item.report_name }}</span>
+                    @if (item.status === 'RUNNING' && item.current_step) {
+                      <span class="execution-progress">{{
+                        formatStepName(item.current_step)
+                      }}</span>
+                    }
                   </div>
                 </td>
                 <td>
@@ -260,6 +273,14 @@
                   <span class="meta-label">{{ detail.failure_category }}</span>
                 }
                 <p>{{ detail.failure_message || '—' }}</p>
+                <button
+                  class="btn btn-primary retry-execution-button"
+                  type="button"
+                  [disabled]="retrying()"
+                  (click)="retrySelectedExecution()"
+                >
+                  {{ retrying() ? t().executionsLoading : t().executionsRetry }}
+                </button>
               </div>
             }
 
@@ -367,6 +388,67 @@
           }
         </div>
       </div>
+    </div>
+  }
+  @if (manualUploadOpen()) {
+    <div class="modal-backdrop" (click)="closeManualUpload()">
+      <section
+        class="manual-upload-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="manual-upload-title"
+        (click)="$event.stopPropagation()"
+      >
+        <header class="manual-upload-header">
+          <div>
+            <h2 id="manual-upload-title">Atualizar base por relatório</h2>
+            <p>Envie o arquivo Other Account Transaction Text exportado do GERP.</p>
+          </div>
+          <button
+            class="btn btn-ghost"
+            type="button"
+            aria-label="Fechar upload"
+            (click)="closeManualUpload()"
+          >
+            <ui-icon name="x" />
+          </button>
+        </header>
+        <div class="manual-upload-body">
+          <label class="manual-upload-dropzone" for="manual-report-file">
+            <ui-icon name="folder" />
+            <strong>{{ manualUploadFile()?.name || 'Selecionar relatório GERP' }}</strong>
+            <span>TSV em UTF-8 ou CP1252</span>
+            <input
+              id="manual-report-file"
+              type="file"
+              accept="text/plain,.txt,.tsv"
+              [disabled]="manualUploadSubmitting()"
+              (change)="selectManualUploadFile($event)"
+            />
+          </label>
+          @if (manualUploadError()) {
+            <app-inline-alert [message]="manualUploadError()!" />
+          }
+        </div>
+        <footer class="manual-upload-footer">
+          <button
+            class="btn btn-secondary"
+            type="button"
+            [disabled]="manualUploadSubmitting()"
+            (click)="closeManualUpload()"
+          >
+            Cancelar
+          </button>
+          <button
+            class="btn btn-primary"
+            type="button"
+            [disabled]="!manualUploadFile() || manualUploadSubmitting()"
+            (click)="submitManualUpload()"
+          >
+            {{ manualUploadSubmitting() ? 'Enviando…' : 'Processar relatório' }}
+          </button>
+        </footer>
+      </section>
     </div>
   }
 </section>
