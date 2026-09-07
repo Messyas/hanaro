@@ -1,4 +1,4 @@
-name: hanaro-production
+name: hanaro
 
 x-service-defaults: &service-defaults
   init: true
