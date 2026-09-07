@@ -13,6 +13,7 @@ from pathlib import Path
 import sqlalchemy as sa
 
 from scripts.seed_demo_classifications import seed_demo_classifications
+from scripts.seed_demo_governance import seed_demo_governance
 from scripts.setup_initial_data import setup_initial_data, validate_admin_configuration
 from src.infrastructure.database.session import engine, local_session
 from src.modules.material_scrap.classification_service import ScrapClassificationService
@@ -172,6 +173,8 @@ async def seed_demo_data() -> None:
                     f"Loaded {result.accepted_count} Material Scrap records "
                     f"for {payload.execution.query_date_from}..{payload.execution.query_date_to}{replay}"
                 )
+        governance_counts = await seed_demo_governance()
+        print(f"Loaded governance demo records: {governance_counts}")
     else:
         print("Demo Material Scrap seed is disabled")
 

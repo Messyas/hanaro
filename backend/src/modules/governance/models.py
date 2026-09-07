@@ -10,8 +10,19 @@ from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import (
-    JSON, Boolean, CheckConstraint, Date, DateTime, ForeignKey, Index,
-    Integer, Numeric, String, Text, UniqueConstraint, text,
+    JSON,
+    Boolean,
+    CheckConstraint,
+    Date,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    Numeric,
+    String,
+    Text,
+    UniqueConstraint,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
@@ -72,6 +83,7 @@ class Workstation(GovernanceEntity):
 
 class ProductionVersion(GovernanceEntity):
     """Daily production revisions; one approved, current version per line/day."""
+
     __tablename__ = "gov_production_versions"
     __table_args__ = (
         UniqueConstraint("line_id", "production_date", "revision", name="uq_gov_production_revision"),
@@ -79,8 +91,14 @@ class ProductionVersion(GovernanceEntity):
         CheckConstraint("status IN ('DRAFT','APPROVED','SUPERSEDED')", name="ck_gov_production_status"),
         CheckConstraint("source IN ('MANUAL','IMPORT','ERP','DEMO')", name="ck_gov_production_source"),
         CheckConstraint("status <> 'APPROVED' OR approved_at IS NOT NULL", name="ck_gov_production_approval"),
-        Index("uq_gov_production_current", "line_id", "production_date", unique=True,
-              postgresql_where=text("status = 'APPROVED'"), sqlite_where=text("status = 'APPROVED'")),
+        Index(
+            "uq_gov_production_current",
+            "line_id",
+            "production_date",
+            unique=True,
+            postgresql_where=text("status = 'APPROVED'"),
+            sqlite_where=text("status = 'APPROVED'"),
+        ),
         Index("ix_gov_production_date", "production_date", "line_id"),
     )
     line_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gov_production_lines.id", ondelete="RESTRICT"))
@@ -126,7 +144,9 @@ class ScrapCase(GovernanceEntity):
     __tablename__ = "gov_cases"
     __table_args__ = (
         UniqueConstraint("factory_id", "code", name="uq_gov_case_code"),
-        CheckConstraint("status IN ('NEW','TRIAGED','INVESTIGATING','AWAITING_APPROVAL','ANALYZED','CLOSED')", name="ck_gov_case_status"),
+        CheckConstraint(
+            "status IN ('NEW','TRIAGED','INVESTIGATING','AWAITING_APPROVAL','ANALYZED','CLOSED')", name="ck_gov_case_status"
+        ),
         Index("ix_gov_case_queue", "factory_id", "status", "due_at", "id"),
     )
     factory_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gov_factories.id", ondelete="RESTRICT"))
@@ -143,9 +163,13 @@ class CaseOccurrence(GovernanceEntity):
     __tablename__ = "gov_case_occurrences"
     __table_args__ = (
         UniqueConstraint("case_id", "occurrence_id", name="uq_gov_case_occurrence"),
-        Index("uq_gov_occurrence_primary_case", "occurrence_id", unique=True,
-              postgresql_where=text("is_primary AND unlinked_at IS NULL"),
-              sqlite_where=text("is_primary AND unlinked_at IS NULL")),
+        Index(
+            "uq_gov_occurrence_primary_case",
+            "occurrence_id",
+            unique=True,
+            postgresql_where=text("is_primary AND unlinked_at IS NULL"),
+            sqlite_where=text("is_primary AND unlinked_at IS NULL"),
+        ),
     )
     case_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gov_cases.id", ondelete="RESTRICT"))
     occurrence_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scrap_occurrences.id", ondelete="RESTRICT"))
@@ -173,7 +197,10 @@ class ImprovementAction(GovernanceEntity):
     __tablename__ = "gov_actions"
     __table_args__ = (
         UniqueConstraint("factory_id", "code", name="uq_gov_action_code"),
-        CheckConstraint("status IN ('PLANNED','IN_PROGRESS','IMPLEMENTED','UNDER_VERIFICATION','EFFECTIVE','CANCELLED')", name="ck_gov_action_status"),
+        CheckConstraint(
+            "status IN ('PLANNED','IN_PROGRESS','IMPLEMENTED','UNDER_VERIFICATION','EFFECTIVE','CANCELLED')",
+            name="ck_gov_action_status",
+        ),
         Index("ix_gov_action_board", "factory_id", "status", "due_at", "id"),
         Index("ix_gov_action_owner", "owner_id", "status", "due_at"),
     )
@@ -282,7 +309,9 @@ class AuditCycle(GovernanceEntity):
     __table_args__ = (
         UniqueConstraint("factory_id", "code", name="uq_gov_audit_code"),
         CheckConstraint("date_to >= date_from", name="ck_gov_audit_dates"),
-        CheckConstraint("status IN ('PLANNED','OPEN','FIELDWORK','IN_REVIEW','CLOSED','CANCELLED')", name="ck_gov_audit_status"),
+        CheckConstraint(
+            "status IN ('PLANNED','OPEN','FIELDWORK','IN_REVIEW','CLOSED','CANCELLED')", name="ck_gov_audit_status"
+        ),
     )
     factory_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gov_factories.id", ondelete="RESTRICT"))
     code: Mapped[str] = mapped_column(String(80))
@@ -317,8 +346,13 @@ class OutboxEvent(GovernanceEntity):
     __tablename__ = "gov_outbox_events"
     __table_args__ = (
         CheckConstraint("attempts >= 0", name="ck_gov_outbox_attempts"),
-        Index("ix_gov_outbox_pending", "available_at", "id",
-              postgresql_where=text("published_at IS NULL"), sqlite_where=text("published_at IS NULL")),
+        Index(
+            "ix_gov_outbox_pending",
+            "available_at",
+            "id",
+            postgresql_where=text("published_at IS NULL"),
+            sqlite_where=text("published_at IS NULL"),
+        ),
     )
     event_type: Mapped[str] = mapped_column(String(100))
     aggregate_id: Mapped[uuid.UUID] = mapped_column()

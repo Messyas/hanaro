@@ -19,6 +19,7 @@ Preservar Angular, FastAPI, SQLAlchemy, PostgreSQL e Taskiq. A base de ocorrênc
 | [05 — Indicadores, relatórios e desempenho](05-indicadores-relatorios-desempenho.md) | Como calcular indicadores, gerar PDF/PPTX/CSV/XLSX e usar projeções/materialized views? |
 | [06 — Telas e jornadas](06-telas-e-jornadas.md) | Como transformar as telas de referência em fluxos utilizáveis? |
 | [07 — Execução e critérios de aceite](07-roadmap-e-validacao.md) | Em qual ordem entregar, migrar, testar e operar? |
+| [08 — Persistência implementada](08-persistencia-implementada.md) | O que foi implementado nesta etapa e como migrar, popular e testar? |
 
 ## Decisões de partida
 
