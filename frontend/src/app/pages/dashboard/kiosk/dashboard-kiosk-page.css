@@ -836,25 +836,79 @@
 .dock-interval-select {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  font-size: 0.82rem;
-  color: var(--app-text-secondary);
-  font-weight: 600;
   flex-shrink: 0;
   white-space: nowrap;
 }
 
-.dock-interval-select select {
-  background: var(--app-surface-muted);
-  border: 1px solid var(--app-border);
-  border-radius: 0.4rem;
-  color: var(--app-text);
-  padding: 0.2rem 0.4rem;
-  font-size: 0.8rem;
-  font-weight: 700;
-  cursor: pointer;
-  outline: none;
-  flex-shrink: 0;
+.dock-interval-select app-list-filter-select,
+.kiosk-interval-dropdown {
+  display: inline-block;
+  min-width: 0 !important;
+}
+
+.kiosk-interval-dropdown .select-field {
+  gap: 0.45rem !important;
+  color: var(--app-text-secondary) !important;
+  font-size: 0.82rem !important;
+  font-weight: 700 !important;
+}
+
+.kiosk-interval-dropdown .select-field > span {
+  font-size: 0.82rem !important;
+  font-weight: 600 !important;
+  color: var(--app-text-secondary) !important;
+  text-transform: none !important;
+}
+
+.kiosk-interval-dropdown .select-anchor {
+  min-width: 4.8rem !important;
+}
+
+.kiosk-interval-dropdown .select-trigger {
+  min-height: 2.1rem !important;
+  height: 2.1rem !important;
+  padding: 0.25rem 0.65rem !important;
+  font-size: 0.82rem !important;
+  font-weight: 750 !important;
+  border-radius: 0.5rem !important;
+  background: var(--app-surface-muted) !important;
+  border: 1px solid var(--app-border) !important;
+  color: var(--app-text-strong) !important;
+  gap: 0.4rem !important;
+}
+
+.kiosk-interval-dropdown .select-trigger:hover {
+  border-color: var(--brand-primary) !important;
+}
+
+.kiosk-interval-dropdown .select-menu {
+  z-index: 10005 !important;
+  bottom: calc(100% + 0.5rem) !important;
+  background: var(--app-surface) !important;
+  border: 1px solid var(--app-border) !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4) !important;
+  border-radius: 0.75rem !important;
+  min-width: 5.5rem !important;
+  padding: 0.35rem !important;
+}
+
+:host-context([data-theme='light']) .kiosk-interval-dropdown .select-menu,
+:host([data-theme='light']) .kiosk-interval-dropdown .select-menu {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+}
+
+.kiosk-interval-dropdown .select-option {
+  font-size: 0.82rem !important;
+  font-weight: 600 !important;
+  padding: 0.45rem 0.75rem !important;
+  border-radius: 0.45rem !important;
+  color: var(--app-text) !important;
+}
+
+.kiosk-interval-dropdown .select-option:hover,
+.kiosk-interval-dropdown .select-option.selected {
+  background: var(--brand-primary-soft) !important;
+  color: var(--brand-primary) !important;
 }
 
 .dock-actions {

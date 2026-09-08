@@ -207,4 +207,10 @@ describe('DashboardKioskPage', () => {
     component.toggleTheme();
     expect(component.themeService.isDark()).toBe(initialDark);
   });
+
+  it('updates interval via onIntervalChange', () => {
+    component.onIntervalChange('30');
+    expect(component.store.settings().intervalSeconds).toBe(30);
+    expect(component.currentInterval()).toBe('30');
+  });
 });

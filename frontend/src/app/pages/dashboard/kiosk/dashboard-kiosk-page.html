@@ -540,16 +540,17 @@
       </button>
 
       <div class="dock-interval-select">
-        <label for="kiosk-interval">{{ text().interval }}:</label>
-        <select
-          id="kiosk-interval"
-          [value]="store.settings().intervalSeconds"
-          (change)="store.setIntervalSeconds(+$any($event.target).value)"
-        >
-          @for (sec of intervalOptions; track sec) {
-            <option [value]="sec">{{ sec }}{{ text().seconds }}</option>
-          }
-        </select>
+        <app-list-filter-select
+          class="kiosk-interval-dropdown"
+          [value]="currentInterval()"
+          [options]="intervalSelectOptions()"
+          [label]="text().interval + ':'"
+          [ariaLabel]="text().interval"
+          layout="inline"
+          [compact]="true"
+          menuPosition="up"
+          (changed)="onIntervalChange($event)"
+        />
       </div>
     </div>
 

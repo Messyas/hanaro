@@ -15,13 +15,17 @@ import { LanguageService } from '../../../i18n/language.service';
 import { ThemeService } from '../../../theme/theme.service';
 import { UiIcon } from '../../../ui-icon';
 import { DashboardPerformanceChart } from '../../../charts/dashboard-performance-chart';
+import {
+  ListFilterSelect,
+  ListFilterSelectOption,
+} from '../../../shared/list-filters/list-filter-select';
 import { DashboardKioskStore } from './dashboard-kiosk.store';
 import { KIOSK_TRANSLATIONS } from './dashboard-kiosk.translations';
 
 @Component({
   selector: 'app-dashboard-kiosk-page',
   standalone: true,
-  imports: [UiIcon, DashboardPerformanceChart],
+  imports: [UiIcon, DashboardPerformanceChart, ListFilterSelect],
   providers: [DashboardKioskStore],
   templateUrl: './dashboard-kiosk-page.html',
   styleUrl: './dashboard-kiosk-page.css',
@@ -58,6 +62,23 @@ export class DashboardKioskPage implements OnDestroy {
   });
 
   readonly intervalOptions = [10, 15, 30, 60] as const;
+
+  readonly intervalSelectOptions = computed<readonly ListFilterSelectOption[]>(() => {
+    const secSuffix = this.text().seconds;
+    return this.intervalOptions.map((sec) => ({
+      value: String(sec),
+      label: `${sec}${secSuffix}`,
+    }));
+  });
+
+  readonly currentInterval = computed(() => String(this.store.settings().intervalSeconds));
+
+  onIntervalChange(value: string): void {
+    const sec = Number(value);
+    if (!Number.isNaN(sec) && sec > 0) {
+      this.store.setIntervalSeconds(sec);
+    }
+  }
 
   constructor() {
     if (this.isBrowser) {
