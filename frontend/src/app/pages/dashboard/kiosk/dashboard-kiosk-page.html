@@ -555,8 +555,19 @@
 
     <div class="dock-divider"></div>
 
-    <!-- Fullscreen & Exit -->
+    <!-- Fullscreen, Theme & Exit -->
     <div class="dock-actions">
+      <button
+        type="button"
+        class="dock-action-btn dock-theme-btn"
+        [attr.aria-label]="themeService.isDark() ? text().lightTheme : text().darkTheme"
+        [attr.title]="themeService.isDark() ? text().lightTheme : text().darkTheme"
+        (click)="toggleTheme()"
+      >
+        <ui-icon [name]="themeService.isDark() ? 'sun' : 'moon'" />
+        <span>{{ themeService.isDark() ? text().lightTheme : text().darkTheme }}</span>
+      </button>
+
       <button
         type="button"
         class="dock-action-btn"

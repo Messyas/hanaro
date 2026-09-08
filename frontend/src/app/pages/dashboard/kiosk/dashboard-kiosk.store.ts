@@ -339,7 +339,7 @@ export class DashboardKioskStore {
 
     try {
       const year = new Date().getFullYear();
-      const [dashRes, summaryRes] = await Promise.allSettled([
+      const [dashRes, summaryRes, scrapRes, unreviewedRes, reviewedRes] = await Promise.allSettled([
         firstValueFrom(
           this.http.get<DashboardApiResponse>('/api/v1/dashboard/scrap', {
             params: new HttpParams()
@@ -351,6 +351,45 @@ export class DashboardKioskStore {
           }),
         ),
         firstValueFrom(this.http.get<ScrapSummaryResponse>('/api/v1/dashboard/scrap/summary')),
+        firstValueFrom(
+          this.http.get<{
+            items: Array<{
+              id: string;
+              item_code?: string;
+              product_alias?: string;
+              item_description?: string;
+              reason?: string;
+              requisition_reason?: string;
+              amount_usd?: string;
+              issue_amount_brl?: string;
+              receipt_department?: string;
+              organization_code?: string;
+            }>;
+            total_items: number;
+          }>('/api/v1/scrap', {
+            params: new HttpParams()
+              .set('page', '1')
+              .set('page_size', '4')
+              .set('sort_by', 'amount_usd')
+              .set('sort_order', 'desc'),
+          }),
+        ),
+        firstValueFrom(
+          this.http.get<{ total_items: number }>('/api/v1/scrap', {
+            params: new HttpParams()
+              .set('page', '1')
+              .set('page_size', '1')
+              .set('review_status', 'UNREVIEWED'),
+          }),
+        ),
+        firstValueFrom(
+          this.http.get<{ total_items: number }>('/api/v1/scrap', {
+            params: new HttpParams()
+              .set('page', '1')
+              .set('page_size', '1')
+              .set('review_status', 'REVIEWED'),
+          }),
+        ),
       ]);
 
       let hasApiData = false;
@@ -444,10 +483,12 @@ export class DashboardKioskStore {
 
       if (summaryRes.status === 'fulfilled' && summaryRes.value) {
         const s = summaryRes.value;
+        const unreviewedCount =
+          unreviewedRes.status === 'fulfilled' ? Number(unreviewedRes.value?.total_items ?? 0) : 0;
         this.summaryStats.set({
           scrapUnits: Math.round(Number(s.total_issue_quantity ?? 1247)),
           transactions: Number(s.total_records ?? 96),
-          criticalAlerts: 3,
+          criticalAlerts: Math.max(unreviewedCount > 0 ? Math.min(unreviewedCount, 99) : 0, 3),
         });
         if (s.last_successful_ingestion_at) {
           const dateObj = new Date(s.last_successful_ingestion_at);
@@ -455,6 +496,35 @@ export class DashboardKioskStore {
             `${String(dateObj.getDate()).padStart(2, '0')}/${String(dateObj.getMonth() + 1).padStart(2, '0')}/${dateObj.getFullYear()} ${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}`,
           );
         }
+      }
+
+      if (scrapRes.status === 'fulfilled' && scrapRes.value?.items?.length) {
+        this.priorityOccurrences.set(
+          scrapRes.value.items.slice(0, 3).map((item, idx) => ({
+            id: item.id || String(idx + 1),
+            partNumber: item.item_code || item.product_alias || 'N/A',
+            amountUsd: Number(item.amount_usd || item.issue_amount_brl || 0),
+            category: item.receipt_department || item.organization_code || 'General',
+            description:
+              item.item_description ||
+              item.reason ||
+              item.requisition_reason ||
+              'Ocorrência de refugo registrada no GERP',
+            critical: Number(item.amount_usd ?? item.issue_amount_brl ?? 0) > 1000,
+          })),
+        );
+      }
+
+      if (unreviewedRes.status === 'fulfilled' || reviewedRes.status === 'fulfilled') {
+        const pending =
+          unreviewedRes.status === 'fulfilled' ? Number(unreviewedRes.value?.total_items ?? 0) : 0;
+        const justified =
+          reviewedRes.status === 'fulfilled' ? Number(reviewedRes.value?.total_items ?? 0) : 0;
+        this.reviewStatusSummary.set({
+          pending,
+          inReview: 0,
+          justified,
+        });
       }
 
       this.dataState.set(hasApiData ? 'api' : 'simulated');
@@ -467,10 +537,7 @@ export class DashboardKioskStore {
     if (!this.isBrowser || !this.http) return;
     try {
       const year = new Date().getFullYear();
-      let params = new HttpParams()
-        .set('year', String(year))
-        .set('group_by', 'receipt_department')
-        .set('metric', 'records');
+      let params = new HttpParams().set('year', String(year)).set('metric', 'records');
 
       if (period === 'month') {
         const currentMonth = new Date().getMonth() + 1;
@@ -482,13 +549,21 @@ export class DashboardKioskStore {
           );
       }
 
-      const breakdown = await firstValueFrom(
-        this.http.get<ScrapBreakdownItemResponse[]>('/api/v1/dashboard/scrap/breakdown', {
-          params,
-        }),
-      );
+      const [linesRes, sectorsRes] = await Promise.allSettled([
+        firstValueFrom(
+          this.http.get<ScrapBreakdownItemResponse[]>('/api/v1/dashboard/scrap/breakdown', {
+            params: params.set('group_by', 'receipt_department'),
+          }),
+        ),
+        firstValueFrom(
+          this.http.get<ScrapBreakdownItemResponse[]>('/api/v1/dashboard/scrap/breakdown', {
+            params: params.set('group_by', 'department'),
+          }),
+        ),
+      ]);
 
-      if (breakdown && breakdown.length > 0) {
+      if (linesRes.status === 'fulfilled' && linesRes.value && linesRes.value.length > 0) {
+        const breakdown = linesRes.value;
         const total = breakdown.reduce((acc, curr) => acc + curr.record_count, 0);
         this.factoryOccurrencesTotal.set(total);
         this.factoryMonitoredLinesCount.set(breakdown.length);
@@ -510,6 +585,17 @@ export class DashboardKioskStore {
             occurrences: ranked[0].occurrences,
           });
         }
+      }
+
+      if (sectorsRes.status === 'fulfilled' && sectorsRes.value && sectorsRes.value.length > 0) {
+        const maxSec = Math.max(...sectorsRes.value.map((s) => s.record_count));
+        this.sectorsRanking.set(
+          sectorsRes.value.slice(0, 5).map((s) => ({
+            sector: s.key || 'Geral',
+            occurrences: s.record_count,
+            percentage: maxSec > 0 ? Math.round((s.record_count / maxSec) * 100) : 0,
+          })),
+        );
       }
     } catch {
       // Keep existing values gracefully

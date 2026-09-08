@@ -84,16 +84,16 @@ describe('DashboardKioskStore', () => {
     expect(store.settings().factoryPeriod).toBe('year');
 
     const req = httpMock.match((r) => r.url.includes('/breakdown'));
-    if (req.length) {
-      req[0].flush([
+    for (const r of req) {
+      r.flush([
         { key: 'BM1', metric: 12000, record_count: 5 },
         { key: 'G12', metric: 8000, record_count: 3 },
       ]);
-      await new Promise((resolve) => setTimeout(resolve, 0));
-      expect(store.factoryOccurrencesTotal()).toBe(8);
-      expect(store.assemblyLinesRanking().length).toBe(2);
-      expect(store.assemblyLinesRanking()[0].line).toBe('BM1');
     }
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(store.factoryOccurrencesTotal()).toBe(8);
+    expect(store.assemblyLinesRanking().length).toBe(2);
+    expect(store.assemblyLinesRanking()[0].line).toBe('BM1');
   });
 });
 
@@ -198,5 +198,13 @@ describe('DashboardKioskPage', () => {
     expect(component.isDockVisible()).toBe(false);
 
     vi.useRealTimers();
+  });
+
+  it('toggles theme between dark and light mode', () => {
+    const initialDark = component.themeService.isDark();
+    component.toggleTheme();
+    expect(component.themeService.isDark()).toBe(!initialDark);
+    component.toggleTheme();
+    expect(component.themeService.isDark()).toBe(initialDark);
   });
 });

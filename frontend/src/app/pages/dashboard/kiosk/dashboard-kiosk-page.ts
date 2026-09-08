@@ -26,13 +26,14 @@ import { KIOSK_TRANSLATIONS } from './dashboard-kiosk.translations';
   templateUrl: './dashboard-kiosk-page.html',
   styleUrl: './dashboard-kiosk-page.css',
   host: {
-    'data-theme': 'dark',
     class: 'dashboard-kiosk-root',
+    '[attr.data-theme]': 'themeService.resolvedTheme()',
   },
 })
 export class DashboardKioskPage implements OnDestroy {
   readonly store = inject(DashboardKioskStore);
   readonly language = inject(LanguageService);
+  readonly themeService = inject(ThemeService);
   private readonly router = inject(Router);
   private readonly platformId = inject(PLATFORM_ID);
   private readonly isBrowser = isPlatformBrowser(this.platformId);
@@ -119,6 +120,10 @@ export class DashboardKioskPage implements OnDestroy {
     } else {
       this.doc.exitFullscreen().catch(() => {});
     }
+  }
+
+  toggleTheme(): void {
+    this.themeService.setDarkMode(!this.themeService.isDark());
   }
 
   exitKiosk(): void {

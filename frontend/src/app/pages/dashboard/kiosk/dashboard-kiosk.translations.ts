@@ -23,6 +23,8 @@ export interface KioskTranslations {
   exitFullscreen: string;
   exit: string;
   seconds: string;
+  lightTheme: string;
+  darkTheme: string;
 
   ifCostAccumulated: string;
   samePeriodPrior: string;
@@ -100,6 +102,8 @@ export const KIOSK_TRANSLATIONS: Record<LanguageCode, KioskTranslations> = {
     exitFullscreen: 'Sair da tela cheia',
     exit: 'Sair',
     seconds: 's',
+    lightTheme: 'Tema Claro',
+    darkTheme: 'Tema Escuro',
 
     ifCostAccumulated: 'IF Cost acumulado',
     samePeriodPrior: 'Mesmo período {year}',
@@ -175,6 +179,8 @@ export const KIOSK_TRANSLATIONS: Record<LanguageCode, KioskTranslations> = {
     exitFullscreen: 'Exit Fullscreen',
     exit: 'Exit',
     seconds: 's',
+    lightTheme: 'Light Mode',
+    darkTheme: 'Dark Mode',
 
     ifCostAccumulated: 'Accumulated IF Cost',
     samePeriodPrior: 'Same period {year}',
@@ -250,6 +256,8 @@ export const KIOSK_TRANSLATIONS: Record<LanguageCode, KioskTranslations> = {
     exitFullscreen: '전체 화면 종료',
     exit: '나가기',
     seconds: '초',
+    lightTheme: '라이트 모드',
+    darkTheme: '다크 모드',
 
     ifCostAccumulated: '누적 IF Cost',
     samePeriodPrior: '{year}년 동기',
