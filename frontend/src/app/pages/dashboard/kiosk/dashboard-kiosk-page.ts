@@ -39,6 +39,8 @@ export class DashboardKioskPage implements OnDestroy {
   private readonly doc = inject(DOCUMENT);
 
   readonly isFullscreen = signal<boolean>(false);
+  readonly isDockVisible = signal<boolean>(true);
+  private dockTimeout: ReturnType<typeof setTimeout> | null = null;
   readonly currentYear = new Date().getFullYear();
   readonly previousYear = this.currentYear - 1;
 
@@ -60,6 +62,7 @@ export class DashboardKioskPage implements OnDestroy {
     if (this.isBrowser) {
       this.checkFullscreen();
       this.doc.addEventListener('fullscreenchange', this.onFullscreenChange);
+      this.startDockInactivityTimer();
     }
   }
 
@@ -67,7 +70,37 @@ export class DashboardKioskPage implements OnDestroy {
     if (this.isBrowser) {
       this.doc.removeEventListener('fullscreenchange', this.onFullscreenChange);
     }
+    this.clearDockTimer();
     this.store.destroy();
+  }
+
+  showDock(): void {
+    this.isDockVisible.set(true);
+    this.startDockInactivityTimer();
+  }
+
+  onDockMouseEnter(): void {
+    this.isDockVisible.set(true);
+    this.clearDockTimer();
+  }
+
+  onDockMouseLeave(): void {
+    this.startDockInactivityTimer();
+  }
+
+  private startDockInactivityTimer(): void {
+    this.clearDockTimer();
+    if (!this.isBrowser) return;
+    this.dockTimeout = setTimeout(() => {
+      this.isDockVisible.set(false);
+    }, 5000);
+  }
+
+  private clearDockTimer(): void {
+    if (this.dockTimeout) {
+      clearTimeout(this.dockTimeout);
+      this.dockTimeout = null;
+    }
   }
 
   private readonly onFullscreenChange = (): void => {
@@ -100,6 +133,8 @@ export class DashboardKioskPage implements OnDestroy {
     // Ignore if typing in an input
     const target = event.target as HTMLElement | null;
     if (target && (target.tagName === 'INPUT' || target.tagName === 'SELECT')) return;
+
+    this.showDock();
 
     switch (event.key) {
       case 'ArrowRight':

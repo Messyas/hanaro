@@ -41,10 +41,6 @@
         <ui-icon name="clock" />
         <span>{{ store.lastUpdated() }}</span>
       </div>
-      <div class="kiosk-status-pill" [class.api-connected]="store.dataState() === 'api'">
-        <span class="status-dot"></span>
-        <span>{{ store.dataState() === 'api' ? text().apiData : text().simulatedData }}</span>
-      </div>
     </div>
   </header>
 
@@ -442,8 +438,23 @@
     }
   </div>
 
+  <!-- Hover / touch trigger zone for bottom dock -->
+  <div
+    class="kiosk-dock-trigger-zone"
+    aria-hidden="true"
+    (mouseenter)="showDock()"
+    (mousemove)="showDock()"
+    (touchstart)="showDock()"
+  ></div>
+
   <!-- Floating Bottom Glass Dock -->
-  <nav class="kiosk-dock" aria-label="Controles do Modo Kiosk">
+  <nav
+    class="kiosk-dock"
+    [class.dock-hidden]="!isDockVisible()"
+    (mouseenter)="onDockMouseEnter()"
+    (mouseleave)="onDockMouseLeave()"
+    aria-label="Controles do Modo Kiosk"
+  >
     <!-- Slide Tabs -->
     <div class="dock-tabs">
       <button
@@ -584,12 +595,4 @@
       }
     </div>
   </nav>
-
-  <!-- Scheduled Refresh Subtle Footer Label -->
-  <aside class="kiosk-footer-status">
-    <span>HANARO · Material Scrap / IF Cost</span>
-    <span
-      >{{ text().updatedAt }} {{ store.lastUpdated() }} · {{ text().scheduledEvery2Hours }}</span
-    >
-  </aside>
 </main>

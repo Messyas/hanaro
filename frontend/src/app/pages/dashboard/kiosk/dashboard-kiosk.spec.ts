@@ -173,4 +173,30 @@ describe('DashboardKioskPage', () => {
     component.exitKiosk();
     expect(navigateSpy).toHaveBeenCalledWith(['/dashboard']);
   });
+
+  it('handles dock visibility with auto-hide and reveal', () => {
+    vi.useFakeTimers();
+    component.showDock();
+    expect(component.isDockVisible()).toBe(true);
+
+    // After 5s without interaction, dock hides
+    vi.advanceTimersByTime(5000);
+    expect(component.isDockVisible()).toBe(false);
+
+    // Mouse movement or trigger reveals dock
+    component.showDock();
+    expect(component.isDockVisible()).toBe(true);
+
+    // Mouse entering dock keeps it visible
+    component.onDockMouseEnter();
+    vi.advanceTimersByTime(6000);
+    expect(component.isDockVisible()).toBe(true);
+
+    // Mouse leaving restarts the 5s timer
+    component.onDockMouseLeave();
+    vi.advanceTimersByTime(5000);
+    expect(component.isDockVisible()).toBe(false);
+
+    vi.useRealTimers();
+  });
 });
