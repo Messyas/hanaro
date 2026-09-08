@@ -4,6 +4,14 @@ import { DashboardShell } from './layouts/dashboard-shell/dashboard-shell';
 
 export const routes: Routes = [
   {
+    path: 'dashboard/kiosk',
+    title: 'Modo Kiosk | Hanaro',
+    loadComponent: () =>
+      import('./pages/dashboard/kiosk/dashboard-kiosk-page').then(
+        (module) => module.DashboardKioskPage,
+      ),
+  },
+  {
     path: '',
     component: DashboardShell,
     children: [

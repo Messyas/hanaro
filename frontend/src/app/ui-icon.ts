@@ -40,6 +40,11 @@ export type IconName =
   | 'trash'
   | 'user-plus'
   | 'users'
+  | 'tv'
+  | 'maximize'
+  | 'minimize'
+  | 'play'
+  | 'pause'
   | 'x';
 
 @Component({
@@ -230,6 +235,27 @@ export type IconName =
         }
         @case ('x') {
           <path d="m6 6 12 12M18 6 6 18" />
+        }
+        @case ('tv') {
+          <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+          <path d="M17 2l-5 5-5-5" />
+        }
+        @case ('maximize') {
+          <path
+            d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"
+          />
+        }
+        @case ('minimize') {
+          <path
+            d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"
+          />
+        }
+        @case ('play') {
+          <polygon points="5 3 19 12 5 21 5 3" fill="currentColor" />
+        }
+        @case ('pause') {
+          <rect x="6" y="4" width="4" height="16" rx="1" fill="currentColor" />
+          <rect x="14" y="4" width="4" height="16" rx="1" fill="currentColor" />
         }
       }
     </svg>

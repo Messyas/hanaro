@@ -1,0 +1,917 @@
+:host {
+  display: block;
+  width: 100vw;
+  min-height: 100vh;
+  background-color: #000000;
+  color: #f5f5f5;
+  font-family: 'Fustat Variable', Fustat, sans-serif;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  user-select: none;
+}
+
+.kiosk-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 1.5rem 2.5rem 6.5rem 2.5rem;
+  box-sizing: border-box;
+  position: relative;
+}
+
+/* ─── Header ────────────────────────────────────────── */
+.kiosk-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.kiosk-tag {
+  display: block;
+  font-size: clamp(0.75rem, 0.9vw, 1.1rem);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #e7194a;
+  text-transform: uppercase;
+  margin-bottom: 0.25rem;
+}
+
+.kiosk-title {
+  font-size: clamp(1.6rem, 2.5vw, 3rem);
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.kiosk-header-right {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.kiosk-timestamp {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #8a8a8a;
+}
+
+.kiosk-timestamp ui-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.kiosk-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  background: #1e1e1e;
+  border: 1px solid #2c2c2c;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #5ad6b3;
+}
+
+.status-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: #5ad6b3;
+  box-shadow: 0 0 8px #5ad6b3;
+}
+
+.kiosk-status-pill.api-connected {
+  color: #22c55e;
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.kiosk-status-pill.api-connected .status-dot {
+  background: #22c55e;
+  box-shadow: 0 0 8px #22c55e;
+}
+
+/* ─── Stage & Slides ────────────────────────────────── */
+.kiosk-stage {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.kiosk-slide {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  animation: slideFadeIn 350ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ─── KPI Grid (4 Top Cards) ────────────────────────── */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+}
+
+.kpi-card {
+  background: #141414;
+  border: 1px solid #242424;
+  border-radius: 1rem;
+  padding: 1.2rem 1.4rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  transition: border-color 200ms ease;
+}
+
+.kpi-card:hover {
+  border-color: #383838;
+}
+
+.kpi-label {
+  font-size: clamp(0.75rem, 0.85vw, 1rem);
+  font-weight: 600;
+  color: #8a8a8a;
+  margin-bottom: 0.4rem;
+}
+
+.kpi-value-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.kpi-value {
+  font-size: clamp(1.6rem, 2.2vw, 2.75rem);
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.kpi-subtext {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #616161;
+  margin-top: 0.5rem;
+}
+
+.text-brand {
+  color: #e7194a !important;
+}
+
+.text-success {
+  color: #22c55e !important;
+}
+
+.text-danger {
+  color: #e7194a !important;
+}
+
+/* ─── Visual Split (Chart + Side Panel) ─────────────── */
+.visual-split {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.25rem;
+  flex: 1 1 auto;
+}
+
+.chart-panel,
+.side-panel,
+.kiosk-card-panel,
+.gamified-panel,
+.priority-list-panel {
+  background: #141414;
+  border: 1px solid #242424;
+  border-radius: 1rem;
+  padding: 1.4rem 1.6rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 1rem;
+}
+
+.panel-title {
+  font-size: clamp(1.05rem, 1.25vw, 1.5rem);
+  font-weight: 750;
+  color: #f5f5f5;
+  margin: 0;
+}
+
+.panel-meta-caption {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #8a8a8a;
+}
+
+.chart-wrapper {
+  flex: 1 1 auto;
+  min-height: 18rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* ─── Horizontal Bar Rankings (Pareto / Componentes) ── */
+.bar-ranking-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  justify-content: space-around;
+  flex: 1 1 auto;
+}
+
+.bar-ranking-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.bar-ranking-labels {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: clamp(0.85rem, 1vw, 1.15rem);
+  font-weight: 700;
+}
+
+.item-name {
+  color: #f5f5f5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 70%;
+}
+
+.item-value {
+  color: #e7194a;
+  font-weight: 800;
+}
+
+.bar-track {
+  width: 100%;
+  height: 0.65rem;
+  background: #242424;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #d11442 0%, #e7194a 100%);
+  transition: width 600ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.brand-glow {
+  box-shadow: 0 0 10px rgba(231, 25, 74, 0.45);
+}
+
+/* ─── Bottom Stats Ribbon (Slide 0) ─────────────────── */
+.stats-ribbon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 0.8rem 1.5rem;
+  background: transparent;
+  font-size: 1rem;
+  color: #a3a3a3;
+  margin-top: 0.5rem;
+}
+
+.ribbon-item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+
+.ribbon-item strong {
+  color: #ffffff;
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+.ribbon-divider {
+  color: #404040;
+}
+
+/* ─── Slide 1: Modo Fábrica Toolbar ─────────────────── */
+.factory-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+}
+
+.period-pill-toggle {
+  display: inline-flex;
+  background: #1e1e1e;
+  border: 1px solid #2c2c2c;
+  border-radius: 999px;
+  padding: 0.2rem;
+  gap: 0.2rem;
+}
+
+.period-pill {
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #8a8a8a;
+  padding: 0.35rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 750;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.period-pill.active {
+  background: #e7194a;
+  color: #ffffff;
+}
+
+.factory-period-hint {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #616161;
+}
+
+/* ─── Slide 1: Gamified Assembly Lines Ranking ───────── */
+.gamified-panel {
+  flex: 1.4;
+}
+
+.gamified-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  flex: 1 1 auto;
+  justify-content: space-around;
+}
+
+.gamified-row {
+  display: grid;
+  grid-template-columns: 2.5rem 7rem 1fr 3rem 2.5rem;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid transparent;
+  transition: all 200ms ease;
+}
+
+.gamified-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: #333333;
+}
+
+.gamified-row.rank-gold {
+  background: rgba(231, 25, 74, 0.08);
+  border-color: rgba(231, 25, 74, 0.3);
+}
+
+.rank-badge {
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 1rem;
+  background: #242424;
+  color: #f5f5f5;
+}
+
+.rank-badge[data-rank='1'] {
+  background: #e7194a;
+  color: #ffffff;
+  box-shadow: 0 0 14px rgba(231, 25, 74, 0.6);
+}
+
+.rank-badge[data-rank='2'] {
+  background: #3a3a3a;
+  color: #ffffff;
+}
+
+.rank-badge[data-rank='3'] {
+  background: #2c2c2c;
+  color: #f5f5f5;
+}
+
+.line-name {
+  font-size: clamp(1rem, 1.2vw, 1.35rem);
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.gamified-track {
+  height: 0.75rem;
+  background: #242424;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.gamified-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #d11442 0%, #e7194a 100%);
+  transition: width 600ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.gamified-fill.top-fill {
+  box-shadow: 0 0 12px rgba(231, 25, 74, 0.6);
+}
+
+.occurrence-count {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #ffffff;
+  text-align: right;
+}
+
+.variation-badge {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #8a8a8a;
+  text-align: center;
+}
+
+/* ─── Slide 2: Dual Panels & Highlights ──────────────── */
+.dual-panel-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  flex: 1 1 auto;
+}
+
+.highlight-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+.highlight-card {
+  background: #141414;
+  border: 1px solid #242424;
+  border-radius: 1rem;
+  padding: 1.25rem 1.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.highlight-caption {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #8a8a8a;
+}
+
+.highlight-body {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.highlight-code {
+  font-size: clamp(1.2rem, 1.6vw, 2rem);
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.highlight-figure {
+  font-size: clamp(1.2rem, 1.6vw, 2rem);
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.highlight-footnote {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #616161;
+}
+
+/* ─── Slide 3: Priorities & Review Status ────────────── */
+.priority-list-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  justify-content: space-around;
+}
+
+.priority-card {
+  display: grid;
+  grid-template-columns: 14rem 1fr;
+  gap: 1.5rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid #242424;
+  border-left: 4px solid #e7194a;
+  border-radius: 0.75rem;
+  padding: 1.2rem 1.4rem;
+  align-items: center;
+}
+
+.priority-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.4rem;
+}
+
+.critical-badge {
+  background: rgba(231, 25, 74, 0.2);
+  border: 1px solid #e7194a;
+  color: #e7194a;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.35rem;
+}
+
+.part-number {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.priority-amount {
+  font-size: clamp(1.3rem, 1.7vw, 2.1rem);
+  font-weight: 800;
+  color: #e7194a;
+}
+
+.priority-category {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0 0 0.35rem 0;
+}
+
+.priority-description {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #a3a3a3;
+  margin: 0;
+  line-height: 1.35;
+}
+
+.side-subpanel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  margin-bottom: 1.5rem;
+}
+
+.side-subpanel:last-child {
+  margin-bottom: 0;
+}
+
+.review-status-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+.status-counter {
+  background: #1e1e1e;
+  border: 1px solid #2c2c2c;
+  border-radius: 0.75rem;
+  padding: 1rem 0.8rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.counter-num {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.counter-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #8a8a8a;
+}
+
+/* ─── Floating Bottom Glass Dock ─────────────────────── */
+.kiosk-dock {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 1.25rem;
+  background: rgba(20, 20, 20, 0.88);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  z-index: 9999;
+}
+
+.dock-tabs {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.dock-tab-btn {
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #a3a3a3;
+  padding: 0.45rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 750;
+  cursor: pointer;
+  transition: all 180ms ease;
+}
+
+.dock-tab-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.dock-tab-btn.active {
+  background: #e7194a;
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(231, 25, 74, 0.4);
+}
+
+.dock-divider {
+  width: 1px;
+  height: 1.4rem;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.dock-nav-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.dock-icon-btn {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: 0;
+  background: transparent;
+  color: #a3a3a3;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  padding: 0;
+  transition: all 150ms ease;
+}
+
+.dock-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.dock-playback-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: #f5f5f5;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.dock-playback-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.dock-playback-btn ui-icon {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+.dock-settings {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.dock-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 0;
+  background: transparent;
+  color: #8a8a8a;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+  transition: all 150ms ease;
+}
+
+.dock-toggle-btn .toggle-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: #555555;
+  transition: all 150ms ease;
+}
+
+.dock-toggle-btn.active {
+  color: #f5f5f5;
+}
+
+.dock-toggle-btn.active .toggle-dot {
+  background: #22c55e;
+  box-shadow: 0 0 8px #22c55e;
+}
+
+.dock-interval-select {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  color: #8a8a8a;
+  font-weight: 600;
+}
+
+.dock-interval-select select {
+  background: #141414;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 0.4rem;
+  color: #f5f5f5;
+  padding: 0.2rem 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  outline: none;
+}
+
+.dock-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.dock-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  border: 0;
+  background: rgba(255, 255, 255, 0.06);
+  color: #f5f5f5;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.dock-action-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.dock-action-btn ui-icon {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.dock-exit-btn:hover {
+  background: rgba(231, 25, 74, 0.3);
+  color: #e7194a;
+}
+
+.dock-pagination {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.2rem 0.6rem;
+}
+
+.pagination-text {
+  font-size: 0.8rem;
+  font-weight: 750;
+  color: #8a8a8a;
+}
+
+.pagination-dots {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.pagination-dots .dot {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: #444444;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.pagination-dots .dot.active {
+  background: #e7194a;
+  transform: scale(1.3);
+  box-shadow: 0 0 6px #e7194a;
+}
+
+.progress-mini-bar {
+  position: absolute;
+  bottom: -0.3rem;
+  left: 0.6rem;
+  height: 2px;
+  background: #e7194a;
+  border-radius: 999px;
+  transition: width 1s linear;
+}
+
+/* ─── Footer Status (Bottom Corner) ──────────────────── */
+.kiosk-footer-status {
+  position: absolute;
+  bottom: 0.75rem;
+  left: 2.5rem;
+  right: 2.5rem;
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #555555;
+  pointer-events: none;
+}
+
+/* ─── Responsive Media Queries ───────────────────────── */
+@media (max-width: 1200px) {
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .visual-split {
+    grid-template-columns: 1fr;
+  }
+  .dual-panel-grid {
+    grid-template-columns: 1fr;
+  }
+  .highlight-grid {
+    grid-template-columns: 1fr;
+  }
+  .priority-card {
+    grid-template-columns: 1fr;
+  }
+  .dock-settings {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .kiosk-container {
+    padding: 1rem 1rem 6rem 1rem;
+  }
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+  .dock-tabs {
+    display: none;
+  }
+  .kiosk-footer-status {
+    display: none;
+  }
+}

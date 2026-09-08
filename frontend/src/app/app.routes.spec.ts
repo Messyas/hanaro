@@ -2,7 +2,7 @@ import { routes } from './app.routes';
 import { authenticatedGuard } from './core/auth/auth.guard';
 
 describe('application route access policy', () => {
-  const children = routes[0].children ?? [];
+  const children = routes.find((r) => r.children?.length)?.children ?? [];
 
   it('guards every non-public application route', () => {
     for (const path of ['execucoes', 'base-de-scrap', 'relatorios', 'perfil']) {
