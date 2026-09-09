@@ -1,4 +1,12 @@
-import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  HostListener,
+  OnInit,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -84,6 +92,18 @@ const COPY = {
     archive: 'Arquivado',
     status: 'Status',
     requiredTitle: 'Informe um título.',
+    savedAt: 'Salvo às',
+    allSaved: 'Todas as alterações salvas',
+    retrySave: 'Tentar salvar novamente',
+    addOccurrences: 'Adicionar ocorrências',
+    addReports: 'Vincular relatórios',
+    noOccurrencesSelected: 'Nenhuma ocorrência direta vinculada a este rascunho.',
+    noReportsSelected: 'Nenhum relatório publicado vinculado a este rascunho.',
+    drawerOccurrencesTitle: 'Adicionar Ocorrências Revisadas',
+    drawerReportsTitle: 'Vincular Relatórios Publicados',
+    selectAll: 'Selecionar visíveis',
+    clearSelection: 'Limpar seleção',
+    added: 'Adicionado',
   },
   en: {
     title: 'Scrap Reports',
@@ -145,6 +165,18 @@ const COPY = {
     archive: 'Archived',
     status: 'Status',
     requiredTitle: 'Enter a title.',
+    savedAt: 'Saved at',
+    allSaved: 'All changes saved',
+    retrySave: 'Retry saving',
+    addOccurrences: 'Add occurrences',
+    addReports: 'Link reports',
+    noOccurrencesSelected: 'No direct occurrences linked to this draft yet.',
+    noReportsSelected: 'No published reports linked to this draft yet.',
+    drawerOccurrencesTitle: 'Add Reviewed Occurrences',
+    drawerReportsTitle: 'Link Published Reports',
+    selectAll: 'Select visible',
+    clearSelection: 'Clear selection',
+    added: 'Added',
   },
   ko: {
     title: '스크랩 보고서',
@@ -205,6 +237,18 @@ const COPY = {
     archive: '보관됨',
     status: '상태',
     requiredTitle: '제목을 입력하세요.',
+    savedAt: '저장됨: ',
+    allSaved: '모든 변경사항 저장됨',
+    retrySave: '다시 저장',
+    addOccurrences: '발생 내역 추가',
+    addReports: '보고서 연결',
+    noOccurrencesSelected: '이 초안에 연결된 직접 발생 내역이 없습니다.',
+    noReportsSelected: '이 초안에 연결된 게시된 보고서가 없습니다.',
+    drawerOccurrencesTitle: '검토된 발생 내역 추가',
+    drawerReportsTitle: '게시된 보고서 연결',
+    selectAll: '표시된 항목 선택',
+    clearSelection: '선택 해제',
+    added: '추가됨',
   },
 } as const;
 
@@ -258,12 +302,22 @@ export class ReportsPage implements OnInit {
   readonly versions = signal<ReportVersion[]>([]);
   readonly exportJobs = signal<Record<string, ExportJob>>({});
 
+  private readonly draftDebounce = new Subject<void>();
+  readonly saveStatus = signal<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  readonly lastSavedTime = signal<string | null>(null);
+  readonly activeDrawer = signal<'occurrence' | 'report' | null>(null);
+
   ngOnInit(): void {
     this.searchChanges
       .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
         this.page.set(1);
         this.loadReports();
+      });
+    this.draftDebounce
+      .pipe(debounceTime(700), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.saveDraft();
       });
     this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
       const reportId = params.get('reportId');
@@ -356,6 +410,8 @@ export class ReportsPage implements OnInit {
           this.active.set(report);
           this.draftTitle.set(report.title);
           this.draftDescription.set(report.description);
+          this.saveStatus.set('saved');
+          this.lastSavedTime.set(this.formatTime(new Date(report.updated_at || new Date())));
           this.loadWorkspace(reportId);
         },
         error: (error) => {
@@ -430,6 +486,8 @@ export class ReportsPage implements OnInit {
         next: (updated) => {
           this.active.set(updated);
           this.saving.set(false);
+          this.saveStatus.set('saved');
+          this.lastSavedTime.set(this.formatTime(new Date()));
           this.selectedOccurrences.set(new Set());
           this.selectedReports.set(new Set());
           this.loadWorkspace();
@@ -437,10 +495,62 @@ export class ReportsPage implements OnInit {
         error: (error) => this.handleWorkspaceError(error),
       });
   }
+  onTitleChange(value: string): void {
+    this.draftTitle.set(value);
+    this.saveStatus.set('saving');
+    this.draftDebounce.next();
+  }
+  onDescriptionChange(value: string): void {
+    this.draftDescription.set(value);
+    this.saveStatus.set('saving');
+    this.draftDebounce.next();
+  }
+  openDrawer(kind: 'occurrence' | 'report'): void {
+    this.activeDrawer.set(kind);
+    this.loadCandidates();
+  }
+  closeDrawer(): void {
+    this.activeDrawer.set(null);
+  }
+  onDrawerSearch(kind: 'occurrence' | 'report', value: string): void {
+    if (kind === 'occurrence') {
+      this.occurrenceSearch.set(value);
+    } else {
+      this.sourceReportSearch.set(value);
+    }
+    this.loadCandidates();
+  }
+  selectAllDrawer(kind: 'occurrence' | 'report'): void {
+    const report = this.active();
+    if (!report) return;
+    if (kind === 'occurrence') {
+      const available = this.eligible()
+        .filter((item) => !report.occurrence_source_ids.includes(item.id))
+        .map((item) => item.id);
+      this.selectedOccurrences.set(new Set(available));
+    } else {
+      const available = this.sourceReports()
+        .filter((item) => !report.report_source_ids.includes(item.id))
+        .map((item) => item.id);
+      this.selectedReports.set(new Set(available));
+    }
+  }
+  clearDrawerSelection(kind: 'occurrence' | 'report'): void {
+    if (kind === 'occurrence') {
+      this.selectedOccurrences.set(new Set());
+    } else {
+      this.selectedReports.set(new Set());
+    }
+  }
+  addSelectedFromDrawer(kind: 'occurrence' | 'report'): void {
+    this.addSelected(kind);
+    this.closeDrawer();
+  }
   saveDraft(): void {
     const report = this.active();
     if (!report || !this.draftTitle().trim()) return;
     this.saving.set(true);
+    this.saveStatus.set('saving');
     this.workspaceError.set(null);
     this.service
       .update(report.id, report.version, this.draftTitle().trim(), this.draftDescription().trim())
@@ -449,9 +559,14 @@ export class ReportsPage implements OnInit {
         next: (updated) => {
           this.active.set({ ...report, ...updated });
           this.saving.set(false);
+          this.saveStatus.set('saved');
+          this.lastSavedTime.set(this.formatTime(new Date()));
           this.refreshPreview();
         },
-        error: (error) => this.handleWorkspaceError(error),
+        error: (error) => {
+          this.saveStatus.set('error');
+          this.handleWorkspaceError(error);
+        },
       });
   }
   refreshPreview(): void {
@@ -575,5 +690,26 @@ export class ReportsPage implements OnInit {
       this.workspaceError.set(this.c().conflict);
       this.openReport(this.active()!.id, false, true);
     } else this.workspaceError.set(this.message(error));
+  }
+  @HostListener('window:keydown', ['$event'])
+  handleKeyboard(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      if (this.activeDrawer()) {
+        this.closeDrawer();
+      } else if (this.showCreate()) {
+        this.showCreate.set(false);
+      }
+    } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
+      if (this.active()) {
+        event.preventDefault();
+        this.saveDraft();
+      }
+    }
+  }
+  formatTime(date: Date): string {
+    return new Intl.DateTimeFormat(this.locale(), {
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(date);
   }
 }
