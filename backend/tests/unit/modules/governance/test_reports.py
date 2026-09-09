@@ -28,6 +28,34 @@ from ..material_scrap.helpers import canonical_fixture
 
 
 @pytest.mark.asyncio
+async def test_report_creation_provisions_the_internal_local_factory() -> None:
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    async with engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all)
+    sessions = async_sessionmaker(engine, expire_on_commit=False)
+    async with sessions() as db:
+        user = User(name="Analyst", username="analyst", email="analyst@example.com", hashed_password="hash")
+        db.add(user)
+        await db.flush()
+
+        report = await create_report(
+            db,
+            title="First report",
+            description="",
+            factory_id=None,
+            actor_id=user.id,
+            correlation_id="test-local-factory",
+        )
+
+        factory = await db.get(Factory, report.factory_id)
+        assert factory is not None
+        assert factory.code == "HANARO-LOCAL"
+        assert factory.name == "Fábrica local"
+        assert factory.is_active is True
+    await engine.dispose()
+
+
+@pytest.mark.asyncio
 async def test_report_draft_composition_publication_and_real_exports(tmp_path: Path) -> None:
     engine = create_async_engine("sqlite+aiosqlite:///:memory:")
     async with engine.begin() as connection:

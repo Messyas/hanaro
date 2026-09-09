@@ -35,6 +35,8 @@ from .models import (
 
 MAX_SOURCES = 500
 MAX_DEPTH = 12
+DEFAULT_FACTORY_CODE = "HANARO-LOCAL"
+DEFAULT_FACTORY_NAME = "Fábrica local"
 
 
 def _json_default(value: Any) -> str:
@@ -86,8 +88,19 @@ async def _factory(db: AsyncSession, requested: uuid.UUID | None) -> Factory:
             raise ReportValidationError("Factory is not active or does not exist")
         return factory
     factory = (await db.scalars(select(Factory).where(Factory.is_active.is_(True)).order_by(Factory.code, Factory.id))).first()
-    if factory is None:
-        raise ReportValidationError("No active factory is configured")
+    if factory is not None:
+        return factory
+
+    # Hanaro is deployed inside one plant. The Factory entity remains an
+    # internal partition key for traceability, not a setup task exposed to
+    # operators. Provision its singleton lazily for a fresh local database.
+    factory = await db.scalar(select(Factory).where(Factory.code == DEFAULT_FACTORY_CODE))
+    if factory is not None:
+        factory.is_active = True
+    else:
+        factory = Factory(code=DEFAULT_FACTORY_CODE, name=DEFAULT_FACTORY_NAME)
+        db.add(factory)
+    await db.flush()
     return factory
 
 
