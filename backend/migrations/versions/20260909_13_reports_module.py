@@ -57,55 +57,65 @@ def upgrade() -> None:
             sa.Column("content_type", sa.String(length=100), nullable=False, server_default="application/octet-stream")
         )
 
-    op.create_table(
-        "gov_report_occurrence_sources",
-        sa.Column("report_id", sa.Uuid(), nullable=False),
-        sa.Column("occurrence_id", sa.Uuid(), nullable=False),
-        sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
-        sa.ForeignKeyConstraint(["report_id"], ["gov_reports.id"], ondelete="CASCADE"),
-        sa.ForeignKeyConstraint(["occurrence_id"], ["scrap_occurrences.id"], ondelete="RESTRICT"),
-        sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("report_id", "occurrence_id", name="uq_gov_report_occurrence_source"),
-    )
-    op.create_index("ix_gov_report_occurrence_sources_report_id", "gov_report_occurrence_sources", ["report_id"])
-    op.create_index(
-        "ix_gov_report_occurrence_source_occurrence", "gov_report_occurrence_sources", ["occurrence_id", "report_id"]
-    )
+    # ``start_development`` historically calls metadata.create_all before
+    # Alembic. With the runtime models already containing this feature, that
+    # bootstrap may have created these new link tables before this revision is
+    # stamped. Preserve that local schema and migrate its remaining columns.
+    existing_tables = set(sa.inspect(op.get_bind()).get_table_names())
+    if "gov_report_occurrence_sources" not in existing_tables:
+        op.create_table(
+            "gov_report_occurrence_sources",
+            sa.Column("report_id", sa.Uuid(), nullable=False),
+            sa.Column("occurrence_id", sa.Uuid(), nullable=False),
+            sa.Column("id", sa.Uuid(), nullable=False),
+            sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+            sa.ForeignKeyConstraint(["report_id"], ["gov_reports.id"], ondelete="CASCADE"),
+            sa.ForeignKeyConstraint(["occurrence_id"], ["scrap_occurrences.id"], ondelete="RESTRICT"),
+            sa.PrimaryKeyConstraint("id"),
+            sa.UniqueConstraint("report_id", "occurrence_id", name="uq_gov_report_occurrence_source"),
+        )
+        op.create_index("ix_gov_report_occurrence_sources_report_id", "gov_report_occurrence_sources", ["report_id"])
+        op.create_index(
+            "ix_gov_report_occurrence_source_occurrence",
+            "gov_report_occurrence_sources",
+            ["occurrence_id", "report_id"],
+        )
 
-    op.create_table(
-        "gov_report_sources",
-        sa.Column("report_id", sa.Uuid(), nullable=False),
-        sa.Column("source_report_id", sa.Uuid(), nullable=False),
-        sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
-        sa.CheckConstraint("report_id <> source_report_id", name="ck_gov_report_no_self_source"),
-        sa.ForeignKeyConstraint(["report_id"], ["gov_reports.id"], ondelete="CASCADE"),
-        sa.ForeignKeyConstraint(["source_report_id"], ["gov_reports.id"], ondelete="RESTRICT"),
-        sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("report_id", "source_report_id", name="uq_gov_report_source"),
-    )
-    op.create_index("ix_gov_report_sources_report_id", "gov_report_sources", ["report_id"])
-    op.create_index("ix_gov_report_source_reverse", "gov_report_sources", ["source_report_id", "report_id"])
+    if "gov_report_sources" not in existing_tables:
+        op.create_table(
+            "gov_report_sources",
+            sa.Column("report_id", sa.Uuid(), nullable=False),
+            sa.Column("source_report_id", sa.Uuid(), nullable=False),
+            sa.Column("id", sa.Uuid(), nullable=False),
+            sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+            sa.CheckConstraint("report_id <> source_report_id", name="ck_gov_report_no_self_source"),
+            sa.ForeignKeyConstraint(["report_id"], ["gov_reports.id"], ondelete="CASCADE"),
+            sa.ForeignKeyConstraint(["source_report_id"], ["gov_reports.id"], ondelete="RESTRICT"),
+            sa.PrimaryKeyConstraint("id"),
+            sa.UniqueConstraint("report_id", "source_report_id", name="uq_gov_report_source"),
+        )
+        op.create_index("ix_gov_report_sources_report_id", "gov_report_sources", ["report_id"])
+        op.create_index("ix_gov_report_source_reverse", "gov_report_sources", ["source_report_id", "report_id"])
 
-    op.create_table(
-        "gov_report_version_sources",
-        sa.Column("report_version_id", sa.Uuid(), nullable=False),
-        sa.Column("source_report_id", sa.Uuid(), nullable=False),
-        sa.Column("source_report_version_id", sa.Uuid(), nullable=False),
-        sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
-        sa.ForeignKeyConstraint(["report_version_id"], ["gov_report_versions.id"], ondelete="RESTRICT"),
-        sa.ForeignKeyConstraint(["source_report_id"], ["gov_reports.id"], ondelete="RESTRICT"),
-        sa.ForeignKeyConstraint(["source_report_version_id"], ["gov_report_versions.id"], ondelete="RESTRICT"),
-        sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("report_version_id", "source_report_version_id", name="uq_gov_report_version_source"),
-    )
-    op.create_index(
-        "ix_gov_report_version_source_report",
-        "gov_report_version_sources",
-        ["source_report_id", "report_version_id"],
-    )
+    if "gov_report_version_sources" not in existing_tables:
+        op.create_table(
+            "gov_report_version_sources",
+            sa.Column("report_version_id", sa.Uuid(), nullable=False),
+            sa.Column("source_report_id", sa.Uuid(), nullable=False),
+            sa.Column("source_report_version_id", sa.Uuid(), nullable=False),
+            sa.Column("id", sa.Uuid(), nullable=False),
+            sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+            sa.ForeignKeyConstraint(["report_version_id"], ["gov_report_versions.id"], ondelete="RESTRICT"),
+            sa.ForeignKeyConstraint(["source_report_id"], ["gov_reports.id"], ondelete="RESTRICT"),
+            sa.ForeignKeyConstraint(["source_report_version_id"], ["gov_report_versions.id"], ondelete="RESTRICT"),
+            sa.PrimaryKeyConstraint("id"),
+            sa.UniqueConstraint("report_version_id", "source_report_version_id", name="uq_gov_report_version_source"),
+        )
+        op.create_index(
+            "ix_gov_report_version_source_report",
+            "gov_report_version_sources",
+            ["source_report_id", "report_version_id"],
+        )
 
 
 def downgrade() -> None:

@@ -21,4 +21,28 @@ def test_retry_columns_identify_latest_legacy_revision() -> None:
     }
 
     assert _legacy_schema_revision(tables, columns) == "20260904_11"
-    assert MIGRATION_ORDER["20260904_11"] == max(MIGRATION_ORDER.values())
+    assert MIGRATION_ORDER["20260904_11"] < max(MIGRATION_ORDER.values())
+
+
+def test_legacy_schema_detects_the_complete_reports_module() -> None:
+    tables = {
+        "scrap_ingestion_runs",
+        "scrap_ingestion_source_files",
+        "scrap_transactions",
+        "gov_report_occurrence_sources",
+        "gov_report_sources",
+        "gov_report_version_sources",
+    }
+    columns = {
+        "gov_reports": {
+            "description",
+            "status",
+            "created_by_user_id",
+            "updated_by_user_id",
+            "version",
+            "updated_at",
+            "archived_at",
+        }
+    }
+
+    assert _legacy_schema_revision(tables, columns) == "20260909_13"

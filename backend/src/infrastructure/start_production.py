@@ -32,6 +32,8 @@ MIGRATION_ORDER = {
     "20260902_09": 9,
     "20260903_10": 10,
     "20260904_11": 11,
+    "20260906_12": 12,
+    "20260909_13": 13,
 }
 
 
@@ -52,6 +54,22 @@ def _legacy_schema_revision(tables: set[str], columns: dict[str, set[str]]) -> s
     }
     if not revision_02_tables <= tables:
         return None
+    reports_module_tables = {
+        "gov_report_occurrence_sources",
+        "gov_report_sources",
+        "gov_report_version_sources",
+    }
+    reports_module_columns = {
+        "description",
+        "status",
+        "created_by_user_id",
+        "updated_by_user_id",
+        "version",
+        "updated_at",
+        "archived_at",
+    }
+    if reports_module_tables <= tables and reports_module_columns <= columns.get("gov_reports", set()):
+        return "20260909_13"
     automation_columns = columns.get("scrap_automation_executions", set())
     if (
         "scrap_classification_rules" in tables
@@ -109,7 +127,13 @@ async def _detect_legacy_schema_revision() -> tuple[str | None, str | None]:
             tables = set(inspector.get_table_names())
             columns = {
                 table: {column["name"] for column in inspector.get_columns(table)}
-                for table in tables & {"scrap_ingestion_runs", "scrap_transactions", "scrap_automation_executions"}
+                for table in tables
+                & {
+                    "scrap_ingestion_runs",
+                    "scrap_transactions",
+                    "scrap_automation_executions",
+                    "gov_reports",
+                }
             }
             return tables, columns
 
