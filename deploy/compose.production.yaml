@@ -58,6 +58,8 @@ x-backend-environment: &backend-environment
   PROFILE_IMAGE_DIR: /app/backend/data/profile-images
   PROFILE_IMAGE_MAX_BYTES: ${PROFILE_IMAGE_MAX_BYTES:-5242880}
   PROFILE_IMAGE_MAX_DIMENSION: ${PROFILE_IMAGE_MAX_DIMENSION:-4096}
+  REPORT_ARTIFACT_DIR: /app/backend/data/report-artifacts
+  REPORT_EXPORT_MAX_ITEMS: ${REPORT_EXPORT_MAX_ITEMS:-5000}
 
 services:
   nginx:
@@ -152,6 +154,7 @@ services:
     environment: *backend-environment
     volumes:
       - profile_images:/app/backend/data/profile-images
+      - report_artifacts:/app/backend/data/report-artifacts
     read_only: true
     tmpfs:
       - /tmp
@@ -194,6 +197,8 @@ services:
     environment: *backend-environment
     working_dir: /app/backend/src
     command: ["taskiq", "worker", "infrastructure.taskiq.worker:default_broker", "--workers", "2"]
+    volumes:
+      - report_artifacts:/app/backend/data/report-artifacts
     read_only: true
     tmpfs:
       - /tmp
@@ -254,3 +259,4 @@ volumes:
   postgres_data:
   redis_data:
   profile_images:
+  report_artifacts:

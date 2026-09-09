@@ -1,243 +1,447 @@
-<section class="reports-page list-page page-stack" aria-labelledby="reports-title">
-  <header class="reports-header">
-    <h1 class="page-title" id="reports-title">{{ t().reportsTitle }}</h1>
-    <p class="page-subtitle">{{ t().reportsSubtitle }}</p>
-  </header>
-
-  <app-list-panel
-    [title]="t().reportsTitle"
-    [meta]="data() ? t().scrapTotalLabel + ' ' + data()!.total_items : ''"
-  >
-    <div list-actions class="list-actions">
-      <app-delayed-progress-spinner [active]="loading()" [ariaLabel]="t().scrapLoading" />
-
-      <app-list-filter-popover
-        [(open)]="filterOpen"
-        [activeCount]="activeFiltersCount()"
-        [triggerLabel]="t().scrapFilterButton"
-        [title]="t().scrapFilterTitle"
-        [clearLabel]="t().scrapClearFilters"
-        [applyLabel]="t().scrapApplyFilters"
-        (cleared)="clearFilters()"
-        (applied)="loadReports()"
-      >
-        <app-list-filter-input
-          [(value)]="searchText"
-          [label]="t().scrapSearchLabel"
-          [placeholder]="t().reportsSearchPlaceholder"
-          type="search"
-          (changed)="onSearchInput($event)"
-        />
-        <app-list-filter-date-range
-          [(from)]="dateFrom"
-          [(to)]="dateTo"
-          [fromLabel]="t().scrapDateFrom"
-          [toLabel]="t().scrapDateTo"
-          [locale]="calendarLocale()"
-          [clearLabel]="t().calendarClear"
-          [todayLabel]="t().calendarToday"
-          (changed)="onDateChange()"
-        />
-        <app-list-filter-input
-          [(value)]="organization"
-          [label]="t().scrapOrganizations"
-          [placeholder]="t().scrapOrganizationsPlaceholder"
-          (changed)="onOrganizationChange()"
-        />
-        <app-list-filter-select
-          [value]="defectTypeFilter()"
-          [options]="defectTypeOptions()"
-          [label]="t().scrapFilterDefectType"
-          [ariaLabel]="t().scrapFilterDefectType"
-          (changed)="onDefectTypeFilterChange($event)"
-        />
-        <app-list-filter-select
-          [value]="responsibleFilter()"
-          [options]="responsibleOptions()"
-          [label]="t().scrapFilterResponsible"
-          [ariaLabel]="t().scrapFilterResponsible"
-          (changed)="onResponsibleFilterChange($event)"
-        />
-        @if (dateRangeError()) {
-          <app-inline-alert [message]="t().scrapDateRangeError" />
-        }
-      </app-list-filter-popover>
-
-      <span class="sort-label">{{ t().scrapSortBy }}</span>
-      <app-list-filter-select
-        class="sort-field-select"
-        [(value)]="sortBy"
-        [options]="sortOptions()"
-        [ariaLabel]="t().scrapSortAriaLabel"
-        (changed)="onSortChange($event)"
-      />
-      <button type="button" class="btn btn-secondary sort-order-button" (click)="toggleSortOrder()">
-        {{ sortOrder() === 'desc' ? t().scrapSortDescending : t().scrapSortAscending }}
+<section class="reports-page page-stack" aria-labelledby="reports-title">
+  @if (!active()) {
+    <header class="reports-header">
+      <div>
+        <h1 class="page-title" id="reports-title">{{ c().title }}</h1>
+        <p class="page-subtitle">{{ c().subtitle }}</p>
+      </div>
+      <button type="button" class="btn btn-primary" (click)="showCreate.set(true)">
+        <ui-icon name="plus" />{{ c().create }}
       </button>
+    </header>
+
+    <div class="toolbar" role="search">
+      <label class="field search-field">
+        <span class="sr-only">{{ c().search }}</span>
+        <input
+          type="search"
+          [ngModel]="search()"
+          (ngModelChange)="onSearch($event)"
+          [placeholder]="c().search"
+        />
+      </label>
+      <label class="field status-field">
+        <span class="sr-only">{{ c().status }}</span>
+        <select [ngModel]="statusFilter()" (ngModelChange)="onStatus($event)">
+          <option value="">{{ c().all }}</option>
+          <option value="DRAFT">{{ c().draft }}</option>
+          <option value="PUBLISHED">{{ c().published }}</option>
+        </select>
+      </label>
+      <app-delayed-progress-spinner [active]="loading()" [ariaLabel]="c().loading" />
     </div>
 
-    <!-- Estados de Carga / Erro / Vazio -->
-    @if (loading() && (!data() || data()!.items.length === 0)) {
-      <app-list-table-skeleton
-        [columns]="tableColumns()"
-        [rows]="6"
-        minWidth="100%"
-        [loadingLabel]="t().scrapLoading"
-      />
-    } @else if (error() && (!data() || data()!.items.length === 0)) {
-      <app-list-feedback
-        kind="error"
-        [title]="t().scrapErrorTitle"
-        [message]="error()!"
-        [retryLabel]="t().scrapRetry"
-        (retried)="loadReports()"
-      />
-    } @else if (!data() || data()!.items.length === 0) {
-      <app-list-feedback
-        kind="empty"
-        [title]="t().reportsEmptyTitle"
-        [message]="t().reportsEmptyDesc"
-      />
+    @if (error()) {
+      <app-inline-alert [message]="error()!" />
+    }
+    @if (loading() && !reports()) {
+      <div class="loading-block" aria-live="polite">{{ c().loading }}</div>
+    } @else if (!reports()?.items?.length) {
+      <app-list-feedback kind="empty" [title]="c().empty" [message]="c().subtitle" />
     } @else {
-      @if (error()) {
-        <app-inline-alert class="table-refresh-error" [message]="error()!" />
-      }
-      <div class="list-table-frame" [attr.aria-busy]="loading()">
-        <table class="list-table reports-table">
+      <div class="report-table-frame">
+        <table class="report-table">
           <thead>
             <tr>
-              <th>{{ t().scrapColDate }}</th>
-              <th>{{ t().scrapColOrganization }}</th>
-              <th>{{ t().scrapColItem }}</th>
-              <th>{{ t().scrapColDescription }}</th>
-              <th class="align-right">{{ t().scrapColAmountUsd }}</th>
-              <th>{{ t().scrapColDefectType }}</th>
-              <th>{{ t().scrapColResponsible }}</th>
-              <th class="align-center">FOTOS</th>
-              <th class="align-center">{{ t().scrapColAction }}</th>
+              <th>{{ c().code }}</th>
+              <th>{{ c().report }}</th>
+              <th>{{ c().status }}</th>
+              <th>{{ c().author }}</th>
+              <th class="numeric">{{ c().occurrences }}</th>
+              <th>{{ c().updated }}</th>
+              <th>{{ c().publication }}</th>
+              <th>
+                <span class="sr-only">{{ c().actions }}</span>
+              </th>
             </tr>
           </thead>
           <tbody>
-            @for (item of data()!.items; track item.occurrence_id ?? item.id) {
-              <tr
-                class="clickable-row"
-                (click)="item.occurrence_id ? openReportDetail(item.occurrence_id, item) : null"
-              >
-                <td>{{ formatTransactionDate(item.transaction_date) }}</td>
-                <td>{{ item.organization_code }}</td>
+            @for (report of reports()!.items; track report.id) {
+              <tr>
+                <td class="report-code">{{ report.code }}</td>
                 <td>
-                  <span class="item-code">{{ item.item_code }}</span>
+                  <button type="button" class="report-link" (click)="openReport(report.id)">
+                    <strong>{{ report.title }}</strong
+                    ><span>{{ report.description || '—' }}</span>
+                  </button>
                 </td>
-                <td class="description-cell" [title]="item.item_description || ''">
-                  {{ item.item_description || '—' }}
-                </td>
-                <td class="align-right font-semibold">{{ formatCurrency(item.amount_usd) }}</td>
-                <td class="defect-cell">{{ item.defect_type_name || '—' }}</td>
                 <td>
-                  <div class="responsible-cell">
-                    @if (item.responsible_name) {
-                      <span class="resp-name">{{ item.responsible_name }}</span>
-                      @if (item.reviewed_at) {
-                        <span class="resp-date">{{ formatTransactionDate(item.reviewed_at) }}</span>
-                      }
-                    } @else {
-                      <span class="text-muted">—</span>
-                    }
-                  </div>
+                  <app-status-badge
+                    [label]="report.status === 'PUBLISHED' ? c().published : c().draft"
+                    [tone]="report.status === 'PUBLISHED' ? 'success' : 'warning'"
+                  />
                 </td>
-                <td class="align-center">
-                  @if (item.attachment_count > 0) {
-                    <span class="photos-badge">
-                      <ui-icon name="image" />
-                      <span>{{ item.attachment_count }}</span>
-                    </span>
-                  } @else {
-                    <span class="text-muted">—</span>
-                  }
-                </td>
-                <td class="align-center" (click)="$event.stopPropagation()">
-                  @if (item.occurrence_id) {
-                    <button
-                      type="button"
-                      class="btn btn-ghost btn-sm action-btn"
-                      (click)="openReportDetail(item.occurrence_id, item)"
-                      [attr.aria-label]="t().scrapActionView + ' ' + item.item_code"
-                    >
-                      <ui-icon name="eye" />
-                      <span>{{ t().scrapActionView }}</span>
-                    </button>
-                  } @else {
-                    <span class="text-muted">—</span>
-                  }
+                <td>{{ report.author_name || '—' }}</td>
+                <td class="numeric">{{ report.occurrence_count || 0 }}</td>
+                <td>{{ formatDate(report.updated_at) }}</td>
+                <td>{{ formatDate(report.latest_publication) }}</td>
+                <td>
+                  <button
+                    type="button"
+                    class="btn btn-ghost btn-sm"
+                    (click)="openReport(report.id)"
+                    [attr.aria-label]="c().edit + ' ' + report.title"
+                  >
+                    <ui-icon name="pencil" />{{ c().edit }}
+                  </button>
                 </td>
               </tr>
             }
           </tbody>
         </table>
       </div>
-
       <app-list-pagination
         [page]="page()"
-        [totalPages]="data()!.total_pages"
+        [totalPages]="reports()!.total_pages"
         [pageSize]="pageSize()"
         [pageSizes]="pageSizes"
-        [pageLabel]="t().executionsPaginationPage"
-        [ofLabel]="t().executionsPaginationOf"
-        [perPageLabel]="t().executionsPaginationPerPage"
-        (pageSizeChanged)="onPageSizeChange($event)"
+        [pageLabel]="c().report"
+        [ofLabel]="'/'"
+        [perPageLabel]="c().occurrences"
+        [previousLabel]="c().previous"
+        [nextLabel]="c().next"
+        (pageSizeChanged)="onPageSize($event)"
         (previous)="previousPage()"
         (next)="nextPage()"
       />
     }
-  </app-list-panel>
+  } @else {
+    <header class="workspace-header">
+      <button type="button" class="btn btn-ghost" (click)="closeWorkspace()">
+        <ui-icon name="arrow-left" />{{ c().back }}
+      </button>
+      <div class="workspace-title">
+        <span class="report-code">{{ active()!.code }}</span>
+        <h1 class="page-title" id="reports-title">{{ active()!.title }}</h1>
+        <app-status-badge
+          [label]="active()!.status === 'PUBLISHED' ? c().published : c().draft"
+          [tone]="active()!.status === 'PUBLISHED' ? 'success' : 'warning'"
+        />
+      </div>
+      <div class="header-actions">
+        <button
+          type="button"
+          class="btn btn-secondary"
+          (click)="saveDraft()"
+          [disabled]="saving() || !draftTitle().trim()"
+        >
+          {{ saving() ? c().saving : c().save }}
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          (click)="publish()"
+          [disabled]="saving() || !preview()?.items?.length"
+        >
+          {{ c().publish }}
+        </button>
+      </div>
+    </header>
 
-  <!-- Drawer de Detalhe do Relatório -->
-  @if (selectedOccurrenceId()) {
-    <div class="modal-backdrop" (click)="closeDetail()">
-      <div
-        class="detail-drawer"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="report-drawer-title"
-        (click)="$event.stopPropagation()"
-      >
-        <header class="drawer-header">
-          <div class="drawer-title-group">
-            <span class="meta-label">Relatório de Scrap</span>
-            <h3 id="report-drawer-title">
-              {{
-                selectedOccurrence()?.item_code ||
-                  selectedReview()?.title ||
-                  'Detalhes do Relatório'
-              }}
-            </h3>
+    @if (workspaceError()) {
+      <app-inline-alert [message]="workspaceError()!" />
+    }
+
+    <div class="workspace-grid">
+      <div class="editor-column">
+        <section class="editor-section" aria-labelledby="draft-heading">
+          <h2 id="draft-heading">{{ c().draft }}</h2>
+          <label class="field"
+            ><span>{{ c().reportTitle }}</span
+            ><input
+              [ngModel]="draftTitle()"
+              (ngModelChange)="draftTitle.set($event)"
+              maxlength="240"
+          /></label>
+          <label class="field"
+            ><span>{{ c().description }}</span
+            ><textarea
+              [ngModel]="draftDescription()"
+              (ngModelChange)="draftDescription.set($event)"
+              maxlength="10000"
+              rows="3"
+            ></textarea>
+          </label>
+        </section>
+
+        <section class="editor-section" aria-labelledby="sources-heading">
+          <div class="section-heading">
+            <h2 id="sources-heading">{{ c().sources }}</h2>
+            <span
+              >{{ active()!.occurrence_source_ids.length + active()!.report_source_ids.length }}
+              {{ c().selected }}</span
+            >
           </div>
+          <div class="source-summary">
+            <div>
+              <strong>{{ c().direct }}</strong>
+              @for (id of active()!.occurrence_source_ids; track id) {
+                <span class="source-chip"
+                  ><span>{{ id.slice(0, 8) }}</span
+                  ><button
+                    type="button"
+                    (click)="removeSource('occurrence', id)"
+                    [attr.aria-label]="c().remove + ' ' + id"
+                  >
+                    <ui-icon name="x" /></button
+                ></span>
+              }
+              @if (!active()!.occurrence_source_ids.length) {
+                <span>—</span>
+              }
+            </div>
+            <div>
+              <strong>{{ c().inherited }}</strong>
+              @for (id of active()!.report_source_ids; track id) {
+                <span class="source-chip"
+                  ><span>{{ id.slice(0, 8) }}</span
+                  ><button
+                    type="button"
+                    (click)="removeSource('report', id)"
+                    [attr.aria-label]="c().remove + ' ' + id"
+                  >
+                    <ui-icon name="x" /></button
+                ></span>
+              }
+              @if (!active()!.report_source_ids.length) {
+                <span>—</span>
+              }
+            </div>
+          </div>
+
+          <div class="source-pickers">
+            <div class="source-picker">
+              <h3>{{ c().occurrenceSource }}</h3>
+              <div class="picker-search">
+                <input
+                  type="search"
+                  [ngModel]="occurrenceSearch()"
+                  (ngModelChange)="occurrenceSearch.set($event)"
+                  [placeholder]="c().findOccurrence"
+                /><button type="button" class="btn btn-secondary btn-sm" (click)="loadCandidates()">
+                  <ui-icon name="filter" /><span class="sr-only">{{ c().findOccurrence }}</span>
+                </button>
+              </div>
+              <div class="picker-list" tabindex="0">
+                @for (item of eligible(); track item.id) {
+                  <label
+                    class="picker-row"
+                    [class.is-added]="active()!.occurrence_source_ids.includes(item.id)"
+                    ><input
+                      type="checkbox"
+                      [checked]="selectedOccurrences().has(item.id)"
+                      [disabled]="active()!.occurrence_source_ids.includes(item.id)"
+                      (change)="toggleSelection('occurrence', item.id, $any($event.target).checked)"
+                    /><span
+                      ><strong>{{ item.item_code || '—' }}</strong
+                      ><small>{{ item.organization_code }} · {{ item.review_title }}</small></span
+                    ><b>{{ formatCurrency(item.amount_usd, 'USD') }}</b></label
+                  >
+                }
+              </div>
+              <button
+                type="button"
+                class="btn btn-secondary picker-add"
+                (click)="addSelected('occurrence')"
+                [disabled]="!selectedOccurrences().size || saving()"
+              >
+                {{ c().addSelected }} · {{ selectedOccurrences().size }}
+              </button>
+            </div>
+            <div class="source-picker">
+              <h3>{{ c().reportSource }}</h3>
+              <div class="picker-search">
+                <input
+                  type="search"
+                  [ngModel]="sourceReportSearch()"
+                  (ngModelChange)="sourceReportSearch.set($event)"
+                  [placeholder]="c().findReport"
+                /><button type="button" class="btn btn-secondary btn-sm" (click)="loadCandidates()">
+                  <ui-icon name="filter" /><span class="sr-only">{{ c().findReport }}</span>
+                </button>
+              </div>
+              <div class="picker-list" tabindex="0">
+                @for (item of sourceReports(); track item.id) {
+                  <label
+                    class="picker-row"
+                    [class.is-added]="active()!.report_source_ids.includes(item.id)"
+                    ><input
+                      type="checkbox"
+                      [checked]="selectedReports().has(item.id)"
+                      [disabled]="active()!.report_source_ids.includes(item.id)"
+                      (change)="toggleSelection('report', item.id, $any($event.target).checked)"
+                    /><span
+                      ><strong>{{ item.code }}</strong
+                      ><small>{{ item.title }}</small></span
+                    ><b>R{{ item.latest_revision }}</b></label
+                  >
+                }
+              </div>
+              <button
+                type="button"
+                class="btn btn-secondary picker-add"
+                (click)="addSelected('report')"
+                [disabled]="!selectedReports().size || saving()"
+              >
+                {{ c().addSelected }} · {{ selectedReports().size }}
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section class="editor-section" aria-labelledby="history-heading">
+          <h2 id="history-heading">{{ c().history }}</h2>
+          @if (!versions().length) {
+            <p class="muted">—</p>
+          }
+          @for (version of versions(); track version.id) {
+            <article class="version-row">
+              <div>
+                <strong>{{ c().revision }} {{ version.revision }}</strong
+                ><span
+                  >{{ formatDate(version.published_at) }} · {{ version.sha256.slice(0, 12) }}</span
+                >
+              </div>
+              <div class="export-actions" [attr.aria-label]="c().export">
+                @for (format of ['CSV', 'PDF', 'PPTX']; track format) {
+                  @let exportJob = job(version.id, $any(format));
+                  @if (exportJob?.status === 'COMPLETED') {
+                    <button
+                      type="button"
+                      class="btn btn-success btn-sm"
+                      (click)="download(exportJob!)"
+                    >
+                      <ui-icon name="check" />{{ c().download }} {{ format }}
+                    </button>
+                  } @else {
+                    <button
+                      type="button"
+                      class="btn btn-secondary btn-sm"
+                      (click)="export(version, $any(format))"
+                      [disabled]="exportJob?.status === 'QUEUED' || exportJob?.status === 'RUNNING'"
+                    >
+                      {{
+                        exportJob?.status === 'QUEUED' || exportJob?.status === 'RUNNING'
+                          ? c().preparing
+                          : format
+                      }}
+                    </button>
+                  }
+                }
+              </div>
+            </article>
+          }
+        </section>
+      </div>
+
+      <aside class="preview-column" aria-labelledby="preview-heading">
+        <div class="preview-heading">
+          <h2 id="preview-heading">{{ c().preview }}</h2>
           <button
             type="button"
-            class="btn btn-ghost drawer-close-btn"
-            (click)="closeDetail()"
-            aria-label="Fechar relatório"
+            class="btn btn-ghost btn-sm"
+            (click)="refreshPreview()"
+            [disabled]="previewLoading()"
           >
-            <ui-icon name="x" />
+            {{ c().refresh }}
           </button>
-        </header>
-
-        <div class="drawer-body">
-          @if (loadingDetail()) {
-            <div class="loading-state">
-              <ui-icon name="clock" />
-              <p>Carregando detalhes do relatório...</p>
-            </div>
-          } @else if (detailError()) {
-            <app-inline-alert [message]="detailError()!" />
-          } @else if (selectedReview()) {
-            <app-scrap-review-preview
-              [review]="selectedReview()"
-              [occurrence]="selectedOccurrence()"
-            />
-          }
         </div>
-      </div>
+        @if (previewLoading()) {
+          <div class="loading-block">{{ c().loading }}</div>
+        } @else if (!preview()?.items?.length) {
+          <div class="preview-empty">
+            <ui-icon name="folder" />
+            <p>{{ c().noSources }}</p>
+          </div>
+        } @else {
+          <div class="metrics">
+            <div>
+              <span>{{ c().occurrences }}</span
+              ><strong>{{ preview()!.metrics.occurrence_count }}</strong>
+            </div>
+            <div>
+              <span>{{ c().totalBrl }}</span
+              ><strong>{{ formatCurrency(preview()!.metrics.issue_amount_brl, 'BRL') }}</strong>
+            </div>
+            <div>
+              <span>{{ c().totalUsd }}</span
+              ><strong>{{ formatCurrency(preview()!.metrics.amount_usd, 'USD') }}</strong>
+            </div>
+          </div>
+          <div class="preview-list">
+            @for (item of preview()!.items; track item.occurrence_id) {
+              <article>
+                <div>
+                  <strong>{{ item.item_code || '—' }}</strong
+                  ><span>{{ item.item_description || item.review_title }}</span>
+                </div>
+                <div class="preview-meta">
+                  <span>{{ item.organization_code }}</span
+                  ><span>{{ formatCurrency(item.amount_usd, 'USD') }}</span
+                  ><span>{{ lineageCount(item.occurrence_id) }} {{ c().lineage }}</span>
+                </div>
+                <p>{{ item.review_description }}</p>
+              </article>
+            }
+          </div>
+        }
+      </aside>
     </div>
   }
 </section>
+
+@if (showCreate()) {
+  <div class="dialog-backdrop" (click)="showCreate.set(false)">
+    <form
+      class="create-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="create-heading"
+      (submit)="createReport(); $event.preventDefault()"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="dialog-heading">
+        <h2 id="create-heading">{{ c().newTitle }}</h2>
+        <button
+          type="button"
+          class="btn btn-ghost btn-icon"
+          (click)="showCreate.set(false)"
+          [attr.aria-label]="c().close"
+        >
+          <ui-icon name="x" />
+        </button>
+      </div>
+      <label class="field"
+        ><span>{{ c().reportTitle }}</span
+        ><input
+          name="create-title"
+          [ngModel]="createTitle()"
+          (ngModelChange)="createTitle.set($event)"
+          maxlength="240"
+          required
+          autofocus
+      /></label>
+      <label class="field"
+        ><span>{{ c().description }}</span
+        ><textarea
+          name="create-description"
+          [ngModel]="createDescription()"
+          (ngModelChange)="createDescription.set($event)"
+          maxlength="10000"
+          rows="4"
+        ></textarea>
+      </label>
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-ghost" (click)="showCreate.set(false)">
+          {{ c().cancel }}</button
+        ><button
+          type="submit"
+          class="btn btn-primary"
+          [disabled]="creating() || !createTitle().trim()"
+        >
+          {{ c().continue }}
+        </button>
+      </div>
+    </form>
+  </div>
+}

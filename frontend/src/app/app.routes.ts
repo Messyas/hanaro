@@ -50,7 +50,7 @@ export const routes: Routes = [
           import('./pages/reports/reports-page').then((module) => module.ReportsPage),
       },
       {
-        path: 'relatorios/:occurrenceId',
+        path: 'relatorios/:reportId',
         title: 'Relatório de Scrap',
         canActivate: [authenticatedGuard],
         loadComponent: () =>

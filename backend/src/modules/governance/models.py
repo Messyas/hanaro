@@ -249,15 +249,51 @@ class SnapshotItem(GovernanceEntity):
     snapshot_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gov_dataset_snapshots.id", ondelete="RESTRICT"))
     occurrence_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scrap_occurrences.id", ondelete="RESTRICT"))
     transaction_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scrap_transactions.id", ondelete="RESTRICT"))
+    review_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("scrap_reviews.id", ondelete="RESTRICT"), default=None)
+    review_version: Mapped[int | None] = mapped_column(Integer, default=None)
     frozen_values: Mapped[dict[str, Any]] = mapped_column(JSON_TYPE)
 
 
 class Report(GovernanceEntity):
     __tablename__ = "gov_reports"
-    __table_args__ = (UniqueConstraint("factory_id", "code", name="uq_gov_report_code"),)
+    __table_args__ = (
+        UniqueConstraint("factory_id", "code", name="uq_gov_report_code"),
+        CheckConstraint("status IN ('DRAFT','PUBLISHED','ARCHIVED')", name="ck_gov_report_status"),
+        CheckConstraint("version > 0", name="ck_gov_report_version"),
+        Index("ix_gov_report_list", "factory_id", "status", "updated_at", "id"),
+    )
     factory_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gov_factories.id", ondelete="RESTRICT"))
     code: Mapped[str] = mapped_column(String(80))
     title: Mapped[str] = mapped_column(String(240))
+    description: Mapped[str] = mapped_column(Text, default="")
+    status: Mapped[str] = mapped_column(String(20), default="DRAFT")
+    created_by_user_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT"), default=None)
+    updated_by_user_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT"), default=None)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default_factory=now)
+    archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    __mapper_args__ = {"version_id_col": version}
+
+
+class ReportOccurrenceSource(GovernanceEntity):
+    __tablename__ = "gov_report_occurrence_sources"
+    __table_args__ = (
+        UniqueConstraint("report_id", "occurrence_id", name="uq_gov_report_occurrence_source"),
+        Index("ix_gov_report_occurrence_source_occurrence", "occurrence_id", "report_id"),
+    )
+    report_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gov_reports.id", ondelete="CASCADE"), index=True)
+    occurrence_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scrap_occurrences.id", ondelete="RESTRICT"))
+
+
+class ReportSource(GovernanceEntity):
+    __tablename__ = "gov_report_sources"
+    __table_args__ = (
+        UniqueConstraint("report_id", "source_report_id", name="uq_gov_report_source"),
+        CheckConstraint("report_id <> source_report_id", name="ck_gov_report_no_self_source"),
+        Index("ix_gov_report_source_reverse", "source_report_id", "report_id"),
+    )
+    report_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gov_reports.id", ondelete="CASCADE"), index=True)
+    source_report_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gov_reports.id", ondelete="RESTRICT"))
 
 
 class ReportVersion(GovernanceEntity):
@@ -271,7 +307,20 @@ class ReportVersion(GovernanceEntity):
     revision: Mapped[int] = mapped_column(Integer)
     content: Mapped[dict[str, Any]] = mapped_column(JSON_TYPE)
     template_version: Mapped[str] = mapped_column(String(80))
+    sha256: Mapped[str] = mapped_column(String(64), default="")
+    published_by_user_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT"), default=None)
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+
+
+class ReportVersionSource(GovernanceEntity):
+    __tablename__ = "gov_report_version_sources"
+    __table_args__ = (
+        UniqueConstraint("report_version_id", "source_report_version_id", name="uq_gov_report_version_source"),
+        Index("ix_gov_report_version_source_report", "source_report_id", "report_version_id"),
+    )
+    report_version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gov_report_versions.id", ondelete="RESTRICT"))
+    source_report_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gov_reports.id", ondelete="RESTRICT"))
+    source_report_version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gov_report_versions.id", ondelete="RESTRICT"))
 
 
 class ReportAnalysis(GovernanceEntity):
@@ -293,6 +342,13 @@ class ExportJob(GovernanceEntity):
     format: Mapped[str] = mapped_column(String(10))
     status: Mapped[str] = mapped_column(String(20), default="QUEUED")
     options: Mapped[dict[str, Any]] = mapped_column(JSON_TYPE, default_factory=dict)
+    template_version: Mapped[str] = mapped_column(String(80), default="1")
+    requested_by_user_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT"), default=None)
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default_factory=now)
+    error_message: Mapped[str | None] = mapped_column(String(500), default=None)
 
 
 class Artifact(GovernanceEntity):
@@ -301,6 +357,8 @@ class Artifact(GovernanceEntity):
     storage_key: Mapped[str] = mapped_column(String(500), unique=True)
     sha256: Mapped[str] = mapped_column(String(64))
     size_bytes: Mapped[int] = mapped_column(Integer)
+    filename: Mapped[str] = mapped_column(String(255), default="report")
+    content_type: Mapped[str] = mapped_column(String(100), default="application/octet-stream")
     __table_args__ = (CheckConstraint("size_bytes > 0", name="ck_gov_artifact_size"),)
 
 

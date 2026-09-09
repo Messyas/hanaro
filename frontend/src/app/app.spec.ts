@@ -52,7 +52,7 @@ describe('App', () => {
       'base-de-scrap',
       'base-de-scrap/revisao/:occurrenceId',
       'relatorios',
-      'relatorios/:occurrenceId',
+      'relatorios/:reportId',
       'configuracoes',
       'perfil',
       '',

@@ -1,140 +1,146 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Router, provideRouter } from '@angular/router';
-import { of } from 'rxjs';
+import { provideRouter } from '@angular/router';
+import { of, throwError } from 'rxjs';
 import { vi } from 'vitest';
-import { AuthService } from '../../core/auth/auth.service';
 import { LanguageService } from '../../i18n/language.service';
-import { ScrapPage } from '../scrap-base/scrap-base.models';
-import { ScrapBaseService } from '../scrap-base/scrap-base.service';
-import { ScrapReview } from '../scrap-base/scrap-review.models';
-import { ScrapReviewService } from '../scrap-base/scrap-review.service';
+import { ReportDetail, ReportPreview, ReportVersion } from './reports.models';
 import { ReportsPage } from './reports-page';
+import { ReportsService } from './reports.service';
 
 describe('ReportsPage', () => {
-  let component: ReportsPage;
   let fixture: ComponentFixture<ReportsPage>;
-  let scrapBaseServiceMock: { list: ReturnType<typeof vi.fn> };
-  let scrapReviewServiceMock: {
-    getDefectTypes: ReturnType<typeof vi.fn>;
-    getReview: ReturnType<typeof vi.fn>;
-  };
-  let router: Router;
+  let component: ReportsPage;
+  let service: Record<string, ReturnType<typeof vi.fn>>;
 
-  const mockReviewedPage: ScrapPage = {
-    items: [
-      {
-        id: 'trans-10',
-        occurrence_id: 'occ-10',
-        current_transaction_id: 'trans-10',
-        source_line: 1,
-        organization_code: 'NWK',
-        account_code: '5110',
-        account_alias: 'SCRAP',
-        receipt_department: 'QUALIDADE',
-        item_code: 'ITEM-FINAL',
-        item_description: 'Placa revisada',
-        transaction_date: '2026-08-31',
-        issue_quantity: '-1',
-        issue_amount_brl: '-50',
-        work_order: 'WO-10',
-        amount_usd: '-10',
-        to_be_counted: true,
-        occurrence_status: 'ACTIVE',
-        review_id: 'rev-10',
-        review_status: 'REVIEWED',
-        defect_type_id: 'dt-1',
-        defect_type_name: 'Solda Trincada',
-        responsible_user_id: 1,
-        responsible_name: 'João Inspetor',
-        reviewed_at: '2026-08-31T12:00:00Z',
-        review_updated_at: '2026-08-31T12:00:00Z',
-        attachment_count: 2,
-      },
-    ],
-    page: 1,
-    page_size: 25,
-    total_items: 1,
-    total_pages: 1,
+  const report: ReportDetail = {
+    id: '77d1ad54-1b7e-4986-809b-a81cc503430c',
+    factory_id: '197ea434-b7cb-48c9-9318-b58e71417b75',
+    code: 'REP-001',
+    title: 'Weekly loss review',
+    description: 'Reviewed Scrap occurrences',
+    status: 'DRAFT',
+    created_by_user_id: 1,
+    version: 2,
+    created_at: '2026-09-09T10:00:00Z',
+    updated_at: '2026-09-09T10:00:00Z',
+    occurrence_source_ids: [],
+    report_source_ids: [],
+    latest_version: null,
   };
-
-  const mockReview: ScrapReview = {
-    id: 'rev-10',
-    occurrence_id: 'occ-10',
-    status: 'REVIEWED',
-    defect_type: {
-      id: 'dt-1',
-      code: 'SOLDA',
-      name: 'Solda Trincada',
-      description: null,
-      display_order: 1,
-      is_active: true,
-      created_at: '',
-      updated_at: '',
-    },
-    responsible_user_id: 1,
-    responsible_name: 'João Inspetor',
-    title: 'Análise de solda',
-    description: 'Fissura térmica detectada no ponto B2.',
-    version: 1,
-    source_review_id: null,
-    bulk_operation_id: null,
-    reviewed_at: '2026-08-31T12:00:00Z',
-    created_at: '',
-    updated_at: '',
-    attachments: [],
+  const preview: ReportPreview = {
+    report,
+    items: [],
+    metrics: { occurrence_count: 0, issue_amount_brl: '0', amount_usd: '0' },
+    lineage: {},
+    source_versions: [],
+    generated_at: '2026-09-09T10:00:00Z',
   };
 
   beforeEach(async () => {
-    scrapBaseServiceMock = {
-      list: vi.fn().mockReturnValue(of(mockReviewedPage)),
+    service = {
+      list: vi.fn().mockReturnValue(
+        of({
+          items: [report],
+          page: 1,
+          page_size: 25,
+          total: 1,
+          total_pages: 1,
+          has_next: false,
+          has_previous: false,
+        }),
+      ),
+      create: vi.fn().mockReturnValue(of(report)),
+      get: vi.fn().mockReturnValue(of(report)),
+      update: vi.fn().mockReturnValue(of({ ...report, version: 3 })),
+      mutateSources: vi.fn().mockReturnValue(of({ ...report, version: 3 })),
+      eligibleOccurrences: vi.fn().mockReturnValue(
+        of({
+          items: [],
+          page: 1,
+          page_size: 100,
+          total: 0,
+          total_pages: 0,
+          has_next: false,
+          has_previous: false,
+        }),
+      ),
+      sourceReports: vi.fn().mockReturnValue(
+        of({
+          items: [],
+          page: 1,
+          page_size: 100,
+          total: 0,
+          total_pages: 0,
+          has_next: false,
+          has_previous: false,
+        }),
+      ),
+      preview: vi.fn().mockReturnValue(of(preview)),
+      publish: vi.fn().mockReturnValue(of({} as ReportVersion)),
+      versions: vi.fn().mockReturnValue(
+        of({
+          items: [],
+          page: 1,
+          page_size: 100,
+          total: 0,
+          total_pages: 0,
+          has_next: false,
+          has_previous: false,
+        }),
+      ),
+      requestExport: vi.fn(),
+      exportStatus: vi.fn(),
+      download: vi.fn(),
     };
-    scrapReviewServiceMock = {
-      getDefectTypes: vi.fn().mockReturnValue(of([])),
-      getReview: vi.fn().mockReturnValue(of(mockReview)),
-    };
-
-    const authServiceMock = {
-      user: () => ({ id: 1, name: 'João Inspetor', username: 'joao' }),
-    };
-
     await TestBed.configureTestingModule({
       imports: [ReportsPage],
       providers: [
         provideRouter([]),
         LanguageService,
-        { provide: ScrapBaseService, useValue: scrapBaseServiceMock },
-        { provide: ScrapReviewService, useValue: scrapReviewServiceMock },
-        { provide: AuthService, useValue: authServiceMock },
+        { provide: ReportsService, useValue: service },
       ],
     }).compileComponents();
-
     TestBed.inject(LanguageService).setLanguage('pt');
-    router = TestBed.inject(Router);
-    vi.spyOn(router, 'navigate').mockResolvedValue(true);
-
     fixture = TestBed.createComponent(ReportsPage);
     component = fixture.componentInstance;
-    fixture.detectChanges();
+    await fixture.whenStable();
   });
 
-  it('queries scrap base with review_status=REVIEWED on init', () => {
-    expect(scrapBaseServiceMock.list).toHaveBeenCalledWith(
-      expect.objectContaining({ review_status: 'REVIEWED' }),
+  it('renders the server-paginated report list', () => {
+    expect(service['list']).toHaveBeenCalledWith(
+      expect.objectContaining({ page: 1, pageSize: 25 }),
     );
+    expect(fixture.nativeElement.textContent).toContain('Weekly loss review');
+    expect(fixture.nativeElement.textContent).toContain('REP-001');
   });
 
-  it('renders reviewed items with item_code and defect_type', () => {
-    const text = fixture.nativeElement.textContent;
-    expect(text).toContain('ITEM-FINAL');
-    expect(text).toContain('Solda Trincada');
-    expect(text).toContain('João Inspetor');
+  it('opens a report and loads candidates, preview, and history', async () => {
+    component.openReport(report.id, false);
+    await fixture.whenStable();
+    expect(service['get']).toHaveBeenCalledWith(report.id);
+    expect(service['eligibleOccurrences']).toHaveBeenCalled();
+    expect(service['sourceReports']).toHaveBeenCalledWith(report.id, '');
+    expect(service['preview']).toHaveBeenCalledWith(report.id);
+    expect(service['versions']).toHaveBeenCalledWith(report.id);
   });
 
-  it('navigates to report detail on openReportDetail', () => {
-    component.openReportDetail('occ-10', mockReviewedPage.items[0]);
-    expect(component.selectedOccurrenceId()).toBe('occ-10');
-    expect(router.navigate).toHaveBeenCalledWith(['/relatorios', 'occ-10'], {
-      queryParamsHandling: 'preserve',
-    });
+  it('sends a bulk source mutation with the optimistic version', async () => {
+    component.openReport(report.id, false);
+    await fixture.whenStable();
+    component.toggleSelection('occurrence', '842361c6-33dc-4f9a-9125-12e14885f360', true);
+    component.addSelected('occurrence');
+    expect(service['mutateSources']).toHaveBeenCalledWith(report.id, 'occurrence', 'add', 2, [
+      '842361c6-33dc-4f9a-9125-12e14885f360',
+    ]);
+  });
+
+  it('reloads the current draft after an optimistic conflict', async () => {
+    service['update'].mockReturnValueOnce(throwError(() => ({ status: 409 })));
+    component.openReport(report.id, false);
+    await fixture.whenStable();
+    component.saveDraft();
+    await fixture.whenStable();
+    expect(component.workspaceError()).toContain('alterado em outra sessão');
+    expect(service['get']).toHaveBeenCalledTimes(2);
   });
 });
