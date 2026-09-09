@@ -119,6 +119,8 @@ export interface DashboardTranslations {
   rankingLimitAria: string;
   topFive: string;
   topTen: string;
+  kioskModeTitle: string;
+  kioskModeAria: string;
 }
 
 export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations> = {
@@ -242,6 +244,8 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     rankingLimitAria: 'Quantidade de itens exibidos no ranking',
     topFive: 'Top 5',
     topTen: 'Top 10',
+    kioskModeTitle: 'Modo Kiosk / TV Executiva',
+    kioskModeAria: 'Abrir Dashboard em Modo Kiosk (TV 50")',
   },
   en: {
     filtersAria: 'Dashboard filters',
@@ -363,6 +367,8 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     rankingLimitAria: 'Number of ranking items displayed',
     topFive: 'Top 5',
     topTen: 'Top 10',
+    kioskModeTitle: 'Kiosk Mode / Executive TV',
+    kioskModeAria: 'Open Dashboard in Kiosk Mode (50" TV)',
   },
   ko: {
     filtersAria: '대시보드 필터',
@@ -483,6 +489,8 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     rankingLimitAria: '랭킹 표시 항목 수',
     topFive: '상위 5',
     topTen: '상위 10',
+    kioskModeTitle: '키오스크 모드 / 임원용 TV',
+    kioskModeAria: '키오스크 모드로 대시보드 열기 (50인치 TV)',
   },
 };
 

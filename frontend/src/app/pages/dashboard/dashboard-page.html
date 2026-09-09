@@ -163,6 +163,14 @@
       >
         <ui-icon [name]="store.monetaryValuesHidden() ? 'eye-off' : 'eye'" />
       </button>
+      <a
+        class="kiosk-mode-button"
+        routerLink="/dashboard/kiosk"
+        [attr.aria-label]="text().kioskModeAria"
+        [attr.title]="text().kioskModeTitle"
+      >
+        <ui-icon name="tv" />
+      </a>
       <div class="metric-toggle-control">
         <span class="metric-toggle-label">
           {{ store.metric() === 'usd' ? 'Valor monetário' : 'Quantidade' }}

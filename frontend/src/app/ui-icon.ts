@@ -40,6 +40,13 @@ export type IconName =
   | 'trash'
   | 'user-plus'
   | 'users'
+  | 'tv'
+  | 'maximize'
+  | 'minimize'
+  | 'play'
+  | 'pause'
+  | 'sun'
+  | 'moon'
   | 'x';
 
 @Component({
@@ -230,6 +237,41 @@ export type IconName =
         }
         @case ('x') {
           <path d="m6 6 12 12M18 6 6 18" />
+        }
+        @case ('tv') {
+          <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+          <path d="M17 2l-5 5-5-5" />
+        }
+        @case ('maximize') {
+          <path
+            d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"
+          />
+        }
+        @case ('minimize') {
+          <path
+            d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"
+          />
+        }
+        @case ('play') {
+          <polygon points="5 3 19 12 5 21 5 3" fill="currentColor" />
+        }
+        @case ('pause') {
+          <rect x="6" y="4" width="4" height="16" rx="1" fill="currentColor" />
+          <rect x="14" y="4" width="4" height="16" rx="1" fill="currentColor" />
+        }
+        @case ('sun') {
+          <circle cx="12" cy="12" r="5" />
+          <line x1="12" y1="1" x2="12" y2="3" />
+          <line x1="12" y1="21" x2="12" y2="23" />
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+          <line x1="1" y1="12" x2="3" y2="12" />
+          <line x1="21" y1="12" x2="23" y2="12" />
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+        }
+        @case ('moon') {
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
         }
       }
     </svg>

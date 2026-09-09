@@ -1,4 +1,5 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { LanguageService } from '../../i18n/language.service';
 import { UiIcon } from '../../ui-icon';
 import { DashboardPerformanceChart } from './components/dashboard-performance-chart';
@@ -91,6 +92,7 @@ const COMPARISON_OPTIONS: readonly DashboardComparison[] = ['ytd', 'yoy', 'mom']
 @Component({
   selector: 'app-dashboard-page',
   imports: [
+    RouterLink,
     UiIcon,
     DashboardPerformanceChart,
     DashboardDistributionChart,

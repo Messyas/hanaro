@@ -99,7 +99,8 @@
   gap: 0.75rem;
 }
 
-.analysis-controls > .mask-values-button {
+.analysis-controls > .mask-values-button,
+.analysis-controls > .kiosk-mode-button {
   order: 1;
 }
 
@@ -273,7 +274,8 @@
   height: 0.85rem;
 }
 
-.mask-values-button {
+.mask-values-button,
+.kiosk-mode-button {
   display: inline-grid;
   width: 2.25rem;
   height: 2.25rem;
@@ -286,20 +288,24 @@
   color: var(--app-text-muted);
   cursor: pointer;
   padding: 0;
+  text-decoration: none;
   transition:
     border-color 160ms ease,
     color 160ms ease,
     background-color 160ms ease;
 }
-.mask-values-button:hover:not(:disabled) {
+.mask-values-button:hover:not(:disabled),
+.kiosk-mode-button:hover {
   border-color: var(--app-text-muted);
   color: var(--app-text-strong);
 }
-.mask-values-button:focus-visible {
+.mask-values-button:focus-visible,
+.kiosk-mode-button:focus-visible {
   outline: 3px solid var(--app-focus-ring);
   outline-offset: 2px;
 }
-.mask-values-button ui-icon {
+.mask-values-button ui-icon,
+.kiosk-mode-button ui-icon {
   width: 1.1rem;
   height: 1.1rem;
 }
