@@ -14,6 +14,7 @@ from .actions import (
     board,
     command_task,
     plan_detail,
+    plan_list_items,
     save_plan,
     save_task,
     task_detail,
@@ -33,10 +34,15 @@ Admin = Annotated[dict, Depends(get_current_superuser)]
 async def plans(db: DbDep, user: CurrentUserDep, page: Page = 1, page_size: Size = 25):
     total = await db.scalar(select(func.count()).select_from(ActionPlan))
     total = int(total or 0)
-    rows = await db.scalars(
-        select(ActionPlan).order_by(ActionPlan.created_at.desc(), ActionPlan.id).offset((page - 1) * page_size).limit(page_size)
+    rows = list(
+        await db.scalars(
+            select(ActionPlan)
+            .order_by(ActionPlan.created_at.desc(), ActionPlan.id)
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        )
     )
-    return {"items": [view(p) for p in rows], "total": total, "page": page, "has_next": page * page_size < total}
+    return {"items": await plan_list_items(db, rows), "total": total, "page": page, "has_next": page * page_size < total}
 
 
 @router.post("/action-plans", status_code=201)

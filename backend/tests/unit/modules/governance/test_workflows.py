@@ -36,6 +36,7 @@ from src.modules.governance.notifications.service import consume, dispatch, emit
 from src.modules.governance.schemas import ExportOptions
 from src.modules.governance.service import create_report, mutate_sources, publish_report
 from src.modules.governance.storage import ReportArtifactStorage
+from src.modules.governance.workflow_routes import plans as list_plans
 from src.modules.material_scrap.models import ScrapOccurrence, ScrapReview
 from src.modules.material_scrap.service import ingest_material_scrap
 from src.modules.user.models import User
@@ -115,6 +116,15 @@ async def test_task_validation_participants_conflict_and_history(db):
         await command_task(db, task["id"], TaskCommand(expected_version=1, command="reopen"), 1)
     task = await command_task(db, task["id"], TaskCommand(expected_version=task["version"], command="reopen"), 1)
     assert task["status"] == "IN_PROGRESS"
+
+
+async def test_action_plan_list_includes_empty_reports_contract(db):
+    created = await save_plan(db, PlanInput(title="Corrective actions"), 1)
+
+    page = await list_plans(db, {"id": 1}, page=1, page_size=25)
+
+    assert page["items"][0]["id"] == created["id"]
+    assert page["items"][0]["reports"] == []
 
 
 async def test_email_simulation_is_idempotent_and_separate_from_alerts(db):

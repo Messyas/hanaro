@@ -1,4 +1,5 @@
-import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import { Component, DestroyRef, PLATFORM_ID, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
@@ -29,6 +30,10 @@ import { workflowCopy } from '../governance-copy';
 import { ReportsService } from '../reports/reports.service';
 import { ReportListItem, ReportVersion } from '../reports/reports.models';
 
+const ALLOWED_PAGE_SIZES = [10, 25, 50, 100] as const;
+const PAGE_SIZE_STORAGE_KEY = 'hanaro-action-plans-page-size';
+const DEFAULT_PAGE_SIZE = 25;
+
 @Component({
   selector: 'app-action-plans',
   imports: [
@@ -56,6 +61,8 @@ export class ActionPlans {
   private readonly destroy = inject(DestroyRef);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly isBrowser = isPlatformBrowser(this.platformId);
   readonly language = inject(LanguageService);
   readonly t = computed(() => this.language.translations());
   readonly c = computed(() => workflowCopy[this.language.currentLanguage()]);
@@ -81,9 +88,9 @@ export class ActionPlans {
     { value: 'URGENT', label: this.c().urgent },
   ]);
   readonly versions = signal<ReportVersion[]>([]);
-  readonly allowedPageSizes = [10, 25, 50, 100] as const;
+  readonly allowedPageSizes = ALLOWED_PAGE_SIZES;
   readonly page = signal(1);
-  readonly pageSize = signal(25);
+  readonly pageSize = signal(this.readInitialPageSize());
   readonly totalPages = computed(() =>
     Math.max(1, Math.ceil((this.list()?.total || 0) / this.pageSize())),
   );
@@ -136,7 +143,12 @@ export class ActionPlans {
       .pipe(takeUntilDestroyed(this.destroy))
       .subscribe({
         next: (page) => {
-          this.list.set(page);
+          // Older/list-only API responses omitted `reports`, which caused the
+          // template to throw and left child components only partially drawn.
+          this.list.set({
+            ...page,
+            items: page.items.map((item) => ({ ...item, reports: item.reports ?? [] })),
+          });
           this.loading.set(false);
         },
         error: (e) => this.fail(e),
@@ -144,7 +156,7 @@ export class ActionPlans {
   }
 
   nextPage(): void {
-    if (this.list()?.has_next) {
+    if (this.page() < this.totalPages()) {
       this.page.update((page) => page + 1);
       this.load();
     }
@@ -158,9 +170,37 @@ export class ActionPlans {
   }
 
   selectPageSize(pageSize: number): void {
-    this.pageSize.set(pageSize);
+    const validPageSize = ALLOWED_PAGE_SIZES.includes(
+      pageSize as (typeof ALLOWED_PAGE_SIZES)[number],
+    )
+      ? pageSize
+      : DEFAULT_PAGE_SIZE;
+    this.pageSize.set(validPageSize);
+    this.savePageSize(validPageSize);
     this.page.set(1);
     this.load();
+  }
+
+  private readInitialPageSize(): number {
+    if (!this.isBrowser) return DEFAULT_PAGE_SIZE;
+    try {
+      const stored = Number(localStorage.getItem(PAGE_SIZE_STORAGE_KEY));
+      if (ALLOWED_PAGE_SIZES.includes(stored as (typeof ALLOWED_PAGE_SIZES)[number])) {
+        return stored;
+      }
+    } catch {
+      // Storage pode estar indisponível em modo privado ou sandbox.
+    }
+    return DEFAULT_PAGE_SIZE;
+  }
+
+  private savePageSize(pageSize: number): void {
+    if (!this.isBrowser) return;
+    try {
+      localStorage.setItem(PAGE_SIZE_STORAGE_KEY, String(pageSize));
+    } catch {
+      // A paginação continua funcional mesmo sem persistência local.
+    }
   }
 
   getPriorityTone(priority: string): StatusBadgeTone {

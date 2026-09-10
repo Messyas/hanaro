@@ -76,6 +76,31 @@ def view(entity):
     return {column.name: getattr(entity, column.name) for column in entity.__table__.columns}
 
 
+def report_link_view(version: ReportVersion) -> dict:
+    return {
+        "id": version.id,
+        "report_id": version.report_id,
+        "revision": version.revision,
+        "title": version.content.get("report", {}).get("title", ""),
+    }
+
+
+async def plan_list_items(db: AsyncSession, plans: list[ActionPlan]) -> list[dict]:
+    """Serialize plan summaries with the same reports contract as plan_detail."""
+    items = {plan.id: {**view(plan), "reports": []} for plan in plans}
+    if not items:
+        return []
+    report_rows = await db.execute(
+        select(PlanReport.plan_id, ReportVersion)
+        .join(ReportVersion, ReportVersion.id == PlanReport.report_version_id)
+        .where(PlanReport.plan_id.in_(items))
+        .order_by(PlanReport.plan_id, ReportVersion.revision, ReportVersion.id)
+    )
+    for plan_id, version in report_rows:
+        items[plan_id]["reports"].append(report_link_view(version))
+    return [items[plan.id] for plan in plans]
+
+
 async def get_plan(db, plan_id, lock=False):
     plan = await db.get(ActionPlan, plan_id, with_for_update=lock, populate_existing=True)
     if plan is None:
@@ -118,7 +143,7 @@ async def save_plan(db: AsyncSession, data: PlanInput, actor_id: int, plan_id=No
 async def plan_detail(db, plan_id):
     result = view(await get_plan(db, plan_id))
     result["reports"] = [
-        dict(id=v.id, report_id=v.report_id, revision=v.revision, title=v.content.get("report", {}).get("title", ""))
+        report_link_view(v)
         for v in await db.scalars(
             select(ReportVersion)
             .join(PlanReport, PlanReport.report_version_id == ReportVersion.id)

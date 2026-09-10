@@ -73,26 +73,15 @@ resultado e falha se houver arquivos não formatados.
 
 ## Banco e dados iniciais
 
-Execute estes comandos após `docker compose up --build`, quando o backend e o
-PostgreSQL estiverem saudáveis. Se o Compose estiver ocupando o terminal, abra
-outro terminal na raiz do projeto. Em um banco novo, execute-os na ordem abaixo:
+No desenvolvimento, `docker compose up --build` aplica as migrações, cria de
+forma idempotente o plano e o superusuário configurado no `.env`, e inicia a
+carga idempotente dos dados de demonstração em segundo plano. Portanto, o
+ambiente novo já fica pronto para acesso com o usuário definido em
+`ADMIN_NAME`, `ADMIN_EMAIL`, `ADMIN_USERNAME` e `ADMIN_PASSWORD`.
 
-1. Aplicar migrações — cria ou atualiza a estrutura do banco para a versão
-   atual do projeto. Execute na primeira inicialização e depois de receber novas
-   migrações:
-
-```powershell
-docker compose run --rm backend alembic upgrade head
-```
-
-2. Criar dados iniciais — cria o plano padrão e o primeiro superusuário. Execute
-   somente na primeira preparação do banco; pode ser repetido sem duplicar os
-   registros existentes.
-
-   Antes de executá-lo, defina `ADMIN_NAME`, `ADMIN_EMAIL`, `ADMIN_USERNAME` e
-   `ADMIN_PASSWORD` no `.env`. O Docker Compose repassa essas variáveis somente
-   ao processo do backend. Se alguma estiver vazia, o script termina imediatamente
-   com uma mensagem clara; não existem credenciais padrão ou fallback inseguro.
+As quatro variáveis `ADMIN_*` precisam estar preenchidas para criar o usuário;
+sem elas, a API continua inicializando, mas o bootstrap é ignorado com uma
+mensagem no log. Para repetir manualmente apenas o bootstrap, use:
 
 ```powershell
 docker compose run --rm backend python -m scripts.setup_initial_data
