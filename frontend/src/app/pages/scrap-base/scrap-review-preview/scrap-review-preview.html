@@ -96,15 +96,6 @@
       </div>
     </section>
   }
-
-  @if (isReviewed() && review()) {
-    <footer class="report-actions">
-      <button type="button" class="btn btn-secondary" (click)="onUseAsReference()">
-        <ui-icon name="copy" />
-        <span>{{ t().scrapActionUseReference }}</span>
-      </button>
-    </footer>
-  }
 </article>
 
 @if (lightboxItem(); as item) {

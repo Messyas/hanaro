@@ -323,7 +323,6 @@ export interface AppTranslations {
   scrapActionEditReview: string;
   scrapActionCancelEdit: string;
   scrapActionSaveEdit: string;
-  scrapActionUseReference: string;
   scrapDiscardChangesConfirm: string;
   scrapFinalizeConfirmTitle: string;
   scrapFinalizeConfirmMessage: string;
@@ -743,7 +742,6 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     scrapActionEditReview: 'Editar relatório',
     scrapActionCancelEdit: 'Cancelar edição',
     scrapActionSaveEdit: 'Salvar alterações',
-    scrapActionUseReference: 'Usar como referência',
     scrapDiscardChangesConfirm:
       'Existem alterações não salvas. Deseja realmente fechar e descartar as alterações?',
     scrapFinalizeConfirmTitle: 'Finalizar análise',
@@ -1170,7 +1168,6 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     scrapActionEditReview: 'Edit report',
     scrapActionCancelEdit: 'Cancel edit',
     scrapActionSaveEdit: 'Save changes',
-    scrapActionUseReference: 'Use as reference',
     scrapDiscardChangesConfirm:
       'There are unsaved changes. Do you really want to close and discard your changes?',
     scrapFinalizeConfirmTitle: 'Finalize review',
@@ -1593,7 +1590,6 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     scrapActionEditReview: '보고서 수정',
     scrapActionCancelEdit: '수정 취소',
     scrapActionSaveEdit: '변경사항 저장',
-    scrapActionUseReference: '기준 보고서로 사용',
     scrapDiscardChangesConfirm: '저장되지 않은 변경사항이 있습니다. 닫으시겠습니까?',
     scrapFinalizeConfirmTitle: '분석 완료 확정',
     scrapFinalizeConfirmMessage:

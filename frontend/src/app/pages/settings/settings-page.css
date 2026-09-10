@@ -41,9 +41,11 @@
 
 .settings-tab-btn.active {
   color: var(--brand-primary);
-  border-bottom-color: var(--brand-primary);
+  border: none;
+  border-bottom: 2px solid var(--brand-primary);
   font-weight: 600;
-  background: color-mix(in srgb, var(--brand-primary) 8%, transparent);
+  background: var(--app-surface-raised);
+  margin-bottom: -2px;
 }
 
 .tab-badge {

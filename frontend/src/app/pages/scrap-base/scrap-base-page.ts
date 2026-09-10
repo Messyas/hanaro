@@ -549,14 +549,6 @@ export class ScrapBasePage implements OnInit {
     }
   }
 
-  onUseAsReference(review: ScrapReview): void {
-    this.activeReferenceReview.set(review);
-    this.selectionMode.set(true);
-    this.closeDrawer();
-    this.page.set(1);
-    this.loadScrap();
-  }
-
   onSearchInput(value: string): void {
     this.searchText.set(value);
     this.searchSubject.next(value);

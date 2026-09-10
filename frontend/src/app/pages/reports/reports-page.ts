@@ -239,12 +239,6 @@ export class ReportsPage implements OnInit {
     this.router.navigate(['/relatorios'], { queryParamsHandling: 'preserve' });
   }
 
-  onUseAsReference(review: ScrapReview): void {
-    this.router.navigate(['/base-de-scrap'], {
-      state: { referenceReview: review },
-    });
-  }
-
   onSearchInput(value: string): void {
     this.searchText.set(value);
     this.searchSubject.next(value);

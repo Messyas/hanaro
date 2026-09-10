@@ -12,8 +12,11 @@ from pathlib import Path
 
 import sqlalchemy as sa
 
+from scripts.seed_demo_classifications import seed_demo_classifications
+from scripts.seed_demo_governance import seed_demo_governance
 from scripts.setup_initial_data import setup_initial_data, validate_admin_configuration
 from src.infrastructure.database.session import engine, local_session
+from src.modules.material_scrap.classification_service import ScrapClassificationService
 from src.modules.material_scrap.schemas import MaterialScrapPayload
 from src.modules.material_scrap.service import ingest_material_scrap
 
@@ -157,7 +160,12 @@ async def seed_demo_data() -> None:
         seed_path = Path(os.getenv("DEMO_DATA_PATH", "seed/synthetic"))
         payloads = _load_demo_payloads(seed_path)
         print(f"Loading {len(payloads)} idempotent demo Material Scrap batch(es) from {seed_path}")
+        classification_count = await seed_demo_classifications()
+        print(f"Loaded {classification_count} demo classification rule(s)")
         async with local_session() as session:
+            # Existing snapshots may have been ingested before the rules were
+            # present. Reapply once so their dashboard dimensions are rebuilt.
+            await ScrapClassificationService().reapply(session)
             for payload in payloads:
                 result = await ingest_material_scrap(payload, session)
                 replay = " (already loaded)" if result.is_replay else ""
@@ -165,6 +173,8 @@ async def seed_demo_data() -> None:
                     f"Loaded {result.accepted_count} Material Scrap records "
                     f"for {payload.execution.query_date_from}..{payload.execution.query_date_to}{replay}"
                 )
+        governance_counts = await seed_demo_governance()
+        print(f"Loaded governance demo records: {governance_counts}")
     else:
         print("Demo Material Scrap seed is disabled")
 

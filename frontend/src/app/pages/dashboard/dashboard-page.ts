@@ -1,4 +1,5 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { LanguageService } from '../../i18n/language.service';
 import { UiIcon } from '../../ui-icon';
 import { DashboardPerformanceChart } from './components/dashboard-performance-chart';
@@ -91,6 +92,7 @@ const COMPARISON_OPTIONS: readonly DashboardComparison[] = ['ytd', 'yoy', 'mom']
 @Component({
   selector: 'app-dashboard-page',
   imports: [
+    RouterLink,
     UiIcon,
     DashboardPerformanceChart,
     DashboardDistributionChart,
@@ -544,9 +546,8 @@ export class DashboardPage {
   }
 
   targetGapHintLabel(): string {
-    return this.targetGapValue() <= 0
-      ? this.text().targetGapOnTrack
-      : this.text().targetGapExceeded;
+    const gap = this.targetGapValue();
+    return gap <= 0 ? this.text().targetGapOnTrack : this.text().targetGapExceeded;
   }
 
   targetGapReached(): boolean {
@@ -595,9 +596,13 @@ export class DashboardPage {
 
   lastUpdatedLabel(): string {
     const language = this.language.currentLanguage();
-    if (language === 'en') return 'Today, 10:00';
-    if (language === 'ko') return '오늘 10:00';
-    return this.store.snapshot().lastUpdatedAt;
+    const timestamp = this.store.snapshot().lastUpdatedAt;
+    if (!timestamp) return '';
+    const locale = language === 'en' ? 'en-US' : language === 'ko' ? 'ko-KR' : 'pt-BR';
+    return new Intl.DateTimeFormat(locale, {
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(new Date(timestamp));
   }
 
   dataStatusLabel(): string {

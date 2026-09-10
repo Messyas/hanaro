@@ -1,0 +1,610 @@
+<main class="kiosk-container" role="main" [attr.aria-label]="text().executiveTitle">
+  <!-- Top Header Bar -->
+  <header class="kiosk-header">
+    <div class="kiosk-header-left">
+      <span class="kiosk-tag">
+        @switch (store.settings().activeSlide) {
+          @case (0) {
+            {{ text().executiveTag }}
+          }
+          @case (1) {
+            {{ text().factoryTag }}
+          }
+          @case (2) {
+            {{ text().offendersTag }}
+          }
+          @case (3) {
+            {{ text().prioritiesTag }}
+          }
+        }
+      </span>
+      <h1 class="kiosk-title">
+        @switch (store.settings().activeSlide) {
+          @case (0) {
+            {{ text().executiveTitle }}
+          }
+          @case (1) {
+            {{ text().factoryTitle }}
+          }
+          @case (2) {
+            {{ text().offendersTitle }}
+          }
+          @case (3) {
+            {{ text().prioritiesTitle }}
+          }
+        }
+      </h1>
+    </div>
+
+    <div class="kiosk-header-right">
+      <div class="kiosk-timestamp">
+        <ui-icon name="clock" />
+        <span>{{ store.lastUpdated() }}</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Slide Stage -->
+  <div class="kiosk-stage">
+    <!-- SLIDE 0: Visão Executiva -->
+    @if (store.settings().activeSlide === 0) {
+      <section class="kiosk-slide slide-executive" aria-label="Visão Executiva">
+        <!-- 4 KPI Cards -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <span class="kpi-label">{{ text().ifCostAccumulated }}</span>
+            <div class="kpi-value-row">
+              <span class="kpi-value">{{ formatCurrency(store.ifCostActual()) }}</span>
+            </div>
+            <span class="kpi-subtext">{{ currentYear }}</span>
+          </div>
+
+          <div class="kpi-card">
+            <span class="kpi-label">{{
+              text().samePeriodPrior.replace('{year}', previousYear.toString())
+            }}</span>
+            <div class="kpi-value-row">
+              <span class="kpi-value">{{ formatCurrency(store.ifCostPreviousYear()) }}</span>
+            </div>
+            <span class="kpi-subtext">{{ text().yoyReference }}</span>
+          </div>
+
+          <div class="kpi-card">
+            <span class="kpi-label">{{
+              text().variationVsPrior.replace('{year}', previousYear.toString())
+            }}</span>
+            <div class="kpi-value-row">
+              <span
+                class="kpi-value"
+                [class.text-success]="store.ifCostVariation() <= 0"
+                [class.text-danger]="store.ifCostVariation() > 0"
+              >
+                {{ formatPercent(store.ifCostVariation()) }}
+              </span>
+            </div>
+            <span class="kpi-subtext">{{ text().lowerIsBetter }}</span>
+          </div>
+
+          <div class="kpi-card">
+            <span class="kpi-label">{{ text().targetAccumulated }}</span>
+            <div class="kpi-value-row">
+              <span class="kpi-value">{{ formatCurrency(store.ifCostTarget()) }}</span>
+            </div>
+            <span class="kpi-subtext"
+              >{{ text().registeredTarget }} ({{ store.targetAttainment() }}%)</span
+            >
+          </div>
+        </div>
+
+        <!-- Main Visuals: Chart & Top 3 Componentes -->
+        <div class="visual-split">
+          <div class="chart-panel">
+            <div class="panel-header">
+              <h2 class="panel-title">
+                {{
+                  text()
+                    .evolutionTitle.replace('{currentYear}', currentYear.toString())
+                    .replace('{priorYear}', previousYear.toString())
+                }}
+              </h2>
+            </div>
+            <div class="chart-wrapper">
+              <app-dashboard-performance-chart
+                [data]="store.monthlyPoints()"
+                metric="usd"
+                analysis="absolute"
+                [year]="currentYear.toString()"
+                [language]="language.currentLanguage()"
+                view="monthly"
+              />
+            </div>
+          </div>
+
+          <div class="side-panel">
+            <div class="panel-header">
+              <h2 class="panel-title">{{ text().topComponentsTitle }}</h2>
+            </div>
+            <div class="bar-ranking-list">
+              @for (item of store.topComponents(); track item.name) {
+                <div class="bar-ranking-item">
+                  <div class="bar-ranking-labels">
+                    <span class="item-name">{{ item.name }}</span>
+                    <span class="item-value">{{ formatCurrency(item.amountUsd) }}</span>
+                  </div>
+                  <div class="bar-track">
+                    <div class="bar-fill brand-glow" [style.width.%]="item.percentage"></div>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom Stats Ribbon -->
+        <footer class="stats-ribbon">
+          <div class="ribbon-item">
+            <strong>{{ formatNumber(store.summaryStats().scrapUnits) }}</strong>
+            <span>{{ text().scrapUnits }}</span>
+          </div>
+          <span class="ribbon-divider">•</span>
+          <div class="ribbon-item">
+            <strong>{{ formatNumber(store.summaryStats().transactions) }}</strong>
+            <span>{{ text().transactions }}</span>
+          </div>
+          <span class="ribbon-divider">•</span>
+          <div class="ribbon-item">
+            <strong class="text-brand">{{ store.summaryStats().criticalAlerts }}</strong>
+            <span>{{ text().criticalAlerts }}</span>
+          </div>
+        </footer>
+      </section>
+    }
+
+    <!-- SLIDE 1: Modo Fábrica (Ranking por Linha - Gamificação) -->
+    @if (store.settings().activeSlide === 1) {
+      <section class="kiosk-slide slide-factory" aria-label="Modo Fábrica">
+        <!-- Sub-header with Period Toggle -->
+        <div class="factory-toolbar">
+          <div class="period-pill-toggle" role="group" [attr.aria-label]="text().period">
+            <button
+              type="button"
+              class="period-pill"
+              [class.active]="store.settings().factoryPeriod === 'month'"
+              (click)="store.setFactoryPeriod('month')"
+            >
+              {{ text().month }}
+            </button>
+            <button
+              type="button"
+              class="period-pill"
+              [class.active]="store.settings().factoryPeriod === 'year'"
+              (click)="store.setFactoryPeriod('year')"
+            >
+              {{ text().year }}
+            </button>
+          </div>
+          <span class="factory-period-hint">{{ text().currentVsPrior }}</span>
+        </div>
+
+        <!-- 4 Factory Summary Cards -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <span class="kpi-label">{{ text().occurrences }}</span>
+            <div class="kpi-value-row">
+              <span class="kpi-value">{{ formatNumber(store.factoryOccurrencesTotal()) }}</span>
+            </div>
+            <span class="kpi-subtext">{{
+              store.settings().factoryPeriod === 'month' ? 'Ago/' + currentYear : currentYear
+            }}</span>
+          </div>
+
+          <div class="kpi-card">
+            <span class="kpi-label">{{ text().leaderLine }}</span>
+            <div class="kpi-value-row">
+              <span class="kpi-value text-brand">{{ store.factoryLeaderLine().name }}</span>
+            </div>
+            <span class="kpi-subtext"
+              >{{ store.factoryLeaderLine().occurrences }} {{ text().occurrencesUnit }}</span
+            >
+          </div>
+
+          <div class="kpi-card">
+            <span class="kpi-label">{{ text().monitoredLines }}</span>
+            <div class="kpi-value-row">
+              <span class="kpi-value">{{ store.factoryMonitoredLinesCount() }}</span>
+            </div>
+            <span class="kpi-subtext">{{ text().generalConsolidated }}</span>
+          </div>
+
+          <div class="kpi-card">
+            <span class="kpi-label">{{ text().priorPeriod }}</span>
+            <div class="kpi-value-row">
+              <span class="kpi-value">{{
+                formatNumber(store.factoryPriorPeriodOccurrences())
+              }}</span>
+            </div>
+            <span class="kpi-subtext">{{ text().comparableOccurrences }}</span>
+          </div>
+        </div>
+
+        <!-- Gamified Line Ranking & Sectors -->
+        <div class="visual-split factory-split">
+          <!-- Assembly Line Gamified Ranking -->
+          <div class="gamified-panel">
+            <div class="panel-header">
+              <h2 class="panel-title">{{ text().assemblyLines }}</h2>
+              <span class="panel-meta-caption"
+                >{{ text().occurrencesUnit }} · {{ text().variation }}</span
+              >
+            </div>
+
+            <div class="gamified-list">
+              @for (item of store.assemblyLinesRanking(); track item.line) {
+                <div class="gamified-row" [class.rank-gold]="item.rank === 1">
+                  <!-- Rank Badge -->
+                  <div class="rank-badge" [attr.data-rank]="item.rank">
+                    {{ item.rank }}
+                  </div>
+
+                  <!-- Line Name -->
+                  <span class="line-name">{{ item.line }}</span>
+
+                  <!-- Visual Progress Bar -->
+                  <div class="gamified-track">
+                    <div
+                      class="gamified-fill"
+                      [class.top-fill]="item.rank === 1"
+                      [style.width.%]="item.percentage"
+                    ></div>
+                  </div>
+
+                  <!-- Metric Count -->
+                  <span class="occurrence-count">{{ item.occurrences }}</span>
+
+                  <!-- Trend Indicator -->
+                  <span class="variation-badge">
+                    @if (item.variation === 0 || item.variation == null) {
+                      —
+                    } @else if (item.variation > 0) {
+                      +{{ item.variation }}
+                    } @else {
+                      {{ item.variation }}
+                    }
+                  </span>
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Sectors Breakdown -->
+          <div class="side-panel">
+            <div class="panel-header">
+              <h2 class="panel-title">{{ text().sectorsWithMostOccurrences }}</h2>
+            </div>
+            <div class="bar-ranking-list">
+              @for (item of store.sectorsRanking(); track item.sector) {
+                <div class="bar-ranking-item">
+                  <div class="bar-ranking-labels">
+                    <span class="item-name">{{ item.sector }}</span>
+                    <span class="item-value"
+                      >{{ item.occurrences }} {{ text().occurrencesUnit }}</span
+                    >
+                  </div>
+                  <div class="bar-track">
+                    <div class="bar-fill brand-glow" [style.width.%]="item.percentage"></div>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      </section>
+    }
+
+    <!-- SLIDE 2: Principais Ofensores -->
+    @if (store.settings().activeSlide === 2) {
+      <section class="kiosk-slide slide-offenders" aria-label="Principais Ofensores">
+        <!-- Dual Comparison Panels -->
+        <div class="dual-panel-grid">
+          <div class="kiosk-card-panel">
+            <div class="panel-header">
+              <h2 class="panel-title">{{ text().top5DefectsByCost }}</h2>
+            </div>
+            <div class="bar-ranking-list">
+              @for (item of store.topDefectsByCost(); track item.name) {
+                <div class="bar-ranking-item">
+                  <div class="bar-ranking-labels">
+                    <span class="item-name" [attr.title]="item.name">{{ item.name }}</span>
+                    <span class="item-value">{{ formatCurrency(item.amountUsd) }}</span>
+                  </div>
+                  <div class="bar-track">
+                    <div class="bar-fill brand-glow" [style.width.%]="item.percentage"></div>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="kiosk-card-panel">
+            <div class="panel-header">
+              <h2 class="panel-title">{{ text().top8LinesByCost }}</h2>
+            </div>
+            <div class="bar-ranking-list">
+              @for (item of store.topLinesByCost(); track item.line) {
+                <div class="bar-ranking-item">
+                  <div class="bar-ranking-labels">
+                    <span class="item-name">{{ item.line }}</span>
+                    <span class="item-value">{{ formatCurrency(item.amountUsd) }}</span>
+                  </div>
+                  <div class="bar-track">
+                    <div class="bar-fill brand-glow" [style.width.%]="item.percentage"></div>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Highlight Banners -->
+        <div class="highlight-grid">
+          <div class="highlight-card">
+            <span class="highlight-caption">{{ text().mostCriticalPartNumber }}</span>
+            <div class="highlight-body">
+              <span class="highlight-code">{{ store.mostCriticalPartNumber().code }}</span>
+              <span class="highlight-figure">{{
+                formatCurrency(store.mostCriticalPartNumber().amountUsd)
+              }}</span>
+            </div>
+            <span class="highlight-footnote">{{ text().highestAccumulatedImpact }}</span>
+          </div>
+
+          <div class="highlight-card">
+            <span class="highlight-caption">{{ text().mostCriticalDefect }}</span>
+            <div class="highlight-body">
+              <span class="highlight-code">{{ store.mostCriticalDefect().name }}</span>
+              <span class="highlight-figure text-brand"
+                >{{ store.mostCriticalDefect().percentage }}%</span
+              >
+            </div>
+            <span class="highlight-footnote">{{ text().ofAccumulatedImpact }}</span>
+          </div>
+        </div>
+      </section>
+    }
+
+    <!-- SLIDE 3: Ocorrências Prioritárias -->
+    @if (store.settings().activeSlide === 3) {
+      <section class="kiosk-slide slide-priorities" aria-label="Ocorrências Prioritárias">
+        <div class="visual-split">
+          <!-- Priority List -->
+          <div class="priority-list-panel">
+            @for (item of store.priorityOccurrences(); track item.id) {
+              <div class="priority-card">
+                <div class="priority-card-left">
+                  <div class="priority-badge-row">
+                    <span class="critical-badge">{{ text().critical }}</span>
+                    <span class="part-number">{{ item.partNumber }}</span>
+                  </div>
+                  <div class="priority-amount">{{ formatCurrency(item.amountUsd) }}</div>
+                </div>
+
+                <div class="priority-card-right">
+                  <h3 class="priority-category">{{ item.category }}</h3>
+                  <p class="priority-description">{{ item.description }}</p>
+                </div>
+              </div>
+            }
+          </div>
+
+          <!-- Review Status & Categories -->
+          <div class="side-panel">
+            <div class="side-subpanel">
+              <h2 class="panel-title">{{ text().reviewStatus }}</h2>
+              <div class="review-status-grid">
+                <div class="status-counter">
+                  <span class="counter-num">{{ store.reviewStatusSummary().pending }}</span>
+                  <span class="counter-label">{{ text().pending }}</span>
+                </div>
+                <div class="status-counter">
+                  <span class="counter-num">{{ store.reviewStatusSummary().inReview }}</span>
+                  <span class="counter-label">{{ text().inReview }}</span>
+                </div>
+                <div class="status-counter">
+                  <span class="counter-num">{{ store.reviewStatusSummary().justified }}</span>
+                  <span class="counter-label">{{ text().justified }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="side-subpanel">
+              <h2 class="panel-title">{{ text().predominantCategories }}</h2>
+              <div class="bar-ranking-list">
+                @for (cat of store.predominantCategories(); track cat.name) {
+                  <div class="bar-ranking-item">
+                    <div class="bar-ranking-labels">
+                      <span class="item-name">{{ cat.name }}</span>
+                      <span class="item-value">{{ cat.percentage }}%</span>
+                    </div>
+                    <div class="bar-track">
+                      <div class="bar-fill brand-glow" [style.width.%]="cat.percentage"></div>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    }
+  </div>
+
+  <!-- Hover / touch trigger zone for bottom dock -->
+  <div
+    class="kiosk-dock-trigger-zone"
+    aria-hidden="true"
+    (mouseenter)="showDock()"
+    (mousemove)="showDock()"
+    (touchstart)="showDock()"
+  ></div>
+
+  <!-- Floating Bottom Glass Dock -->
+  <nav
+    class="kiosk-dock"
+    [class.dock-hidden]="!isDockVisible()"
+    (mouseenter)="onDockMouseEnter()"
+    (mouseleave)="onDockMouseLeave()"
+    aria-label="Controles do Modo Kiosk"
+  >
+    <!-- Slide Tabs -->
+    <div class="dock-tabs">
+      <button
+        type="button"
+        class="dock-tab-btn"
+        [class.active]="store.settings().activeSlide === 0"
+        (click)="store.setSlide(0)"
+      >
+        {{ text().slideExecutive }}
+      </button>
+      <button
+        type="button"
+        class="dock-tab-btn"
+        [class.active]="store.settings().activeSlide === 1"
+        (click)="store.setSlide(1)"
+      >
+        {{ text().slideFactory }}
+      </button>
+      <button
+        type="button"
+        class="dock-tab-btn"
+        [class.active]="store.settings().activeSlide === 2"
+        (click)="store.setSlide(2)"
+      >
+        {{ text().slideOffenders }}
+      </button>
+      <button
+        type="button"
+        class="dock-tab-btn"
+        [class.active]="store.settings().activeSlide === 3"
+        (click)="store.setSlide(3)"
+      >
+        {{ text().slidePriorities }}
+      </button>
+    </div>
+
+    <div class="dock-divider"></div>
+
+    <!-- Playback Navigation Controls -->
+    <div class="dock-nav-controls">
+      <button
+        type="button"
+        class="dock-icon-btn"
+        [attr.aria-label]="'Anterior'"
+        (click)="store.prevSlide()"
+      >
+        <ui-icon name="chevron-left" />
+      </button>
+
+      <button
+        type="button"
+        class="dock-playback-btn"
+        [class.is-paused]="store.isPaused()"
+        [attr.aria-label]="store.isPaused() ? text().play : text().pause"
+        (click)="store.togglePause()"
+      >
+        <ui-icon [name]="store.isPaused() ? 'play' : 'pause'" />
+        <span>{{ store.isPaused() ? text().play : text().pause }}</span>
+      </button>
+
+      <button
+        type="button"
+        class="dock-icon-btn"
+        [attr.aria-label]="'Próximo'"
+        (click)="store.nextSlide()"
+      >
+        <ui-icon name="chevron-right" />
+      </button>
+    </div>
+
+    <div class="dock-divider"></div>
+
+    <!-- Auto-rotation & Interval -->
+    <div class="dock-settings">
+      <button
+        type="button"
+        class="dock-toggle-btn"
+        [class.active]="store.settings().autoRotate"
+        (click)="store.toggleAutoRotate()"
+      >
+        <span class="toggle-dot"></span>
+        <span>{{ text().autoRotate }}</span>
+      </button>
+
+      <div class="dock-interval-select">
+        <app-list-filter-select
+          class="kiosk-interval-dropdown"
+          [value]="currentInterval()"
+          [options]="intervalSelectOptions()"
+          [label]="text().interval + ':'"
+          [ariaLabel]="text().interval"
+          layout="inline"
+          [compact]="true"
+          menuPosition="up"
+          (changed)="onIntervalChange($event)"
+        />
+      </div>
+    </div>
+
+    <div class="dock-divider"></div>
+
+    <!-- Fullscreen, Theme & Exit -->
+    <div class="dock-actions">
+      <button
+        type="button"
+        class="dock-action-btn dock-theme-btn"
+        [attr.aria-label]="themeService.isDark() ? text().lightTheme : text().darkTheme"
+        [attr.title]="themeService.isDark() ? text().lightTheme : text().darkTheme"
+        (click)="toggleTheme()"
+      >
+        <ui-icon [name]="themeService.isDark() ? 'sun' : 'moon'" />
+        <span>{{ themeService.isDark() ? text().lightTheme : text().darkTheme }}</span>
+      </button>
+
+      <button
+        type="button"
+        class="dock-action-btn"
+        [attr.aria-label]="isFullscreen() ? text().exitFullscreen : text().fullscreen"
+        (click)="toggleFullscreen()"
+      >
+        <ui-icon [name]="isFullscreen() ? 'minimize' : 'maximize'" />
+        <span>{{ isFullscreen() ? text().exitFullscreen : text().fullscreen }}</span>
+      </button>
+
+      <button
+        type="button"
+        class="dock-action-btn dock-exit-btn"
+        [attr.aria-label]="text().exit"
+        (click)="exitKiosk()"
+      >
+        <ui-icon name="x" />
+        <span>{{ text().exit }}</span>
+      </button>
+    </div>
+
+    <!-- Pagination & Progress Indicator -->
+    <div class="dock-pagination">
+      <span class="pagination-text">{{ store.settings().activeSlide + 1 }}/4</span>
+      <div class="pagination-dots">
+        @for (dot of [0, 1, 2, 3]; track dot) {
+          <span
+            class="dot"
+            [class.active]="store.settings().activeSlide === dot"
+            (click)="store.setSlide(dot)"
+          ></span>
+        }
+      </div>
+      @if (store.settings().autoRotate && !store.isPaused()) {
+        <div class="progress-mini-bar" [style.width.%]="store.progressPercent()"></div>
+      }
+    </div>
+  </nav>
+</main>

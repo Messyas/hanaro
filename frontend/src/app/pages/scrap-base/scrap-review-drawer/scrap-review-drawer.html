@@ -189,7 +189,6 @@
             [draftAttachments]="draftAttachmentPreviews()"
             [isDraft]="!isReadOnly()"
             [defectTypeName]="selectedDefectTypeName()"
-            (useAsReference)="useAsReference.emit($event)"
           />
         } @else {
           <app-scrap-review-form

@@ -1,4 +1,4 @@
-import { Component, HostListener, computed, inject, input, output, signal } from '@angular/core';
+import { Component, HostListener, computed, inject, input, signal } from '@angular/core';
 import { LanguageService } from '../../../i18n/language.service';
 import { UiIcon } from '../../../ui-icon';
 import { ScrapListItem } from '../scrap-base.models';
@@ -146,8 +146,6 @@ export class ScrapReviewPreview {
   readonly isDraft = input<boolean>(false);
   readonly defectTypeName = input<string | null>(null);
 
-  readonly useAsReference = output<ScrapReview>();
-
   readonly lightboxItem = signal<{ url: string; name: string } | null>(null);
 
   readonly displayTitle = computed(() => {
@@ -226,13 +224,6 @@ export class ScrapReviewPreview {
 
   closeLightbox(): void {
     this.lightboxItem.set(null);
-  }
-
-  onUseAsReference(): void {
-    const rev = this.review();
-    if (rev) {
-      this.useAsReference.emit(rev);
-    }
   }
 
   formatCurrency(value: string | undefined): string {
