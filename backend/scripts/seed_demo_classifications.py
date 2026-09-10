@@ -119,3 +119,9 @@ async def seed_demo_classifications() -> int:
                 rule.updated_at = now
         await db.commit()
     return created
+
+
+if __name__ == "__main__":
+    import asyncio
+    print("Seeded classification rules:", asyncio.run(seed_demo_classifications()))
+

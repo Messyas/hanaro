@@ -198,7 +198,7 @@ class ImprovementAction(GovernanceEntity):
     __table_args__ = (
         UniqueConstraint("factory_id", "code", name="uq_gov_action_code"),
         CheckConstraint(
-            "status IN ('PLANNED','IN_PROGRESS','IMPLEMENTED','UNDER_VERIFICATION','EFFECTIVE','CANCELLED')",
+            "status IN ('PLANNED','IN_PROGRESS','UNDER_VERIFICATION','COMPLETED')",
             name="ck_gov_action_status",
         ),
         Index("ix_gov_action_board", "factory_id", "status", "due_at", "id"),
@@ -211,6 +211,14 @@ class ImprovementAction(GovernanceEntity):
     owner_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT"), default=None)
     due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
     blocked_reason: Mapped[str | None] = mapped_column(Text, default=None)
+    plan_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("gov_action_plans.id", ondelete="RESTRICT"), default=None)
+    description: Mapped[str] = mapped_column(Text, default="")
+    priority: Mapped[str] = mapped_column(String(10), default="MEDIUM")
+    position: Mapped[int] = mapped_column(Integer, default=0)
+    author_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT"), default=None)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default_factory=now)
+    validated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    validated_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT"), default=None)
     version: Mapped[int] = mapped_column(Integer, default=1)
     __mapper_args__ = {"version_id_col": version}
 
@@ -249,9 +257,9 @@ class SnapshotItem(GovernanceEntity):
     snapshot_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gov_dataset_snapshots.id", ondelete="RESTRICT"))
     occurrence_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scrap_occurrences.id", ondelete="RESTRICT"))
     transaction_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scrap_transactions.id", ondelete="RESTRICT"))
+    frozen_values: Mapped[dict[str, Any]] = mapped_column(JSON_TYPE)
     review_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("scrap_reviews.id", ondelete="RESTRICT"), default=None)
     review_version: Mapped[int | None] = mapped_column(Integer, default=None)
-    frozen_values: Mapped[dict[str, Any]] = mapped_column(JSON_TYPE)
 
 
 class Report(GovernanceEntity):
@@ -333,7 +341,7 @@ class ReportAnalysis(GovernanceEntity):
 class ExportJob(GovernanceEntity):
     __tablename__ = "gov_export_jobs"
     __table_args__ = (
-        CheckConstraint("format IN ('PDF','PPTX','CSV','XLSX')", name="ck_gov_export_format"),
+        CheckConstraint("format IN ('PDF','PPTX','CSV','MARKDOWN','XLSX')", name="ck_gov_export_format"),
         CheckConstraint("status IN ('QUEUED','RUNNING','COMPLETED','FAILED')", name="ck_gov_export_status"),
         Index("ix_gov_export_queue", "status", "created_at"),
     )
@@ -349,6 +357,8 @@ class ExportJob(GovernanceEntity):
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default_factory=now)
     error_message: Mapped[str | None] = mapped_column(String(500), default=None)
+    lease_token: Mapped[uuid.UUID | None] = mapped_column(default=None)
+    lease_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
 
 
 class Artifact(GovernanceEntity):
@@ -425,3 +435,106 @@ class ConsumerReceipt(GovernanceEntity):
     __table_args__ = (UniqueConstraint("consumer", "event_id", name="uq_gov_consumer_event"),)
     consumer: Mapped[str] = mapped_column(String(100))
     event_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gov_outbox_events.id", ondelete="RESTRICT"))
+
+
+class PublishedEvidence(GovernanceEntity):
+    __tablename__ = "gov_published_evidence"
+    source_attachment_id: Mapped[uuid.UUID] = mapped_column()
+    storage_key: Mapped[str] = mapped_column(String(500), unique=True)
+    sha256: Mapped[str] = mapped_column(String(64))
+    size_bytes: Mapped[int] = mapped_column(Integer)
+    filename: Mapped[str] = mapped_column(String(255))
+    content_type: Mapped[str] = mapped_column(String(100))
+
+
+class ActionPlan(GovernanceEntity):
+    __tablename__ = "gov_action_plans"
+    __table_args__ = (CheckConstraint("status IN ('OPEN','COMPLETED')", name="ck_gov_plan_status"),)
+    factory_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gov_factories.id", ondelete="RESTRICT"))
+    title: Mapped[str] = mapped_column(String(240))
+    description: Mapped[str] = mapped_column(Text, default="")
+    status: Mapped[str] = mapped_column(String(20), default="OPEN")
+    author_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT"), default=None)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    __mapper_args__ = {"version_id_col": version}
+
+
+class PlanReport(GovernanceEntity):
+    __tablename__ = "gov_plan_reports"
+    __table_args__ = (UniqueConstraint("plan_id", "report_version_id", name="uq_gov_plan_report"),)
+    plan_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gov_action_plans.id", ondelete="RESTRICT"))
+    report_version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gov_report_versions.id", ondelete="RESTRICT"))
+
+
+class ActionParticipant(GovernanceEntity):
+    __tablename__ = "gov_action_participants"
+    __table_args__ = (UniqueConstraint("action_id", "user_id", name="uq_gov_action_participant"),)
+    action_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gov_actions.id", ondelete="RESTRICT"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT"))
+
+
+class ActionOccurrence(GovernanceEntity):
+    __tablename__ = "gov_action_occurrences"
+    __table_args__ = (UniqueConstraint("action_id", "occurrence_id", name="uq_gov_action_occurrence"),)
+    action_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gov_actions.id", ondelete="RESTRICT"))
+    occurrence_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scrap_occurrences.id", ondelete="RESTRICT"))
+
+
+class NotificationRule(GovernanceEntity):
+    __tablename__ = "gov_notification_rules"
+    name: Mapped[str] = mapped_column(String(160))
+    event_type: Mapped[str] = mapped_column(String(80), index=True)
+    config: Mapped[dict[str, Any]] = mapped_column(JSON_TYPE)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    __mapper_args__ = {"version_id_col": version}
+
+
+class RuleEvaluation(GovernanceEntity):
+    __tablename__ = "gov_rule_evaluations"
+    __table_args__ = (UniqueConstraint("rule_id", "window_key", "subject", name="uq_gov_rule_window"),)
+    rule_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gov_notification_rules.id", ondelete="RESTRICT"))
+    window_key: Mapped[str] = mapped_column(String(80))
+    subject: Mapped[str] = mapped_column(String(240))
+    observed: Mapped[Decimal] = mapped_column(Numeric(24, 6))
+    last_fired_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    sequence: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class Alert(GovernanceEntity):
+    __tablename__ = "gov_alerts"
+    event_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gov_outbox_events.id", ondelete="RESTRICT"), unique=True)
+    event_type: Mapped[str] = mapped_column(String(80), index=True)
+    severity: Mapped[str] = mapped_column(String(20))
+    title: Mapped[str] = mapped_column(String(240))
+    body: Mapped[dict[str, Any]] = mapped_column(JSON_TYPE)
+    entity_id: Mapped[uuid.UUID] = mapped_column()
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+
+
+class AlertRecipient(GovernanceEntity):
+    __tablename__ = "gov_alert_recipients"
+    __table_args__ = (UniqueConstraint("alert_id", "user_id", name="uq_gov_alert_recipient"),)
+    alert_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gov_alerts.id", ondelete="RESTRICT"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT"), index=True)
+    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+
+
+class EmailDelivery(GovernanceEntity):
+    __tablename__ = "gov_email_deliveries"
+    __table_args__ = (UniqueConstraint("event_id", "user_id", name="uq_gov_email_recipient"),)
+    event_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gov_outbox_events.id", ondelete="RESTRICT"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT"), index=True)
+    recipient: Mapped[str] = mapped_column(String(100))
+    subject: Mapped[str] = mapped_column(String(300))
+    body: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(20), default="SIMULATED")
+    provider: Mapped[str] = mapped_column(String(40), default="simulation")
+
+
+class EventAttempt(GovernanceEntity):
+    __tablename__ = "gov_event_attempts"
+    event_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gov_outbox_events.id", ondelete="RESTRICT"), index=True)
+    attempt: Mapped[int] = mapped_column(Integer)
+    outcome: Mapped[str] = mapped_column(String(20))
+    error: Mapped[str | None] = mapped_column(String(200), default=None)

@@ -63,8 +63,14 @@ def upgrade() -> None:
     op.add_column("scrap_ingestion_runs", sa.Column("mode", sa.String(length=40), nullable=True))
     op.add_column("scrap_ingestion_runs", sa.Column("processing_date", sa.Date(), nullable=True))
     op.add_column("scrap_ingestion_runs", sa.Column("query_window_inferred", sa.Boolean(), nullable=True))
-    op.add_column("scrap_ingestion_runs", sa.Column("issue_amount_brl_total", sa.Numeric(20, 2), server_default="0", nullable=False))
-    op.add_column("scrap_ingestion_runs", sa.Column("sales_amount_total", sa.Numeric(20, 2), server_default="0", nullable=False))
+    op.add_column(
+        "scrap_ingestion_runs",
+        sa.Column("issue_amount_brl_total", sa.Numeric(20, 2), server_default="0", nullable=False),
+    )
+    op.add_column(
+        "scrap_ingestion_runs",
+        sa.Column("sales_amount_total", sa.Numeric(20, 2), server_default="0", nullable=False),
+    )
     op.add_column("scrap_ingestion_runs", sa.Column("expanded_comment_rows", sa.Integer(), server_default="0", nullable=False))
     op.add_column(
         "scrap_ingestion_runs",

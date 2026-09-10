@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.infrastructure.database.session import local_session
 from src.modules.governance.models import (
     ActionCase,
+    ActionPlan,
     AnalysisVersion,
     AuditCycle,
     AuditEvent,
@@ -84,6 +85,13 @@ async def seed_governance(db: AsyncSession) -> dict[str, int]:
     day = max(occ.transaction_date for occ, _ in rows)
     instant = datetime.combine(day, datetime.min.time(), tzinfo=UTC)
     factory = await add(Factory, "factory", code="DEMO-HANARO", name="Hanaro demonstracao")
+    plan = await add(
+        ActionPlan,
+        "action-plan",
+        factory_id=factory.id,
+        title="Plano demonstrativo de redução de Scrap",
+        description="Ações corretivas baseadas nas análises publicadas.",
+    )
     policy = await add(
         ReviewPolicy,
         "policy-v1",
@@ -170,6 +178,10 @@ async def seed_governance(db: AsyncSession) -> dict[str, int]:
             factory_id=factory.id,
             code=f"DEMO-ACT-{index + 1:03}",
             title="Melhoria demonstrativa da linha",
+            plan_id=plan.id,
+            description="Executar e verificar a melhoria identificada na análise.",
+            priority=("HIGH", "MEDIUM", "LOW")[index],
+            position=index * 1024,
             status=("PLANNED", "IN_PROGRESS", "UNDER_VERIFICATION")[index],
             due_at=instant + timedelta(days=14),
         )
@@ -220,7 +232,7 @@ async def seed_governance(db: AsyncSession) -> dict[str, int]:
             snapshot_id=snapshot.id,
             revision=1,
             content={"demo": True, "summary": "Demonstracao"},
-            template_version="demo-v1",
+            template_version="1",
         )
         await add(ReportAnalysis, f"{key}-report-analysis", report_version_id=version.id, analysis_id=analysis.id)
         if version.published_at is None:
@@ -232,7 +244,14 @@ async def seed_governance(db: AsyncSession) -> dict[str, int]:
             report_version_id=version.id,
             idempotency_key=f"demo-governance-{index}-pdf",
             format="PDF",
-            options={"demo": True, "renderer_required": True},
+            options={
+                "language": "pt",
+                "include_money": True,
+                "include_summary": True,
+                "include_occurrences": True,
+                "include_justifications": True,
+                "include_evidence": True,
+            },
         )
         await add(
             AuditEvent,

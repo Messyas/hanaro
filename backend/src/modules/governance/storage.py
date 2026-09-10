@@ -1,5 +1,7 @@
 import hashlib
+import os
 import re
+import tempfile
 from pathlib import Path
 
 from ...infrastructure.config.settings import get_settings
@@ -28,12 +30,21 @@ class ReportArtifactStorage:
     def write_once(self, key: str, content: bytes) -> Path:
         path = self._path(key)
         path.parent.mkdir(parents=True, exist_ok=True)
-        if path.exists():
-            existing = path.read_bytes()
-            if hashlib.sha256(existing).digest() == hashlib.sha256(content).digest():
-                return path
-            raise FileExistsError("Artifact already exists with different content")
-        path.write_bytes(content)
+        # Publish a fully flushed file with an atomic no-replace hard link.
+        # Readers never see partial bytes; competing writers cannot overwrite.
+        fd, temporary = tempfile.mkstemp(dir=path.parent, prefix=".pending-")
+        try:
+            with os.fdopen(fd, "wb") as stream:
+                stream.write(content)
+                stream.flush()
+                os.fsync(stream.fileno())
+            try:
+                os.link(temporary, path)
+            except FileExistsError:
+                if hashlib.sha256(path.read_bytes()).digest() != hashlib.sha256(content).digest():
+                    raise FileExistsError("Artifact already exists with different content") from None
+        finally:
+            os.unlink(temporary)
         return path
 
     def read(self, key: str) -> bytes:

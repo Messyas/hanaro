@@ -115,6 +115,28 @@ export class DashboardShell {
         requiresAuthentication: true,
       },
       {
+        path: '/alertas',
+        icon: 'clock',
+        label:
+          this.language.currentLanguage() === 'pt'
+            ? 'Alertas'
+            : this.language.currentLanguage() === 'ko'
+              ? '알림'
+              : 'Alerts',
+        requiresAuthentication: true,
+      },
+      {
+        path: '/planos-de-acao',
+        icon: 'folder',
+        label:
+          this.language.currentLanguage() === 'pt'
+            ? 'Planos de ação'
+            : this.language.currentLanguage() === 'ko'
+              ? '실행 계획'
+              : 'Action plans',
+        requiresAuthentication: true,
+      },
+      {
         path: '/configuracoes',
         icon: 'cog',
         label: t.navSettings,

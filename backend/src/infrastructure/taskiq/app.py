@@ -1,12 +1,15 @@
 """Taskiq app configuration and worker lifecycle management."""
 
+import asyncio
 import logging
+from contextlib import suppress
 from datetime import timedelta
 
 from taskiq import AsyncBroker
 from taskiq.events import TaskiqEvents
 from taskiq.state import TaskiqState
 
+from ...modules.governance.notifications.worker import loop as governance_loop
 from ...modules.material_scrap.execution_service import recover_stale_executions
 from ..config import get_settings
 from ..database.session import local_session
@@ -31,6 +34,7 @@ async def startup_taskiq_worker(state: TaskiqState) -> None:
     if recovered:
         logger.warning("Recovered %s stale Material Scrap execution(s)", recovered)
     logger.info("Taskiq worker startup complete")
+    state.governance_dispatcher = asyncio.create_task(governance_loop())
 
 
 async def shutdown_taskiq_worker(state: TaskiqState) -> None:
@@ -40,6 +44,10 @@ async def shutdown_taskiq_worker(state: TaskiqState) -> None:
         state: The taskiq state instance
     """
     logger.info("Shutting down taskiq worker...")
+    if hasattr(state, "governance_dispatcher"):
+        state.governance_dispatcher.cancel()
+        with suppress(asyncio.CancelledError):
+            await state.governance_dispatcher
     logger.info("Taskiq worker shutdown complete")
 
 

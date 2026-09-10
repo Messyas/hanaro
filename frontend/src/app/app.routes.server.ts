@@ -1,6 +1,9 @@
 import { RenderMode, ServerRoute } from '@angular/ssr';
 
 export const serverRoutes: ServerRoute[] = [
+  { path: 'alertas', renderMode: RenderMode.Client },
+  { path: 'planos-de-acao', renderMode: RenderMode.Client },
+  { path: 'planos-de-acao/:planId', renderMode: RenderMode.Client },
   {
     path: 'execucoes',
     renderMode: RenderMode.Client,

@@ -154,6 +154,7 @@ services:
     environment: *backend-environment
     volumes:
       - profile_images:/app/backend/data/profile-images
+      - scrap_review_images:/app/backend/data/scrap-review-images
       - report_artifacts:/app/backend/data/report-artifacts
     read_only: true
     tmpfs:
@@ -198,6 +199,7 @@ services:
     working_dir: /app/backend/src
     command: ["taskiq", "worker", "infrastructure.taskiq.worker:default_broker", "--workers", "2"]
     volumes:
+      - scrap_review_images:/app/backend/data/scrap-review-images:ro
       - report_artifacts:/app/backend/data/report-artifacts
     read_only: true
     tmpfs:
@@ -259,4 +261,5 @@ volumes:
   postgres_data:
   redis_data:
   profile_images:
+  scrap_review_images:
   report_artifacts:

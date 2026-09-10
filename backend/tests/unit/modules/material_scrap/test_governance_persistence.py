@@ -35,6 +35,7 @@ def migration(connection, direction="upgrade"):
         files = [
             Path(__file__).resolve().parents[4] / "migrations/versions/20260906_12_governance_persistence.py",
             Path(__file__).resolve().parents[4] / "migrations/versions/20260909_13_reports_module.py",
+            Path(__file__).resolve().parents[4] / "migrations/versions/20260909_14_governance_workflows.py",
         ]
         for index, file in enumerate(files if direction == "upgrade" else reversed(files)):
             if file.name == "20260909_13_reports_module.py":
@@ -128,5 +129,7 @@ async def test_seed_replay_constraints_and_immutable_snapshots(governance_engine
         if governance_engine.dialect.name == "postgresql":
             # PostgreSQL is the production dialect: validate a complete
             # reports/governance rollback and a clean re-application too.
-            await conn.run_sync(lambda sync: migration(sync, "downgrade"))
-            await conn.run_sync(migration)
+            # The new workflow migration preserves legacy histories and explicitly
+            # rejects destructive downgrades rather than dropping published work.
+            with pytest.raises(RuntimeError, match="restoration plan"):
+                await conn.run_sync(lambda sync: migration(sync, "downgrade"))

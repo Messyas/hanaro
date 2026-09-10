@@ -1,9 +1,10 @@
+import hashlib
 import uuid
 from typing import Annotated, Literal
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...infrastructure.auth.dependencies import get_current_user
@@ -12,7 +13,8 @@ from ...infrastructure.database.session import async_session
 from ...infrastructure.logging.config import generate_correlation_id, get_correlation_id
 from .exceptions import ReportConflictError, ReportNotFoundError, ReportValidationError
 from .exports import job_dict, request_export
-from .models import Artifact, ExportJob
+from .models import Artifact, ExportJob, PublishedEvidence, Report, ReportVersion
+from .notifications.service import emit
 from .schemas import ExportRequest, PublishRequest, ReportCreate, ReportUpdate, SourceMutation
 from .service import (
     archive_report,
@@ -31,7 +33,6 @@ from .service import (
     version_dict,
 )
 from .storage import ReportArtifactStorage
-from .tasks import enqueue_report_export
 
 router = APIRouter(tags=["Scrap Reports"])
 exports_router = APIRouter(tags=["Scrap Report Exports"])
@@ -248,16 +249,12 @@ async def create_export(
             db,
             report_version_id=version_id,
             format_=payload.format,
-            options=payload.options,
+            options=payload.options.model_dump(),
             template_version=payload.template_version,
             actor_id=_actor(current_user),
             retry_failed=payload.retry_failed,
         )
-        if enqueue:
-            try:
-                await enqueue_report_export(job.id)
-            except Exception as error:
-                raise HTTPException(status_code=503, detail="Unable to queue report export") from error
+        # The committed outbox is the dispatch authority, including broker outages.
         artifact = (await db.scalars(select(Artifact).where(Artifact.export_job_id == job.id))).one_or_none()
         return job_dict(job, artifact)
     except (ReportNotFoundError, ReportConflictError, ReportValidationError) as error:
@@ -269,8 +266,7 @@ async def export_status(job_id: Annotated[uuid.UUID, Path()], db: DbDep, current
     job = await db.get(ExportJob, job_id)
     if job is None:
         raise HTTPException(status_code=404, detail="Export job not found")
-    if job.requested_by_user_id != _actor(current_user) and not current_user.get("is_superuser"):
-        raise HTTPException(status_code=404, detail="Export job not found")
+    await _authorize_export(db, job)
     artifact = (await db.scalars(select(Artifact).where(Artifact.export_job_id == job.id))).one_or_none()
     return job_dict(job, artifact)
 
@@ -278,8 +274,9 @@ async def export_status(job_id: Annotated[uuid.UUID, Path()], db: DbDep, current
 @exports_router.get("/exports/{job_id}/download")
 async def download(job_id: Annotated[uuid.UUID, Path()], db: DbDep, current_user: CurrentUserDep) -> Response:
     job = await db.get(ExportJob, job_id)
-    if job is None or (job.requested_by_user_id != _actor(current_user) and not current_user.get("is_superuser")):
+    if job is None:
         raise HTTPException(status_code=404, detail="Export job not found")
+    await _authorize_export(db, job)
     if job.status != "COMPLETED":
         raise HTTPException(status_code=409, detail="Export is not ready")
     artifact = (await db.scalars(select(Artifact).where(Artifact.export_job_id == job.id))).one_or_none()
@@ -288,8 +285,28 @@ async def download(job_id: Annotated[uuid.UUID, Path()], db: DbDep, current_user
     try:
         content = ReportArtifactStorage().read(artifact.storage_key)
     except (FileNotFoundError, ValueError) as error:
-        raise HTTPException(status_code=404, detail="Export artifact not found") from error
+        job.status = "FAILED"
+        job.error_message = "Export artifact is missing"
+        emit(
+            db,
+            "REPORT_EXPORT_FAILED",
+            job.id,
+            {"title": "Export artifact is missing", "recipient_ids": [job.requested_by_user_id]},
+        )
+        await db.commit()
+        raise HTTPException(status_code=409, detail="Export artifact is missing; request a retry") from error
     filename = quote(artifact.filename, safe=".-_")
+    if len(content) != artifact.size_bytes or hashlib.sha256(content).hexdigest() != artifact.sha256:
+        job.status = "FAILED"
+        job.error_message = "Export artifact failed integrity verification"
+        emit(
+            db,
+            "REPORT_EXPORT_FAILED",
+            job.id,
+            {"title": "Export artifact is corrupted", "recipient_ids": [job.requested_by_user_id]},
+        )
+        await db.commit()
+        raise HTTPException(status_code=409, detail="Export artifact failed integrity verification; request a retry")
     return Response(
         content=content,
         media_type=artifact.content_type,
@@ -298,4 +315,75 @@ async def download(job_id: Annotated[uuid.UUID, Path()], db: DbDep, current_user
             "Content-Length": str(len(content)),
             "X-Content-SHA256": artifact.sha256,
         },
+    )
+
+
+async def _authorize_export(db, job):
+    # MVP report policy: all authenticated users can access existing reports,
+    # including archived historical versions. Never authorize by job ownership.
+    resource = await db.scalar(
+        select(Report.id)
+        .join(ReportVersion, ReportVersion.report_id == Report.id)
+        .where(ReportVersion.id == job.report_version_id)
+    )
+    if resource is None:
+        raise HTTPException(404, "Report not found")
+
+
+@exports_router.get("/governance/capabilities")
+async def capabilities(current_user: CurrentUserDep):
+    return {
+        "exports_available": get_settings().TASKIQ_ENABLED,
+        "notifications_available": get_settings().TASKIQ_ENABLED,
+        "email_provider": "simulation",
+        "formats": ["CSV", "PDF", "PPTX", "MARKDOWN"],
+        "template_versions": ["1"],
+        "csv": {"encoding": "UTF-8 BOM", "separator": ",", "summary": "not applicable"},
+    }
+
+
+@exports_router.get("/report-versions/{version_id}/exports")
+async def version_exports(
+    version_id: uuid.UUID,
+    db: DbDep,
+    current_user: CurrentUserDep,
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=100)] = 25,
+):
+    resource = await db.scalar(
+        select(Report.id).join(ReportVersion, ReportVersion.report_id == Report.id).where(ReportVersion.id == version_id)
+    )
+    if resource is None:
+        raise HTTPException(404, "Report version not found")
+    query = (
+        select(ExportJob, Artifact)
+        .outerjoin(Artifact, Artifact.export_job_id == ExportJob.id)
+        .where(ExportJob.report_version_id == version_id)
+    )
+    total = await db.scalar(select(func.count()).select_from(ExportJob).where(ExportJob.report_version_id == version_id))
+    rows = (
+        await db.execute(
+            query.order_by(ExportJob.created_at.desc(), ExportJob.id).offset((page - 1) * page_size).limit(page_size)
+        )
+    ).all()
+    total = int(total or 0)
+    return {"items": [job_dict(job, artifact) for job, artifact in rows], "total": total, "has_next": page * page_size < total}
+
+
+@exports_router.get("/report-evidence/{evidence_id}")
+async def evidence_download(evidence_id: uuid.UUID, db: DbDep, current_user: CurrentUserDep):
+    evidence = await db.get(PublishedEvidence, evidence_id)
+    if evidence is None:
+        raise HTTPException(404, "Published evidence not found")
+    # A row only becomes visible after its publication transaction commits.
+    try:
+        content = ReportArtifactStorage().read(evidence.storage_key)
+    except (ValueError, FileNotFoundError) as error:
+        raise HTTPException(404, "Published evidence file unavailable") from error
+    if hashlib.sha256(content).hexdigest() != evidence.sha256:
+        raise HTTPException(409, "Evidence integrity verification failed")
+    return Response(
+        content,
+        media_type=evidence.content_type,
+        headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(evidence.filename)}"},
     )

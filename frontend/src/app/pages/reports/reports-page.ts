@@ -12,16 +12,23 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, debounceTime, distinctUntilChanged, switchMap, takeWhile, timer } from 'rxjs';
 import { LanguageService } from '../../i18n/language.service';
+import { ListFilterInput } from '../../shared/list-filters/list-filter-input';
+import { ListFilterPopover } from '../../shared/list-filters/list-filter-popover';
+import { ListFilterSelect } from '../../shared/list-filters/list-filter-select';
 import { DelayedProgressSpinner } from '../../shared/list-view/delayed-progress-spinner/delayed-progress-spinner';
 import { InlineAlert } from '../../shared/list-view/inline-alert/inline-alert';
 import { ListFeedback } from '../../shared/list-view/list-feedback/list-feedback';
 import { ListPagination } from '../../shared/list-view/list-pagination/list-pagination';
+import { ListPanel } from '../../shared/list-view/list-panel/list-panel';
 import { StatusBadge } from '../../shared/list-view/status-badge/status-badge';
 import { UiIcon } from '../../ui-icon';
+import { GovernanceService } from '../governance.service';
+import { workflowCopy } from '../governance-copy';
 import {
   EligibleOccurrence,
   ExportFormat,
   ExportJob,
+  ExportOptions,
   Page,
   ReportDetail,
   ReportListItem,
@@ -104,6 +111,10 @@ const COPY = {
     selectAll: 'Selecionar visíveis',
     clearSelection: 'Limpar seleção',
     added: 'Adicionado',
+    filters: 'Filtros',
+    filterTitle: 'Filtrar relatórios',
+    clearFilters: 'Limpar filtros',
+    applyFilters: 'Aplicar filtros',
   },
   en: {
     title: 'Scrap Reports',
@@ -177,6 +188,10 @@ const COPY = {
     selectAll: 'Select visible',
     clearSelection: 'Clear selection',
     added: 'Added',
+    filters: 'Filters',
+    filterTitle: 'Filter reports',
+    clearFilters: 'Clear filters',
+    applyFilters: 'Apply filters',
   },
   ko: {
     title: '스크랩 보고서',
@@ -249,6 +264,10 @@ const COPY = {
     selectAll: '표시된 항목 선택',
     clearSelection: '선택 해제',
     added: '추가됨',
+    filters: '필터',
+    filterTitle: '보고서 필터',
+    clearFilters: '필터 지우기',
+    applyFilters: '필터 적용',
   },
 } as const;
 
@@ -260,6 +279,10 @@ const COPY = {
     InlineAlert,
     ListFeedback,
     ListPagination,
+    ListPanel,
+    ListFilterInput,
+    ListFilterPopover,
+    ListFilterSelect,
     StatusBadge,
     UiIcon,
   ],
@@ -267,6 +290,26 @@ const COPY = {
   styleUrl: './reports-page.css',
 })
 export class ReportsPage implements OnInit {
+  private readonly governance = inject(GovernanceService);
+  readonly workflows = computed(() => workflowCopy[this.language.currentLanguage()]);
+  readonly historical = signal<ReportVersion | null>(null);
+  readonly exportsAvailable = signal(false);
+  readonly options = signal<ExportOptions>({
+    language: 'pt',
+    include_money: true,
+    include_summary: true,
+    include_occurrences: true,
+    include_justifications: true,
+    include_evidence: true,
+    notify_on_completion: false,
+  });
+  private afterSave: (() => void) | null = null;
+  readonly hasPendingDraft = computed(
+    () =>
+      !!this.active() &&
+      (this.draftTitle().trim() !== this.active()!.title ||
+        this.draftDescription().trim() !== this.active()!.description),
+  );
   private readonly service = inject(ReportsService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -282,6 +325,15 @@ export class ReportsPage implements OnInit {
   readonly pageSize = signal<(typeof PAGE_SIZES)[number]>(25);
   readonly search = signal('');
   readonly statusFilter = signal('');
+  readonly filterOpen = signal(false);
+  readonly activeFiltersCount = computed(
+    () => [this.search().trim(), this.statusFilter()].filter(Boolean).length,
+  );
+  readonly statusOptions = computed(() => [
+    { value: '', label: this.c().all },
+    { value: 'DRAFT', label: this.c().draft },
+    { value: 'PUBLISHED', label: this.c().published },
+  ]);
   readonly showCreate = signal(false);
   readonly createTitle = signal('');
   readonly createDescription = signal('');
@@ -308,6 +360,13 @@ export class ReportsPage implements OnInit {
   readonly activeDrawer = signal<'occurrence' | 'report' | null>(null);
 
   ngOnInit(): void {
+    this.governance
+      .capabilities()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (c) => this.exportsAvailable.set(c.exports_available),
+        error: () => this.exportsAvailable.set(false),
+      });
     this.searchChanges
       .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
@@ -355,6 +414,13 @@ export class ReportsPage implements OnInit {
   onStatus(value: string): void {
     this.statusFilter.set(value);
     this.page.set(1);
+    this.loadReports();
+  }
+  clearFilters(): void {
+    this.search.set('');
+    this.statusFilter.set('');
+    this.page.set(1);
+    this.filterOpen.set(false);
     this.loadReports();
   }
   previousPage(): void {
@@ -408,11 +474,15 @@ export class ReportsPage implements OnInit {
       .subscribe({
         next: (report) => {
           this.active.set(report);
-          this.draftTitle.set(report.title);
-          this.draftDescription.set(report.description);
+          if (!preserveError) {
+            this.draftTitle.set(report.title);
+            this.draftDescription.set(report.description);
+          }
           this.saveStatus.set('saved');
           this.lastSavedTime.set(this.formatTime(new Date(report.updated_at || new Date())));
           this.loadWorkspace(reportId);
+          const revision = Number(this.route.snapshot.queryParamMap.get('revision'));
+          if (revision > 0) this.viewVersion(reportId, revision);
         },
         error: (error) => {
           this.workspaceError.set(this.message(error));
@@ -433,7 +503,10 @@ export class ReportsPage implements OnInit {
       .versions(reportId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (page) => this.versions.set(page.items),
+        next: (page) => {
+          this.versions.set(page.items);
+          for (const version of page.items) this.restoreExports(version.id);
+        },
         error: (error) => this.workspaceError.set(this.message(error)),
       });
   }
@@ -475,6 +548,11 @@ export class ReportsPage implements OnInit {
     operation: 'add' | 'remove',
     ids: string[],
   ): void {
+    if (this.saving() || this.hasPendingDraft()) {
+      this.afterSave = () => this.changeSources(kind, operation, ids);
+      if (!this.saving()) this.saveDraft();
+      return;
+    }
     const report = this.active();
     if (!report) return;
     this.saving.set(true);
@@ -549,6 +627,13 @@ export class ReportsPage implements OnInit {
   saveDraft(): void {
     const report = this.active();
     if (!report || !this.draftTitle().trim()) return;
+    if (this.saving()) return;
+    if (!this.hasPendingDraft()) {
+      const pending = this.afterSave;
+      this.afterSave = null;
+      pending?.();
+      return;
+    }
     this.saving.set(true);
     this.saveStatus.set('saving');
     this.workspaceError.set(null);
@@ -562,9 +647,16 @@ export class ReportsPage implements OnInit {
           this.saveStatus.set('saved');
           this.lastSavedTime.set(this.formatTime(new Date()));
           this.refreshPreview();
+          if (this.hasPendingDraft()) this.saveDraft();
+          else {
+            const pending = this.afterSave;
+            this.afterSave = null;
+            pending?.();
+          }
         },
         error: (error) => {
           this.saveStatus.set('error');
+          this.afterSave = null;
           this.handleWorkspaceError(error);
         },
       });
@@ -590,6 +682,16 @@ export class ReportsPage implements OnInit {
   publish(): void {
     const report = this.active();
     if (!report || !window.confirm(this.c().publishConfirm)) return;
+    if (this.saving() || this.hasPendingDraft()) {
+      this.afterSave = () => this.publishSaved();
+      if (!this.saving()) this.saveDraft();
+      return;
+    }
+    this.publishSaved();
+  }
+  private publishSaved(): void {
+    const report = this.active();
+    if (!report) return;
     this.saving.set(true);
     this.service
       .publish(report.id, report.version)
@@ -606,7 +708,12 @@ export class ReportsPage implements OnInit {
     const key = `${version.id}:${format}`;
     if (['QUEUED', 'RUNNING'].includes(this.exportJobs()[key]?.status)) return;
     this.service
-      .requestExport(version.id, format)
+      .requestExport(
+        version.id,
+        format,
+        { ...this.options(), language: this.language.currentLanguage() },
+        this.exportJobs()[key]?.status === 'FAILED',
+      )
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (job) => {
@@ -614,6 +721,46 @@ export class ReportsPage implements OnInit {
           this.pollExport(key, job.id);
         },
         error: (error) => this.workspaceError.set(this.message(error)),
+      });
+  }
+  setOption(key: keyof ExportOptions, value: boolean): void {
+    this.options.update((o) => ({ ...o, [key]: value }));
+  }
+  viewVersion(reportId: string, revision: number): void {
+    this.service
+      .version(reportId, revision)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (v) => this.historical.set(v),
+        error: (e) => this.workspaceError.set(this.message(e)),
+      });
+  }
+  createPlan(version: ReportVersion): void {
+    this.governance
+      .savePlan({
+        title: this.active()?.title || 'Report',
+        description: this.active()?.description || '',
+        report_version_ids: [version.id],
+      })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (p) => this.router.navigate(['/planos-de-acao', p.id]),
+        error: (e) => this.workspaceError.set(this.message(e)),
+      });
+  }
+  private restoreExports(versionId: string): void {
+    this.service
+      .exportHistory(versionId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (page) => {
+          for (const job of [...page.items].reverse()) {
+            const key = `${versionId}:${job.format}`;
+            this.setJob(key, job);
+            if (job.status === 'QUEUED' || job.status === 'RUNNING') this.pollExport(key, job.id);
+          }
+        },
+        error: (e) => this.workspaceError.set(this.message(e)),
       });
   }
   private pollExport(key: string, jobId: string): void {

@@ -1,5 +1,14 @@
 export type ReportStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
-export type ExportFormat = 'CSV' | 'PDF' | 'PPTX';
+export type ExportFormat = 'CSV' | 'PDF' | 'PPTX' | 'MARKDOWN';
+export interface ExportOptions {
+  language: 'pt' | 'en' | 'ko';
+  include_money: boolean;
+  include_summary: boolean;
+  include_occurrences: boolean;
+  include_justifications: boolean;
+  include_evidence: boolean;
+  notify_on_completion: boolean;
+}
 export type ExportStatus = 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED';
 
 export interface Page<T> {
@@ -66,6 +75,7 @@ export interface ReportMetrics {
 }
 
 export interface ReportPreview {
+  conflicts?: { occurrence_id: string; source_version_id: string; alternative: PreviewItem }[];
   report: ReportDetail;
   items: PreviewItem[];
   metrics: ReportMetrics;
@@ -88,6 +98,7 @@ export interface ReportVersion {
 }
 
 export interface ExportJob {
+  options?: ExportOptions;
   id: string;
   report_version_id: string;
   format: ExportFormat;

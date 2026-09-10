@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any, Literal
 
-from sqlalchemy import delete, func, or_, select
+from sqlalchemy import delete, func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..material_scrap.models import (
@@ -18,6 +18,7 @@ from ..material_scrap.models import (
     ScrapTransaction,
 )
 from ..user.models import User
+from .evidence import preserve_evidence
 from .exceptions import ReportConflictError, ReportNotFoundError, ReportValidationError
 from .models import (
     AuditEvent,
@@ -201,7 +202,7 @@ async def _eligible_occurrences(db: AsyncSession, ids: list[uuid.UUID]) -> dict[
             )
         )
     ).all()
-    return {row[0].id: row for row in rows}
+    return {row[0].id: tuple(row) for row in rows}
 
 
 async def _latest_versions(db: AsyncSession, report_ids: list[uuid.UUID]) -> dict[uuid.UUID, ReportVersion]:
@@ -252,13 +253,15 @@ async def mutate_sources(
     actor_id: int,
     correlation_id: str,
 ) -> Report:
+    if kind == "report" and db.bind.dialect.name == "postgresql":
+        await db.execute(text("SELECT pg_advisory_xact_lock(726318421)"))
     unique_ids = list(dict.fromkeys(ids))
     if len(unique_ids) > MAX_SOURCES:
         raise ReportValidationError(f"At most {MAX_SOURCES} sources may be changed at once")
     report = await _report(db, report_id, lock=True)
     _check_editable(report, expected_version)
     model = ReportOccurrenceSource if kind == "occurrence" else ReportSource
-    value_column = model.occurrence_id if kind == "occurrence" else model.source_report_id
+    value_column = ReportOccurrenceSource.occurrence_id if kind == "occurrence" else ReportSource.source_report_id
     existing = set(await db.scalars(select(value_column).where(model.report_id == report_id)))
     target = (
         set(unique_ids)
@@ -289,12 +292,10 @@ async def mutate_sources(
         await _assert_acyclic(db, report_id, target)
     await db.execute(delete(model).where(model.report_id == report_id))
     for source_id in sorted(target, key=str):
-        db.add(
-            model(
-                report_id=report_id,
-                **({"occurrence_id": source_id} if kind == "occurrence" else {"source_report_id": source_id}),
-            )
-        )
+        if kind == "occurrence":
+            db.add(ReportOccurrenceSource(report_id=report_id, occurrence_id=source_id))
+        else:
+            db.add(ReportSource(report_id=report_id, source_report_id=source_id))
     report.updated_by_user_id = actor_id
     report.updated_at = now()
     report.version += 1
@@ -348,7 +349,9 @@ def _frozen_values(
     }
 
 
-async def _resolve(db: AsyncSession, report: Report) -> tuple[list[dict[str, Any]], list[ReportVersion], dict[str, Any]]:
+async def _resolve(
+    db: AsyncSession, report: Report, *, lock: bool = False
+) -> tuple[list[dict[str, Any]], list[ReportVersion], dict[str, Any]]:
     direct_ids = list(
         await db.scalars(
             select(ReportOccurrenceSource.occurrence_id)
@@ -366,12 +369,22 @@ async def _resolve(db: AsyncSession, report: Report) -> tuple[list[dict[str, Any
     versions_by_report = await _latest_versions(db, source_ids)
     if versions_by_report.keys() != set(source_ids):
         raise ReportValidationError("Every source report must have a published version")
+    if lock and direct_ids:
+        # All review mutations lock the review; ingestion updates the occurrence.
+        # Acquire in stable order before reading their joined current values.
+        await db.execute(
+            select(ScrapOccurrence.id).where(ScrapOccurrence.id.in_(direct_ids)).order_by(ScrapOccurrence.id).with_for_update()
+        )
+        await db.execute(
+            select(ScrapReview.id).where(ScrapReview.occurrence_id.in_(direct_ids)).order_by(ScrapReview.id).with_for_update()
+        )
     direct_rows = await _eligible_occurrences(db, direct_ids)
     if direct_rows.keys() != set(direct_ids):
         raise ReportValidationError("Every direct occurrence must remain active and reviewed")
 
     resolved: dict[uuid.UUID, dict[str, Any]] = {}
     lineage: dict[str, list[dict[str, str]]] = {}
+    conflicts: list[dict[str, Any]] = []
     review_ids = [row[2].id for row in direct_rows.values()]
     attachments: dict[uuid.UUID, list[ScrapReviewAttachment]] = {review_id: [] for review_id in review_ids}
     if review_ids:
@@ -393,8 +406,24 @@ async def _resolve(db: AsyncSession, report: Report) -> tuple[list[dict[str, Any
             )
         )
         source_by_snapshot = {version.snapshot_id: version for version in versions}
+        # Direct live sources win; otherwise the lowest source report UUID wins.
+        # This precedence is independent of database row order.
+        inherited.sort(key=lambda item: (str(source_by_snapshot[item.snapshot_id].report_id), str(item.occurrence_id)))
         for item in inherited:
             version = source_by_snapshot[item.snapshot_id]
+            selected = resolved.get(item.occurrence_id)
+            if selected and any(
+                selected.get(k) != item.frozen_values.get(k)
+                for k in ("transaction_id", "review_version", "review_description", "attachment_ids")
+            ):
+                conflicts.append(
+                    {
+                        "occurrence_id": str(item.occurrence_id),
+                        "selected": dict(selected),
+                        "alternative": dict(item.frozen_values),
+                        "source_version_id": str(version.id),
+                    }
+                )
             resolved.setdefault(item.occurrence_id, dict(item.frozen_values))
             lineage.setdefault(str(item.occurrence_id), []).append(
                 {
@@ -408,7 +437,16 @@ async def _resolve(db: AsyncSession, report: Report) -> tuple[list[dict[str, Any
     total_brl = sum((Decimal(item["issue_amount_brl"] or "0") for item in items), Decimal("0"))
     total_usd = sum((Decimal(item["amount_usd"] or "0") for item in items), Decimal("0"))
     metrics = {"occurrence_count": len(items), "issue_amount_brl": format(total_brl, "f"), "amount_usd": format(total_usd, "f")}
-    return items, versions, {"metrics": metrics, "lineage": lineage}
+    return (
+        items,
+        versions,
+        {
+            "metrics": metrics,
+            "lineage": lineage,
+            "conflicts": conflicts,
+            "precedence": "DIRECT_CURRENT_THEN_SOURCE_REPORT_UUID_ASC",
+        },
+    )
 
 
 async def preview_report(db: AsyncSession, report_id: uuid.UUID) -> dict[str, Any]:
@@ -421,6 +459,8 @@ async def preview_report(db: AsyncSession, report_id: uuid.UUID) -> dict[str, An
         "lineage": meta["lineage"],
         "source_versions": [version_dict(item) for item in versions],
         "generated_at": now().isoformat(),
+        "conflicts": meta["conflicts"],
+        "precedence": meta["precedence"],
     }
 
 
@@ -435,25 +475,39 @@ async def publish_report(
 ) -> ReportVersion:
     report = await _report(db, report_id, lock=True)
     _check_editable(report, expected_version)
-    items, source_versions, meta = await _resolve(db, report)
+    if template_version != "1":
+        raise ReportValidationError("Unknown template version")
+    items, source_versions, meta = await _resolve(db, report, lock=True)
+    await preserve_evidence(db, items)
     if not items:
         raise ReportValidationError("A report must contain at least one eligible occurrence")
-    next_revision = (
-        await db.scalar(select(func.coalesce(func.max(ReportVersion.revision), 0)).where(ReportVersion.report_id == report.id))
-    ) + 1
+    current_revision = await db.scalar(
+        select(func.coalesce(func.max(ReportVersion.revision), 0)).where(ReportVersion.report_id == report.id)
+    )
+    next_revision = int(current_revision or 0) + 1
     scope = {
         "report_id": str(report.id),
         "factory_id": str(report.factory_id),
         "source_report_version_ids": [str(v.id) for v in source_versions],
+        "date_from": min(item["transaction_date"] for item in items),
+        "date_to": max(item["transaction_date"] for item in items),
     }
     canonical = {
-        "report": {"id": str(report.id), "code": report.code, "title": report.title, "description": report.description},
+        "report": {
+            "id": str(report.id),
+            "code": report.code,
+            "title": report.title,
+            "description": report.description,
+            "author": await db.scalar(select(User.name).where(User.id == actor_id)),
+        },
         "revision": next_revision,
         "template_version": template_version,
         "scope": scope,
         "metrics": meta["metrics"],
         "lineage": meta["lineage"],
         "items": items,
+        "conflicts": meta["conflicts"],
+        "precedence": meta["precedence"],
     }
     digest = _sha256(canonical)
     snapshot = DatasetSnapshot(
@@ -479,7 +533,14 @@ async def publish_report(
         report_id=report.id,
         snapshot_id=snapshot.id,
         revision=next_revision,
-        content={"report": canonical["report"], "metrics": meta["metrics"], "lineage": meta["lineage"], "scope": scope},
+        content={
+            "report": canonical["report"],
+            "metrics": meta["metrics"],
+            "lineage": meta["lineage"],
+            "scope": scope,
+            "conflicts": meta["conflicts"],
+            "precedence": meta["precedence"],
+        },
         template_version=template_version,
         sha256=digest,
         published_by_user_id=actor_id,

@@ -5,7 +5,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 ReportStatus = Literal["DRAFT", "PUBLISHED", "ARCHIVED"]
-ExportFormat = Literal["CSV", "PDF", "PPTX"]
+ExportFormat = Literal["CSV", "PDF", "PPTX", "MARKDOWN"]
 
 
 class Page(BaseModel):
@@ -43,13 +43,24 @@ class SourceMutation(BaseModel):
 
 class PublishRequest(BaseModel):
     expected_version: int = Field(ge=1)
-    template_version: str = Field(default="1", min_length=1, max_length=80)
+    template_version: Literal["1"] = "1"
+
+
+class ExportOptions(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    language: Literal["pt", "en", "ko"] = "pt"
+    include_money: bool = True
+    include_summary: bool = True
+    include_occurrences: bool = True
+    include_justifications: bool = True
+    include_evidence: bool = True
+    notify_on_completion: bool = False
 
 
 class ExportRequest(BaseModel):
     format: ExportFormat
-    options: dict[str, Any] = Field(default_factory=dict)
-    template_version: str = Field(default="1", min_length=1, max_length=80)
+    options: ExportOptions = Field(default_factory=ExportOptions)
+    template_version: Literal["1"] = "1"
     retry_failed: bool = False
 
 

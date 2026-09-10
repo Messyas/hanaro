@@ -63,6 +63,21 @@ export const routes: Routes = [
           import('./pages/settings/settings-page').then((module) => module.SettingsPage),
       },
       {
+        path: 'alertas',
+        canActivate: [authenticatedGuard],
+        loadComponent: () => import('./pages/alerts/alerts').then((m) => m.Alerts),
+      },
+      {
+        path: 'planos-de-acao',
+        canActivate: [authenticatedGuard],
+        loadComponent: () => import('./pages/action-plans/action-plans').then((m) => m.ActionPlans),
+      },
+      {
+        path: 'planos-de-acao/:planId',
+        canActivate: [authenticatedGuard],
+        loadComponent: () => import('./pages/action-plans/action-plans').then((m) => m.ActionPlans),
+      },
+      {
         path: 'perfil',
         title: 'Perfil',
         canActivate: [authenticatedGuard],

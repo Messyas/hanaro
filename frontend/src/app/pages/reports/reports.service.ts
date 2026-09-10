@@ -5,6 +5,7 @@ import {
   EligibleOccurrence,
   ExportFormat,
   ExportJob,
+  ExportOptions,
   Page,
   ReportDetail,
   ReportListItem,
@@ -94,11 +95,26 @@ export class ReportsService {
     });
   }
 
-  requestExport(versionId: string, format: ExportFormat): Observable<ExportJob> {
+  requestExport(
+    versionId: string,
+    format: ExportFormat,
+    options?: ExportOptions,
+    retry = false,
+  ): Observable<ExportJob> {
     return this.http.post<ExportJob>(`/api/v1/report-versions/${versionId}/exports`, {
       format,
-      options: {},
+      options: options || {},
       template_version: '1',
+      ...(retry ? { retry_failed: true } : {}),
+    });
+  }
+
+  version(reportId: string, revision: number) {
+    return this.http.get<ReportVersion>(`${this.base}/${reportId}/versions/${revision}`);
+  }
+  exportHistory(versionId: string, page = 1) {
+    return this.http.get<Page<ExportJob>>(`/api/v1/report-versions/${versionId}/exports`, {
+      params: { page, page_size: 100 },
     });
   }
 

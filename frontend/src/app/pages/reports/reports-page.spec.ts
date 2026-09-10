@@ -138,9 +138,11 @@ describe('ReportsPage', () => {
     service['update'].mockReturnValueOnce(throwError(() => ({ status: 409 })));
     component.openReport(report.id, false);
     await fixture.whenStable();
+    component.draftTitle.set('Local edit to preserve');
     component.saveDraft();
     await fixture.whenStable();
     expect(component.workspaceError()).toContain('alterado em outra sessão');
     expect(service['get']).toHaveBeenCalledTimes(2);
+    expect(component.draftTitle()).toBe('Local edit to preserve');
   });
 });

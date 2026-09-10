@@ -96,7 +96,7 @@ services:
         - -e
         - "fetch('http://127.0.0.1:4200').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"
       interval: 10s
-      timeout: 3s
+      timeout: 5s
       retries: 5
       start_period: 30s
     develop:
@@ -204,6 +204,11 @@ services:
 
   material-scrap-worker:
     image: hanaro-backend:dev
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      target: dev
+    init: true
     environment: *backend-environment
     working_dir: /app/backend
     command: ["taskiq", "worker", "src.infrastructure.taskiq.worker:default_broker"]
@@ -211,6 +216,10 @@ services:
       - type: bind
         source: ./backend/src
         target: /app/backend/src
+      - type: volume
+        source: scrap_review_images
+        target: /app/backend/data/scrap-review-images
+        read_only: true
       - type: volume
         source: report_artifacts
         target: /app/backend/data/report-artifacts
