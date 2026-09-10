@@ -166,6 +166,17 @@
   align-items: center;
   justify-content: flex-end;
   gap: 0.4rem;
+  flex-wrap: nowrap;
+}
+
+.row-actions .btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.alert-open-button {
+  width: 2.5rem;
+  padding-inline: 0;
 }
 
 .unread-row {

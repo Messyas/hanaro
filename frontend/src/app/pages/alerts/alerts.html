@@ -21,18 +21,18 @@
 
   <!-- Tabela de Alertas com Painel Padronizado -->
   <app-list-panel
-    [title]="'Histórico de notificações'"
-    [meta]="page() ? 'TOTAL: ' + page()!.total : ''"
+    [title]="c().notificationsHistory"
+    [meta]="page() ? c().total + ': ' + page()!.total : ''"
   >
     <div list-actions class="alert-list-actions">
       <app-delayed-progress-spinner [active]="loading()" [ariaLabel]="c().loading" />
       <app-list-filter-popover
         [(open)]="filterOpen"
         [activeCount]="activeFiltersCount()"
-        triggerLabel="Filtros"
-        title="Filtrar notificações"
-        clearLabel="Limpar filtros"
-        applyLabel="Aplicar filtros"
+        [triggerLabel]="c().filters"
+        [title]="c().filterAlerts"
+        [clearLabel]="c().clearFilters"
+        [applyLabel]="c().applyFilters"
         (cleared)="clearFilters()"
         (applied)="pageNumber = 1; load()"
       >
@@ -77,7 +77,7 @@
       <app-list-feedback
         kind="empty"
         [title]="c().empty"
-        message="Nenhum alerta registrado correspondente aos filtros selecionados."
+        [message]="c().noAlertsMatch"
       />
     } @else {
       <div class="list-table-frame" [attr.aria-busy]="loading()">
@@ -87,9 +87,9 @@
               <th class="align-center" style="width: 130px">{{ c().severity }}</th>
               <th>{{ c().title }}</th>
               <th>{{ c().type }}</th>
-              <th style="width: 120px">Data</th>
-              <th class="align-center" style="width: 110px">Status</th>
-              <th class="align-right" style="width: 180px">Ações</th>
+              <th style="width: 120px">{{ c().date }}</th>
+              <th class="align-center" style="width: 110px">{{ c().status }}</th>
+              <th class="align-right" style="width: 180px">{{ c().actions }}</th>
             </tr>
           </thead>
           <tbody>
@@ -97,33 +97,33 @@
               <tr [class.unread-row]="!alert.read_at">
                 <td class="align-center">
                   <app-status-badge
-                    [label]="alert.severity"
+                    [label]="formatSeverity(alert.severity)"
                     [tone]="getSeverityTone(alert.severity)"
                   />
                 </td>
                 <td>
                   <div class="alert-title-cell">
-                    <span class="alert-title-text">{{ alert.title }}</span>
-                    @if (alert.body.description) {
-                      <span class="alert-desc-text">{{ alert.body.description }}</span>
+                    <span class="alert-title-text">{{ alertTitle(alert) }}</span>
+                    @if (alertDescription(alert); as description) {
+                      <span class="alert-desc-text">{{ description }}</span>
                     }
                     @if (alert.body.observed && alert.body.threshold) {
                       <span class="alert-threshold-text">
-                        Observado: {{ alert.body.observed }} {{ alert.body.currency }} / Limiar:
+                        {{ c().observed }}: {{ alert.body.observed }} {{ alert.body.currency }} / {{ c().threshold }}:
                         {{ alert.body.threshold }}
                       </span>
                     }
                   </div>
                 </td>
                 <td>
-                  <span class="event-type-badge">{{ alert.event_type }}</span>
+                  <span class="event-type-badge">{{ formatEventType(alert.event_type) }}</span>
                 </td>
                 <td>
                   <span class="date-text">{{ alert.created_at.slice(0, 10) }}</span>
                 </td>
                 <td class="align-center">
                   <app-status-badge
-                    [label]="alert.read_at ? 'Lido' : 'Não lido'"
+                    [label]="alert.read_at ? c().readStatus : c().unreadStatus"
                     [tone]="alert.read_at ? 'neutral' : 'warning'"
                   />
                 </td>
@@ -134,16 +134,20 @@
                         type="button"
                         class="btn btn-ghost btn-xs"
                         (click)="read(alert)"
-                        title="Marcar como lido"
+                        [title]="c().read"
                       >
                         <ui-icon name="check" />
                         {{ c().read }}
                       </button>
                     }
                     @if (alert.body.link) {
-                      <a [routerLink]="safeLink(alert.body.link)" class="btn btn-secondary btn-xs">
+                      <a
+                        [routerLink]="safeLink(alert.body.link)"
+                        class="btn btn-secondary btn-xs alert-open-button"
+                        [attr.aria-label]="c().open"
+                        [title]="c().open"
+                      >
                         <ui-icon name="eye" />
-                        {{ c().open }}
                       </a>
                     }
                   </div>
@@ -160,9 +164,9 @@
         [totalPages]="totalPages()"
         [pageSize]="pageSize"
         [pageSizes]="allowedPageSizes"
-        pageLabel="Página"
-        ofLabel="de"
-        perPageLabel="Por página"
+        [pageLabel]="c().page"
+        [ofLabel]="c().of"
+        [perPageLabel]="c().perPage"
         (previous)="previousPage()"
         (next)="nextPage()"
       />
@@ -175,7 +179,7 @@
       <div class="detail-drawer" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
         <header class="drawer-header">
           <div class="drawer-title-group">
-            <span class="meta-label">Configuração de Gatilhos</span>
+            <span class="meta-label">{{ c().triggerSettings }}</span>
             <h3>{{ c().settings }}</h3>
           </div>
           <div class="drawer-header-actions">
@@ -198,8 +202,8 @@
           @if (!rules()?.items?.length) {
             <app-list-feedback
               kind="empty"
-              title="Nenhuma regra configurada"
-              message="Crie regras automáticas para ser notificado sobre anomalias."
+              [title]="c().noRules"
+              [message]="c().noRulesDescription"
             />
           } @else {
             <div class="rules-list">
@@ -210,12 +214,12 @@
                       {{ rule.name }}
                     </button>
                     <span class="rule-meta"
-                      >{{ rule.event_type }} · {{ rule.channels.join(' + ') }}</span
+                      >{{ formatEventType(rule.event_type) }} · {{ rule.channels.join(' + ') }}</span
                     >
                   </div>
                   <button type="button" class="btn btn-secondary btn-xs" (click)="edit(rule)">
                     <ui-icon name="pencil" />
-                    Editar
+                    {{ c().edit }}
                   </button>
                 </div>
               }
@@ -250,8 +254,8 @@
       <div class="detail-drawer" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
         <header class="drawer-header">
           <div class="drawer-title-group">
-            <span class="meta-label">Regra de Notificação</span>
-            <h3>{{ rule.id ? 'Editar Regra' : c().createRule }}</h3>
+            <span class="meta-label">{{ c().notificationRule }}</span>
+            <h3>{{ rule.id ? c().editRule : c().createRule }}</h3>
           </div>
           <button
             type="button"
@@ -278,7 +282,7 @@
               (change)="changeType()"
             >
               @for (t of types; track t) {
-                <option [value]="t">{{ t }}</option>
+                <option [value]="t">{{ formatEventType(t) }}</option>
               }
             </select>
           </label>
@@ -326,7 +330,7 @@
           </label>
 
           <div class="form-channels">
-            <span class="field-label">Canais de Notificação</span>
+            <span class="field-label">{{ c().notificationChannels }}</span>
             <div class="channel-options">
               <label class="form-checkbox">
                 <input
@@ -342,7 +346,7 @@
                   [checked]="rule.channels.includes('EMAIL')"
                   (change)="channel('EMAIL', $any($event.target).checked)"
                 />
-                <span>E-mail</span>
+                <span>{{ c().emailChannel }}</span>
               </label>
             </div>
           </div>
@@ -366,7 +370,7 @@
       <div class="detail-drawer" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
         <header class="drawer-header">
           <div class="drawer-title-group">
-            <span class="meta-label">Caixa de Saída</span>
+            <span class="meta-label">{{ c().outbox }}</span>
             <h3>{{ c().email }}</h3>
           </div>
           <button
@@ -388,8 +392,8 @@
           @if (!emails().length) {
             <app-list-feedback
               kind="empty"
-              title="Nenhum e-mail registrado"
-              message="Nenhum e-mail de alerta foi disparado nesta sessão."
+              [title]="c().noEmails"
+              [message]="c().noEmailsDescription"
             />
           } @else {
             <div class="emails-list">

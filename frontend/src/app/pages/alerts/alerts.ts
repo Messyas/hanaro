@@ -79,11 +79,14 @@ export class Alerts {
   );
   readonly typeOptions = computed(() => [
     { value: '', label: this.c().all },
-    ...this.types.map((value) => ({ value, label: value })),
+    ...this.types.map((value) => ({ value, label: this.formatEventType(value) })),
   ]);
   readonly severityOptions = computed(() => [
     { value: '', label: this.c().all },
-    ...['INFO', 'WARNING', 'CRITICAL', 'POSITIVE'].map((value) => ({ value, label: value })),
+    ...['INFO', 'WARNING', 'CRITICAL', 'POSITIVE'].map((value) => ({
+      value,
+      label: this.formatSeverity(value),
+    })),
   ]);
   readonly unreadOptions = computed(() => [
     { value: '', label: this.c().all },
@@ -208,6 +211,58 @@ export class Alerts {
       default:
         return 'neutral';
     }
+  }
+
+  formatSeverity(severity: string): string {
+    const labels: Record<string, string> = {
+      INFO: this.c().severityInfo,
+      WARNING: this.c().severityWarning,
+      CRITICAL: this.c().severityCritical,
+      POSITIVE: this.c().severityPositive,
+    };
+    return labels[severity.toUpperCase()] ?? severity;
+  }
+
+  formatEventType(eventType: string): string {
+    const labels: Record<string, string> = {
+      SCRAP_RELEVANT: this.c().alertTypeScrapRelevant,
+      COST_EXCEEDED: this.c().alertTypeCostExceeded,
+      GOAL_ACHIEVED: this.c().alertTypeGoalAchieved,
+      INGESTION_FAILED: this.c().alertTypeIngestionFailed,
+      UPDATE_LATE: this.c().alertTypeUpdateLate,
+      REPORT_EXPORT_FAILED: this.c().alertTypeReportExportFailed,
+      TASK_ASSIGNED: this.c().alertTypeTaskAssigned,
+      TASK_DUE: this.c().alertTypeTaskDue,
+      TASK_OVERDUE: this.c().alertTypeTaskOverdue,
+      TASK_VERIFICATION: this.c().alertTypeTaskVerification,
+      TASK_VALIDATED: this.c().alertTypeTaskValidated,
+      REPORT_EXPORT_COMPLETED: this.c().alertTypeReportExportCompleted,
+    };
+    return labels[eventType] ?? eventType;
+  }
+
+  alertTitle(alert: AlertItem): string {
+    if (!alert.body?.demo) return alert.title;
+    const titles: Record<string, string> = {
+      TASK_OVERDUE: this.c().demoAlertTaskOverdueTitle,
+      COST_EXCEEDED: this.c().demoAlertCostExceededTitle,
+      TASK_ASSIGNED: this.c().demoAlertTaskAssignedTitle,
+      REPORT_EXPORT_COMPLETED: this.c().demoAlertExportCompletedTitle,
+      SCRAP_RELEVANT: this.c().demoAlertScrapRelevantTitle,
+    };
+    return titles[alert.event_type] ?? alert.title;
+  }
+
+  alertDescription(alert: AlertItem): string | undefined {
+    if (!alert.body?.demo) return alert.body?.description;
+    const descriptions: Record<string, string> = {
+      TASK_OVERDUE: this.c().demoAlertTaskOverdueDescription,
+      COST_EXCEEDED: this.c().demoAlertCostExceededDescription,
+      TASK_ASSIGNED: this.c().demoAlertTaskAssignedDescription,
+      REPORT_EXPORT_COMPLETED: this.c().demoAlertExportCompletedDescription,
+      SCRAP_RELEVANT: this.c().demoAlertScrapRelevantDescription,
+    };
+    return descriptions[alert.event_type] ?? alert.body?.description;
   }
 
   read(alert: AlertItem) {

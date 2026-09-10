@@ -46,6 +46,7 @@ export interface AlertItem {
   created_at: string;
   read_at: string | null;
   body: {
+    demo?: boolean;
     description?: string;
     observed?: string;
     threshold?: string;

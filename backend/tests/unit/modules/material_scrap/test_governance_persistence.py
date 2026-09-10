@@ -18,6 +18,8 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from scripts.seed_demo_governance import seed_governance
 from src.infrastructure.database.session import Base
 from src.modules.governance.models import (
+    Alert,
+    AlertRecipient,
     DatasetSnapshot,
     Factory,
     ProductionLine,
@@ -26,6 +28,7 @@ from src.modules.governance.models import (
     SnapshotItem,
 )
 from src.modules.material_scrap.service import ingest_material_scrap
+from src.modules.user.models import User
 
 from .helpers import canonical_fixture
 
@@ -87,10 +90,16 @@ async def test_seed_replay_constraints_and_immutable_snapshots(governance_engine
     sessions = async_sessionmaker(governance_engine, expire_on_commit=False)
     async with sessions() as db:
         await ingest_material_scrap(canonical_fixture(), db)
+        db.add(User(name="Demo administrator", username="admin", email="admin@example.com", hashed_password="hash"))
+        await db.commit()
         first = await seed_governance(db)
         await db.commit()
         assert first["gov_factories"] == 1
         assert first["gov_production_versions"] >= 7
+        assert first["gov_alerts"] == 5
+        assert first["gov_alert_recipients"] == 5
+        assert await db.scalar(select(func.count()).select_from(Alert)) == 5
+        assert await db.scalar(select(func.count()).select_from(AlertRecipient)) == 5
         assert await seed_governance(db) == {}
         await db.commit()
         line = await db.scalar(select(ProductionLine).limit(1))
