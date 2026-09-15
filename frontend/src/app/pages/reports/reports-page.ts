@@ -24,20 +24,36 @@ import { StatusBadge } from '../../shared/list-view/status-badge/status-badge';
 import { UiIcon } from '../../ui-icon';
 import { GovernanceService } from '../governance.service';
 import { workflowCopy } from '../governance-copy';
+import { ReportPreview as ReportPreviewComponent } from './report-preview/report-preview';
+import { ReportEditorStore } from './report-editor.store';
 import {
+  EligibleAction,
+  EligibleEvidence,
   EligibleOccurrence,
   ExportFormat,
   ExportJob,
   ExportOptions,
   Page,
   ReportDetail,
+  ReportAnalytics,
   ReportListItem,
+  PeriodClosePreview,
   ReportPreview,
+  ReportScope,
+  ReportEvidenceSource,
   ReportVersion,
 } from './reports.models';
 import { ReportsService } from './reports.service';
 
 const PAGE_SIZES = [25, 50, 100] as const;
+const DEFAULT_EXPORT_OPTIONS: Omit<ExportOptions, 'language'> = {
+  include_money: true,
+  include_summary: true,
+  include_occurrences: true,
+  include_justifications: true,
+  include_evidence: true,
+  notify_on_completion: false,
+};
 const COPY = {
   pt: {
     title: 'Relatórios de Scrap',
@@ -283,27 +299,24 @@ const COPY = {
     ListFilterInput,
     ListFilterPopover,
     ListFilterSelect,
+    ReportPreviewComponent,
     StatusBadge,
     UiIcon,
   ],
+  providers: [ReportEditorStore],
   templateUrl: './reports-page.html',
   styleUrl: './reports-page.css',
 })
 export class ReportsPage implements OnInit {
+  private readonly editorStore = inject(ReportEditorStore);
   private readonly governance = inject(GovernanceService);
   readonly workflows = computed(() => workflowCopy[this.language.currentLanguage()]);
   readonly historical = signal<ReportVersion | null>(null);
   readonly exportsAvailable = signal(false);
-  readonly options = signal<ExportOptions>({
-    language: 'pt',
-    include_money: true,
-    include_summary: true,
-    include_occurrences: true,
-    include_justifications: true,
-    include_evidence: true,
-    notify_on_completion: false,
-  });
+  readonly exportOptionsByVersion = signal<Record<string, ExportOptions>>({});
+  readonly exportFormats = signal<Record<string, ExportFormat>>({});
   private afterSave: (() => void) | null = null;
+  private workspaceLoadToken = 0;
   readonly hasPendingDraft = computed(
     () =>
       !!this.active() &&
@@ -337,6 +350,9 @@ export class ReportsPage implements OnInit {
   readonly showCreate = signal(false);
   readonly createTitle = signal('');
   readonly createDescription = signal('');
+  readonly createKind = signal<'DOSSIER' | 'PERIOD_CLOSE'>('DOSSIER');
+  readonly createPeriodFrom = signal('');
+  readonly createPeriodTo = signal('');
   readonly creating = signal(false);
   readonly active = signal<ReportDetail | null>(null);
   readonly draftTitle = signal('');
@@ -344,20 +360,46 @@ export class ReportsPage implements OnInit {
   readonly saving = signal(false);
   readonly workspaceError = signal<string | null>(null);
   readonly eligible = signal<EligibleOccurrence[]>([]);
+  readonly occurrenceCandidates = signal<Page<EligibleOccurrence> | null>(null);
+  readonly occurrencePage = signal(1);
   readonly sourceReports = signal<ReportListItem[]>([]);
+  readonly sourceReportCandidates = signal<Page<ReportListItem> | null>(null);
+  readonly sourceReportPage = signal(1);
   readonly occurrenceSearch = signal('');
   readonly sourceReportSearch = signal('');
   readonly selectedOccurrences = signal(new Set<string>());
   readonly selectedReports = signal(new Set<string>());
-  readonly preview = signal<ReportPreview | null>(null);
-  readonly previewLoading = signal(false);
+  readonly preview = this.editorStore.dossierPreview;
+  readonly analytics = signal<ReportAnalytics | null>(null);
+  readonly periodPreview = this.editorStore.periodPreview;
+  readonly scopeDraft = signal<ReportScope | null>(null);
+  readonly eligibleActions = signal<EligibleAction[]>([]);
+  readonly actionSearch = signal('');
+  readonly actionCandidates = signal<Page<EligibleAction> | null>(null);
+  readonly actionPage = signal(1);
+  readonly eligibleEvidence = signal<EligibleEvidence[]>([]);
+  readonly evidenceSearch = signal('');
+  readonly evidenceCandidates = signal<Page<EligibleEvidence> | null>(null);
+  readonly evidencePage = signal(1);
+  readonly candidatePageSize = 25;
+  readonly previewLoading = this.editorStore.previewLoading;
+  readonly previewStale = this.editorStore.previewStale;
   readonly versions = signal<ReportVersion[]>([]);
+  readonly versionsPage = signal<Page<ReportVersion> | null>(null);
+  readonly versionPage = signal(1);
   readonly exportJobs = signal<Record<string, ExportJob>>({});
+  readonly exportFormatOptions = [
+    { value: 'PDF', label: 'PDF' },
+    { value: 'PPTX', label: 'PPTX' },
+    { value: 'CSV', label: 'CSV' },
+    { value: 'MARKDOWN', label: 'Markdown' },
+  ] as const;
 
   private readonly draftDebounce = new Subject<void>();
   readonly saveStatus = signal<'idle' | 'saving' | 'saved' | 'error'>('idle');
   readonly lastSavedTime = signal<string | null>(null);
   readonly activeDrawer = signal<'occurrence' | 'report' | null>(null);
+  readonly previewOpen = signal(false);
 
   ngOnInit(): void {
     this.governance
@@ -447,8 +489,37 @@ export class ReportsPage implements OnInit {
       return;
     }
     this.creating.set(true);
+    const kind = this.createKind();
+    if (kind === 'PERIOD_CLOSE' && (!this.createPeriodFrom() || !this.createPeriodTo())) {
+      this.error.set('Informe o período do fechamento.');
+      this.creating.set(false);
+      return;
+    }
+    const input =
+      kind === 'DOSSIER'
+        ? { title: this.createTitle().trim(), description: this.createDescription().trim() }
+        : {
+            title: this.createTitle().trim(),
+            description: this.createDescription().trim(),
+            report_kind: 'PERIOD_CLOSE' as const,
+            content_schema_version: 2,
+            scope: {
+              period_from: this.createPeriodFrom(),
+              period_to: this.createPeriodTo(),
+              cutoff_at: null,
+              timezone: 'America/Manaus',
+              metric_code: 'MATERIAL_SCRAP_COST' as const,
+              metric_policy_version: 'scrap-cost-v1' as const,
+              currency: 'USD' as const,
+              comparison_mode: 'NONE' as const,
+              comparison_from: null,
+              comparison_to: null,
+              is_provisional: true,
+              filters: { organization_codes: [], product_codes: [], divisions: [], lines: [] },
+            },
+          };
     this.service
-      .create(this.createTitle().trim(), this.createDescription().trim())
+      .create(input)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (report) => {
@@ -456,6 +527,8 @@ export class ReportsPage implements OnInit {
           this.showCreate.set(false);
           this.createTitle.set('');
           this.createDescription.set('');
+          this.createPeriodFrom.set('');
+          this.createPeriodTo.set('');
           this.openReport(report.id);
         },
         error: (error) => {
@@ -465,6 +538,7 @@ export class ReportsPage implements OnInit {
       });
   }
   openReport(reportId: string, navigate = true, preserveError = false): void {
+    const loadToken = ++this.workspaceLoadToken;
     if (!preserveError) this.workspaceError.set(null);
     this.previewLoading.set(true);
     if (navigate) this.router.navigate(['/relatorios', reportId]);
@@ -473,7 +547,11 @@ export class ReportsPage implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (report) => {
+          if (loadToken !== this.workspaceLoadToken) return;
           this.active.set(report);
+          this.scopeDraft.set(
+            report.scope ? { ...report.scope, filters: { ...report.scope.filters } } : null,
+          );
           if (!preserveError) {
             this.draftTitle.set(report.title);
             this.draftDescription.set(report.description);
@@ -485,27 +563,99 @@ export class ReportsPage implements OnInit {
           if (revision > 0) this.viewVersion(reportId, revision);
         },
         error: (error) => {
+          if (loadToken !== this.workspaceLoadToken) return;
           this.workspaceError.set(this.message(error));
           this.previewLoading.set(false);
         },
       });
   }
   closeWorkspace(): void {
+    if (
+      this.hasUnsavedChanges() &&
+      !window.confirm('Existem alterações não salvas. Sair mesmo assim?')
+    )
+      return;
+    this.workspaceLoadToken++;
+    this.editorStore.reset();
+    this.previewOpen.set(false);
     this.active.set(null);
     this.router.navigate(['/relatorios']);
     this.loadReports();
   }
+  private hasUnsavedChanges(): boolean {
+    return this.hasPendingDraft() || this.previewStale() || this.saving();
+  }
   loadWorkspace(reportId = this.active()?.id): void {
     if (!reportId) return;
-    this.loadCandidates();
-    this.refreshPreview();
+    if (this.active()?.report_kind === 'PERIOD_CLOSE') {
+      this.loadAnalytics(reportId);
+      this.loadActionCandidates();
+      this.loadEvidenceCandidates();
+    } else {
+      this.loadCandidates();
+      this.refreshPreview();
+    }
     this.service
-      .versions(reportId)
+      .versions(reportId, { page: this.versionPage(), pageSize: this.candidatePageSize })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (page) => {
+          this.versionsPage.set(page);
           this.versions.set(page.items);
           for (const version of page.items) this.restoreExports(version.id);
+        },
+        error: (error) => this.workspaceError.set(this.message(error)),
+      });
+  }
+  loadAnalytics(reportId = this.active()?.id): void {
+    if (!reportId) return;
+    this.editorStore.beginPreviewLoad();
+    this.service
+      .periodClosePreview(reportId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (preview) => {
+          this.editorStore.setPeriodPreview(preview);
+          this.analytics.set(preview.document.analytics);
+        },
+        error: (error) => {
+          this.workspaceError.set(this.message(error));
+          this.editorStore.failPreviewLoad();
+        },
+      });
+  }
+  loadActionCandidates(): void {
+    const report = this.active();
+    if (!report || report.report_kind !== 'PERIOD_CLOSE') return;
+    this.service
+      .eligibleActions(report.factory_id, {
+        page: this.actionPage(),
+        pageSize: this.candidatePageSize,
+        search: this.actionSearch().trim() || undefined,
+      })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (page) => {
+          this.actionCandidates.set(page);
+          this.eligibleActions.set(page.items);
+        },
+        error: (error) => this.workspaceError.set(this.message(error)),
+      });
+  }
+  loadEvidenceCandidates(): void {
+    const report = this.active();
+    if (!report || report.report_kind !== 'PERIOD_CLOSE') return;
+    this.service
+      .eligibleEvidence(report.id, {
+        page: this.evidencePage(),
+        pageSize: this.candidatePageSize,
+        search: this.evidenceSearch().trim() || undefined,
+      })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (page) => {
+          this.evidenceCandidates.set(page);
+          this.eligibleEvidence.set(page.items);
         },
         error: (error) => this.workspaceError.set(this.message(error)),
       });
@@ -514,17 +664,31 @@ export class ReportsPage implements OnInit {
     const report = this.active();
     if (!report) return;
     this.service
-      .eligibleOccurrences(this.occurrenceSearch())
+      .eligibleOccurrences({
+        page: this.occurrencePage(),
+        pageSize: this.candidatePageSize,
+        search: this.occurrenceSearch().trim() || undefined,
+      })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (page) => this.eligible.set(page.items),
+        next: (page) => {
+          this.occurrenceCandidates.set(page);
+          this.eligible.set(page.items);
+        },
         error: (error) => this.workspaceError.set(this.message(error)),
       });
     this.service
-      .sourceReports(report.id, this.sourceReportSearch())
+      .sourceReports(report.id, {
+        page: this.sourceReportPage(),
+        pageSize: this.candidatePageSize,
+        search: this.sourceReportSearch().trim() || undefined,
+      })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (page) => this.sourceReports.set(page.items),
+        next: (page) => {
+          this.sourceReportCandidates.set(page);
+          this.sourceReports.set(page.items);
+        },
         error: (error) => this.workspaceError.set(this.message(error)),
       });
   }
@@ -575,11 +739,13 @@ export class ReportsPage implements OnInit {
   }
   onTitleChange(value: string): void {
     this.draftTitle.set(value);
+    this.previewStale.set(true);
     this.saveStatus.set('saving');
     this.draftDebounce.next();
   }
   onDescriptionChange(value: string): void {
     this.draftDescription.set(value);
+    this.previewStale.set(true);
     this.saveStatus.set('saving');
     this.draftDebounce.next();
   }
@@ -590,11 +756,16 @@ export class ReportsPage implements OnInit {
   closeDrawer(): void {
     this.activeDrawer.set(null);
   }
+  closePreview(): void {
+    this.previewOpen.set(false);
+  }
   onDrawerSearch(kind: 'occurrence' | 'report', value: string): void {
     if (kind === 'occurrence') {
       this.occurrenceSearch.set(value);
+      this.occurrencePage.set(1);
     } else {
       this.sourceReportSearch.set(value);
+      this.sourceReportPage.set(1);
     }
     this.loadCandidates();
   }
@@ -646,7 +817,8 @@ export class ReportsPage implements OnInit {
           this.saving.set(false);
           this.saveStatus.set('saved');
           this.lastSavedTime.set(this.formatTime(new Date()));
-          this.refreshPreview();
+          if (report.report_kind === 'PERIOD_CLOSE') this.loadAnalytics();
+          else this.refreshPreview();
           if (this.hasPendingDraft()) this.saveDraft();
           else {
             const pending = this.afterSave;
@@ -664,20 +836,280 @@ export class ReportsPage implements OnInit {
   refreshPreview(): void {
     const report = this.active();
     if (!report) return;
-    this.previewLoading.set(true);
+    this.editorStore.beginPreviewLoad();
     this.service
       .preview(report.id)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (preview) => {
-          this.preview.set(preview);
-          this.previewLoading.set(false);
+          this.editorStore.setDossierPreview(preview);
         },
         error: (error) => {
           this.workspaceError.set(this.message(error));
-          this.previewLoading.set(false);
+          this.editorStore.failPreviewLoad();
         },
       });
+  }
+  setScopeField(
+    field:
+      | 'period_from'
+      | 'period_to'
+      | 'comparison_from'
+      | 'comparison_to'
+      | 'currency'
+      | 'comparison_mode'
+      | 'is_provisional',
+    value: string | boolean,
+  ): void {
+    this.scopeDraft.update((scope) => (scope ? { ...scope, [field]: value } : scope));
+    this.previewStale.set(true);
+  }
+  setScopeFilter(field: keyof ReportScope['filters'], value: string): void {
+    const values = [
+      ...new Set(
+        value
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean),
+      ),
+    ];
+    this.scopeDraft.update((scope) =>
+      scope ? { ...scope, filters: { ...scope.filters, [field]: values } } : scope,
+    );
+    this.previewStale.set(true);
+  }
+  saveScope(): void {
+    const report = this.active();
+    const scope = this.scopeDraft();
+    if (!report || !scope || this.saving()) return;
+    this.saving.set(true);
+    this.workspaceError.set(null);
+    this.service
+      .updateScope(report.id, report.version, scope)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (updated) => {
+          this.active.set(updated);
+          this.scopeDraft.set(
+            updated.scope ? { ...updated.scope, filters: { ...updated.scope.filters } } : null,
+          );
+          this.saving.set(false);
+          this.saveStatus.set('saved');
+          this.lastSavedTime.set(this.formatTime(new Date()));
+          this.loadAnalytics();
+        },
+        error: (error) => this.handleWorkspaceError(error),
+      });
+  }
+  toggleSection(sectionId: string | undefined, enabled: boolean): void {
+    const report = this.active();
+    if (!report || !sectionId || this.saving()) return;
+    const sections = report.sections.map((section) =>
+      section.id === sectionId ? { ...section, enabled } : section,
+    );
+    this.previewStale.set(true);
+    this.saving.set(true);
+    this.service
+      .replaceSections(report.id, report.version, sections)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (updated) => {
+          this.active.set(updated);
+          this.saving.set(false);
+          this.loadAnalytics();
+        },
+        error: (error) => this.handleWorkspaceError(error),
+      });
+  }
+  updateSectionTitle(sectionId: string | undefined, title: string): void {
+    const report = this.active();
+    if (!report || !sectionId || this.saving()) return;
+    const sections = report.sections.map((section) =>
+      section.id === sectionId ? { ...section, title } : section,
+    );
+    this.persistSections(sections);
+  }
+  moveSection(sectionId: string | undefined, direction: -1 | 1): void {
+    const report = this.active();
+    if (!report || !sectionId || this.saving()) return;
+    const index = report.sections.findIndex((section) => section.id === sectionId);
+    const target = index + direction;
+    if (index < 0 || target < 0 || target >= report.sections.length) return;
+    const sections = [...report.sections];
+    [sections[index], sections[target]] = [sections[target], sections[index]];
+    this.persistSections(sections);
+  }
+  private persistSections(sections: ReportDetail['sections']): void {
+    const report = this.active();
+    if (!report) return;
+    this.previewStale.set(true);
+    this.saving.set(true);
+    this.service
+      .replaceSections(report.id, report.version, sections)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (updated) => {
+          this.active.set(updated);
+          this.saving.set(false);
+          this.loadAnalytics();
+        },
+        error: (error) => this.handleWorkspaceError(error),
+      });
+  }
+  toggleAction(actionId: string, selected: boolean): void {
+    const report = this.active();
+    if (!report || this.saving()) return;
+    const ids = new Set(report.action_source_ids);
+    selected ? ids.add(actionId) : ids.delete(actionId);
+    this.previewStale.set(true);
+    this.saving.set(true);
+    this.service
+      .replaceActionSources(report.id, report.version, [...ids])
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (updated) => {
+          this.active.set(updated);
+          this.saving.set(false);
+          this.loadAnalytics();
+        },
+        error: (error) => this.handleWorkspaceError(error),
+      });
+  }
+  toggleEvidence(candidate: EligibleEvidence, selected: boolean): void {
+    const report = this.active();
+    if (!report || this.saving()) return;
+    const section = report.sections.find((item) => item.kind === 'EVIDENCE');
+    if (!section) {
+      this.workspaceError.set('Adicione uma seção de evidências antes de selecionar imagens.');
+      return;
+    }
+    const selectedSources = report.evidence_sources
+      .filter((item) => item.review_attachment_id !== candidate.id)
+      .map((item) => ({
+        section_key: item.section_key,
+        review_attachment_id: item.review_attachment_id,
+        published_evidence_id: item.published_evidence_id,
+        caption: item.caption,
+        role: item.role,
+        captured_at: item.captured_at,
+      }));
+    if (selected) {
+      selectedSources.push({
+        section_key: section.section_key,
+        review_attachment_id: candidate.id,
+        published_evidence_id: null,
+        caption: candidate.item_description || candidate.review_title || candidate.filename,
+        role: 'CONTEXT',
+        captured_at: null,
+      });
+    }
+    this.previewStale.set(true);
+    this.saving.set(true);
+    this.service
+      .replaceEvidenceSources(report.id, report.version, selectedSources)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (updated) => {
+          this.active.set(updated);
+          this.saving.set(false);
+          this.loadAnalytics();
+        },
+        error: (error) => this.handleWorkspaceError(error),
+      });
+  }
+  isEvidenceSelected(attachmentId: string): boolean {
+    return !!this.active()?.evidence_sources.some(
+      (source) => source.review_attachment_id === attachmentId,
+    );
+  }
+  updateEvidenceMetadata(
+    sourceId: string,
+    field: 'caption' | 'role' | 'captured_at',
+    value: string,
+  ): void {
+    const report = this.active();
+    if (!report || this.saving()) return;
+    const evidence = report.evidence_sources.map((source) => {
+      if (source.id !== sourceId) return source;
+      if (field === 'role') return { ...source, role: value as ReportEvidenceSource['role'] };
+      if (field === 'captured_at') return { ...source, captured_at: value || null };
+      return { ...source, caption: value };
+    });
+    this.active.set({ ...report, evidence_sources: evidence });
+    this.previewStale.set(true);
+    this.saving.set(true);
+    this.service
+      .replaceEvidenceSources(
+        report.id,
+        report.version,
+        evidence.map((source) => ({
+          section_key: source.section_key,
+          review_attachment_id: source.review_attachment_id,
+          published_evidence_id: source.published_evidence_id,
+          caption: source.caption,
+          role: source.role,
+          captured_at: source.captured_at,
+        })),
+      )
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (updated) => {
+          this.active.set(updated);
+          this.saving.set(false);
+          this.loadAnalytics();
+        },
+        error: (error) => this.handleWorkspaceError(error),
+      });
+  }
+  previousActionPage(): void {
+    if (this.actionPage() <= 1) return;
+    this.actionPage.update((page) => page - 1);
+    this.loadActionCandidates();
+  }
+  nextActionPage(): void {
+    if (!this.actionCandidates()?.has_next) return;
+    this.actionPage.update((page) => page + 1);
+    this.loadActionCandidates();
+  }
+  previousEvidencePage(): void {
+    if (this.evidencePage() <= 1) return;
+    this.evidencePage.update((page) => page - 1);
+    this.loadEvidenceCandidates();
+  }
+  nextEvidencePage(): void {
+    if (!this.evidenceCandidates()?.has_next) return;
+    this.evidencePage.update((page) => page + 1);
+    this.loadEvidenceCandidates();
+  }
+  previousOccurrencePage(): void {
+    if (this.occurrencePage() <= 1) return;
+    this.occurrencePage.update((page) => page - 1);
+    this.loadCandidates();
+  }
+  nextOccurrencePage(): void {
+    if (!this.occurrenceCandidates()?.has_next) return;
+    this.occurrencePage.update((page) => page + 1);
+    this.loadCandidates();
+  }
+  previousSourceReportPage(): void {
+    if (this.sourceReportPage() <= 1) return;
+    this.sourceReportPage.update((page) => page - 1);
+    this.loadCandidates();
+  }
+  nextSourceReportPage(): void {
+    if (!this.sourceReportCandidates()?.has_next) return;
+    this.sourceReportPage.update((page) => page + 1);
+    this.loadCandidates();
+  }
+  previousVersionPage(): void {
+    if (this.versionPage() <= 1) return;
+    this.versionPage.update((page) => page - 1);
+    this.loadWorkspace();
+  }
+  nextVersionPage(): void {
+    if (!this.versionsPage()?.has_next) return;
+    this.versionPage.update((page) => page + 1);
+    this.loadWorkspace();
   }
   publish(): void {
     const report = this.active();
@@ -694,7 +1126,7 @@ export class ReportsPage implements OnInit {
     if (!report) return;
     this.saving.set(true);
     this.service
-      .publish(report.id, report.version)
+      .publish(report.id, report.version, report.report_kind === 'PERIOD_CLOSE' ? '2' : '1')
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
@@ -704,15 +1136,20 @@ export class ReportsPage implements OnInit {
         error: (error) => this.handleWorkspaceError(error),
       });
   }
-  export(version: ReportVersion, format: ExportFormat): void {
+  export(
+    version: ReportVersion,
+    format: ExportFormat,
+    options = this.exportOptionsFor(version.id),
+  ): void {
     const key = `${version.id}:${format}`;
     if (['QUEUED', 'RUNNING'].includes(this.exportJobs()[key]?.status)) return;
     this.service
       .requestExport(
         version.id,
         format,
-        { ...this.options(), language: this.language.currentLanguage() },
+        options,
         this.exportJobs()[key]?.status === 'FAILED',
+        version.content_schema_version >= 2 ? '2' : '1',
       )
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
@@ -723,8 +1160,42 @@ export class ReportsPage implements OnInit {
         error: (error) => this.workspaceError.set(this.message(error)),
       });
   }
-  setOption(key: keyof ExportOptions, value: boolean): void {
-    this.options.update((o) => ({ ...o, [key]: value }));
+  exportOptionsFor(versionId: string): ExportOptions {
+    return (
+      this.exportOptionsByVersion()[versionId] || {
+        ...DEFAULT_EXPORT_OPTIONS,
+        language: this.language.currentLanguage(),
+      }
+    );
+  }
+  setVersionExportOption(
+    versionId: string,
+    key: Exclude<keyof ExportOptions, 'language'>,
+    value: boolean,
+  ): void {
+    this.exportOptionsByVersion.update((options) => ({
+      ...options,
+      [versionId]: {
+        ...this.exportOptionsFor(versionId),
+        language: this.language.currentLanguage(),
+        [key]: value,
+      },
+    }));
+  }
+  exportFormatFor(versionId: string): ExportFormat {
+    return this.exportFormats()[versionId] || 'PDF';
+  }
+  setVersionExportFormat(versionId: string, format: ExportFormat): void {
+    this.exportFormats.update((formats) => ({ ...formats, [versionId]: format }));
+  }
+  emitVersionExport(version: ReportVersion): void {
+    const format = this.exportFormatFor(version.id);
+    const exportJob = this.job(version.id, format);
+    if (exportJob?.status === 'COMPLETED') {
+      this.download(exportJob);
+      return;
+    }
+    this.export(version, format, this.exportOptionsFor(version.id));
   }
   viewVersion(reportId: string, revision: number): void {
     this.service
@@ -732,19 +1203,6 @@ export class ReportsPage implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (v) => this.historical.set(v),
-        error: (e) => this.workspaceError.set(this.message(e)),
-      });
-  }
-  createPlan(version: ReportVersion): void {
-    this.governance
-      .savePlan({
-        title: this.active()?.title || 'Report',
-        description: this.active()?.description || '',
-        report_version_ids: [version.id],
-      })
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (p) => this.router.navigate(['/planos-de-acao', p.id]),
         error: (e) => this.workspaceError.set(this.message(e)),
       });
   }
@@ -797,10 +1255,22 @@ export class ReportsPage implements OnInit {
   }
   formatDate(value: string | null | undefined): string {
     return value
-      ? new Intl.DateTimeFormat(this.locale(), { dateStyle: 'medium', timeStyle: 'short' }).format(
-          new Date(value),
-        )
+      ? new Intl.DateTimeFormat(this.locale(), {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          hourCycle: 'h23',
+        }).format(new Date(value))
       : '—';
+  }
+  versionTitle(version: ReportVersion): string {
+    if (version.content_schema_version >= 2) {
+      return version.content.document?.report.title || this.active()?.title || this.c().title;
+    }
+    const legacyReport = version.content['report'] as { title?: string } | undefined;
+    return legacyReport?.title || this.active()?.title || this.c().title;
   }
   formatCurrency(value: string, currency: 'BRL' | 'USD'): string {
     return new Intl.NumberFormat(this.locale(), { style: 'currency', currency }).format(
@@ -843,6 +1313,8 @@ export class ReportsPage implements OnInit {
     if (event.key === 'Escape') {
       if (this.activeDrawer()) {
         this.closeDrawer();
+      } else if (this.previewOpen()) {
+        this.closePreview();
       } else if (this.showCreate()) {
         this.showCreate.set(false);
       }
@@ -852,6 +1324,12 @@ export class ReportsPage implements OnInit {
         this.saveDraft();
       }
     }
+  }
+  @HostListener('window:beforeunload', ['$event'])
+  protectBeforeUnload(event: BeforeUnloadEvent): void {
+    if (!this.hasUnsavedChanges()) return;
+    event.preventDefault();
+    event.returnValue = '';
   }
   formatTime(date: Date): string {
     return new Intl.DateTimeFormat(this.locale(), {

@@ -1,6 +1,7 @@
 """Periodic evaluation runs with the worker; it cannot detect total backend outages."""
 
 from datetime import UTC, timedelta
+from decimal import Decimal
 
 from sqlalchemy import select
 
@@ -70,7 +71,12 @@ async def monitor(db):
                 )
             )
             if evaluation is None:
-                evaluation = RuleEvaluation(rule_id=rule.id, window_key="reminder", subject=str(entity_id), observed=0)
+                evaluation = RuleEvaluation(
+                    rule_id=rule.id,
+                    window_key="reminder",
+                    subject=str(entity_id),
+                    observed=Decimal("0"),
+                )
                 db.add(evaluation)
             last = evaluation.last_fired_at
             if last and last.tzinfo is None:

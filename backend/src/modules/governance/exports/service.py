@@ -10,7 +10,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ....infrastructure.config.settings import get_settings
 from ..exceptions import ReportNotFoundError, ReportValidationError
-from ..models import Artifact, AuditEvent, ExportJob, OutboxEvent, ReportVersion, SnapshotItem, now
+from ..models import (
+    Artifact,
+    AuditEvent,
+    ExportJob,
+    OutboxEvent,
+    ReportVersion,
+    SnapshotFinancialRow,
+    SnapshotItem,
+    now,
+)
 from ..schemas import ExportOptions
 from ..service import canonical_json
 from ..storage import ReportArtifactStorage, safe_filename
@@ -58,7 +67,7 @@ async def request_export(
     version = await db.get(ReportVersion, report_version_id)
     if version is None or version.published_at is None:
         raise ReportNotFoundError("Published report version not found")
-    if format_ not in RENDERERS or template_version != "1":
+    if format_ not in RENDERERS or template_version != version.template_version:
         raise ReportValidationError("Unknown export format or template")
     options = ExportOptions.model_validate(options).model_dump()
     if format_ == "CSV":
@@ -172,12 +181,24 @@ async def run_export(db: AsyncSession, job_id: uuid.UUID, storage: ReportArtifac
         version = await db.get(ReportVersion, job.report_version_id)
         if version is None or version.published_at is None:
             raise ReportNotFoundError("Published version not found")
-        items = [
-            item.frozen_values
-            for item in await db.scalars(
-                select(SnapshotItem).where(SnapshotItem.snapshot_id == version.snapshot_id).order_by(SnapshotItem.occurrence_id)
-            )
-        ]
+        if version.content_schema_version >= 2:
+            items = [
+                item.frozen_values
+                for item in await db.scalars(
+                    select(SnapshotFinancialRow)
+                    .where(SnapshotFinancialRow.snapshot_id == version.snapshot_id)
+                    .order_by(SnapshotFinancialRow.window_key, SnapshotFinancialRow.occurrence_id)
+                )
+            ]
+        else:
+            items = [
+                item.frozen_values
+                for item in await db.scalars(
+                    select(SnapshotItem)
+                    .where(SnapshotItem.snapshot_id == version.snapshot_id)
+                    .order_by(SnapshotItem.occurrence_id)
+                )
+            ]
         if len(items) > get_settings().REPORT_EXPORT_MAX_ITEMS:
             raise ReportValidationError("Export item limit exceeded")
         existing = await db.scalar(select(Artifact).where(Artifact.export_job_id == job.id))

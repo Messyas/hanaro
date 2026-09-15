@@ -166,7 +166,12 @@
             @for (item of data()!.items; track item.id) {
               <tr class="clickable-row" (click)="openDetail(item.execution_id)">
                 <td>
-                  <div class="execution-id-cell">
+                  <button
+                    class="execution-id-cell execution-details-trigger"
+                    type="button"
+                    [attr.aria-label]="t().executionsDetailTitle"
+                    (click)="openDetail(item.execution_id); $event.stopPropagation()"
+                  >
                     <span class="execution-id-code" [title]="item.execution_id">
                       {{ formatShortId(item.execution_id) }}
                     </span>
@@ -176,7 +181,7 @@
                         formatStepName(item.current_step)
                       }}</span>
                     }
-                  </div>
+                  </button>
                 </td>
                 <td>
                   <span>{{ item.source_system }}</span>

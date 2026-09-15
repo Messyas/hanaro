@@ -39,6 +39,11 @@ def migration(connection, direction="upgrade"):
             Path(__file__).resolve().parents[4] / "migrations/versions/20260906_12_governance_persistence.py",
             Path(__file__).resolve().parents[4] / "migrations/versions/20260909_13_reports_module.py",
             Path(__file__).resolve().parents[4] / "migrations/versions/20260909_14_governance_workflows.py",
+            Path(__file__).resolve().parents[4] / "migrations/versions/20260910_15_report_scope_v2.py",
+            Path(__file__).resolve().parents[4] / "migrations/versions/20260911_16_report_scope_sources.py",
+            Path(__file__).resolve().parents[4] / "migrations/versions/20260911_17_report_action_sources.py",
+            Path(__file__).resolve().parents[4] / "migrations/versions/20260911_18_report_snapshot_v2.py",
+            Path(__file__).resolve().parents[4] / "migrations/versions/20260911_19_report_publish_receipts.py",
         ]
         for index, file in enumerate(files if direction == "upgrade" else reversed(files)):
             if file.name == "20260909_13_reports_module.py":

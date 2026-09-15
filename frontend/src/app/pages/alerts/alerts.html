@@ -2,14 +2,6 @@
   <!-- Header da Página -->
   <header class="alerts-header">
     <h1 class="page-title" id="alerts-title">{{ c().alerts }}</h1>
-    <div class="header-actions">
-      @if (auth.user()?.is_superuser) {
-        <button type="button" class="btn btn-primary" (click)="loadRules()">
-          <ui-icon name="cog" />
-          {{ c().settings }}
-        </button>
-      }
-    </div>
   </header>
 
   @if (error()) {
@@ -74,18 +66,14 @@
         <app-delayed-progress-spinner [active]="true" [ariaLabel]="c().loading" />
       </div>
     } @else if (!page() || page()!.items.length === 0) {
-      <app-list-feedback
-        kind="empty"
-        [title]="c().empty"
-        [message]="c().noAlertsMatch"
-      />
+      <app-list-feedback kind="empty" [title]="c().empty" [message]="c().noAlertsMatch" />
     } @else {
       <div class="list-table-frame" [attr.aria-busy]="loading()">
         <table class="list-table alerts-table">
           <thead>
             <tr>
-              <th class="align-center" style="width: 130px">{{ c().severity }}</th>
               <th>{{ c().title }}</th>
+              <th class="align-center" style="width: 130px">{{ c().severity }}</th>
               <th>{{ c().type }}</th>
               <th style="width: 120px">{{ c().date }}</th>
               <th class="align-center" style="width: 110px">{{ c().status }}</th>
@@ -95,12 +83,6 @@
           <tbody>
             @for (alert of page()!.items; track alert.id) {
               <tr [class.unread-row]="!alert.read_at">
-                <td class="align-center">
-                  <app-status-badge
-                    [label]="formatSeverity(alert.severity)"
-                    [tone]="getSeverityTone(alert.severity)"
-                  />
-                </td>
                 <td>
                   <div class="alert-title-cell">
                     <span class="alert-title-text">{{ alertTitle(alert) }}</span>
@@ -109,11 +91,18 @@
                     }
                     @if (alert.body.observed && alert.body.threshold) {
                       <span class="alert-threshold-text">
-                        {{ c().observed }}: {{ alert.body.observed }} {{ alert.body.currency }} / {{ c().threshold }}:
+                        {{ c().observed }}: {{ alert.body.observed }} {{ alert.body.currency }} /
+                        {{ c().threshold }}:
                         {{ alert.body.threshold }}
                       </span>
                     }
                   </div>
+                </td>
+                <td class="align-center">
+                  <app-status-badge
+                    [label]="formatSeverity(alert.severity)"
+                    [tone]="getSeverityTone(alert.severity)"
+                  />
                 </td>
                 <td>
                   <span class="event-type-badge">{{ formatEventType(alert.event_type) }}</span>
@@ -214,7 +203,8 @@
                       {{ rule.name }}
                     </button>
                     <span class="rule-meta"
-                      >{{ formatEventType(rule.event_type) }} · {{ rule.channels.join(' + ') }}</span
+                      >{{ formatEventType(rule.event_type) }} ·
+                      {{ rule.channels.join(' + ') }}</span
                     >
                   </div>
                   <button type="button" class="btn btn-secondary btn-xs" (click)="edit(rule)">

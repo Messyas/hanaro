@@ -15,6 +15,12 @@
 
 /* ─── Breadcrumb ────────────────────────────────────────────────────── */
 /* ─── Header ────────────────────────────────────────────────────────── */
+.plan-back-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: -0.9rem;
+}
+
 .action-plans-header {
   display: flex;
   flex-wrap: wrap;
@@ -119,11 +125,36 @@
   display: flex;
   align-items: center;
   gap: 1rem;
-  padding: 0.75rem 1.25rem;
-  background: var(--app-surface);
-  border: 1px solid var(--app-card-border);
-  border-radius: 0.75rem;
+  padding: 0.25rem 0;
   flex-wrap: wrap;
+}
+
+.board-context-bar {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.board-context-bar .linked-reports-panel {
+  flex: 1 1 auto;
+}
+
+.board-context-bar .kanban-toolbar {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 700px) {
+  .board-context-bar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .board-context-bar .kanban-toolbar {
+    width: 100%;
+    justify-content: flex-start;
+  }
 }
 
 .panel-section-title {
@@ -150,19 +181,15 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.3rem 0.75rem;
-  background: var(--app-surface-muted);
-  border: 1px solid var(--app-card-border);
-  border-radius: 9999px;
+  padding: 0.2rem 0;
   text-decoration: none;
   font-size: 0.8125rem;
   color: var(--app-text);
-  transition: all 150ms ease;
+  transition: color 150ms ease;
 }
 
 .report-chip-link:hover {
-  border-color: var(--brand-primary);
-  background: color-mix(in srgb, var(--brand-primary) 8%, var(--app-surface-muted));
+  color: var(--brand-primary);
 }
 
 .rev-badge {
@@ -170,8 +197,9 @@
   font-weight: 600;
   color: var(--brand-primary);
   background: var(--brand-primary-soft);
-  padding: 0.1rem 0.4rem;
-  border-radius: 0.25rem;
+  border: 1px solid var(--brand-primary-border);
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
 }
 
 /* ─── Table List Mode ───────────────────────────────────────────────── */
@@ -214,10 +242,6 @@
 
 .clickable-row {
   cursor: pointer;
-}
-
-.clickable-row:hover .execution-id-code {
-  color: var(--brand-primary);
 }
 
 /* ─── Kanban Board Filters ──────────────────────────────────────────── */
@@ -321,6 +345,27 @@
   transform: translateY(-1px);
 }
 
+/* Durante o drag, o CDK usa um clone como placeholder e outro como preview.
+   O placeholder vira apenas uma marca de posição para não parecer uma cópia. */
+.task-card.cdk-drag-placeholder {
+  min-height: 7rem;
+  border: 1px dashed var(--brand-primary-border);
+  background: transparent;
+  box-shadow: none;
+  opacity: 1;
+  transform: none;
+}
+
+.task-card.cdk-drag-placeholder > * {
+  visibility: hidden;
+}
+
+.task-card.cdk-drag-preview {
+  box-sizing: border-box;
+  opacity: 0.96;
+  pointer-events: none;
+}
+
 .task-card-header {
   display: flex;
   align-items: center;
@@ -412,6 +457,12 @@
   border-radius: 0.5rem;
   font-size: 0.75rem;
   color: var(--app-text-muted-detail);
+}
+
+/* O estado vazio não deve competir com o cartão durante o arraste. */
+.tasks-container.cdk-drop-list-dragging .empty-column-slot,
+.tasks-container.cdk-drop-list-receiving .empty-column-slot {
+  display: none;
 }
 
 .column-pagination {
@@ -532,6 +583,11 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.75rem;
+}
+
+.form-row > app-list-filter-date-range,
+.form-row app-list-filter-select {
+  min-width: 0;
 }
 
 .form-section-title {

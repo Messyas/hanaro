@@ -15,21 +15,42 @@ from .exceptions import ReportConflictError, ReportNotFoundError, ReportValidati
 from .exports import job_dict, request_export
 from .models import Artifact, ExportJob, PublishedEvidence, Report, ReportVersion
 from .notifications.service import emit
-from .schemas import ExportRequest, PublishRequest, ReportCreate, ReportUpdate, SourceMutation
+from .reporting.analytics import ReportAnalyticsService
+from .schemas import (
+    ExportRequest,
+    PublishRequest,
+    ReportActionSourcesUpdate,
+    ReportCreate,
+    ReportEvidenceSourcesUpdate,
+    ReportScopeUpdate,
+    ReportSectionsUpdate,
+    ReportUpdate,
+    SourceMutation,
+)
 from .service import (
     archive_report,
     create_report,
     get_report_detail,
+    get_report_scope,
+    get_report_sections,
     get_version,
+    list_eligible_actions,
     list_eligible_occurrences,
+    list_report_evidence_candidates,
     list_reports,
     list_source_reports,
     list_versions,
     mutate_sources,
     preview_report,
     publish_report,
+    replace_report_action_sources,
+    replace_report_evidence_sources,
+    replace_report_sections,
     report_dict,
+    report_scope_dict,
+    report_section_dict,
     update_report,
+    update_report_scope,
     version_dict,
 )
 from .storage import ReportArtifactStorage
@@ -66,6 +87,9 @@ async def create(payload: ReportCreate, db: DbDep, current_user: CurrentUserDep)
             title=payload.title,
             description=payload.description,
             factory_id=payload.factory_id,
+            report_kind=payload.report_kind,
+            content_schema_version=payload.content_schema_version,
+            scope=payload.scope.model_dump() if payload.scope else None,
             actor_id=_actor(current_user),
             correlation_id=_correlation(),
         )
@@ -111,6 +135,24 @@ async def eligible_occurrences(
     )
 
 
+@router.get("/eligible-actions")
+async def eligible_actions(
+    db: DbDep,
+    current_user: CurrentUserDep,
+    factory_id: Annotated[uuid.UUID, Query()],
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=100)] = 25,
+    search: Annotated[str | None, Query(max_length=240)] = None,
+) -> dict:
+    return await list_eligible_actions(
+        db,
+        factory_id=factory_id,
+        page=page,
+        page_size=page_size,
+        search=search,
+    )
+
+
 @router.get("/{report_id}")
 async def detail(report_id: Annotated[uuid.UUID, Path()], db: DbDep, current_user: CurrentUserDep) -> dict:
     try:
@@ -134,6 +176,139 @@ async def update(
             description=payload.description,
         )
         return report_dict(report)
+    except (ReportNotFoundError, ReportConflictError, ReportValidationError) as error:
+        raise _translate(error) from error
+
+
+@router.get("/{report_id}/scope")
+async def scope(report_id: Annotated[uuid.UUID, Path()], db: DbDep, current_user: CurrentUserDep) -> dict | None:
+    try:
+        return report_scope_dict(await get_report_scope(db, report_id))
+    except ReportNotFoundError as error:
+        raise _translate(error) from error
+
+
+@router.put("/{report_id}/scope")
+async def update_scope(
+    report_id: Annotated[uuid.UUID, Path()], payload: ReportScopeUpdate, db: DbDep, current_user: CurrentUserDep
+) -> dict:
+    try:
+        report = await update_report_scope(
+            db,
+            report_id,
+            expected_version=payload.expected_version,
+            scope=payload.scope.model_dump(),
+            actor_id=_actor(current_user),
+            correlation_id=_correlation(),
+        )
+        return await get_report_detail(db, report.id)
+    except (ReportNotFoundError, ReportConflictError, ReportValidationError) as error:
+        raise _translate(error) from error
+
+
+@router.get("/{report_id}/sections")
+async def sections(report_id: Annotated[uuid.UUID, Path()], db: DbDep, current_user: CurrentUserDep) -> list[dict]:
+    try:
+        return [report_section_dict(section) for section in await get_report_sections(db, report_id)]
+    except ReportNotFoundError as error:
+        raise _translate(error) from error
+
+
+@router.get("/{report_id}/analytics")
+async def analytics(report_id: Annotated[uuid.UUID, Path()], db: DbDep, current_user: CurrentUserDep) -> dict:
+    try:
+        report = await db.get(Report, report_id)
+        if report is None:
+            raise ReportNotFoundError("Report not found")
+        scope = await get_report_scope(db, report_id)
+        if report.report_kind != "PERIOD_CLOSE" or scope is None:
+            raise ReportValidationError("Analytics is available only for PERIOD_CLOSE reports with a scope")
+        dataset = await ReportAnalyticsService().build_dataset(db, report, scope)
+        dataset.pop("financial_rows", None)
+        if dataset.get("comparison"):
+            dataset["comparison"].pop("financial_rows", None)
+        return dataset
+    except (ReportNotFoundError, ReportValidationError) as error:
+        raise _translate(error) from error
+
+
+@router.get("/{report_id}/eligible-evidence")
+async def eligible_evidence(
+    report_id: Annotated[uuid.UUID, Path()],
+    db: DbDep,
+    current_user: CurrentUserDep,
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=100)] = 25,
+    search: Annotated[str | None, Query(max_length=240)] = None,
+) -> dict:
+    try:
+        return await list_report_evidence_candidates(
+            db,
+            report_id,
+            page=page,
+            page_size=page_size,
+            search=search,
+        )
+    except (ReportNotFoundError, ReportValidationError) as error:
+        raise _translate(error) from error
+
+
+@router.put("/{report_id}/action-sources")
+async def replace_action_sources(
+    report_id: Annotated[uuid.UUID, Path()],
+    payload: ReportActionSourcesUpdate,
+    db: DbDep,
+    current_user: CurrentUserDep,
+) -> dict:
+    try:
+        report = await replace_report_action_sources(
+            db,
+            report_id,
+            expected_version=payload.expected_version,
+            action_ids=payload.action_ids,
+            actor_id=_actor(current_user),
+            correlation_id=_correlation(),
+        )
+        return await get_report_detail(db, report.id)
+    except (ReportNotFoundError, ReportConflictError, ReportValidationError) as error:
+        raise _translate(error) from error
+
+
+@router.put("/{report_id}/evidence-sources")
+async def replace_evidence_sources(
+    report_id: Annotated[uuid.UUID, Path()],
+    payload: ReportEvidenceSourcesUpdate,
+    db: DbDep,
+    current_user: CurrentUserDep,
+) -> dict:
+    try:
+        report = await replace_report_evidence_sources(
+            db,
+            report_id,
+            expected_version=payload.expected_version,
+            evidence=[item.model_dump() for item in payload.evidence],
+            actor_id=_actor(current_user),
+            correlation_id=_correlation(),
+        )
+        return await get_report_detail(db, report.id)
+    except (ReportNotFoundError, ReportConflictError, ReportValidationError) as error:
+        raise _translate(error) from error
+
+
+@router.put("/{report_id}/sections")
+async def replace_sections(
+    report_id: Annotated[uuid.UUID, Path()], payload: ReportSectionsUpdate, db: DbDep, current_user: CurrentUserDep
+) -> dict:
+    try:
+        report = await replace_report_sections(
+            db,
+            report_id,
+            expected_version=payload.expected_version,
+            sections=[section.model_dump() for section in payload.sections],
+            actor_id=_actor(current_user),
+            correlation_id=_correlation(),
+        )
+        return await get_report_detail(db, report.id)
     except (ReportNotFoundError, ReportConflictError, ReportValidationError) as error:
         raise _translate(error) from error
 
@@ -204,6 +379,10 @@ async def publish(
             report_id,
             expected_version=payload.expected_version,
             template_version=payload.template_version,
+            content_schema_version=payload.content_schema_version,
+            preview_fingerprint=payload.preview_fingerprint,
+            acknowledged_warning_codes=payload.acknowledged_warning_codes,
+            idempotency_key=payload.idempotency_key,
             actor_id=_actor(current_user),
             correlation_id=_correlation(),
         )
@@ -337,7 +516,7 @@ async def capabilities(current_user: CurrentUserDep):
         "notifications_available": get_settings().TASKIQ_ENABLED,
         "email_provider": "simulation",
         "formats": ["CSV", "PDF", "PPTX", "MARKDOWN"],
-        "template_versions": ["1"],
+        "template_versions": ["1", "2"],
         "csv": {"encoding": "UTF-8 BOM", "separator": ",", "summary": "not applicable"},
     }
 

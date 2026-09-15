@@ -34,7 +34,7 @@ def render(document: Document) -> bytes:
         canvas.saveState()
         canvas.setFont(font, 8)
         canvas.setFillColor(colors.HexColor("#5f6368"))
-        report_title = str(document.version.content.get("report", {}).get("title", "Report"))
+        report_title = document.report_title
         canvas.drawString(42, 806, f"HANARO | {report_title[:72]}")
         canvas.setStrokeColor(colors.HexColor("#d9dde3"))
         canvas.line(42, 798, 553, 798)

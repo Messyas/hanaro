@@ -115,13 +115,17 @@ export const workflowCopy = {
     demoAlertTaskOverdueTitle: 'Prazo de ação corretiva próximo',
     demoAlertTaskOverdueDescription: 'Uma ação demonstrativa precisa de acompanhamento imediato.',
     demoAlertCostExceededTitle: 'Custo de Scrap acima do limite',
-    demoAlertCostExceededDescription: 'O custo acumulado do período demonstrativo ultrapassou o limite definido.',
+    demoAlertCostExceededDescription:
+      'O custo acumulado do período demonstrativo ultrapassou o limite definido.',
     demoAlertTaskAssignedTitle: 'Nova tarefa atribuída para validação',
-    demoAlertTaskAssignedDescription: 'Uma tarefa de melhoria foi atribuída ao fluxo de demonstração.',
+    demoAlertTaskAssignedDescription:
+      'Uma tarefa de melhoria foi atribuída ao fluxo de demonstração.',
     demoAlertExportCompletedTitle: 'Relatório demonstrativo disponível',
-    demoAlertExportCompletedDescription: 'O relatório de acompanhamento foi preparado para consulta.',
+    demoAlertExportCompletedDescription:
+      'O relatório de acompanhamento foi preparado para consulta.',
     demoAlertScrapRelevantTitle: 'Ocorrência relevante identificada',
-    demoAlertScrapRelevantDescription: 'Uma ocorrência de Scrap requer análise de causa e plano de ação.',
+    demoAlertScrapRelevantDescription:
+      'Uma ocorrência de Scrap requer análise de causa e plano de ação.',
   },
   en: {
     plans: 'Action plans',
@@ -239,13 +243,15 @@ export const workflowCopy = {
     demoAlertTaskOverdueTitle: 'Corrective action deadline approaching',
     demoAlertTaskOverdueDescription: 'A demo action needs immediate follow-up.',
     demoAlertCostExceededTitle: 'Scrap cost above the threshold',
-    demoAlertCostExceededDescription: 'The accumulated cost for the demo period exceeded the defined limit.',
+    demoAlertCostExceededDescription:
+      'The accumulated cost for the demo period exceeded the defined limit.',
     demoAlertTaskAssignedTitle: 'New task assigned for validation',
     demoAlertTaskAssignedDescription: 'An improvement task was assigned to the demo workflow.',
     demoAlertExportCompletedTitle: 'Demo report available',
     demoAlertExportCompletedDescription: 'The monitoring report has been prepared for viewing.',
     demoAlertScrapRelevantTitle: 'Relevant occurrence identified',
-    demoAlertScrapRelevantDescription: 'A Scrap occurrence requires cause analysis and an action plan.',
+    demoAlertScrapRelevantDescription:
+      'A Scrap occurrence requires cause analysis and an action plan.',
   },
   ko: {
     plans: '실행 계획',

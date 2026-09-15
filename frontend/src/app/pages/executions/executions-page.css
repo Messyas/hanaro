@@ -633,6 +633,22 @@
   gap: 0.2rem;
 }
 
+.execution-details-trigger {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.execution-details-trigger:focus-visible {
+  outline: 2px solid var(--app-focus-ring);
+  outline-offset: 3px;
+  border-radius: 0.25rem;
+}
+
 .execution-id-code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-weight: 600;

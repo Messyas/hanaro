@@ -1,5 +1,4 @@
 import uuid
-from typing import cast
 
 from ...infrastructure.database.session import local_session
 from ...infrastructure.taskiq.brokers import default_broker
@@ -18,4 +17,4 @@ register_task("governance.export_report", "default", export_report_task)
 
 async def enqueue_report_export(job_id: uuid.UUID) -> str:
     task = await export_report_task.kiq(str(job_id))
-    return cast(str, task.task_id)
+    return task.task_id

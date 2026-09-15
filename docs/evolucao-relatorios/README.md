@@ -1,6 +1,6 @@
 # Evolução dos relatórios para apresentações consolidadas
 
-Base: código `350acfc`, revisado em 10/09/2026, e conteúdo da apresentação `Rev04_Capability_IF Cost 1.pptx`. **Status: especificação proposta; os arquivos desta pasta não são funcionalidades implementadas nem migrations executáveis.**
+Base: código `350acfc`, revisado em 11/09/2026, e conteúdo da apresentação `Rev04_Capability_IF Cost 1.pptx`. **Status: o primeiro fluxo vertical de fechamento está implementado: escopo → análise → ações/evidências → prontidão → publicação imutável → exportação V2. O backlog registra separadamente os acabamentos ainda pendentes, como idempotência explícita, paginação completa, gráficos editáveis e fotos incorporadas.**
 
 Objetivo: selecionar um período, consolidar resultados e análises, revisar a narrativa e emitir uma apresentação com objetivo, evolução, perdas prioritárias, causas, ações, evidências e resultados.
 
@@ -17,6 +17,7 @@ Objetivo: selecionar um período, consolidar resultados e análises, revisar a n
 | [07 — Frontend](07-frontend-componentes.md) | Componentes existentes e novos, contratos, serviços e navegação |
 | [08 — Documento e exportação](08-documento-e-exportacao.md) | Conteúdo versionado, snapshots, blocos e renderização PPTX/PDF |
 | [09 — Validação e entrega](09-validacao-e-entrega.md) | Cenários de teste, implantação e critérios para liberar cada incremento |
+| [10 — Lacunas do frontend](10-lacunas-frontend-dados-recebidos.md) | Dados já recebidos do backend que ainda precisam ser apresentados e editados no Angular |
 
 O [diagnóstico original](../plano-relatorios-apresentacao-consolidada.md) registra a comparação com os 27 slides. O [plano anterior de governança](../evolucao-governanca/README.md) continua como contexto; esta pasta detalha a implementação da evolução de relatórios sobre o código atual. Havendo diferenças, os contratos propostos aqui são a referência desta iniciativa, sujeitos à revisão antes da implementação.
 

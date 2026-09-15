@@ -1,7 +1,7 @@
 import asyncio
 import uuid
 from datetime import timedelta
-from typing import Protocol
+from typing import Literal, Protocol
 
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,8 +20,9 @@ from ..models import (
 )
 from .templates import email_content
 
-BOTH = ["FRONT", "EMAIL"]
-CHANNELS = {
+NotificationChannel = Literal["FRONT", "EMAIL"]
+BOTH: list[NotificationChannel] = ["FRONT", "EMAIL"]
+CHANNELS: dict[str, list[NotificationChannel]] = {
     name: BOTH
     for name in (
         "SCRAP_RELEVANT",

@@ -6,6 +6,7 @@ import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { LanguageService } from '../../i18n/language.service';
+import { ListFilterDateRange } from '../../shared/list-filters/list-filter-date-range';
 import { ListFilterInput } from '../../shared/list-filters/list-filter-input';
 import { ListFilterPopover } from '../../shared/list-filters/list-filter-popover';
 import { ListFilterSelect } from '../../shared/list-filters/list-filter-select';
@@ -48,6 +49,7 @@ const DEFAULT_PAGE_SIZE = 25;
     ListFeedback,
     InlineAlert,
     DelayedProgressSpinner,
+    ListFilterDateRange,
     ListFilterInput,
     ListFilterPopover,
     ListFilterSelect,
@@ -87,6 +89,9 @@ export class ActionPlans {
     { value: 'HIGH', label: this.c().high },
     { value: 'URGENT', label: this.c().urgent },
   ]);
+  readonly taskPriorityOptions = computed(() =>
+    this.priorityOptions().filter((option) => option.value),
+  );
   readonly versions = signal<ReportVersion[]>([]);
   readonly allowedPageSizes = ALLOWED_PAGE_SIZES;
   readonly page = signal(1);
@@ -453,7 +458,47 @@ export class ActionPlans {
   drop(event: CdkDragDrop<ActionTask[]>, status: TaskState) {
     const task = event.item.data as ActionTask;
     if (status === 'COMPLETED' || task.status === 'COMPLETED') return;
+
+    this.moveTaskInBoard(task, status, event.currentIndex);
     this.command(task, 'move', { status, position: event.currentIndex * 1024 });
+  }
+
+  private moveTaskInBoard(task: ActionTask, targetStatus: TaskState, targetIndex: number): void {
+    const sourceStatus = task.status;
+
+    this.columns.update((columns) => {
+      const source = columns[sourceStatus];
+      const target = columns[targetStatus];
+      if (!source || !target) return columns;
+
+      const withoutTask = source.items.filter((item) => item.id !== task.id);
+      const movedTask = { ...task, status: targetStatus };
+
+      if (sourceStatus === targetStatus) {
+        const insertionIndex = Math.min(Math.max(targetIndex, 0), withoutTask.length);
+        const reordered = [...withoutTask];
+        reordered.splice(insertionIndex, 0, movedTask);
+        return { ...columns, [sourceStatus]: { ...source, items: reordered } };
+      }
+
+      const targetItems = target.items.filter((item) => item.id !== task.id);
+      const insertionIndex = Math.min(Math.max(targetIndex, 0), targetItems.length);
+      targetItems.splice(insertionIndex, 0, movedTask);
+
+      return {
+        ...columns,
+        [sourceStatus]: {
+          ...source,
+          items: withoutTask,
+          total: Math.max(0, source.total - 1),
+        },
+        [targetStatus]: {
+          ...target,
+          items: targetItems,
+          total: target.total + 1,
+        },
+      };
+    });
   }
 
   overdue(task: ActionTask) {

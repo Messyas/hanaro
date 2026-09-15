@@ -4,7 +4,7 @@
 
 ## Ponto de partida
 
-Revisões encontradas: `20260906_12` (governança), `20260909_13` (relatórios) e `20260909_14` (workflows), encadeadas nessa ordem. **Confirmar `alembic heads` no momento da implementação.** M01–M09 abaixo são identificadores de planejamento; gerar revisões Alembic reais sobre o head encontrado, sem editar migrations já aplicadas.
+Revisões-base: `20260906_12` (governança), `20260909_13` (relatórios) e `20260909_14` (workflows). Os lotes M01–M04 foram materializados, em sequência, como `20260910_15`, `20260911_16`, `20260911_17` e `20260911_18`. M05–M09 continuam como identificadores de planejamento.
 
 Arquivos futuros ficam em `backend/migrations/versions/`. Usar imports e tipos locais (`sa.Uuid`, DateTime com timezone, JSON compatível) e nomes explícitos de constraints. Não importar os modelos mutáveis do runtime para definir a estrutura histórica da migration.
 
@@ -71,4 +71,4 @@ Em produção, o rollback preferido desativa novas escritas e mantém leitores V
 
 Testar banco novo, banco no head 14 com dados V1 e cenário histórico de tabelas já criadas pelo bootstrap. Capturar antes/depois: contagens, totais, revisão, bytes/hash de arquivos, FKs e sequências. Testar corrida de aprovação de meta/produção e INSERT tardio em snapshot selado em PostgreSQL real.
 
-Alembic autogenerate é rascunho: revisar constraints, triggers, defaults, backfill e downgrade manualmente. Esta entrega não cria scripts `.py` de migration, para não apresentar um plano de schema como alteração pronta para execução.
+Alembic autogenerate é rascunho: revisar constraints, triggers, defaults, backfill e downgrade manualmente. As migrations M01–M04 possuem scripts `.py`; ainda precisam ser executadas contra PostgreSQL de homologação antes do rollout.

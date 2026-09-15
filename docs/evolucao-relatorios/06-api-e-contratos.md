@@ -1,6 +1,21 @@
 # API e contratos
 
-[Índice](README.md) · [Serviços](05-backend-servicos-e-metodos.md). Rotas **propostas**, exceto quando indicadas como existentes. Prefixo comum: `/api/v1`.
+[Índice](README.md) · [Serviços](05-backend-servicos-e-metodos.md). Prefixo comum: `/api/v1`. O fluxo A implementado usa rotas menores de escopo, seções e fontes; as rotas agregadas de composição abaixo continuam como possível simplificação futura.
+
+## Rotas V2 implementadas
+
+| Método / rota | Função |
+| --- | --- |
+| GET/PUT `/reports/{id}/scope` | Ler ou substituir escopo com `expected_version` |
+| GET/PUT `/reports/{id}/sections` | Ler ou substituir blocos ordenados |
+| GET `/reports/{id}/analytics` | Métricas, comparação, Pareto, meta e cobertura sem linhas financeiras |
+| GET `/reports/{id}/preview` | Documento V2, prontidão, manifesto e fingerprint |
+| GET `/reports/eligible-actions` | Seleção paginada de ações por fábrica |
+| PUT `/reports/{id}/action-sources` | Substituir ações selecionadas |
+| GET `/reports/{id}/eligible-evidence` | Anexos revisados dentro do recorte |
+| PUT `/reports/{id}/evidence-sources` | Substituir evidências com legenda/papel/data |
+| POST `/reports/{id}/publish` | Publicar template 2 e congelar snapshot V2 |
+| POST `/report-versions/{id}/exports` | Gerar CSV, PDF, PPTX ou Markdown com template 1/2 |
 
 ## Convenções
 

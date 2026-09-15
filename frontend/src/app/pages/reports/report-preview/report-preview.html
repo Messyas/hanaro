@@ -1,0 +1,202 @@
+<article class="report-document" aria-label="Prévia do relatório consolidado">
+  <header class="document-header">
+    <div>
+      <p class="eyebrow">{{ document().report.code }} · {{ document().report.kind }}</p>
+      <h2>{{ document().report.title }}</h2>
+      @if (document().report.description) {
+        <p class="document-description">{{ document().report.description }}</p>
+      }
+    </div>
+    <dl class="scope-summary">
+      <div>
+        <dt>Período</dt>
+        <dd>
+          {{ formatDate(document().scope.period_from) }} —
+          {{ formatDate(document().scope.period_to) }}
+        </dd>
+      </div>
+      <div>
+        <dt>Moeda</dt>
+        <dd>{{ document().scope.currency }}</dd>
+      </div>
+      @if (document().scope.is_provisional) {
+        <div>
+          <dt>Emissão</dt>
+          <dd>Provisória</dd>
+        </div>
+      }
+    </dl>
+  </header>
+
+  @if (stale()) {
+    <p class="stale-notice" role="status">
+      A prévia está desatualizada. Atualize-a antes de publicar.
+    </p>
+  } @else if (generatedAt()) {
+    <p class="generated-at">Atualizada em {{ generatedAt() }}</p>
+  }
+
+  @for (section of document().sections; track section.id) {
+    <section class="document-section" [attr.aria-labelledby]="'section-' + section.id">
+      <div class="section-heading">
+        <div>
+          <p class="section-kind">{{ section.kind }}</p>
+          <h3 [id]="'section-' + section.id">{{ section.title }}</h3>
+        </div>
+      </div>
+
+      @switch (section.kind) {
+        @case ('KPI') {
+          <div class="kpi-grid">
+            <div class="kpi">
+              <span>Ocorrências</span><strong>{{ section.data.occurrence_count }}</strong>
+            </div>
+            <div class="kpi">
+              <span>Realizado</span><strong>{{ formatAmount(section.data.total) }}</strong>
+            </div>
+            <div class="kpi">
+              <span>Meta</span><strong>{{ formatAmount(section.data.target) }}</strong>
+              @if (section.data.target_revision) {
+                <small>Revisão {{ section.data.target_revision }}</small>
+              }
+            </div>
+            <div class="kpi">
+              <span>Cobertura</span><strong>{{ section.data.coverage.status }}</strong
+              ><small
+                >{{ section.data.coverage.complete_days }}/{{
+                  section.data.coverage.expected_days
+                }}
+                dias completos</small
+              >
+            </div>
+          </div>
+          @if (section.data.coverage.missing_dates.length) {
+            <p class="coverage-note">
+              Datas sem cobertura: {{ section.data.coverage.missing_dates.join(', ') }}
+            </p>
+          }
+        }
+        @case ('TREND') {
+          @if (comparisonTotal(document().analytics); as comparison) {
+            <div class="comparison-summary">
+              <span
+                >Comparativo: <strong>{{ formatAmount(comparison) }}</strong></span
+              >
+              @if (difference(document().analytics); as delta) {
+                <span
+                  >Variação: <strong>{{ formatAmount(delta) }}</strong></span
+                >
+              }
+            </div>
+          }
+          <div class="trend-chart" role="img" aria-label="Tendência mensal do indicador">
+            @for (point of section.data.monthly; track point.period) {
+              <div class="trend-point">
+                <span
+                  class="trend-bar"
+                  [style.height.%]="trendHeight(point.total, section.data.monthly)"
+                ></span>
+                <strong>{{ point.period }}</strong>
+              </div>
+            } @empty {
+              <span class="empty-section">Sem dados para desenhar a tendência.</span>
+            }
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Período</th>
+                  <th>Realizado</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (point of section.data.monthly; track point.period) {
+                  <tr>
+                    <td>{{ point.period }}</td>
+                    <td>{{ formatAmount(point.total) }}</td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="2">Não há movimentos no período.</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+        @case ('PARETO') {
+          <div class="pareto-list">
+            @for (line of section.data.lines; track line.line ?? 'unmapped') {
+              <div class="pareto-row">
+                <div class="pareto-label">
+                  <span>{{ line.line ?? 'Não mapeada' }}</span
+                  ><strong>{{ formatAmount(line.total) }}</strong>
+                </div>
+                <div class="pareto-track" aria-hidden="true">
+                  <span [style.width.%]="paretoWidth(line.total)"></span>
+                </div>
+              </div>
+            } @empty {
+              <p>Não há linhas prioritárias no recorte.</p>
+            }
+          </div>
+        }
+        @case ('ACTIONS') {
+          <div class="action-list">
+            @for (action of section.data.actions; track action.id) {
+              <article class="action-card">
+                <div>
+                  <p class="eyebrow">{{ action.code }} · {{ action.priority }}</p>
+                  <h4>{{ action.title }}</h4>
+                </div>
+                <dl>
+                  <div>
+                    <dt>Status</dt>
+                    <dd>{{ action.status }}</dd>
+                  </div>
+                  <div>
+                    <dt>Prazo</dt>
+                    <dd>{{ formatDate(action.due_at) }}</dd>
+                  </div>
+                </dl>
+                @if (action.description) {
+                  <p>{{ action.description }}</p>
+                }
+              </article>
+            } @empty {
+              <p>Nenhuma ação foi selecionada.</p>
+            }
+          </div>
+        }
+        @default {
+          @if (narrative(section); as text) {
+            <p class="narrative">{{ text }}</p>
+          }
+          @if (section.evidence.length) {
+            <div class="evidence-grid">
+              @for (evidence of section.evidence; track evidence.source_id) {
+                @let file = evidenceFile(evidence);
+                <article class="evidence-card">
+                  <div class="evidence-role">{{ evidence.role }}</div>
+                  <strong>{{ evidence.caption }}</strong>
+                  <span>{{ formatDate(evidence.captured_at) }}</span>
+                  @if (file) {
+                    @if (file.download_url) {
+                      <a [href]="file.download_url">{{ file.filename }}</a>
+                    } @else {
+                      <span>{{ file.filename }}</span>
+                    }
+                  }
+                </article>
+              }
+            </div>
+          }
+          @if (!narrative(section) && !section.evidence.length) {
+            <p class="empty-section">Nenhum conteúdo informado para esta seção.</p>
+          }
+        }
+      }
+    </section>
+  }
+</article>

@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import delete, func, select
@@ -77,11 +77,13 @@ def view(entity):
 
 
 def report_link_view(version: ReportVersion) -> dict:
+    content = version.content
+    report = content.get("document", {}).get("report", {}) if version.content_schema_version >= 2 else content.get("report", {})
     return {
         "id": version.id,
         "report_id": version.report_id,
         "revision": version.revision,
-        "title": version.content.get("report", {}).get("title", ""),
+        "title": report.get("title", ""),
     }
 
 
@@ -322,7 +324,7 @@ async def board(db, plan_id, status, page, page_size, search=None, priority=None
             .where(ActionParticipant.action_id.in_([t.id for t in tasks]))
         )
     ).all()
-    grouped = {}
+    grouped: dict[uuid.UUID, list[dict[str, Any]]] = {}
     for action_id, user_id, name, photo in people:
         grouped.setdefault(action_id, []).append(dict(id=user_id, name=name, profile_image_url=photo))
     return {

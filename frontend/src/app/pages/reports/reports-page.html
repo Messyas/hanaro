@@ -56,8 +56,8 @@
           <table class="list-table report-table">
             <thead>
               <tr>
-                <th style="width: 140px">{{ c().code }}</th>
                 <th>{{ c().report }}</th>
+                <th style="width: 140px">{{ c().code }}</th>
                 <th class="align-center" style="width: 130px">{{ c().status }}</th>
                 <th>{{ c().author }}</th>
                 <th class="align-right" style="width: 120px">{{ c().occurrences }}</th>
@@ -71,7 +71,6 @@
             <tbody>
               @for (report of reports()!.items; track report.id) {
                 <tr class="clickable-row" (click)="openReport(report.id)">
-                  <td class="report-code">{{ report.code }}</td>
                   <td>
                     <div class="report-title-cell">
                       <strong class="report-title-text">{{ report.title }}</strong>
@@ -80,6 +79,7 @@
                       }
                     </div>
                   </td>
+                  <td class="report-code">{{ report.code }}</td>
                   <td class="align-center">
                     <app-status-badge
                       [label]="report.status === 'PUBLISHED' ? c().published : c().draft"
@@ -125,10 +125,12 @@
     </app-list-panel>
   } @else {
     <header class="workspace-header">
-      <div class="workspace-identity">
+      <div class="workspace-toolbar">
         <button type="button" class="btn btn-ghost workspace-back" (click)="closeWorkspace()">
           <ui-icon name="arrow-left" />{{ c().back }}
         </button>
+      </div>
+      <div class="workspace-summary">
         <div class="workspace-title">
           <div class="workspace-title-meta">
             <span class="report-code">{{ active()!.code }}</span>
@@ -139,40 +141,24 @@
           </div>
           <h1 class="page-title" id="reports-title">{{ active()!.title }}</h1>
         </div>
-      </div>
-      <div class="header-actions">
-        <div class="autosave-status" aria-live="polite">
-          @if (saveStatus() === 'saving' || saving()) {
-            <span class="save-badge saving">
-              <span class="pulse-dot"></span>
-              {{ c().saving }}
-            </span>
-          } @else if (saveStatus() === 'saved' && lastSavedTime()) {
-            <span class="save-badge saved">
-              <ui-icon name="check" />
-              {{ c().savedAt }} {{ lastSavedTime() }}
-            </span>
-          } @else if (saveStatus() === 'error') {
-            <button
-              type="button"
-              class="save-badge error-btn"
-              (click)="saveDraft()"
-              [title]="workspaceError() || c().genericError"
-            >
-              <ui-icon name="x" />
-              {{ c().retrySave }}
-            </button>
-          }
+        <div class="header-actions">
+          <button type="button" class="btn btn-secondary" (click)="previewOpen.set(true)">
+            <ui-icon name="eye" />{{ c().preview }}
+          </button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            (click)="publish()"
+            [disabled]="
+              saving() ||
+              (active()!.report_kind === 'PERIOD_CLOSE'
+                ? !periodPreview()?.readiness?.ready
+                : !preview()?.items?.length)
+            "
+          >
+            {{ c().publish }}
+          </button>
         </div>
-
-        <button
-          type="button"
-          class="btn btn-primary"
-          (click)="publish()"
-          [disabled]="saving() || !preview()?.items?.length"
-        >
-          {{ c().publish }}
-        </button>
       </div>
     </header>
 
@@ -182,242 +168,649 @@
 
     <div class="workspace-grid">
       <div class="editor-column">
-        <section class="editor-section" aria-labelledby="draft-heading">
-          <h2 id="draft-heading">{{ c().draft }}</h2>
-          <label class="field"
-            ><span>{{ c().reportTitle }}</span
-            ><input
-              [ngModel]="draftTitle()"
-              (ngModelChange)="onTitleChange($event)"
-              (blur)="saveDraft()"
-              maxlength="240"
-          /></label>
-          <label class="field"
-            ><span>{{ c().description }}</span
-            ><textarea
-              [ngModel]="draftDescription()"
-              (ngModelChange)="onDescriptionChange($event)"
-              (blur)="saveDraft()"
-              maxlength="10000"
-              rows="3"
-            ></textarea>
-          </label>
-        </section>
-
-        <section class="editor-section" aria-labelledby="sources-heading">
+        <section class="editor-section draft-section" aria-labelledby="draft-heading">
           <div class="section-heading">
             <div>
-              <h2 id="sources-heading">{{ c().sources }}</h2>
-              <span class="section-subtitle"
-                >{{ active()!.occurrence_source_ids.length + active()!.report_source_ids.length }}
-                {{ c().selected }}</span
-              >
+              <h2 id="draft-heading">{{ c().draft }}</h2>
+              <span class="section-subtitle">Informações que identificam este relatório.</span>
             </div>
           </div>
-
-          <div class="sources-panel-grid">
-            <!-- Bloco 1: Ocorrências Diretas -->
-            <div class="source-group-card">
-              <div class="source-group-header">
-                <div class="source-group-title-wrap">
-                  <h3>{{ c().occurrenceSource }}</h3>
-                  <span class="source-count-badge">{{
-                    active()!.occurrence_source_ids.length
-                  }}</span>
-                </div>
-                <button
-                  type="button"
-                  class="btn btn-secondary btn-sm"
-                  (click)="openDrawer('occurrence')"
-                >
-                  <ui-icon name="plus" />{{ c().addOccurrences }}
-                </button>
-              </div>
-
-              @if (active()!.occurrence_source_ids.length) {
-                <div class="source-chip-list">
-                  @for (id of active()!.occurrence_source_ids; track id) {
-                    <span class="source-chip">
-                      <span>{{ id.slice(0, 8) }}</span>
-                      <button
-                        type="button"
-                        (click)="removeSource('occurrence', id)"
-                        [attr.aria-label]="c().remove + ' ' + id"
-                      >
-                        <ui-icon name="x" />
-                      </button>
-                    </span>
-                  }
-                </div>
-              } @else {
-                <div class="source-empty-hint">
-                  <p>{{ c().noOccurrencesSelected }}</p>
-                </div>
-              }
-            </div>
-
-            <!-- Bloco 2: Relatórios Fonte (Herança) -->
-            <div class="source-group-card">
-              <div class="source-group-header">
-                <div class="source-group-title-wrap">
-                  <h3>{{ c().reportSource }}</h3>
-                  <span class="source-count-badge">{{ active()!.report_source_ids.length }}</span>
-                </div>
-                <button
-                  type="button"
-                  class="btn btn-secondary btn-sm"
-                  (click)="openDrawer('report')"
-                >
-                  <ui-icon name="plus" />{{ c().addReports }}
-                </button>
-              </div>
-
-              @if (active()!.report_source_ids.length) {
-                <div class="source-chip-list">
-                  @for (id of active()!.report_source_ids; track id) {
-                    <span class="source-chip">
-                      <span>{{ id.slice(0, 8) }}</span>
-                      <button
-                        type="button"
-                        (click)="removeSource('report', id)"
-                        [attr.aria-label]="c().remove + ' ' + id"
-                      >
-                        <ui-icon name="x" />
-                      </button>
-                    </span>
-                  }
-                </div>
-              } @else {
-                <div class="source-empty-hint">
-                  <p>{{ c().noReportsSelected }}</p>
-                </div>
-              }
-            </div>
+          <div class="draft-fields">
+            <label class="field"
+              ><span>{{ c().reportTitle }}</span
+              ><input
+                [ngModel]="draftTitle()"
+                (ngModelChange)="onTitleChange($event)"
+                (blur)="saveDraft()"
+                maxlength="240"
+            /></label>
+            <label class="field"
+              ><span>{{ c().description }}</span
+              ><textarea
+                [ngModel]="draftDescription()"
+                (ngModelChange)="onDescriptionChange($event)"
+                (blur)="saveDraft()"
+                maxlength="10000"
+                rows="3"
+              ></textarea>
+            </label>
           </div>
         </section>
 
-        <section class="editor-section" aria-labelledby="history-heading">
-          <h2 id="history-heading">{{ c().history }}</h2>
+        @if (active()!.report_kind === 'DOSSIER') {
+          <section class="editor-section sources-section" aria-labelledby="sources-heading">
+            <div class="section-heading">
+              <div>
+                <h2 id="sources-heading">{{ c().sources }}</h2>
+                <span class="section-subtitle"
+                  >{{ active()!.occurrence_source_ids.length + active()!.report_source_ids.length }}
+                  {{ c().selected }}</span
+                >
+              </div>
+            </div>
+
+            <div class="sources-panel-grid">
+              <!-- Bloco 1: Ocorrências Diretas -->
+              <div class="source-group-card">
+                <div class="source-group-header">
+                  <div class="source-group-title-wrap">
+                    <h3>{{ c().occurrenceSource }}</h3>
+                    <span class="source-count-badge">{{
+                      active()!.occurrence_source_ids.length
+                    }}</span>
+                  </div>
+                  <button
+                    type="button"
+                    class="btn btn-secondary btn-sm"
+                    (click)="openDrawer('occurrence')"
+                  >
+                    <ui-icon name="plus" />{{ c().addOccurrences }}
+                  </button>
+                </div>
+
+                @if (active()!.occurrence_source_ids.length) {
+                  <div class="source-chip-list">
+                    @for (id of active()!.occurrence_source_ids; track id) {
+                      <span class="source-chip">
+                        <span>{{ id.slice(0, 8) }}</span>
+                        <button
+                          type="button"
+                          (click)="removeSource('occurrence', id)"
+                          [attr.aria-label]="c().remove + ' ' + id"
+                        >
+                          <ui-icon name="x" />
+                        </button>
+                      </span>
+                    }
+                  </div>
+                } @else {
+                  <div class="source-empty-hint">
+                    <p>{{ c().noOccurrencesSelected }}</p>
+                  </div>
+                }
+              </div>
+
+              <!-- Bloco 2: Relatórios Fonte (Herança) -->
+              <div class="source-group-card">
+                <div class="source-group-header">
+                  <div class="source-group-title-wrap">
+                    <h3>{{ c().reportSource }}</h3>
+                    <span class="source-count-badge">{{ active()!.report_source_ids.length }}</span>
+                  </div>
+                  <button
+                    type="button"
+                    class="btn btn-secondary btn-sm"
+                    (click)="openDrawer('report')"
+                  >
+                    <ui-icon name="plus" />{{ c().addReports }}
+                  </button>
+                </div>
+
+                @if (active()!.report_source_ids.length) {
+                  <div class="source-chip-list">
+                    @for (id of active()!.report_source_ids; track id) {
+                      <span class="source-chip">
+                        <span>{{ id.slice(0, 8) }}</span>
+                        <button
+                          type="button"
+                          (click)="removeSource('report', id)"
+                          [attr.aria-label]="c().remove + ' ' + id"
+                        >
+                          <ui-icon name="x" />
+                        </button>
+                      </span>
+                    }
+                  </div>
+                } @else {
+                  <div class="source-empty-hint">
+                    <p>{{ c().noReportsSelected }}</p>
+                  </div>
+                }
+              </div>
+            </div>
+          </section>
+        } @else {
+          <section class="editor-section" aria-labelledby="period-scope-heading">
+            <div class="section-heading">
+              <div>
+                <h2 id="period-scope-heading">Escopo do fechamento</h2>
+                <span class="section-subtitle"
+                  >O recorte financeiro é calculado a partir destes dados.</span
+                >
+              </div>
+              <button
+                type="button"
+                class="btn btn-secondary btn-sm"
+                (click)="saveScope()"
+                [disabled]="saving()"
+              >
+                Salvar escopo
+              </button>
+            </div>
+            @if (scopeDraft(); as scope) {
+              <div class="sources-panel-grid">
+                <label class="field"
+                  ><span>Início</span
+                  ><input
+                    type="date"
+                    [ngModel]="scope.period_from"
+                    (ngModelChange)="setScopeField('period_from', $event)"
+                /></label>
+                <label class="field"
+                  ><span>Fim</span
+                  ><input
+                    type="date"
+                    [ngModel]="scope.period_to"
+                    (ngModelChange)="setScopeField('period_to', $event)"
+                /></label>
+                <label class="field"
+                  ><span>Moeda</span
+                  ><select
+                    [ngModel]="scope.currency"
+                    (ngModelChange)="setScopeField('currency', $event)"
+                  >
+                    <option value="USD">USD</option>
+                    <option value="BRL">BRL</option>
+                  </select></label
+                >
+                <label class="field"
+                  ><span>Comparação</span
+                  ><select
+                    [ngModel]="scope.comparison_mode"
+                    (ngModelChange)="setScopeField('comparison_mode', $event)"
+                  >
+                    <option value="NONE">Sem comparação</option>
+                    <option value="PREVIOUS_YEAR">Ano anterior</option>
+                    <option value="CUSTOM">Período personalizado</option>
+                  </select></label
+                >
+                @if (scope.comparison_mode === 'CUSTOM') {
+                  <label class="field"
+                    ><span>Início comparativo</span
+                    ><input
+                      type="date"
+                      [ngModel]="scope.comparison_from"
+                      (ngModelChange)="setScopeField('comparison_from', $event)"
+                  /></label>
+                  <label class="field"
+                    ><span>Fim comparativo</span
+                    ><input
+                      type="date"
+                      [ngModel]="scope.comparison_to"
+                      (ngModelChange)="setScopeField('comparison_to', $event)"
+                  /></label>
+                }
+              </div>
+              <label
+                ><input
+                  type="checkbox"
+                  [checked]="scope.is_provisional"
+                  (change)="setScopeField('is_provisional', $any($event.target).checked)"
+                />
+                Permitir emissão provisória quando a cobertura da fonte estiver incompleta</label
+              >
+            }
+          </section>
+
+          <section
+            class="editor-section period-detail-section"
+            aria-labelledby="period-sections-heading"
+          >
+            <h2 id="period-sections-heading">Conteúdo da apresentação</h2>
+            <div class="presentation-section-list">
+              @for (section of active()!.sections; track section.id) {
+                <div class="presentation-section-row" [class.is-disabled]="!section.enabled">
+                  <label class="presentation-section-toggle">
+                    <input
+                      type="checkbox"
+                      [checked]="section.enabled"
+                      (change)="toggleSection(section.id, $any($event.target).checked)"
+                    />
+                    <span class="sr-only">Incluir {{ section.title }} na apresentação</span>
+                  </label>
+                  <span class="section-editor-row">
+                    <input
+                      [value]="section.title"
+                      aria-label="Título da seção"
+                      (change)="updateSectionTitle(section.id, $any($event.target).value)"
+                    />
+                    <small>{{ section.kind }}</small>
+                  </span>
+                  <span class="section-order-actions">
+                    <button
+                      type="button"
+                      class="btn btn-ghost btn-xs"
+                      (click)="moveSection(section.id, -1)"
+                      aria-label="Mover seção para cima"
+                    >
+                      <ui-icon name="arrow-up" />
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-ghost btn-xs"
+                      (click)="moveSection(section.id, 1)"
+                      aria-label="Mover seção para baixo"
+                    >
+                      <ui-icon name="arrow-down" />
+                    </button>
+                  </span>
+                </div>
+              }
+            </div>
+          </section>
+
+          <section
+            class="editor-section period-detail-section"
+            aria-labelledby="period-actions-heading"
+          >
+            <div class="section-heading">
+              <div>
+                <h2 id="period-actions-heading">Ações existentes</h2>
+                <span class="section-subtitle"
+                  >O conteúdo é copiado para cada revisão publicada.</span
+                >
+              </div>
+              <input
+                type="search"
+                placeholder="Buscar ação"
+                [ngModel]="actionSearch()"
+                (ngModelChange)="
+                  actionSearch.set($event); actionPage.set(1); loadActionCandidates()
+                "
+              />
+            </div>
+            @if (!eligibleActions().length) {
+              <p class="muted">Nenhuma ação disponível para esta fábrica.</p>
+            }
+            <div class="action-source-list">
+              @for (action of eligibleActions(); track action.id) {
+                <div
+                  class="action-source-row"
+                  [class.is-selected]="active()!.action_source_ids.includes(action.id)"
+                >
+                  <label class="action-source-toggle">
+                    <input
+                      type="checkbox"
+                      [checked]="active()!.action_source_ids.includes(action.id)"
+                      (change)="toggleAction(action.id, $any($event.target).checked)"
+                    />
+                    <span class="sr-only">Incluir ação {{ action.code }} na apresentação</span>
+                  </label>
+                  <span class="action-source-details">
+                    <strong class="action-source-title">{{ action.title }}</strong>
+                    <small class="action-source-code">{{ action.code }}</small>
+                  </span>
+                  <span class="action-source-meta">
+                    <span>{{ action.status }}</span>
+                    <span>{{ action.priority }}</span>
+                  </span>
+                </div>
+              }
+            </div>
+            @if (actionCandidates(); as actionPageResult) {
+              <app-list-pagination
+                [page]="actionPageResult.page"
+                [totalPages]="actionPageResult.total_pages"
+                [pageSize]="candidatePageSize"
+                [pageSizes]="[candidatePageSize]"
+                (previous)="previousActionPage()"
+                (next)="nextActionPage()"
+              />
+            }
+          </section>
+
+          <section
+            class="editor-section period-detail-section"
+            aria-labelledby="period-evidence-heading"
+          >
+            <div class="section-heading">
+              <div>
+                <h2 id="period-evidence-heading">Evidências</h2>
+                <span class="section-subtitle"
+                  >Imagens das revisões são preservadas na publicação.</span
+                >
+              </div>
+              <input
+                type="search"
+                placeholder="Buscar evidência"
+                [ngModel]="evidenceSearch()"
+                (ngModelChange)="
+                  evidenceSearch.set($event); evidencePage.set(1); loadEvidenceCandidates()
+                "
+              />
+            </div>
+            @if (!eligibleEvidence().length) {
+              <p class="muted">Nenhuma imagem revisada disponível no recorte.</p>
+            }
+            <div class="preview-list">
+              @for (evidence of eligibleEvidence(); track evidence.id) {
+                <label class="version-row">
+                  <input
+                    type="checkbox"
+                    [checked]="isEvidenceSelected(evidence.id)"
+                    (change)="toggleEvidence(evidence, $any($event.target).checked)"
+                  />
+                  <span
+                    ><strong>{{ evidence.item_code || evidence.review_title }}</strong
+                    ><br /><small
+                      >{{ evidence.filename }} · {{ evidence.transaction_date }}</small
+                    ></span
+                  >
+                </label>
+              }
+            </div>
+            @if (evidenceCandidates(); as evidencePageResult) {
+              <app-list-pagination
+                [page]="evidencePageResult.page"
+                [totalPages]="evidencePageResult.total_pages"
+                [pageSize]="candidatePageSize"
+                [pageSizes]="[candidatePageSize]"
+                (previous)="previousEvidencePage()"
+                (next)="nextEvidencePage()"
+              />
+            }
+            @if (active()!.evidence_sources.length) {
+              <div
+                class="selected-evidence-list"
+                aria-label="Metadados das evidências selecionadas"
+              >
+                <h3>Evidências selecionadas</h3>
+                @for (source of active()!.evidence_sources; track source.id) {
+                  <div class="selected-evidence-row">
+                    <input
+                      [value]="source.caption"
+                      aria-label="Legenda da evidência"
+                      (change)="
+                        updateEvidenceMetadata(source.id, 'caption', $any($event.target).value)
+                      "
+                    />
+                    <select
+                      [value]="source.role"
+                      aria-label="Papel da evidência"
+                      (change)="
+                        updateEvidenceMetadata(source.id, 'role', $any($event.target).value)
+                      "
+                    >
+                      <option value="CONTEXT">Contexto</option>
+                      <option value="BEFORE">Antes</option>
+                      <option value="AFTER">Depois</option>
+                      <option value="IMPLEMENTATION">Implementação</option>
+                      <option value="MEASUREMENT">Medição</option>
+                    </select>
+                    <input
+                      type="date"
+                      [value]="source.captured_at || ''"
+                      aria-label="Data de captura"
+                      (change)="
+                        updateEvidenceMetadata(source.id, 'captured_at', $any($event.target).value)
+                      "
+                    />
+                  </div>
+                }
+              </div>
+            }
+          </section>
+        }
+
+        <section class="editor-section history-section" aria-labelledby="history-heading">
+          <div class="section-heading history-heading">
+            <div>
+              <h2 id="history-heading">{{ c().history }}</h2>
+            </div>
+          </div>
           @if (!exportsAvailable()) {
             <p role="status">{{ workflows().unavailable }}</p>
           }
-          <fieldset class="export-options">
-            <legend>{{ c().export }}</legend>
-            <label
-              ><input
-                type="checkbox"
-                [checked]="options().include_money"
-                (change)="setOption('include_money', $any($event.target).checked)"
-              />{{ c().totalBrl }} / {{ c().totalUsd }}</label
-            >
-            <label
-              ><input
-                type="checkbox"
-                [checked]="options().include_summary"
-                (change)="setOption('include_summary', $any($event.target).checked)"
-              />{{ c().preview }} (PDF / PPTX / Markdown)</label
-            >
-            <label
-              ><input
-                type="checkbox"
-                [checked]="options().include_occurrences"
-                (change)="setOption('include_occurrences', $any($event.target).checked)"
-              />{{ c().occurrences }}</label
-            >
-            <label
-              ><input
-                type="checkbox"
-                [checked]="options().include_justifications"
-                (change)="setOption('include_justifications', $any($event.target).checked)"
-              />{{ c().description }}</label
-            >
-            <label
-              ><input
-                type="checkbox"
-                [checked]="options().include_evidence"
-                (change)="setOption('include_evidence', $any($event.target).checked)"
-              />{{ c().sources }}</label
-            >
-            <label
-              ><input
-                type="checkbox"
-                [checked]="options().notify_on_completion"
-                (change)="setOption('notify_on_completion', $any($event.target).checked)"
-              />{{ workflows().email }}: {{ c().download }}</label
-            >
-          </fieldset>
           @if (!versions().length) {
-            <p class="muted">—</p>
+            <div class="history-empty">
+              <strong>Nenhuma revisão publicada</strong>
+              <span>Publique a primeira revisão para liberar os formatos de exportação.</span>
+            </div>
           }
           @for (version of versions(); track version.id) {
             <article class="version-row">
               <div class="version-info">
-                <div class="version-badge-row">
-                  <span class="version-pill">Rev {{ version.revision }}</span>
-                  <span class="version-date">{{ formatDate(version.published_at) }}</span>
-                </div>
-                <span class="version-sha" [title]="version.sha256">
-                  SHA-256: {{ version.sha256.slice(0, 10) }}…
-                </span>
+                <strong class="version-title">{{ versionTitle(version) }}</strong>
+                <span class="version-pill">Revisão {{ version.revision }}</span>
+                <time class="version-date" [attr.datetime]="version.published_at">
+                  {{ formatDate(version.published_at) }}
+                </time>
               </div>
               <div class="export-actions" [attr.aria-label]="c().export">
-                <button
-                  class="btn btn-secondary btn-sm"
-                  (click)="viewVersion(version.report_id, version.revision)"
-                >
-                  {{ workflows().details }}
-                </button>
-                <button class="btn btn-secondary btn-sm" (click)="createPlan(version)">
-                  {{ workflows().newPlan }}
-                </button>
-                @for (format of ['CSV', 'PDF', 'PPTX', 'MARKDOWN']; track format) {
-                  @let exportJob = job(version.id, $any(format));
-                  @if (exportJob?.status === 'COMPLETED') {
-                    <button
-                      type="button"
-                      class="btn btn-primary btn-sm"
-                      (click)="download(exportJob!)"
-                    >
-                      <ui-icon name="check" />{{ c().download }} {{ format }}
-                    </button>
-                  } @else {
-                    <button
-                      type="button"
-                      class="btn btn-secondary btn-sm"
-                      (click)="export(version, $any(format))"
-                      [disabled]="
-                        !exportsAvailable() ||
-                        exportJob?.status === 'QUEUED' ||
-                        exportJob?.status === 'RUNNING'
-                      "
-                    >
+                @let selectedFormat = exportFormatFor(version.id);
+                @let exportJob = job(version.id, selectedFormat);
+                <div class="export-emission">
+                  <details class="export-specifications">
+                    <summary>Conteúdo</summary>
+                    <div class="export-specifications-list">
+                      @let exportOptions = exportOptionsFor(version.id);
+                      <label
+                        ><input
+                          type="checkbox"
+                          [checked]="exportOptions.include_money"
+                          (change)="
+                            setVersionExportOption(
+                              version.id,
+                              'include_money',
+                              $any($event.target).checked
+                            )
+                          "
+                        />{{ c().totalBrl }} / {{ c().totalUsd }}</label
+                      >
+                      <label
+                        ><input
+                          type="checkbox"
+                          [checked]="exportOptions.include_summary"
+                          (change)="
+                            setVersionExportOption(
+                              version.id,
+                              'include_summary',
+                              $any($event.target).checked
+                            )
+                          "
+                        />{{ c().preview }}</label
+                      >
+                      <label
+                        ><input
+                          type="checkbox"
+                          [checked]="exportOptions.include_occurrences"
+                          (change)="
+                            setVersionExportOption(
+                              version.id,
+                              'include_occurrences',
+                              $any($event.target).checked
+                            )
+                          "
+                        />{{ c().occurrences }}</label
+                      >
+                      <label
+                        ><input
+                          type="checkbox"
+                          [checked]="exportOptions.include_justifications"
+                          (change)="
+                            setVersionExportOption(
+                              version.id,
+                              'include_justifications',
+                              $any($event.target).checked
+                            )
+                          "
+                        />{{ c().description }}</label
+                      >
+                      <label
+                        ><input
+                          type="checkbox"
+                          [checked]="exportOptions.include_evidence"
+                          (change)="
+                            setVersionExportOption(
+                              version.id,
+                              'include_evidence',
+                              $any($event.target).checked
+                            )
+                          "
+                        />{{ c().sources }}</label
+                      >
+                      <label
+                        ><input
+                          type="checkbox"
+                          [checked]="exportOptions.notify_on_completion"
+                          (change)="
+                            setVersionExportOption(
+                              version.id,
+                              'notify_on_completion',
+                              $any($event.target).checked
+                            )
+                          "
+                        />Email</label
+                      >
+                    </div>
+                  </details>
+                  <app-list-filter-select
+                    [value]="selectedFormat"
+                    [options]="exportFormatOptions"
+                    label="Formato"
+                    layout="inline"
+                    menuWidth="content"
+                    menuPosition="up"
+                    ariaLabel="Selecionar formato de exportação"
+                    (changed)="setVersionExportFormat(version.id, $any($event))"
+                  />
+                  <button
+                    type="button"
+                    class="btn btn-primary btn-sm"
+                    (click)="emitVersionExport(version)"
+                    [title]="exportJob?.error_message || ''"
+                    [disabled]="
+                      !exportsAvailable() ||
+                      exportJob?.status === 'QUEUED' ||
+                      exportJob?.status === 'RUNNING'
+                    "
+                  >
+                    @if (exportJob?.status === 'COMPLETED') {
+                      <ui-icon name="check" />{{ c().download }} {{ selectedFormat }}
+                    } @else {
                       {{
                         exportJob?.status === 'QUEUED' || exportJob?.status === 'RUNNING'
                           ? c().preparing
-                          : format
+                          : exportJob?.status === 'FAILED'
+                            ? 'Tentar novamente'
+                            : 'Emitir ' + selectedFormat
                       }}
-                    </button>
-                  }
-                }
+                    }
+                  </button>
+                </div>
               </div>
             </article>
+          }
+          @if (versionsPage(); as versionsResult) {
+            <app-list-pagination
+              [page]="versionsResult.page"
+              [totalPages]="versionsResult.total_pages"
+              [pageSize]="candidatePageSize"
+              [pageSizes]="[candidatePageSize]"
+              (previous)="previousVersionPage()"
+              (next)="nextVersionPage()"
+            />
           }
         </section>
       </div>
 
-      <aside class="preview-column" aria-labelledby="preview-heading">
+      <aside class="preview-column" aria-labelledby="preview-inline-heading">
         <div class="preview-heading">
-          <h2 id="preview-heading">{{ c().preview }}</h2>
+          <h2 id="preview-inline-heading">{{ c().preview }}</h2>
           <button
             type="button"
             class="btn btn-ghost btn-sm"
-            (click)="refreshPreview()"
+            (click)="active()!.report_kind === 'PERIOD_CLOSE' ? loadAnalytics() : refreshPreview()"
             [disabled]="previewLoading()"
           >
             {{ c().refresh }}
           </button>
         </div>
-        @if (previewLoading()) {
+        @if (active()!.report_kind === 'PERIOD_CLOSE' && analytics(); as periodAnalytics) {
+          @if (periodPreview(); as closePreview) {
+            <div class="preview-conflicts" role="status">
+              <strong>{{
+                closePreview.readiness.ready ? 'Pronto para emissão' : 'Pendências para emissão'
+              }}</strong>
+              @for (
+                issue of closePreview.readiness.issues;
+                track issue.code + (issue.section_id || '')
+              ) {
+                <p>
+                  <b>{{ issue.severity === 'BLOCKER' ? 'Bloqueio' : 'Aviso' }}:</b>
+                  {{ issue.message }} {{ issue.suggested_action }}
+                </p>
+              }
+            </div>
+          }
+          <div class="metrics">
+            <div>
+              <span>{{ c().occurrences }}</span
+              ><strong>{{ periodAnalytics.occurrence_count }}</strong>
+            </div>
+            <div>
+              <span>{{ periodAnalytics.metric.currency }}</span
+              ><strong>{{
+                formatCurrency(periodAnalytics.total, periodAnalytics.metric.currency)
+              }}</strong>
+            </div>
+            <div>
+              <span>Meta</span
+              ><strong>{{
+                periodAnalytics.target
+                  ? formatCurrency(periodAnalytics.target, periodAnalytics.metric.currency)
+                  : 'Indisponível'
+              }}</strong>
+            </div>
+          </div>
+          <p class="muted">
+            Cobertura: {{ periodAnalytics.coverage.status }} ·
+            {{ periodAnalytics.coverage.complete_days }}/{{
+              periodAnalytics.coverage.expected_days
+            }}
+            dias completos
+          </p>
+          <div class="preview-list">
+            @for (item of periodAnalytics.monthly; track item.period) {
+              <article>
+                <div>
+                  <strong>{{ item.period }}</strong
+                  ><span>Fechamento mensal</span>
+                </div>
+                <div class="preview-meta">
+                  <span>{{ formatCurrency(item.total, periodAnalytics.metric.currency) }}</span>
+                </div>
+              </article>
+            }
+          </div>
+          @if (periodPreview(); as closePreview) {
+            <app-report-preview
+              [document]="closePreview.document"
+              [stale]="previewStale()"
+              [generatedAt]="formatDate(closePreview.generated_at)"
+            />
+          }
+        } @else if (previewLoading()) {
           <div class="loading-block">{{ c().loading }}</div>
         } @else if (!preview()?.items?.length) {
           <div class="preview-empty">
@@ -472,6 +865,173 @@
         }
       </aside>
     </div>
+
+    @if (previewOpen()) {
+      <div class="preview-backdrop" (click)="closePreview()">
+        <section
+          class="preview-dialog"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="preview-heading"
+          (click)="$event.stopPropagation()"
+        >
+          <div class="preview-dialog-header">
+            <div>
+              <span class="preview-dialog-kicker">{{ active()!.code }}</span>
+              <h2>{{ c().preview }}</h2>
+            </div>
+            <button
+              type="button"
+              class="btn btn-ghost btn-icon"
+              (click)="closePreview()"
+              [attr.aria-label]="c().close"
+            >
+              <ui-icon name="x" />
+            </button>
+          </div>
+          <div class="preview-dialog-body">
+            <aside class="preview-column" aria-labelledby="preview-heading">
+              <div class="preview-heading">
+                <h2 id="preview-heading">{{ c().preview }}</h2>
+                <button
+                  type="button"
+                  class="btn btn-ghost btn-sm"
+                  (click)="
+                    active()!.report_kind === 'PERIOD_CLOSE' ? loadAnalytics() : refreshPreview()
+                  "
+                  [disabled]="previewLoading()"
+                >
+                  {{ c().refresh }}
+                </button>
+              </div>
+              @if (active()!.report_kind === 'PERIOD_CLOSE' && analytics(); as periodAnalytics) {
+                @if (periodPreview(); as closePreview) {
+                  <div class="preview-conflicts" role="status">
+                    <strong>{{
+                      closePreview.readiness.ready
+                        ? 'Pronto para emissÃ£o'
+                        : 'PendÃªncias para emissÃ£o'
+                    }}</strong>
+                    @for (
+                      issue of closePreview.readiness.issues;
+                      track issue.code + (issue.section_id || '')
+                    ) {
+                      <p>
+                        <b>{{ issue.severity === 'BLOCKER' ? 'Bloqueio' : 'Aviso' }}:</b>
+                        {{ issue.message }} {{ issue.suggested_action }}
+                      </p>
+                    }
+                  </div>
+                }
+                <div class="metrics">
+                  <div>
+                    <span>{{ c().occurrences }}</span
+                    ><strong>{{ periodAnalytics.occurrence_count }}</strong>
+                  </div>
+                  <div>
+                    <span>{{ periodAnalytics.metric.currency }}</span
+                    ><strong>{{
+                      formatCurrency(periodAnalytics.total, periodAnalytics.metric.currency)
+                    }}</strong>
+                  </div>
+                  <div>
+                    <span>Meta</span
+                    ><strong>{{
+                      periodAnalytics.target
+                        ? formatCurrency(periodAnalytics.target, periodAnalytics.metric.currency)
+                        : 'IndisponÃ­vel'
+                    }}</strong>
+                  </div>
+                </div>
+                <p class="muted">
+                  Cobertura: {{ periodAnalytics.coverage.status }} Â·
+                  {{ periodAnalytics.coverage.complete_days }}/{{
+                    periodAnalytics.coverage.expected_days
+                  }}
+                  dias completos
+                </p>
+                <div class="preview-list">
+                  @for (item of periodAnalytics.monthly; track item.period) {
+                    <article>
+                      <div>
+                        <strong>{{ item.period }}</strong
+                        ><span>Fechamento mensal</span>
+                      </div>
+                      <div class="preview-meta">
+                        <span>{{
+                          formatCurrency(item.total, periodAnalytics.metric.currency)
+                        }}</span>
+                      </div>
+                    </article>
+                  }
+                </div>
+                @if (periodPreview(); as closePreview) {
+                  <app-report-preview
+                    [document]="closePreview.document"
+                    [stale]="previewStale()"
+                    [generatedAt]="formatDate(closePreview.generated_at)"
+                  />
+                }
+              } @else if (previewLoading()) {
+                <div class="loading-block">{{ c().loading }}</div>
+              } @else if (!preview()?.items?.length) {
+                <div class="preview-empty">
+                  <ui-icon name="folder" />
+                  <p>{{ c().noSources }}</p>
+                </div>
+              } @else {
+                <div class="metrics">
+                  <div>
+                    <span>{{ c().occurrences }}</span
+                    ><strong>{{ preview()!.metrics.occurrence_count }}</strong>
+                  </div>
+                  <div>
+                    <span>{{ c().totalBrl }}</span
+                    ><strong>{{
+                      formatCurrency(preview()!.metrics.issue_amount_brl, 'BRL')
+                    }}</strong>
+                  </div>
+                  <div>
+                    <span>{{ c().totalUsd }}</span
+                    ><strong>{{ formatCurrency(preview()!.metrics.amount_usd, 'USD') }}</strong>
+                  </div>
+                </div>
+                @if (preview()!.conflicts?.length) {
+                  <div class="preview-conflicts" role="status">
+                    <strong>{{ workflows().conflict }}</strong>
+                    @for (
+                      conflict of preview()!.conflicts!;
+                      track conflict.occurrence_id + conflict.source_version_id
+                    ) {
+                      <details>
+                        <summary>{{ workflows().details }} Â· {{ conflict.occurrence_id }}</summary>
+                        <p>{{ conflict.alternative.review_description }}</p>
+                      </details>
+                    }
+                  </div>
+                }
+                <div class="preview-list">
+                  @for (item of preview()!.items; track item.occurrence_id) {
+                    <article>
+                      <div>
+                        <strong>{{ item.item_code || 'â€”' }}</strong
+                        ><span>{{ item.item_description || item.review_title }}</span>
+                      </div>
+                      <div class="preview-meta">
+                        <span>{{ item.organization_code }}</span
+                        ><span>{{ formatCurrency(item.amount_usd, 'USD') }}</span
+                        ><span>{{ lineageCount(item.occurrence_id) }} {{ c().lineage }}</span>
+                      </div>
+                      <p>{{ item.review_description }}</p>
+                    </article>
+                  }
+                </div>
+              }
+            </aside>
+          </div>
+        </section>
+      </div>
+    }
   }
 </section>
 
@@ -516,6 +1076,37 @@
           rows="4"
         ></textarea>
       </label>
+      <label class="field"
+        ><span>Tipo</span
+        ><select
+          name="create-kind"
+          [ngModel]="createKind()"
+          (ngModelChange)="createKind.set($event)"
+        >
+          <option value="DOSSIER">Dossiê manual</option>
+          <option value="PERIOD_CLOSE">Fechamento por período</option>
+        </select></label
+      >
+      @if (createKind() === 'PERIOD_CLOSE') {
+        <label class="field"
+          ><span>Início do período</span
+          ><input
+            type="date"
+            name="create-period-from"
+            [ngModel]="createPeriodFrom()"
+            (ngModelChange)="createPeriodFrom.set($event)"
+            required
+        /></label>
+        <label class="field"
+          ><span>Fim do período</span
+          ><input
+            type="date"
+            name="create-period-to"
+            [ngModel]="createPeriodTo()"
+            (ngModelChange)="createPeriodTo.set($event)"
+            required
+        /></label>
+      }
       <div class="dialog-actions">
         <button type="button" class="btn btn-ghost" (click)="showCreate.set(false)">
           {{ c().cancel }}</button
@@ -663,6 +1254,26 @@
         }
       </div>
 
+      @if (drawerKind === 'occurrence' && occurrenceCandidates(); as occurrencePageResult) {
+        <app-list-pagination
+          [page]="occurrencePageResult.page"
+          [totalPages]="occurrencePageResult.total_pages"
+          [pageSize]="candidatePageSize"
+          [pageSizes]="[candidatePageSize]"
+          (previous)="previousOccurrencePage()"
+          (next)="nextOccurrencePage()"
+        />
+      } @else if (drawerKind === 'report' && sourceReportCandidates(); as sourcePageResult) {
+        <app-list-pagination
+          [page]="sourcePageResult.page"
+          [totalPages]="sourcePageResult.total_pages"
+          [pageSize]="candidatePageSize"
+          [pageSizes]="[candidatePageSize]"
+          (previous)="previousSourceReportPage()"
+          (next)="nextSourceReportPage()"
+        />
+      }
+
       <footer class="drawer-footer">
         <div class="drawer-selection-count">
           <strong>{{
@@ -701,36 +1312,64 @@
       <button class="btn btn-secondary" (click)="historical.set(null)">{{ c().close }}</button>
     </header>
     <div class="source-drawer-body">
-      <h3>{{ $any(version.content['report']).title }}</h3>
-      <p>{{ $any(version.content['report']).description }}</p>
-      <p>
-        {{ c().author }}: {{ $any(version.content['report']).author }} ·
-        {{ formatDate(version.published_at) }}
-      </p>
-      <p>
-        {{ c().occurrences }}: {{ version.content.metrics.occurrence_count }} ·
-        {{ formatCurrency(version.content.metrics.amount_usd, 'USD') }}
-      </p>
-      @for (item of version.items || []; track item.occurrence_id) {
-        <article>
-          <h3>{{ item.item_code }} · {{ item.item_description }}</h3>
-          <p>{{ item.review_title }}</p>
-          <p style="white-space: pre-wrap">{{ item.review_description }}</p>
-          <p>{{ item.reviewed_by_name }} · {{ $any(item).reviewed_at }}</p>
-          @for (evidence of $any(item).evidence || []; track evidence.id) {
-            <p>
-              <a [href]="evidence.download_url">{{ evidence.filename }}</a> · SHA256
-              {{ evidence.sha256 }}
-            </p>
-          }
-          <p>{{ item.occurrence_id }} · {{ item.transaction_id }}</p>
-        </article>
-      }
-      @for (conflict of $any(version.content['conflicts']) || []; track $index) {
-        <details>
-          <summary>{{ workflows().details }} · {{ conflict.occurrence_id }}</summary>
-          <p>{{ conflict.alternative.review_description }}</p>
-        </details>
+      @if (version.content_schema_version >= 2) {
+        <h3>{{ $any(version.content['document']).report.title }}</h3>
+        <p>{{ $any(version.content['document']).report.description }}</p>
+        <p>
+          {{ c().author }}: {{ $any(version.content['document']).report.author }} ·
+          {{ formatDate(version.published_at) }}
+        </p>
+        <p>
+          {{ c().occurrences }}:
+          {{ $any(version.content['document']).analytics.occurrence_count }} ·
+          {{
+            formatCurrency(
+              $any(version.content['document']).analytics.total,
+              $any(version.content['document']).analytics.metric.currency
+            )
+          }}
+        </p>
+        @for (section of $any(version.content['document']).sections || []; track section.id) {
+          <article>
+            <h3>{{ section.title }}</h3>
+            <p>{{ section.kind }}</p>
+          </article>
+        }
+        @if (version.content.document; as historicalDocument) {
+          <app-report-preview [document]="historicalDocument" />
+        }
+      } @else {
+        <h3>{{ $any(version.content['report']).title }}</h3>
+        <p>{{ $any(version.content['report']).description }}</p>
+        <p>
+          {{ c().author }}: {{ $any(version.content['report']).author }} ·
+          {{ formatDate(version.published_at) }}
+        </p>
+        <p>
+          {{ c().occurrences }}: {{ $any(version.content.metrics).occurrence_count }} ·
+          {{ formatCurrency($any(version.content.metrics).amount_usd, 'USD') }}
+        </p>
+        @for (item of version.items || []; track item.occurrence_id) {
+          <article>
+            <h3>{{ item.item_code }} · {{ item.item_description }}</h3>
+            <p>{{ item.review_title }}</p>
+            <p style="white-space: pre-wrap">{{ item.review_description }}</p>
+            <p>{{ item.reviewed_by_name }} · {{ $any(item).reviewed_at }}</p>
+            @for (evidence of $any(item).evidence || []; track evidence.id) {
+              <p>
+                <a [href]="evidence.download_url">{{ evidence.filename }}</a> · SHA256
+                {{ evidence.sha256 }}
+              </p>
+            }
+            <p>{{ item.occurrence_id }} · {{ item.transaction_id }}</p>
+          </article>
+        }
+        @for (conflict of $any(version.content['conflicts']) || []; track $index) {
+          <details>
+            <summary>{{ workflows().details }} · {{ conflict.occurrence_id }}</summary>
+            <p>{{ conflict.alternative.review_description }}</p>
+          </details>
+        }
       }
     </div>
   </aside>

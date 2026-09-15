@@ -2,7 +2,6 @@ import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { AuthService } from '../../core/auth/auth.service';
 import { LanguageService } from '../../i18n/language.service';
 import { ListFilterDateRange } from '../../shared/list-filters/list-filter-date-range';
 import { ListFilterPopover } from '../../shared/list-filters/list-filter-popover';
@@ -40,7 +39,6 @@ import { GovernanceService } from '../governance.service';
 export class Alerts {
   private readonly api = inject(GovernanceService);
   private readonly destroy = inject(DestroyRef);
-  readonly auth = inject(AuthService);
   readonly language = inject(LanguageService);
   readonly c = computed(() => workflowCopy[this.language.currentLanguage()]);
   readonly page = signal<WorkflowPage<AlertItem> | null>(null);

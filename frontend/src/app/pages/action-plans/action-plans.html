@@ -1,4 +1,13 @@
 <section class="action-plans-page list-page page-stack" aria-labelledby="action-plans-title">
+  @if (plan()) {
+    <div class="plan-back-row">
+      <button type="button" class="btn btn-ghost" (click)="back()">
+        <ui-icon name="arrow-left" />
+        {{ c().back }}
+      </button>
+    </div>
+  }
+
   <!-- Header da Página -->
   <header class="action-plans-header">
     <div>
@@ -13,10 +22,6 @@
     </div>
     <div class="header-actions">
       @if (plan()) {
-        <button type="button" class="btn btn-secondary" (click)="back()">
-          <ui-icon name="arrow-left" />
-          {{ c().back }}
-        </button>
         <button type="button" class="btn btn-secondary" (click)="editPlan()">
           <ui-icon name="pencil" />
           Editar plano
@@ -47,24 +52,54 @@
     <app-inline-alert [message]="error()" />
   }
 
-  <!-- MODO DETALHES DO PLANO: Chips de Relatórios Vinculados -->
-  @if (plan() && plan()!.reports.length) {
-    <div class="linked-reports-panel">
-      <span class="panel-section-title">
-        <ui-icon name="folder" />
-        Relatórios Vinculados:
-      </span>
-      <div class="reports-chips-list">
-        @for (report of plan()!.reports; track report.id) {
-          <a
-            [routerLink]="['/relatorios', report.report_id]"
-            [queryParams]="{ revision: report.revision }"
-            class="report-chip-link"
-          >
-            <strong>{{ report.title }}</strong>
-            <span class="rev-badge">Rev {{ report.revision }}</span>
-          </a>
-        }
+  @if (plan()) {
+    <div class="board-context-bar">
+      @if (plan()!.reports.length) {
+        <div class="linked-reports-panel">
+          <span class="panel-section-title">
+            <ui-icon name="folder" />
+            Relatórios Vinculados:
+          </span>
+          <div class="reports-chips-list">
+            @for (report of plan()!.reports; track report.id) {
+              <a
+                [routerLink]="['/relatorios', report.report_id]"
+                [queryParams]="{ revision: report.revision }"
+                class="report-chip-link"
+              >
+                <strong>{{ report.title }}</strong>
+                <span class="rev-badge">Rev {{ report.revision }}</span>
+              </a>
+            }
+          </div>
+        </div>
+      }
+      <div class="kanban-toolbar">
+        <app-list-filter-popover
+          [(open)]="boardFilterOpen"
+          [activeCount]="boardActiveFiltersCount()"
+          triggerLabel="Filtros"
+          title="Filtrar tarefas"
+          clearLabel="Limpar filtros"
+          applyLabel="Aplicar filtros"
+          (cleared)="clearBoardFilters()"
+          (applied)="loadBoard()"
+        >
+          <app-list-filter-input
+            [value]="search"
+            [label]="c().search"
+            placeholder="Filtrar tarefas..."
+            type="search"
+            (changed)="search = $event"
+          />
+          <app-list-filter-select
+            [value]="priority"
+            [options]="priorityOptions()"
+            [label]="c().priority"
+            [ariaLabel]="c().priority"
+            (changed)="priority = $event"
+          />
+        </app-list-filter-popover>
       </div>
     </div>
   }
@@ -167,44 +202,10 @@
 
   <!-- MODO DETALHES DO PLANO: Kanban Board -->
   @if (plan()) {
-    <div class="kanban-toolbar">
-      <app-list-filter-popover
-        [(open)]="boardFilterOpen"
-        [activeCount]="boardActiveFiltersCount()"
-        triggerLabel="Filtros"
-        title="Filtrar tarefas"
-        clearLabel="Limpar filtros"
-        applyLabel="Aplicar filtros"
-        (cleared)="clearBoardFilters()"
-        (applied)="loadBoard()"
-      >
-        <app-list-filter-input
-          [value]="search"
-          [label]="c().search"
-          placeholder="Filtrar tarefas..."
-          type="search"
-          (changed)="search = $event"
-        />
-        <app-list-filter-select
-          [value]="priority"
-          [options]="priorityOptions()"
-          [label]="c().priority"
-          [ariaLabel]="c().priority"
-          (changed)="priority = $event"
-        />
-      </app-list-filter-popover>
-    </div>
-
     <!-- Colunas Kanban -->
     <div class="kanban-board" cdkDropListGroup>
       @for (state of states; track state) {
-        <section
-          class="kanban-column"
-          cdkDropList
-          [cdkDropListData]="columns()[state]?.items || []"
-          (cdkDropListDropped)="drop($event, state)"
-          [cdkDropListDisabled]="busy() || state === 'COMPLETED'"
-        >
+        <section class="kanban-column">
           <header class="column-header">
             <div class="column-title-group">
               <h3>{{ stateLabel(state) }}</h3>
@@ -212,63 +213,71 @@
             </div>
           </header>
 
-          <div class="tasks-container">
-            @for (taskItem of columns()[state]?.items || []; track taskItem.id) {
-              <article
-                class="task-card"
-                cdkDrag
-                [cdkDragData]="taskItem"
-                [cdkDragDisabled]="taskItem.status === 'COMPLETED' || busy()"
-                (click)="openTask(taskItem.id)"
-              >
-                <div class="task-card-header">
-                  <app-status-badge
-                    [label]="taskItem.priority"
-                    [tone]="getPriorityTone(taskItem.priority)"
-                  />
-                  @if (overdue(taskItem)) {
-                    <span class="overdue-chip">{{ c().overdue }}</span>
-                  }
-                </div>
-
-                <strong class="task-card-title">{{ taskItem.title }}</strong>
-
-                @if (taskItem.blocked_reason) {
-                  <div class="blocked-callout">
-                    <ui-icon name="x" />
-                    <span>{{ taskItem.blocked_reason }}</span>
-                  </div>
-                }
-
-                <div class="task-card-footer">
-                  @if (taskItem.due_at) {
-                    <span class="task-due-date">
-                      <ui-icon name="clock" />
-                      {{ taskItem.due_at.slice(0, 10) }}
-                    </span>
-                  }
-                  <div class="task-avatars-group">
-                    @for (person of taskItem.participants; track person.id) {
-                      <span class="avatar-badge" [title]="person.name">
-                        {{ person.name.slice(0, 2).toUpperCase() }}
-                      </span>
+          <div
+            class="tasks-container"
+            cdkDropList
+            [cdkDropListData]="columns()[state]?.items || []"
+            (cdkDropListDropped)="drop($event, state)"
+            [cdkDropListDisabled]="busy() || state === 'COMPLETED'"
+          >
+            @if ((columns()[state]?.items || []).length) {
+              @for (taskItem of columns()[state]?.items || []; track taskItem.id) {
+                <article
+                  class="task-card"
+                  cdkDrag
+                  [cdkDragData]="taskItem"
+                  [cdkDragDisabled]="taskItem.status === 'COMPLETED' || busy()"
+                  (click)="openTask(taskItem.id)"
+                >
+                  <div class="task-card-header">
+                    <app-status-badge
+                      [label]="taskItem.priority"
+                      [tone]="getPriorityTone(taskItem.priority)"
+                    />
+                    @if (overdue(taskItem)) {
+                      <span class="overdue-chip">{{ c().overdue }}</span>
                     }
                   </div>
-                </div>
 
-                @if (taskItem.status === 'UNDER_VERIFICATION') {
-                  <button
-                    type="button"
-                    class="btn btn-primary btn-xs validate-btn"
-                    (click)="$event.stopPropagation(); command(taskItem, 'validate')"
-                    [disabled]="busy() || !!taskItem.blocked_reason"
-                  >
-                    <ui-icon name="check" />
-                    {{ c().validate }}
-                  </button>
-                }
-              </article>
-            } @empty {
+                  <strong class="task-card-title">{{ taskItem.title }}</strong>
+
+                  @if (taskItem.blocked_reason) {
+                    <div class="blocked-callout">
+                      <ui-icon name="x" />
+                      <span>{{ taskItem.blocked_reason }}</span>
+                    </div>
+                  }
+
+                  <div class="task-card-footer">
+                    @if (taskItem.due_at) {
+                      <span class="task-due-date">
+                        <ui-icon name="clock" />
+                        {{ taskItem.due_at.slice(0, 10) }}
+                      </span>
+                    }
+                    <div class="task-avatars-group">
+                      @for (person of taskItem.participants; track person.id) {
+                        <span class="avatar-badge" [title]="person.name">
+                          {{ person.name.slice(0, 2).toUpperCase() }}
+                        </span>
+                      }
+                    </div>
+                  </div>
+
+                  @if (taskItem.status === 'UNDER_VERIFICATION') {
+                    <button
+                      type="button"
+                      class="btn btn-primary btn-xs validate-btn"
+                      (click)="$event.stopPropagation(); command(taskItem, 'validate')"
+                      [disabled]="busy() || !!taskItem.blocked_reason"
+                    >
+                      <ui-icon name="check" />
+                      {{ c().validate }}
+                    </button>
+                  }
+                </article>
+              }
+            } @else {
               <div class="empty-column-slot">
                 <span>Nenhuma tarefa</span>
               </div>
@@ -429,18 +438,31 @@
           </label>
 
           <div class="form-row">
+            <app-list-filter-date-range
+              [(from)]="due"
+              [fromLabel]="c().due"
+              toLabel=""
+              [single]="true"
+              popupPosition="down"
+              [locale]="
+                language.currentLanguage() === 'pt'
+                  ? 'pt-BR'
+                  : language.currentLanguage() === 'ko'
+                    ? 'ko-KR'
+                    : 'en-US'
+              "
+              clearLabel="Limpar"
+              todayLabel="Hoje"
+            />
             <label class="form-field">
               <span class="field-label">{{ c().priority }}</span>
-              <select class="form-select" [(ngModel)]="taskPriority" name="priority">
-                <option value="LOW">{{ c().low }}</option>
-                <option value="MEDIUM">{{ c().medium }}</option>
-                <option value="HIGH">{{ c().high }}</option>
-                <option value="URGENT">{{ c().urgent }}</option>
-              </select>
-            </label>
-            <label class="form-field">
-              <span class="field-label">{{ c().due }}</span>
-              <input type="date" class="form-input" [(ngModel)]="due" name="due" />
+              <app-list-filter-select
+                [value]="taskPriority"
+                [options]="taskPriorityOptions()"
+                [showLabel]="false"
+                [ariaLabel]="c().priority"
+                (changed)="taskPriority = $any($event)"
+              />
             </label>
           </div>
 

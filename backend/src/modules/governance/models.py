@@ -59,6 +59,121 @@ class ProductionLine(GovernanceEntity):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
 
+class LineSourceMapping(GovernanceEntity):
+    """A time-bounded translation from an ERP dimension to a production line."""
+
+    __tablename__ = "gov_line_source_mappings"
+    __table_args__ = (
+        UniqueConstraint(
+            "factory_id",
+            "source_system",
+            "organization_code",
+            "receipt_department",
+            "valid_from",
+            name="uq_gov_line_source_mapping_start",
+        ),
+        CheckConstraint("valid_to IS NULL OR valid_to > valid_from", name="ck_gov_line_source_mapping_dates"),
+        CheckConstraint("version > 0", name="ck_gov_line_source_mapping_version"),
+        Index(
+            "ix_gov_line_source_mapping_resolve",
+            "factory_id",
+            "source_system",
+            "organization_code",
+            "receipt_department",
+            "valid_from",
+        ),
+    )
+    factory_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gov_factories.id", ondelete="RESTRICT"))
+    line_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gov_production_lines.id", ondelete="RESTRICT"))
+    source_system: Mapped[str] = mapped_column(String(60))
+    organization_code: Mapped[str] = mapped_column(String(80))
+    receipt_department: Mapped[str] = mapped_column(String(120))
+    valid_from: Mapped[date] = mapped_column(Date)
+    valid_to: Mapped[date | None] = mapped_column(Date, default=None)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    author_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT"), default=None)
+
+
+class SourceCoverage(GovernanceEntity):
+    """Append-only evidence that a source was complete, partial, or unknown."""
+
+    __tablename__ = "gov_source_coverage"
+    __table_args__ = (
+        UniqueConstraint(
+            "factory_id",
+            "source_system",
+            "scope_key",
+            "business_date",
+            "revision",
+            name="uq_gov_source_coverage_revision",
+        ),
+        CheckConstraint("status IN ('COMPLETE','PARTIAL','UNKNOWN')", name="ck_gov_source_coverage_status"),
+        CheckConstraint("revision > 0", name="ck_gov_source_coverage_revision"),
+        Index("ix_gov_source_coverage_resolve", "factory_id", "source_system", "scope_key", "business_date", "revision"),
+    )
+    factory_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gov_factories.id", ondelete="RESTRICT"))
+    source_system: Mapped[str] = mapped_column(String(60))
+    scope_key: Mapped[str] = mapped_column(String(64))
+    business_date: Mapped[date] = mapped_column(Date)
+    revision: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(20))
+    expected_partitions: Mapped[dict[str, Any]] = mapped_column(JSON_TYPE, default_factory=dict)
+    received_partitions: Mapped[dict[str, Any]] = mapped_column(JSON_TYPE, default_factory=dict)
+    source_revision: Mapped[str] = mapped_column(String(160), default="")
+    extracted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    recorded_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT"), default=None)
+    reason: Mapped[str] = mapped_column(Text, default="")
+    sha256: Mapped[str] = mapped_column(String(64), default="")
+
+
+class MetricTargetVersion(GovernanceEntity):
+    """An approved target is immutable; corrections create a new revision."""
+
+    __tablename__ = "gov_metric_target_versions"
+    __table_args__ = (
+        UniqueConstraint(
+            "factory_id",
+            "metric_code",
+            "currency",
+            "scope_key",
+            "period_start",
+            "period_end",
+            "revision",
+            name="uq_gov_metric_target_revision",
+        ),
+        CheckConstraint("amount >= 0", name="ck_gov_metric_target_amount"),
+        CheckConstraint("period_end >= period_start", name="ck_gov_metric_target_dates"),
+        CheckConstraint("revision > 0", name="ck_gov_metric_target_revision"),
+        CheckConstraint("status IN ('DRAFT','APPROVED','SUPERSEDED')", name="ck_gov_metric_target_status"),
+        Index(
+            "ix_gov_metric_target_resolve",
+            "factory_id",
+            "metric_code",
+            "currency",
+            "scope_key",
+            "period_start",
+            "period_end",
+            "revision",
+        ),
+    )
+    factory_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gov_factories.id", ondelete="RESTRICT"))
+    metric_code: Mapped[str] = mapped_column(String(80))
+    currency: Mapped[str] = mapped_column(String(3))
+    period_start: Mapped[date] = mapped_column(Date)
+    period_end: Mapped[date] = mapped_column(Date)
+    scope_key: Mapped[str] = mapped_column(String(64))
+    revision: Mapped[int] = mapped_column(Integer)
+    amount: Mapped[Decimal] = mapped_column(Numeric(24, 6))
+    line_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("gov_production_lines.id", ondelete="RESTRICT"), default=None)
+    status: Mapped[str] = mapped_column(String(20), default="DRAFT")
+    author_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT"), default=None)
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    approved_by_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT"), default=None)
+    source_legacy_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("scrap_targets.id", ondelete="RESTRICT"), default=None
+    )
+
+
 class LineLayout(GovernanceEntity):
     __tablename__ = "gov_line_layouts"
     __table_args__ = (
@@ -244,10 +359,13 @@ class EffectivenessCheck(GovernanceEntity):
 
 class DatasetSnapshot(GovernanceEntity):
     __tablename__ = "gov_dataset_snapshots"
+    __table_args__ = (CheckConstraint("schema_version > 0", name="ck_gov_dataset_snapshot_schema_version"),)
     scope: Mapped[dict[str, Any]] = mapped_column(JSON_TYPE)
     metrics: Mapped[dict[str, Any]] = mapped_column(JSON_TYPE)
     sha256: Mapped[str] = mapped_column(String(64))
     factory_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gov_factories.id", ondelete="RESTRICT"), index=True)
+    schema_version: Mapped[int] = mapped_column(Integer, default=1)
+    manifest: Mapped[dict[str, Any]] = mapped_column(JSON_TYPE, default_factory=dict)
     sealed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
 
 
@@ -262,11 +380,29 @@ class SnapshotItem(GovernanceEntity):
     review_version: Mapped[int | None] = mapped_column(Integer, default=None)
 
 
+class SnapshotFinancialRow(GovernanceEntity):
+    """One immutable financial observation used by a V2 period close."""
+
+    __tablename__ = "gov_snapshot_financial_rows"
+    __table_args__ = (
+        UniqueConstraint("snapshot_id", "window_key", "occurrence_id", name="uq_gov_snapshot_financial_row"),
+        CheckConstraint("window_key IN ('CURRENT','COMPARISON')", name="ck_gov_snapshot_financial_window"),
+        Index("ix_gov_snapshot_financial_rows_snapshot", "snapshot_id", "window_key", "occurrence_id"),
+    )
+    snapshot_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gov_dataset_snapshots.id", ondelete="RESTRICT"))
+    occurrence_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scrap_occurrences.id", ondelete="RESTRICT"))
+    transaction_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scrap_transactions.id", ondelete="RESTRICT"))
+    frozen_values: Mapped[dict[str, Any]] = mapped_column(JSON_TYPE)
+    window_key: Mapped[str] = mapped_column(String(20), default="CURRENT")
+
+
 class Report(GovernanceEntity):
     __tablename__ = "gov_reports"
     __table_args__ = (
         UniqueConstraint("factory_id", "code", name="uq_gov_report_code"),
         CheckConstraint("status IN ('DRAFT','PUBLISHED','ARCHIVED')", name="ck_gov_report_status"),
+        CheckConstraint("report_kind IN ('DOSSIER','PERIOD_CLOSE')", name="ck_gov_report_kind"),
+        CheckConstraint("content_schema_version > 0", name="ck_gov_report_content_schema_version"),
         CheckConstraint("version > 0", name="ck_gov_report_version"),
         Index("ix_gov_report_list", "factory_id", "status", "updated_at", "id"),
     )
@@ -275,12 +411,95 @@ class Report(GovernanceEntity):
     title: Mapped[str] = mapped_column(String(240))
     description: Mapped[str] = mapped_column(Text, default="")
     status: Mapped[str] = mapped_column(String(20), default="DRAFT")
+    report_kind: Mapped[str] = mapped_column(String(20), default="DOSSIER")
+    content_schema_version: Mapped[int] = mapped_column(Integer, default=1)
     created_by_user_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT"), default=None)
     updated_by_user_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT"), default=None)
     version: Mapped[int] = mapped_column(Integer, default=1)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default_factory=now)
     archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
     __mapper_args__ = {"version_id_col": version}
+
+
+class ReportScope(GovernanceEntity):
+    """The saved window and filters that define a period-close report."""
+
+    __tablename__ = "gov_report_scopes"
+    __table_args__ = (UniqueConstraint("report_id", name="uq_gov_report_scope"),)
+    report_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gov_reports.id", ondelete="CASCADE"), index=True)
+    period_from: Mapped[date] = mapped_column(Date)
+    period_to: Mapped[date] = mapped_column(Date)
+    scope_key: Mapped[str] = mapped_column(String(64))
+    cutoff_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    timezone: Mapped[str] = mapped_column(String(60), default="America/Manaus")
+    metric_code: Mapped[str] = mapped_column(String(80), default="MATERIAL_SCRAP_COST")
+    metric_policy_version: Mapped[str] = mapped_column(String(40), default="scrap-cost-v1")
+    currency: Mapped[str] = mapped_column(String(3), default="USD")
+    comparison_mode: Mapped[str] = mapped_column(String(20), default="NONE")
+    comparison_from: Mapped[date | None] = mapped_column(Date, default=None)
+    comparison_to: Mapped[date | None] = mapped_column(Date, default=None)
+    is_provisional: Mapped[bool] = mapped_column(Boolean, default=False)
+    filters: Mapped[dict[str, Any]] = mapped_column(JSON_TYPE, default_factory=dict)
+
+
+class ReportSection(GovernanceEntity):
+    """An ordered editorial block in a V2 period-close draft."""
+
+    __tablename__ = "gov_report_sections"
+    __table_args__ = (
+        UniqueConstraint("report_id", "section_key", name="uq_gov_report_section_key"),
+        CheckConstraint("position >= 0", name="ck_gov_report_section_position"),
+        Index("ix_gov_report_section_order", "report_id", "position", "id"),
+    )
+    report_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gov_reports.id", ondelete="CASCADE"), index=True)
+    section_key: Mapped[str] = mapped_column(String(80))
+    kind: Mapped[str] = mapped_column(String(40))
+    position: Mapped[int] = mapped_column(Integer)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    title: Mapped[str] = mapped_column(String(240), default="")
+    payload_schema_version: Mapped[int] = mapped_column(Integer, default=1)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSON_TYPE, default_factory=dict)
+
+
+class ReportActionSource(GovernanceEntity):
+    __tablename__ = "gov_report_action_sources"
+    __table_args__ = (
+        UniqueConstraint("report_id", "action_id", name="uq_gov_report_action_source"),
+        CheckConstraint("position >= 0", name="ck_gov_report_action_position"),
+        Index("ix_gov_report_action_order", "report_id", "position", "id"),
+    )
+    report_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gov_reports.id", ondelete="CASCADE"), index=True)
+    action_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gov_actions.id", ondelete="RESTRICT"))
+    position: Mapped[int] = mapped_column(Integer)
+
+
+class ReportEvidenceSource(GovernanceEntity):
+    __tablename__ = "gov_report_evidence_sources"
+    __table_args__ = (
+        CheckConstraint(
+            "(review_attachment_id IS NOT NULL AND published_evidence_id IS NULL) OR "
+            "(review_attachment_id IS NULL AND published_evidence_id IS NOT NULL)",
+            name="ck_gov_report_evidence_one_source",
+        ),
+        CheckConstraint("position >= 0", name="ck_gov_report_evidence_position"),
+        CheckConstraint(
+            "role IN ('CONTEXT','BEFORE','AFTER','IMPLEMENTATION','MEASUREMENT')",
+            name="ck_gov_report_evidence_role",
+        ),
+        Index("ix_gov_report_evidence_order", "report_id", "section_id", "position", "id"),
+    )
+    report_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gov_reports.id", ondelete="CASCADE"), index=True)
+    section_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gov_report_sections.id", ondelete="CASCADE"))
+    position: Mapped[int] = mapped_column(Integer)
+    review_attachment_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("scrap_review_attachments.id", ondelete="RESTRICT"), default=None
+    )
+    published_evidence_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("gov_published_evidence.id", ondelete="RESTRICT"), default=None
+    )
+    caption: Mapped[str] = mapped_column(Text, default="")
+    role: Mapped[str] = mapped_column(String(20), default="CONTEXT")
+    captured_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
 
 
 class ReportOccurrenceSource(GovernanceEntity):
@@ -309,15 +528,32 @@ class ReportVersion(GovernanceEntity):
     __table_args__ = (
         UniqueConstraint("report_id", "revision", name="uq_gov_report_revision"),
         CheckConstraint("revision > 0", name="ck_gov_report_revision"),
+        CheckConstraint("content_schema_version > 0", name="ck_gov_report_version_content_schema"),
     )
     report_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gov_reports.id", ondelete="RESTRICT"))
     snapshot_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gov_dataset_snapshots.id", ondelete="RESTRICT"))
     revision: Mapped[int] = mapped_column(Integer)
     content: Mapped[dict[str, Any]] = mapped_column(JSON_TYPE)
     template_version: Mapped[str] = mapped_column(String(80))
+    content_schema_version: Mapped[int] = mapped_column(Integer, default=1)
     sha256: Mapped[str] = mapped_column(String(64), default="")
     published_by_user_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT"), default=None)
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+
+
+class ReportPublishReceipt(GovernanceEntity):
+    """Durable receipt for an idempotent V2 publication command."""
+
+    __tablename__ = "gov_report_publish_receipts"
+    __table_args__ = (
+        UniqueConstraint("report_id", "requested_by_user_id", "idempotency_key", name="uq_gov_report_publish_receipt"),
+        Index("ix_gov_report_publish_receipt_lookup", "report_id", "requested_by_user_id", "idempotency_key"),
+    )
+    report_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gov_reports.id", ondelete="RESTRICT"))
+    report_version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gov_report_versions.id", ondelete="RESTRICT"))
+    requested_by_user_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT"))
+    idempotency_key: Mapped[str] = mapped_column(String(160))
+    request_hash: Mapped[str] = mapped_column(String(64))
 
 
 class ReportVersionSource(GovernanceEntity):

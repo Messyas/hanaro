@@ -19,6 +19,8 @@ describe('ReportsPage', () => {
     title: 'Weekly loss review',
     description: 'Reviewed Scrap occurrences',
     status: 'DRAFT',
+    report_kind: 'DOSSIER',
+    content_schema_version: 1,
     created_by_user_id: 1,
     version: 2,
     created_at: '2026-09-09T10:00:00Z',
@@ -26,6 +28,10 @@ describe('ReportsPage', () => {
     occurrence_source_ids: [],
     report_source_ids: [],
     latest_version: null,
+    scope: null,
+    sections: [],
+    action_source_ids: [],
+    evidence_sources: [],
   };
   const preview: ReportPreview = {
     report,
@@ -119,9 +125,16 @@ describe('ReportsPage', () => {
     await fixture.whenStable();
     expect(service['get']).toHaveBeenCalledWith(report.id);
     expect(service['eligibleOccurrences']).toHaveBeenCalled();
-    expect(service['sourceReports']).toHaveBeenCalledWith(report.id, '');
+    expect(service['sourceReports']).toHaveBeenCalledWith(report.id, {
+      page: 1,
+      pageSize: 25,
+      search: undefined,
+    });
     expect(service['preview']).toHaveBeenCalledWith(report.id);
-    expect(service['versions']).toHaveBeenCalledWith(report.id);
+    expect(service['versions']).toHaveBeenCalledWith(report.id, {
+      page: 1,
+      pageSize: 25,
+    });
   });
 
   it('sends a bulk source mutation with the optimistic version', async () => {

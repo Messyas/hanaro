@@ -43,6 +43,26 @@ describe('ReportsService', () => {
     request.flush({});
   });
 
+  it('requests paginated action candidates', () => {
+    service.eligibleActions('factory-1', { page: 3, pageSize: 25, search: 'setup' }).subscribe();
+    const request = http.expectOne(
+      (candidate) => candidate.url === '/api/v1/reports/eligible-actions',
+    );
+    expect(request.request.params.get('factory_id')).toBe('factory-1');
+    expect(request.request.params.get('page')).toBe('3');
+    expect(request.request.params.get('page_size')).toBe('25');
+    expect(request.request.params.get('search')).toBe('setup');
+    request.flush({
+      items: [],
+      page: 3,
+      page_size: 25,
+      total: 0,
+      total_pages: 0,
+      has_next: false,
+      has_previous: true,
+    });
+  });
+
   it('requests an idempotent asynchronous export contract', () => {
     service.requestExport('version-1', 'PDF').subscribe();
     const request = http.expectOne('/api/v1/report-versions/version-1/exports');
