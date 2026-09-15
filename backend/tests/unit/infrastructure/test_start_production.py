@@ -46,3 +46,7 @@ def test_legacy_schema_detects_the_complete_reports_module() -> None:
     }
 
     assert _legacy_schema_revision(tables, columns) == "20260909_13"
+
+
+def test_migration_order_includes_profile_repair_head() -> None:
+    assert MIGRATION_ORDER["20260911_19"] < MIGRATION_ORDER["20260915_20"]

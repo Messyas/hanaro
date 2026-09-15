@@ -279,7 +279,7 @@ class UserService:
 
         updated_user = await crud_users.update(
             db=db,
-            object=user_update,
+            object=update_data,
             id=user_id,
             return_columns=list(UserSchema.model_fields.keys()),
         )
