@@ -16,6 +16,15 @@ import {
   ReportVersion,
 } from './reports.models';
 
+const DEFAULT_EXPORT_OPTIONS: Omit<ExportOptions, 'language'> = {
+  include_money: true,
+  include_summary: true,
+  include_occurrences: true,
+  include_justifications: true,
+  include_evidence: true,
+  notify_on_completion: false,
+};
+
 @Injectable()
 export class ReportEditorStore {
   readonly exportFormatOptions = [
@@ -102,6 +111,35 @@ export class ReportEditorStore {
   }
   exportJob(versionId: string, format: ExportFormat): ExportJob | undefined {
     return this.exportJobs()[`${versionId}:${format}`];
+  }
+  exportOptionsFor(versionId: string, language: ExportOptions['language']): ExportOptions {
+    return (
+      this.exportOptionsByVersion()[versionId] || {
+        ...DEFAULT_EXPORT_OPTIONS,
+        language,
+      }
+    );
+  }
+  setExportOption(
+    versionId: string,
+    key: Exclude<keyof ExportOptions, 'language'>,
+    value: boolean,
+    language: ExportOptions['language'],
+  ): void {
+    this.exportOptionsByVersion.update((options) => ({
+      ...options,
+      [versionId]: {
+        ...this.exportOptionsFor(versionId, language),
+        language,
+        [key]: value,
+      },
+    }));
+  }
+  exportFormatFor(versionId: string): ExportFormat {
+    return this.exportFormats()[versionId] || 'PDF';
+  }
+  setExportFormat(versionId: string, format: ExportFormat): void {
+    this.exportFormats.update((formats) => ({ ...formats, [versionId]: format }));
   }
   previousVersionPage(): boolean {
     if (this.versionPage() <= 1) return false;

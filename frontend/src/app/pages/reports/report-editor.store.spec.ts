@@ -107,4 +107,21 @@ describe('ReportEditorStore', () => {
     expect(store.exportJob('version-1', 'PDF')).toBe(job);
     expect(store.exportJob('version-1', 'CSV')).toBeUndefined();
   });
+
+  it('owns export option defaults and per-version overrides', () => {
+    const store = TestBed.configureTestingModule({ providers: [ReportEditorStore] }).inject(
+      ReportEditorStore,
+    );
+
+    expect(store.exportOptionsFor('version-1', 'en')).toMatchObject({
+      include_money: true,
+      language: 'en',
+    });
+    store.setExportOption('version-1', 'include_money', false, 'en');
+    store.setExportFormat('version-1', 'CSV');
+
+    expect(store.exportOptionsFor('version-1', 'pt').include_money).toBe(false);
+    expect(store.exportOptionsFor('version-1', 'pt').language).toBe('en');
+    expect(store.exportFormatFor('version-1')).toBe('CSV');
+  });
 });

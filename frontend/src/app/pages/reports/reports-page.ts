@@ -51,14 +51,6 @@ import {
 import { ReportsService } from './reports.service';
 
 const PAGE_SIZES = [25, 50, 100] as const;
-const DEFAULT_EXPORT_OPTIONS: Omit<ExportOptions, 'language'> = {
-  include_money: true,
-  include_summary: true,
-  include_occurrences: true,
-  include_justifications: true,
-  include_evidence: true,
-  notify_on_completion: false,
-};
 const COPY = {
   pt: {
     title: 'Relatórios de Scrap',
@@ -1148,32 +1140,20 @@ export class ReportsPage implements OnInit {
       });
   }
   exportOptionsFor(versionId: string): ExportOptions {
-    return (
-      this.exportOptionsByVersion()[versionId] || {
-        ...DEFAULT_EXPORT_OPTIONS,
-        language: this.language.currentLanguage(),
-      }
-    );
+    return this.editorStore.exportOptionsFor(versionId, this.language.currentLanguage());
   }
   setVersionExportOption(
     versionId: string,
     key: Exclude<keyof ExportOptions, 'language'>,
     value: boolean,
   ): void {
-    this.exportOptionsByVersion.update((options) => ({
-      ...options,
-      [versionId]: {
-        ...this.exportOptionsFor(versionId),
-        language: this.language.currentLanguage(),
-        [key]: value,
-      },
-    }));
+    this.editorStore.setExportOption(versionId, key, value, this.language.currentLanguage());
   }
   exportFormatFor(versionId: string): ExportFormat {
-    return this.exportFormats()[versionId] || 'PDF';
+    return this.editorStore.exportFormatFor(versionId);
   }
   setVersionExportFormat(versionId: string, format: ExportFormat): void {
-    this.exportFormats.update((formats) => ({ ...formats, [versionId]: format }));
+    this.editorStore.setExportFormat(versionId, format);
   }
   emitVersionExport(version: ReportVersion): void {
     const format = this.exportFormatFor(version.id);
