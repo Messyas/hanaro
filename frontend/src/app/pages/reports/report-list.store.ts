@@ -5,6 +5,7 @@ const PAGE_SIZES = [25, 50, 100] as const;
 
 @Injectable()
 export class ReportListStore {
+  readonly exportsAvailable = signal(false);
   readonly reports = signal<Page<ReportListItem> | null>(null);
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
@@ -22,6 +23,7 @@ export class ReportListStore {
   readonly creating = signal(false);
 
   reset(): void {
+    this.exportsAvailable.set(false);
     this.reports.set(null);
     this.loading.set(false);
     this.error.set(null);

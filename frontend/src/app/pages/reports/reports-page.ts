@@ -315,7 +315,7 @@ export class ReportsPage implements OnInit {
   private readonly governance = inject(GovernanceService);
   readonly workflows = computed(() => workflowCopy[this.language.currentLanguage()]);
   readonly historical = this.editorStore.historical;
-  readonly exportsAvailable = signal(false);
+  readonly exportsAvailable = this.listStore.exportsAvailable;
   readonly exportOptionsByVersion = this.editorStore.exportOptionsByVersion;
   readonly exportFormats = this.editorStore.exportFormats;
   private afterSave: (() => void) | null = null;

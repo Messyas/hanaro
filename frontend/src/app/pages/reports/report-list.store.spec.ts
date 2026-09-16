@@ -10,6 +10,7 @@ describe('ReportListStore', () => {
     store.search.set('weekly');
     store.showCreate.set(true);
     store.createTitle.set('New report');
+    store.exportsAvailable.set(true);
 
     store.reset();
 
@@ -17,5 +18,6 @@ describe('ReportListStore', () => {
     expect(store.search()).toBe('');
     expect(store.showCreate()).toBe(false);
     expect(store.createTitle()).toBe('');
+    expect(store.exportsAvailable()).toBe(false);
   });
 });
