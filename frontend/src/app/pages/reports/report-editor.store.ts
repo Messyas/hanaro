@@ -18,6 +18,12 @@ import {
 
 @Injectable()
 export class ReportEditorStore {
+  readonly exportFormatOptions = [
+    { value: 'PDF', label: 'PDF' },
+    { value: 'PPTX', label: 'PPTX' },
+    { value: 'CSV', label: 'CSV' },
+    { value: 'MARKDOWN', label: 'Markdown' },
+  ] as const;
   readonly active = signal<ReportDetail | null>(null);
   readonly workspaceError = signal<string | null>(null);
   readonly exportOptionsByVersion = signal<Record<string, ExportOptions>>({});

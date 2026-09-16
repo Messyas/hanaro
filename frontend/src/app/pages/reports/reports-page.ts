@@ -394,12 +394,7 @@ export class ReportsPage implements OnInit {
   readonly versionsPage = this.editorStore.versionsPage;
   readonly versionPage = this.editorStore.versionPage;
   readonly exportJobs = this.editorStore.exportJobs;
-  readonly exportFormatOptions = [
-    { value: 'PDF', label: 'PDF' },
-    { value: 'PPTX', label: 'PPTX' },
-    { value: 'CSV', label: 'CSV' },
-    { value: 'MARKDOWN', label: 'Markdown' },
-  ] as const;
+  readonly exportFormatOptions = this.editorStore.exportFormatOptions;
 
   private readonly draftDebounce = new Subject<void>();
   readonly saveStatus = this.editorStore.saveStatus;
