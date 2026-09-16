@@ -27,6 +27,7 @@ import { workflowCopy } from '../governance-copy';
 import { ReportPreview as ReportPreviewComponent } from './report-preview/report-preview';
 import { ReportEditorStore } from './report-editor.store';
 import { ReportExportCoordinator } from './report-export.coordinator';
+import { ReportListStore } from './report-list.store';
 import {
   EligibleAction,
   EligibleEvidence,
@@ -304,12 +305,13 @@ const COPY = {
     StatusBadge,
     UiIcon,
   ],
-  providers: [ReportEditorStore],
+  providers: [ReportEditorStore, ReportListStore],
   templateUrl: './reports-page.html',
   styleUrl: './reports-page.css',
 })
 export class ReportsPage implements OnInit {
   private readonly editorStore = inject(ReportEditorStore);
+  private readonly listStore = inject(ReportListStore);
   private readonly governance = inject(GovernanceService);
   readonly workflows = computed(() => workflowCopy[this.language.currentLanguage()]);
   readonly historical = this.editorStore.historical;
@@ -333,14 +335,14 @@ export class ReportsPage implements OnInit {
   readonly language = inject(LanguageService);
   readonly c = computed(() => COPY[this.language.currentLanguage()]);
   readonly pageSizes = PAGE_SIZES;
-  readonly reports = signal<Page<ReportListItem> | null>(null);
-  readonly loading = signal(false);
-  readonly error = signal<string | null>(null);
-  readonly page = signal(1);
-  readonly pageSize = signal<(typeof PAGE_SIZES)[number]>(25);
-  readonly search = signal('');
-  readonly statusFilter = signal('');
-  readonly filterOpen = signal(false);
+  readonly reports = this.listStore.reports;
+  readonly loading = this.listStore.loading;
+  readonly error = this.listStore.error;
+  readonly page = this.listStore.page;
+  readonly pageSize = this.listStore.pageSize;
+  readonly search = this.listStore.search;
+  readonly statusFilter = this.listStore.statusFilter;
+  readonly filterOpen = this.listStore.filterOpen;
   readonly activeFiltersCount = computed(
     () => [this.search().trim(), this.statusFilter()].filter(Boolean).length,
   );
@@ -349,13 +351,13 @@ export class ReportsPage implements OnInit {
     { value: 'DRAFT', label: this.c().draft },
     { value: 'PUBLISHED', label: this.c().published },
   ]);
-  readonly showCreate = signal(false);
-  readonly createTitle = signal('');
-  readonly createDescription = signal('');
-  readonly createKind = signal<'DOSSIER' | 'PERIOD_CLOSE'>('DOSSIER');
-  readonly createPeriodFrom = signal('');
-  readonly createPeriodTo = signal('');
-  readonly creating = signal(false);
+  readonly showCreate = this.listStore.showCreate;
+  readonly createTitle = this.listStore.createTitle;
+  readonly createDescription = this.listStore.createDescription;
+  readonly createKind = this.listStore.createKind;
+  readonly createPeriodFrom = this.listStore.createPeriodFrom;
+  readonly createPeriodTo = this.listStore.createPeriodTo;
+  readonly creating = this.listStore.creating;
   readonly active = signal<ReportDetail | null>(null);
   readonly draftTitle = this.editorStore.draftTitle;
   readonly draftDescription = this.editorStore.draftDescription;
