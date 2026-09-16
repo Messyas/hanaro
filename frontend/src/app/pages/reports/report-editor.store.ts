@@ -96,6 +96,16 @@ export class ReportEditorStore {
       this.selectedReports.set(new Set());
     }
   }
+  previousVersionPage(): boolean {
+    if (this.versionPage() <= 1) return false;
+    this.versionPage.update((page) => page - 1);
+    return true;
+  }
+  nextVersionPage(): boolean {
+    if (!this.versionsPage()?.has_next) return false;
+    this.versionPage.update((page) => page + 1);
+    return true;
+  }
 
   beginPreviewLoad(): void {
     this.previewLoading.set(true);

@@ -1093,14 +1093,10 @@ export class ReportsPage implements OnInit {
     this.loadCandidates();
   }
   previousVersionPage(): void {
-    if (this.versionPage() <= 1) return;
-    this.versionPage.update((page) => page - 1);
-    this.loadWorkspace();
+    if (this.editorStore.previousVersionPage()) this.loadWorkspace();
   }
   nextVersionPage(): void {
-    if (!this.versionsPage()?.has_next) return;
-    this.versionPage.update((page) => page + 1);
-    this.loadWorkspace();
+    if (this.editorStore.nextVersionPage()) this.loadWorkspace();
   }
   publish(): void {
     const report = this.active();

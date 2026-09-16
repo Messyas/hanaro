@@ -79,4 +79,20 @@ describe('ReportEditorStore', () => {
     expect(store.exportFormats()).toEqual({});
     expect(store.exportJobs()).toEqual({});
   });
+
+  it('guards version history pagination at its boundaries', () => {
+    const store = TestBed.configureTestingModule({ providers: [ReportEditorStore] }).inject(
+      ReportEditorStore,
+    );
+
+    expect(store.previousVersionPage()).toBe(false);
+    expect(store.versionPage()).toBe(1);
+    expect(store.nextVersionPage()).toBe(false);
+
+    store.versionsPage.set({ has_next: true } as never);
+    expect(store.nextVersionPage()).toBe(true);
+    expect(store.versionPage()).toBe(2);
+    expect(store.previousVersionPage()).toBe(true);
+    expect(store.versionPage()).toBe(1);
+  });
 });
