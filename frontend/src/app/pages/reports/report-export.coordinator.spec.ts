@@ -27,4 +27,24 @@ describe('ReportExportCoordinator', () => {
 
     expect(service.history).toHaveBeenCalledWith('version-1');
   });
+
+  it('emits completed restored jobs without polling them again', () => {
+    const job = { id: 'job-1', status: 'COMPLETED', format: 'PDF' } as never;
+    const service = {
+      history: vi.fn().mockReturnValue(of({ items: [job] })),
+      status: vi.fn(),
+    };
+    TestBed.configureTestingModule({
+      providers: [
+        ReportExportCoordinator,
+        { provide: ReportExportService, useValue: service },
+        { provide: BrowserDownloadAdapter, useValue: { download: vi.fn() } },
+      ],
+    });
+
+    const coordinator = TestBed.inject(ReportExportCoordinator);
+    coordinator.restoreAndPoll('version-1').subscribe((result) => expect(result).toBe(job));
+
+    expect(service.status).not.toHaveBeenCalled();
+  });
 });

@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable, switchMap, takeWhile, timer } from 'rxjs';
+import { Observable, from, mergeMap, of, switchMap, takeWhile, timer } from 'rxjs';
 import { BrowserDownloadAdapter } from './browser-download.adapter';
 import { BrowserDownloadPort } from './browser-download.port';
 import {
@@ -47,6 +47,18 @@ export class ReportExportCoordinator {
 
       return () => subscription.unsubscribe();
     });
+  }
+
+  restoreAndPoll(versionId: string): Observable<ExportJob> {
+    return this.restore(versionId).pipe(
+      mergeMap((jobs) =>
+        from(jobs).pipe(
+          mergeMap((job) =>
+            job.status === 'QUEUED' || job.status === 'RUNNING' ? this.poll(job.id) : of(job),
+          ),
+        ),
+      ),
+    );
   }
 
   poll(jobId: string): Observable<ExportJob> {

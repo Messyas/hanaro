@@ -1136,7 +1136,13 @@ export class ReportsPage implements OnInit {
       .subscribe({
         next: (job) => {
           this.setJob(key, job);
-          this.pollExport(key, job.id);
+          this.exportCoordinator
+            .poll(job.id)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe({
+              next: (updated) => this.setJob(key, updated),
+              error: (pollError) => this.workspaceError.set(this.message(pollError)),
+            });
         },
         error: (error) => this.workspaceError.set(this.message(error)),
       });
@@ -1189,26 +1195,14 @@ export class ReportsPage implements OnInit {
   }
   private restoreExports(versionId: string): void {
     this.exportCoordinator
-      .restore(versionId)
+      .restoreAndPoll(versionId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (jobs) => {
-          for (const job of jobs) {
-            const key = `${versionId}:${job.format}`;
-            this.setJob(key, job);
-            if (job.status === 'QUEUED' || job.status === 'RUNNING') this.pollExport(key, job.id);
-          }
+        next: (job) => {
+          const key = `${versionId}:${job.format}`;
+          this.setJob(key, job);
         },
         error: (e) => this.workspaceError.set(this.message(e)),
-      });
-  }
-  private pollExport(key: string, jobId: string): void {
-    this.exportCoordinator
-      .poll(jobId)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (job) => this.setJob(key, job),
-        error: (error) => this.workspaceError.set(this.message(error)),
       });
   }
   download(job: ExportJob): void {
