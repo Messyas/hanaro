@@ -95,4 +95,16 @@ describe('ReportEditorStore', () => {
     expect(store.previousVersionPage()).toBe(true);
     expect(store.versionPage()).toBe(1);
   });
+
+  it('indexes export jobs by version and format', () => {
+    const store = TestBed.configureTestingModule({ providers: [ReportEditorStore] }).inject(
+      ReportEditorStore,
+    );
+    const job = { id: 'job-1', format: 'PDF' } as never;
+
+    store.setExportJob('version-1', job);
+
+    expect(store.exportJob('version-1', 'PDF')).toBe(job);
+    expect(store.exportJob('version-1', 'CSV')).toBeUndefined();
+  });
 });

@@ -1135,12 +1135,12 @@ export class ReportsPage implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (job) => {
-          this.setJob(key, job);
+          this.editorStore.setExportJob(version.id, job);
           this.exportCoordinator
             .poll(job.id)
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe({
-              next: (updated) => this.setJob(key, updated),
+              next: (updated) => this.editorStore.setExportJob(version.id, updated),
               error: (pollError) => this.workspaceError.set(this.message(pollError)),
             });
         },
@@ -1199,8 +1199,7 @@ export class ReportsPage implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (job) => {
-          const key = `${versionId}:${job.format}`;
-          this.setJob(key, job);
+          this.editorStore.setExportJob(versionId, job);
         },
         error: (e) => this.workspaceError.set(this.message(e)),
       });
@@ -1215,7 +1214,7 @@ export class ReportsPage implements OnInit {
       });
   }
   job(versionId: string, format: ExportFormat): ExportJob | undefined {
-    return this.exportJobs()[`${versionId}:${format}`];
+    return this.editorStore.exportJob(versionId, format);
   }
   formatDate(value: string | null | undefined): string {
     return value
@@ -1243,9 +1242,6 @@ export class ReportsPage implements OnInit {
   }
   lineageCount(occurrenceId: string): number {
     return this.preview()?.lineage[occurrenceId]?.length ?? 0;
-  }
-  private setJob(key: string, job: ExportJob): void {
-    this.exportJobs.update((jobs) => ({ ...jobs, [key]: job }));
   }
   private locale(): string {
     return this.language.currentLanguage() === 'pt'

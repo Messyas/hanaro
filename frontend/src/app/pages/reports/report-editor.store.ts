@@ -96,6 +96,13 @@ export class ReportEditorStore {
       this.selectedReports.set(new Set());
     }
   }
+  setExportJob(versionId: string, job: ExportJob): void {
+    const key = `${versionId}:${job.format}`;
+    this.exportJobs.update((jobs) => ({ ...jobs, [key]: job }));
+  }
+  exportJob(versionId: string, format: ExportFormat): ExportJob | undefined {
+    return this.exportJobs()[`${versionId}:${format}`];
+  }
   previousVersionPage(): boolean {
     if (this.versionPage() <= 1) return false;
     this.versionPage.update((page) => page - 1);
