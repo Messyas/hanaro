@@ -17,6 +17,7 @@ import {
   ReportScope,
   ReportVersion,
 } from './reports.models';
+import { serializeReportCandidateQuery } from './report-candidate-query.params';
 
 @Injectable({ providedIn: 'root' })
 export class ReportsService {
@@ -102,11 +103,7 @@ export class ReportsService {
     factoryId: string,
     query: ReportCandidateQuery,
   ): Observable<Page<EligibleAction>> {
-    let params = new HttpParams()
-      .set('factory_id', factoryId)
-      .set('page', query.page)
-      .set('page_size', query.pageSize);
-    if (query.search) params = params.set('search', query.search);
+    const params = serializeReportCandidateQuery(query).set('factory_id', factoryId);
     return this.http.get<Page<EligibleAction>>(`${this.base}/eligible-actions`, { params });
   }
 
@@ -125,8 +122,7 @@ export class ReportsService {
     reportId: string,
     query: ReportCandidateQuery,
   ): Observable<Page<EligibleEvidence>> {
-    let params = new HttpParams().set('page', query.page).set('page_size', query.pageSize);
-    if (query.search) params = params.set('search', query.search);
+    const params = serializeReportCandidateQuery(query);
     return this.http.get<Page<EligibleEvidence>>(`${this.base}/${reportId}/eligible-evidence`, {
       params,
     });
@@ -164,14 +160,12 @@ export class ReportsService {
   }
 
   eligibleOccurrences(query: ReportCandidateQuery): Observable<Page<EligibleOccurrence>> {
-    let params = new HttpParams().set('page', query.page).set('page_size', query.pageSize);
-    if (query.search) params = params.set('search', query.search);
+    const params = serializeReportCandidateQuery(query);
     return this.http.get<Page<EligibleOccurrence>>(`${this.base}/eligible-occurrences`, { params });
   }
 
   sourceReports(reportId: string, query: ReportCandidateQuery): Observable<Page<ReportListItem>> {
-    let params = new HttpParams().set('page', query.page).set('page_size', query.pageSize);
-    if (query.search) params = params.set('search', query.search);
+    const params = serializeReportCandidateQuery(query);
     return this.http.get<Page<ReportListItem>>(`${this.base}/${reportId}/source-reports`, {
       params,
     });

@@ -488,7 +488,7 @@ Acceptance: no duplicate calendar logic, no long public signature, equivalent po
 - [ ] Implement `ReportExportRequestBuilder` with immutable output and focused unit tests for defaults, schema version, options copying, and retry behavior.
 - [x] Extract `ReportExportCoordinator` for polling and `BrowserDownloadPort` for download/object URL behavior.
 - [x] Split Reports export data access into its own capability client.
-- [ ] Centralize candidate-query serialization.
+- [x] Centralize candidate-query serialization.
 - [ ] Move Reports into `modules/reports` with route shell, editor state, feature UI, domain, and data-access boundaries.
 - [ ] Expose only the approved report lookup capability required by Action Plans.
 
