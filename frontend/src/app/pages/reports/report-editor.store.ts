@@ -1,8 +1,12 @@
 import { Injectable, computed, signal } from '@angular/core';
-import { PeriodClosePreview, ReportPreview } from './reports.models';
+import { Page, PeriodClosePreview, ReportPreview, ReportVersion } from './reports.models';
 
 @Injectable()
 export class ReportEditorStore {
+  readonly historical = signal<ReportVersion | null>(null);
+  readonly versions = signal<ReportVersion[]>([]);
+  readonly versionsPage = signal<Page<ReportVersion> | null>(null);
+  readonly versionPage = signal(1);
   readonly periodPreview = signal<PeriodClosePreview | null>(null);
   readonly dossierPreview = signal<ReportPreview | null>(null);
   readonly previewLoading = signal(false);
@@ -29,6 +33,10 @@ export class ReportEditorStore {
     this.previewLoading.set(false);
   }
   reset(): void {
+    this.historical.set(null);
+    this.versions.set([]);
+    this.versionsPage.set(null);
+    this.versionPage.set(1);
     this.periodPreview.set(null);
     this.dossierPreview.set(null);
     this.previewLoading.set(false);

@@ -312,7 +312,7 @@ export class ReportsPage implements OnInit {
   private readonly editorStore = inject(ReportEditorStore);
   private readonly governance = inject(GovernanceService);
   readonly workflows = computed(() => workflowCopy[this.language.currentLanguage()]);
-  readonly historical = signal<ReportVersion | null>(null);
+  readonly historical = this.editorStore.historical;
   readonly exportsAvailable = signal(false);
   readonly exportOptionsByVersion = signal<Record<string, ExportOptions>>({});
   readonly exportFormats = signal<Record<string, ExportFormat>>({});
@@ -386,9 +386,9 @@ export class ReportsPage implements OnInit {
   readonly candidatePageSize = 25;
   readonly previewLoading = this.editorStore.previewLoading;
   readonly previewStale = this.editorStore.previewStale;
-  readonly versions = signal<ReportVersion[]>([]);
-  readonly versionsPage = signal<Page<ReportVersion> | null>(null);
-  readonly versionPage = signal(1);
+  readonly versions = this.editorStore.versions;
+  readonly versionsPage = this.editorStore.versionsPage;
+  readonly versionPage = this.editorStore.versionPage;
   readonly exportJobs = signal<Record<string, ExportJob>>({});
   readonly exportFormatOptions = [
     { value: 'PDF', label: 'PDF' },

@@ -643,7 +643,7 @@ Acceptance: no public application function in the scanned set has more than thre
 ### Phase 2 — Reports pilot
 
 - Extract presentational components first.
-- Expand the route-scoped `ReportEditorStore` into the owner of editor state and effects, without turning it into another god object.
+- [x] Expand the route-scoped `ReportEditorStore` to own version-history state, without turning it into another god object.
 - Extract source selection, publication/version, export coordinator, and browser download adapter.
 - Split the data-access service by capability.
 
