@@ -29,6 +29,7 @@ import { ReportEditorStore } from './report-editor.store';
 import { ReportExportCoordinator } from './report-export.coordinator';
 import { ReportListStore } from './report-list.store';
 import { ReportHistoryDrawer } from './report-history-drawer';
+import { ReportSourceSelectionCoordinator } from './report-source-selection.coordinator';
 import {
   EligibleAction,
   EligibleEvidence,
@@ -330,6 +331,7 @@ export class ReportsPage implements OnInit {
   );
   private readonly service = inject(ReportsService);
   private readonly exportCoordinator = inject(ReportExportCoordinator);
+  private readonly sourceSelection = inject(ReportSourceSelectionCoordinator);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
@@ -664,31 +666,27 @@ export class ReportsPage implements OnInit {
   loadCandidates(): void {
     const report = this.active();
     if (!report) return;
-    this.service
-      .eligibleOccurrences({
-        page: this.occurrencePage(),
-        pageSize: this.candidatePageSize,
-        search: this.occurrenceSearch().trim() || undefined,
-      })
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (page) => {
-          this.occurrenceCandidates.set(page);
-          this.eligible.set(page.items);
+    this.sourceSelection
+      .loadCandidates(
+        report.id,
+        {
+          page: this.occurrencePage(),
+          pageSize: this.candidatePageSize,
+          search: this.occurrenceSearch().trim() || undefined,
         },
-        error: (error) => this.workspaceError.set(this.message(error)),
-      });
-    this.service
-      .sourceReports(report.id, {
-        page: this.sourceReportPage(),
-        pageSize: this.candidatePageSize,
-        search: this.sourceReportSearch().trim() || undefined,
-      })
+        {
+          page: this.sourceReportPage(),
+          pageSize: this.candidatePageSize,
+          search: this.sourceReportSearch().trim() || undefined,
+        },
+      )
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (page) => {
-          this.sourceReportCandidates.set(page);
-          this.sourceReports.set(page.items);
+        next: ({ occurrences, reports }) => {
+          this.occurrenceCandidates.set(occurrences);
+          this.eligible.set(occurrences.items);
+          this.sourceReportCandidates.set(reports);
+          this.sourceReports.set(reports.items);
         },
         error: (error) => this.workspaceError.set(this.message(error)),
       });
