@@ -13,6 +13,11 @@ describe('ReportEditorStore', () => {
     store.saving.set(true);
     store.saveStatus.set('saving');
     store.lastSavedTime.set('now');
+    store.selectedOccurrences.set(new Set(['occurrence-1']));
+    store.selectedReports.set(new Set(['report-1']));
+    store.occurrenceSearch.set('needle');
+    store.sourceReportSearch.set('source');
+    store.activeDrawer.set('occurrence');
 
     store.reset();
 
@@ -25,5 +30,10 @@ describe('ReportEditorStore', () => {
     expect(store.saving()).toBe(false);
     expect(store.saveStatus()).toBe('idle');
     expect(store.lastSavedTime()).toBeNull();
+    expect(store.selectedOccurrences()).toEqual(new Set());
+    expect(store.selectedReports()).toEqual(new Set());
+    expect(store.occurrenceSearch()).toBe('');
+    expect(store.sourceReportSearch()).toBe('');
+    expect(store.activeDrawer()).toBeNull();
   });
 });

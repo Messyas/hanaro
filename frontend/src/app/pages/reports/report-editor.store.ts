@@ -3,6 +3,11 @@ import { Page, PeriodClosePreview, ReportPreview, ReportVersion } from './report
 
 @Injectable()
 export class ReportEditorStore {
+  readonly occurrenceSearch = signal('');
+  readonly sourceReportSearch = signal('');
+  readonly selectedOccurrences = signal(new Set<string>());
+  readonly selectedReports = signal(new Set<string>());
+  readonly activeDrawer = signal<'occurrence' | 'report' | null>(null);
   readonly draftTitle = signal('');
   readonly draftDescription = signal('');
   readonly saving = signal(false);
@@ -38,6 +43,11 @@ export class ReportEditorStore {
     this.previewLoading.set(false);
   }
   reset(): void {
+    this.occurrenceSearch.set('');
+    this.sourceReportSearch.set('');
+    this.selectedOccurrences.set(new Set());
+    this.selectedReports.set(new Set());
+    this.activeDrawer.set(null);
     this.draftTitle.set('');
     this.draftDescription.set('');
     this.saving.set(false);

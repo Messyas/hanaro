@@ -367,10 +367,10 @@ export class ReportsPage implements OnInit {
   readonly sourceReports = signal<ReportListItem[]>([]);
   readonly sourceReportCandidates = signal<Page<ReportListItem> | null>(null);
   readonly sourceReportPage = signal(1);
-  readonly occurrenceSearch = signal('');
-  readonly sourceReportSearch = signal('');
-  readonly selectedOccurrences = signal(new Set<string>());
-  readonly selectedReports = signal(new Set<string>());
+  readonly occurrenceSearch = this.editorStore.occurrenceSearch;
+  readonly sourceReportSearch = this.editorStore.sourceReportSearch;
+  readonly selectedOccurrences = this.editorStore.selectedOccurrences;
+  readonly selectedReports = this.editorStore.selectedReports;
   readonly preview = this.editorStore.dossierPreview;
   readonly analytics = signal<ReportAnalytics | null>(null);
   readonly periodPreview = this.editorStore.periodPreview;
@@ -400,7 +400,7 @@ export class ReportsPage implements OnInit {
   private readonly draftDebounce = new Subject<void>();
   readonly saveStatus = this.editorStore.saveStatus;
   readonly lastSavedTime = this.editorStore.lastSavedTime;
-  readonly activeDrawer = signal<'occurrence' | 'report' | null>(null);
+  readonly activeDrawer = this.editorStore.activeDrawer;
   readonly previewOpen = signal(false);
 
   ngOnInit(): void {
