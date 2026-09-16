@@ -3,6 +3,9 @@ import {
   EligibleAction,
   EligibleEvidence,
   EligibleOccurrence,
+  ExportFormat,
+  ExportJob,
+  ExportOptions,
   Page,
   PeriodClosePreview,
   ReportAnalytics,
@@ -14,6 +17,9 @@ import {
 
 @Injectable()
 export class ReportEditorStore {
+  readonly exportOptionsByVersion = signal<Record<string, ExportOptions>>({});
+  readonly exportFormats = signal<Record<string, ExportFormat>>({});
+  readonly exportJobs = signal<Record<string, ExportJob>>({});
   readonly eligible = signal<EligibleOccurrence[]>([]);
   readonly occurrenceCandidates = signal<Page<EligibleOccurrence> | null>(null);
   readonly occurrencePage = signal(1);
@@ -70,6 +76,9 @@ export class ReportEditorStore {
     this.previewLoading.set(false);
   }
   reset(): void {
+    this.exportOptionsByVersion.set({});
+    this.exportFormats.set({});
+    this.exportJobs.set({});
     this.eligible.set([]);
     this.occurrenceCandidates.set(null);
     this.occurrencePage.set(1);

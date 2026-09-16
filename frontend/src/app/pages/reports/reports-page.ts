@@ -314,8 +314,8 @@ export class ReportsPage implements OnInit {
   readonly workflows = computed(() => workflowCopy[this.language.currentLanguage()]);
   readonly historical = this.editorStore.historical;
   readonly exportsAvailable = signal(false);
-  readonly exportOptionsByVersion = signal<Record<string, ExportOptions>>({});
-  readonly exportFormats = signal<Record<string, ExportFormat>>({});
+  readonly exportOptionsByVersion = this.editorStore.exportOptionsByVersion;
+  readonly exportFormats = this.editorStore.exportFormats;
   private afterSave: (() => void) | null = null;
   private workspaceLoadToken = 0;
   readonly hasPendingDraft = computed(
@@ -389,7 +389,7 @@ export class ReportsPage implements OnInit {
   readonly versions = this.editorStore.versions;
   readonly versionsPage = this.editorStore.versionsPage;
   readonly versionPage = this.editorStore.versionPage;
-  readonly exportJobs = signal<Record<string, ExportJob>>({});
+  readonly exportJobs = this.editorStore.exportJobs;
   readonly exportFormatOptions = [
     { value: 'PDF', label: 'PDF' },
     { value: 'PPTX', label: 'PPTX' },

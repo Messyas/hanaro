@@ -23,6 +23,8 @@ describe('ReportEditorStore', () => {
     store.actionSearch.set('action');
     store.evidencePage.set(2);
     store.occurrenceCandidates.set({} as never);
+    store.exportFormats.set({ 'version-1': 'PDF' });
+    store.exportJobs.set({ 'version-1:PDF': {} as never });
 
     store.reset();
 
@@ -45,5 +47,7 @@ describe('ReportEditorStore', () => {
     expect(store.actionSearch()).toBe('');
     expect(store.evidencePage()).toBe(1);
     expect(store.occurrenceCandidates()).toBeNull();
+    expect(store.exportFormats()).toEqual({});
+    expect(store.exportJobs()).toEqual({});
   });
 });
