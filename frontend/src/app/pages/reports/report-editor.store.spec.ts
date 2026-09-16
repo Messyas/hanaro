@@ -18,6 +18,8 @@ describe('ReportEditorStore', () => {
     store.occurrenceSearch.set('needle');
     store.sourceReportSearch.set('source');
     store.activeDrawer.set('occurrence');
+    store.analytics.set({} as never);
+    store.scopeDraft.set({} as never);
 
     store.reset();
 
@@ -35,5 +37,7 @@ describe('ReportEditorStore', () => {
     expect(store.occurrenceSearch()).toBe('');
     expect(store.sourceReportSearch()).toBe('');
     expect(store.activeDrawer()).toBeNull();
+    expect(store.analytics()).toBeNull();
+    expect(store.scopeDraft()).toBeNull();
   });
 });

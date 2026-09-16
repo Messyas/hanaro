@@ -372,9 +372,9 @@ export class ReportsPage implements OnInit {
   readonly selectedOccurrences = this.editorStore.selectedOccurrences;
   readonly selectedReports = this.editorStore.selectedReports;
   readonly preview = this.editorStore.dossierPreview;
-  readonly analytics = signal<ReportAnalytics | null>(null);
+  readonly analytics = this.editorStore.analytics;
   readonly periodPreview = this.editorStore.periodPreview;
-  readonly scopeDraft = signal<ReportScope | null>(null);
+  readonly scopeDraft = this.editorStore.scopeDraft;
   readonly eligibleActions = signal<EligibleAction[]>([]);
   readonly actionSearch = signal('');
   readonly actionCandidates = signal<Page<EligibleAction> | null>(null);

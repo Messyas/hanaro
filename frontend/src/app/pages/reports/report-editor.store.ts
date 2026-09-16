@@ -1,5 +1,12 @@
 import { Injectable, computed, signal } from '@angular/core';
-import { Page, PeriodClosePreview, ReportPreview, ReportVersion } from './reports.models';
+import {
+  Page,
+  PeriodClosePreview,
+  ReportAnalytics,
+  ReportPreview,
+  ReportScope,
+  ReportVersion,
+} from './reports.models';
 
 @Injectable()
 export class ReportEditorStore {
@@ -8,6 +15,8 @@ export class ReportEditorStore {
   readonly selectedOccurrences = signal(new Set<string>());
   readonly selectedReports = signal(new Set<string>());
   readonly activeDrawer = signal<'occurrence' | 'report' | null>(null);
+  readonly analytics = signal<ReportAnalytics | null>(null);
+  readonly scopeDraft = signal<ReportScope | null>(null);
   readonly draftTitle = signal('');
   readonly draftDescription = signal('');
   readonly saving = signal(false);
@@ -43,6 +52,8 @@ export class ReportEditorStore {
     this.previewLoading.set(false);
   }
   reset(): void {
+    this.analytics.set(null);
+    this.scopeDraft.set(null);
     this.occurrenceSearch.set('');
     this.sourceReportSearch.set('');
     this.selectedOccurrences.set(new Set());
