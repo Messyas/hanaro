@@ -5,9 +5,6 @@ import {
   EligibleOccurrence,
   EligibleAction,
   EligibleEvidence,
-  ExportFormat,
-  ExportJob,
-  ExportOptions,
   CreateReportInput,
   Page,
   ReportDetail,
@@ -204,35 +201,7 @@ export class ReportsService {
     });
   }
 
-  requestExport(
-    versionId: string,
-    format: ExportFormat,
-    options?: ExportOptions,
-    retry = false,
-    templateVersion: '1' | '2' = '1',
-  ): Observable<ExportJob> {
-    return this.http.post<ExportJob>(`/api/v1/report-versions/${versionId}/exports`, {
-      format,
-      options: options || {},
-      template_version: templateVersion,
-      ...(retry ? { retry_failed: true } : {}),
-    });
-  }
-
   version(reportId: string, revision: number) {
     return this.http.get<ReportVersion>(`${this.base}/${reportId}/versions/${revision}`);
-  }
-  exportHistory(versionId: string, page = 1) {
-    return this.http.get<Page<ExportJob>>(`/api/v1/report-versions/${versionId}/exports`, {
-      params: { page, page_size: 100 },
-    });
-  }
-
-  exportStatus(jobId: string): Observable<ExportJob> {
-    return this.http.get<ExportJob>(`/api/v1/exports/${jobId}`);
-  }
-
-  download(jobId: string): Observable<Blob> {
-    return this.http.get(`/api/v1/exports/${jobId}/download`, { responseType: 'blob' });
   }
 }

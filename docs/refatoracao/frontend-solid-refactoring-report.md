@@ -487,7 +487,8 @@ Acceptance: no duplicate calendar logic, no long public signature, equivalent po
 - [ ] Add `UpdateReportCommand`, `ReportSourceMutationCommand`, candidate queries, and export request types in `domain`.
 - [ ] Implement `ReportExportRequestBuilder` with immutable output and focused unit tests for defaults, schema version, options copying, and retry behavior.
 - [x] Extract `ReportExportCoordinator` for polling and `BrowserDownloadPort` for download/object URL behavior.
-- [ ] Split Reports data access by capability and centralize candidate-query serialization.
+- [x] Split Reports export data access into its own capability client.
+- [ ] Centralize candidate-query serialization.
 - [ ] Move Reports into `modules/reports` with route shell, editor state, feature UI, domain, and data-access boundaries.
 - [ ] Expose only the approved report lookup capability required by Action Plans.
 
@@ -601,7 +602,7 @@ No lint/architecture command is defined in `frontend/package.json`. Add incremen
 
 | ID | Priority | Status | Finding and acceptance outcome |
 | --- | --- | --- | --- |
-| FE-SOLID-01 | P1 | In progress — export coordinator/download adapter extracted | Split Reports vertically. The route shell no longer owns export polling, DOM download, source mutation, and every editor section; current URLs and behavior remain unchanged. |
+| FE-SOLID-01 | P1 | In progress — export coordinator/download adapter and export API client extracted | Split Reports vertically. The route shell no longer owns export polling, DOM download, source mutation, and every editor section; current URLs and behavior remain unchanged. |
 | FE-SOLID-02 | P1 | Not started | Remove obsolete Executions datepicker code and split list/detail/manual upload. Shared date-range behavior owns calendar tests. |
 | FE-SOLID-03 | P1 | Not started | Replace `GovernanceService` with capability clients/ports and typed DTOs/discriminated commands. `object`, `string` command, and arbitrary record parameters disappear from public APIs. |
 | FE-SOLID-04 | P1 | In progress — execution row control completed | Fix keyboard access for Executions rows and standardize accessible dialog focus behavior across main screens. |

@@ -3,11 +3,11 @@ import { Observable, switchMap, takeWhile, timer } from 'rxjs';
 import { BrowserDownloadAdapter } from './browser-download.adapter';
 import { BrowserDownloadPort } from './browser-download.port';
 import { ExportFormat, ExportJob, ExportOptions, Page } from './reports.models';
-import { ReportsService } from './reports.service';
+import { ReportExportService } from './report-export.service';
 
 @Injectable({ providedIn: 'root' })
 export class ReportExportCoordinator {
-  private readonly service = inject(ReportsService);
+  private readonly service = inject(ReportExportService);
   private readonly browserDownload: BrowserDownloadPort = inject(BrowserDownloadAdapter);
 
   request(
@@ -17,16 +17,16 @@ export class ReportExportCoordinator {
     retry: boolean,
     templateVersion: '1' | '2',
   ): Observable<ExportJob> {
-    return this.service.requestExport(versionId, format, options, retry, templateVersion);
+    return this.service.request(versionId, format, options, retry, templateVersion);
   }
 
   history(versionId: string): Observable<Page<ExportJob>> {
-    return this.service.exportHistory(versionId);
+    return this.service.history(versionId);
   }
 
   poll(jobId: string): Observable<ExportJob> {
     return timer(0, 1500).pipe(
-      switchMap(() => this.service.exportStatus(jobId)),
+      switchMap(() => this.service.status(jobId)),
       takeWhile((job) => job.status === 'QUEUED' || job.status === 'RUNNING', true),
     );
   }

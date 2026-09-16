@@ -94,9 +94,6 @@ describe('ReportsPage', () => {
           has_previous: false,
         }),
       ),
-      requestExport: vi.fn(),
-      exportStatus: vi.fn(),
-      download: vi.fn(),
     };
     await TestBed.configureTestingModule({
       imports: [ReportsPage],

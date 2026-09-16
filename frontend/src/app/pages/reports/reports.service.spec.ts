@@ -62,12 +62,4 @@ describe('ReportsService', () => {
       has_previous: true,
     });
   });
-
-  it('requests an idempotent asynchronous export contract', () => {
-    service.requestExport('version-1', 'PDF').subscribe();
-    const request = http.expectOne('/api/v1/report-versions/version-1/exports');
-    expect(request.request.method).toBe('POST');
-    expect(request.request.body).toEqual({ format: 'PDF', options: {}, template_version: '1' });
-    request.flush({ id: 'job-1', status: 'QUEUED' });
-  });
 });
