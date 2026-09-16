@@ -1,15 +1,33 @@
 import { Injectable, computed, signal } from '@angular/core';
 import {
+  EligibleAction,
+  EligibleEvidence,
+  EligibleOccurrence,
   Page,
   PeriodClosePreview,
   ReportAnalytics,
   ReportPreview,
+  ReportListItem,
   ReportScope,
   ReportVersion,
 } from './reports.models';
 
 @Injectable()
 export class ReportEditorStore {
+  readonly eligible = signal<EligibleOccurrence[]>([]);
+  readonly occurrenceCandidates = signal<Page<EligibleOccurrence> | null>(null);
+  readonly occurrencePage = signal(1);
+  readonly sourceReports = signal<ReportListItem[]>([]);
+  readonly sourceReportCandidates = signal<Page<ReportListItem> | null>(null);
+  readonly sourceReportPage = signal(1);
+  readonly eligibleActions = signal<EligibleAction[]>([]);
+  readonly actionSearch = signal('');
+  readonly actionCandidates = signal<Page<EligibleAction> | null>(null);
+  readonly actionPage = signal(1);
+  readonly eligibleEvidence = signal<EligibleEvidence[]>([]);
+  readonly evidenceSearch = signal('');
+  readonly evidenceCandidates = signal<Page<EligibleEvidence> | null>(null);
+  readonly evidencePage = signal(1);
   readonly occurrenceSearch = signal('');
   readonly sourceReportSearch = signal('');
   readonly selectedOccurrences = signal(new Set<string>());
@@ -52,6 +70,20 @@ export class ReportEditorStore {
     this.previewLoading.set(false);
   }
   reset(): void {
+    this.eligible.set([]);
+    this.occurrenceCandidates.set(null);
+    this.occurrencePage.set(1);
+    this.sourceReports.set([]);
+    this.sourceReportCandidates.set(null);
+    this.sourceReportPage.set(1);
+    this.eligibleActions.set([]);
+    this.actionSearch.set('');
+    this.actionCandidates.set(null);
+    this.actionPage.set(1);
+    this.eligibleEvidence.set([]);
+    this.evidenceSearch.set('');
+    this.evidenceCandidates.set(null);
+    this.evidencePage.set(1);
     this.analytics.set(null);
     this.scopeDraft.set(null);
     this.occurrenceSearch.set('');

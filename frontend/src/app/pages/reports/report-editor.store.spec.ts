@@ -20,6 +20,9 @@ describe('ReportEditorStore', () => {
     store.activeDrawer.set('occurrence');
     store.analytics.set({} as never);
     store.scopeDraft.set({} as never);
+    store.actionSearch.set('action');
+    store.evidencePage.set(2);
+    store.occurrenceCandidates.set({} as never);
 
     store.reset();
 
@@ -39,5 +42,8 @@ describe('ReportEditorStore', () => {
     expect(store.activeDrawer()).toBeNull();
     expect(store.analytics()).toBeNull();
     expect(store.scopeDraft()).toBeNull();
+    expect(store.actionSearch()).toBe('');
+    expect(store.evidencePage()).toBe(1);
+    expect(store.occurrenceCandidates()).toBeNull();
   });
 });
