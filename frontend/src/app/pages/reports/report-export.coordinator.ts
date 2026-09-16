@@ -2,7 +2,14 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, switchMap, takeWhile, timer } from 'rxjs';
 import { BrowserDownloadAdapter } from './browser-download.adapter';
 import { BrowserDownloadPort } from './browser-download.port';
-import { ExportFormat, ExportJob, ExportOptions, Page } from './reports.models';
+import {
+  ExportFormat,
+  ExportJob,
+  ExportOptions,
+  Page,
+  ReportExportRequestBuilder,
+  ReportVersion,
+} from './reports.models';
 import { ReportExportService } from './report-export.service';
 
 @Injectable({ providedIn: 'root' })
@@ -11,13 +18,17 @@ export class ReportExportCoordinator {
   private readonly browserDownload: BrowserDownloadPort = inject(BrowserDownloadAdapter);
 
   request(
-    versionId: string,
+    version: ReportVersion,
     format: ExportFormat,
     options: ExportOptions,
-    retry: boolean,
-    templateVersion: '1' | '2',
+    currentJob: ExportJob | undefined,
   ): Observable<ExportJob> {
-    return this.service.request(versionId, format, options, retry, templateVersion);
+    const request = ReportExportRequestBuilder.forVersion(version)
+      .withFormat(format)
+      .withOptions(options)
+      .retryAfter(currentJob)
+      .build();
+    return this.service.request(request);
   }
 
   history(versionId: string): Observable<Page<ExportJob>> {

@@ -1,24 +1,18 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { ExportFormat, ExportJob, ExportOptions, Page } from './reports.models';
+import { ExportJob, Page, ReportExportRequest } from './reports.models';
 
 @Injectable({ providedIn: 'root' })
 export class ReportExportService {
   private readonly http = inject(HttpClient);
 
-  request(
-    versionId: string,
-    format: ExportFormat,
-    options?: ExportOptions,
-    retry = false,
-    templateVersion: '1' | '2' = '1',
-  ): Observable<ExportJob> {
-    return this.http.post<ExportJob>(`/api/v1/report-versions/${versionId}/exports`, {
-      format,
-      options: options || {},
-      template_version: templateVersion,
-      ...(retry ? { retry_failed: true } : {}),
+  request(request: ReportExportRequest): Observable<ExportJob> {
+    return this.http.post<ExportJob>(`/api/v1/report-versions/${request.versionId}/exports`, {
+      format: request.format,
+      options: request.options,
+      template_version: request.templateVersion,
+      ...(request.retryFailed ? { retry_failed: true } : {}),
     });
   }
 

@@ -1146,13 +1146,7 @@ export class ReportsPage implements OnInit {
     const key = `${version.id}:${format}`;
     if (['QUEUED', 'RUNNING'].includes(this.exportJobs()[key]?.status)) return;
     this.exportCoordinator
-      .request(
-        version.id,
-        format,
-        options,
-        this.exportJobs()[key]?.status === 'FAILED',
-        version.content_schema_version >= 2 ? '2' : '1',
-      )
+      .request(version, format, options, this.exportJobs()[key])
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (job) => {

@@ -66,6 +66,59 @@ export interface ExportOptions {
 }
 export type ExportStatus = 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED';
 
+export interface ReportExportRequest {
+  readonly versionId: string;
+  readonly format: ExportFormat;
+  readonly options: Readonly<ExportOptions>;
+  readonly retryFailed: boolean;
+  readonly templateVersion: '1' | '2';
+}
+
+export class ReportExportRequestBuilder {
+  private format: ExportFormat = 'PDF';
+  private options: ExportOptions = {
+    language: 'pt',
+    include_money: true,
+    include_summary: true,
+    include_occurrences: true,
+    include_justifications: true,
+    include_evidence: true,
+    notify_on_completion: false,
+  };
+  private retryFailed = false;
+
+  private constructor(private readonly version: ReportVersion) {}
+
+  static forVersion(version: ReportVersion): ReportExportRequestBuilder {
+    return new ReportExportRequestBuilder(version);
+  }
+
+  withFormat(format: ExportFormat): this {
+    this.format = format;
+    return this;
+  }
+
+  withOptions(options: ExportOptions): this {
+    this.options = { ...options };
+    return this;
+  }
+
+  retryAfter(job: ExportJob | undefined): this {
+    this.retryFailed = job?.status === 'FAILED';
+    return this;
+  }
+
+  build(): ReportExportRequest {
+    return Object.freeze({
+      versionId: this.version.id,
+      format: this.format,
+      options: Object.freeze({ ...this.options }),
+      retryFailed: this.retryFailed,
+      templateVersion: this.version.content_schema_version >= 2 ? '2' : '1',
+    });
+  }
+}
+
 export interface Page<T> {
   items: T[];
   page: number;
