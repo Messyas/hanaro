@@ -28,6 +28,7 @@ import { ReportPreview as ReportPreviewComponent } from './report-preview/report
 import { ReportEditorStore } from './report-editor.store';
 import { ReportExportCoordinator } from './report-export.coordinator';
 import { ReportListStore } from './report-list.store';
+import { ReportHistoryDrawer } from './report-history-drawer';
 import {
   EligibleAction,
   EligibleEvidence,
@@ -302,6 +303,7 @@ const COPY = {
     ListFilterPopover,
     ListFilterSelect,
     ReportPreviewComponent,
+    ReportHistoryDrawer,
     StatusBadge,
     UiIcon,
   ],

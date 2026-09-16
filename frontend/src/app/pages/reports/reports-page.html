@@ -1305,6 +1305,17 @@
   </div>
 }
 @if (historical(); as version) {
+  <app-report-history-drawer
+    [version]="version"
+    [copy]="c()"
+    [workflows]="workflows()"
+    [formatDate]="formatDate.bind(this)"
+    [formatCurrency]="formatCurrency.bind(this)"
+    (close)="historical.set(null)"
+  />
+}
+<!-- Legacy historical drawer kept below during this isolated template migration.
+@if (historical(); as version) {
   <div class="source-drawer-overlay" (click)="historical.set(null)"></div>
   <aside class="source-drawer" aria-labelledby="historical-heading">
     <header class="source-drawer-header">
@@ -1374,3 +1385,4 @@
     </div>
   </aside>
 }
+-->
