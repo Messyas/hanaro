@@ -357,9 +357,9 @@ export class ReportsPage implements OnInit {
   readonly createPeriodTo = signal('');
   readonly creating = signal(false);
   readonly active = signal<ReportDetail | null>(null);
-  readonly draftTitle = signal('');
-  readonly draftDescription = signal('');
-  readonly saving = signal(false);
+  readonly draftTitle = this.editorStore.draftTitle;
+  readonly draftDescription = this.editorStore.draftDescription;
+  readonly saving = this.editorStore.saving;
   readonly workspaceError = signal<string | null>(null);
   readonly eligible = signal<EligibleOccurrence[]>([]);
   readonly occurrenceCandidates = signal<Page<EligibleOccurrence> | null>(null);
@@ -398,8 +398,8 @@ export class ReportsPage implements OnInit {
   ] as const;
 
   private readonly draftDebounce = new Subject<void>();
-  readonly saveStatus = signal<'idle' | 'saving' | 'saved' | 'error'>('idle');
-  readonly lastSavedTime = signal<string | null>(null);
+  readonly saveStatus = this.editorStore.saveStatus;
+  readonly lastSavedTime = this.editorStore.lastSavedTime;
   readonly activeDrawer = signal<'occurrence' | 'report' | null>(null);
   readonly previewOpen = signal(false);
 

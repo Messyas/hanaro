@@ -602,7 +602,7 @@ No lint/architecture command is defined in `frontend/package.json`. Add incremen
 
 | ID | Priority | Status | Finding and acceptance outcome |
 | --- | --- | --- | --- |
-| FE-SOLID-01 | P1 | In progress — export coordinator/download adapter and export API client extracted | Split Reports vertically. The route shell no longer owns export polling, DOM download, source mutation, and every editor section; current URLs and behavior remain unchanged. |
+| FE-SOLID-01 | P1 | In progress — export, API client, history and draft state extracted | Split Reports vertically. The route shell no longer owns export polling, DOM download, source mutation, and every editor section; current URLs and behavior remain unchanged. |
 | FE-SOLID-02 | P1 | Not started | Remove obsolete Executions datepicker code and split list/detail/manual upload. Shared date-range behavior owns calendar tests. |
 | FE-SOLID-03 | P1 | Not started | Replace `GovernanceService` with capability clients/ports and typed DTOs/discriminated commands. `object`, `string` command, and arbitrary record parameters disappear from public APIs. |
 | FE-SOLID-04 | P1 | In progress — execution row control completed | Fix keyboard access for Executions rows and standardize accessible dialog focus behavior across main screens. |
@@ -643,7 +643,7 @@ Acceptance: no public application function in the scanned set has more than thre
 ### Phase 2 — Reports pilot
 
 - Extract presentational components first.
-- [x] Expand the route-scoped `ReportEditorStore` to own version-history state, without turning it into another god object.
+- [x] Expand the route-scoped `ReportEditorStore` to own version-history, draft, and save-status state, without turning it into another god object.
 - Extract source selection, publication/version, export coordinator, and browser download adapter.
 - Split the data-access service by capability.
 

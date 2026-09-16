@@ -3,6 +3,11 @@ import { Page, PeriodClosePreview, ReportPreview, ReportVersion } from './report
 
 @Injectable()
 export class ReportEditorStore {
+  readonly draftTitle = signal('');
+  readonly draftDescription = signal('');
+  readonly saving = signal(false);
+  readonly saveStatus = signal<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  readonly lastSavedTime = signal<string | null>(null);
   readonly historical = signal<ReportVersion | null>(null);
   readonly versions = signal<ReportVersion[]>([]);
   readonly versionsPage = signal<Page<ReportVersion> | null>(null);
@@ -33,6 +38,11 @@ export class ReportEditorStore {
     this.previewLoading.set(false);
   }
   reset(): void {
+    this.draftTitle.set('');
+    this.draftDescription.set('');
+    this.saving.set(false);
+    this.saveStatus.set('idle');
+    this.lastSavedTime.set(null);
     this.historical.set(null);
     this.versions.set([]);
     this.versionsPage.set(null);
