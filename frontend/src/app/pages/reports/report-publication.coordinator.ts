@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { ReportDetail, ReportVersion } from './reports.models';
+import { Page, ReportCandidateQuery, ReportDetail, ReportVersion } from './reports.models';
 import { ReportsService } from './reports.service';
 
 @Injectable({ providedIn: 'root' })
@@ -17,5 +17,9 @@ export class ReportPublicationCoordinator {
 
   version(reportId: string, revision: number): Observable<ReportVersion> {
     return this.service.version(reportId, revision);
+  }
+
+  versions(reportId: string, query: ReportCandidateQuery): Observable<Page<ReportVersion>> {
+    return this.service.versions(reportId, query);
   }
 }

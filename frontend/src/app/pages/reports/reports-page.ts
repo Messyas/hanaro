@@ -600,7 +600,7 @@ export class ReportsPage implements OnInit {
       this.loadCandidates();
       this.refreshPreview();
     }
-    this.service
+    this.publication
       .versions(reportId, { page: this.versionPage(), pageSize: this.candidatePageSize })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({

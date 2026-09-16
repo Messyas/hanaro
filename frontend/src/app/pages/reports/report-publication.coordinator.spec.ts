@@ -31,4 +31,20 @@ describe('ReportPublicationCoordinator', () => {
 
     expect(service.version).toHaveBeenCalledWith('report-1', 3);
   });
+
+  it('loads the paginated version history', () => {
+    const page = { items: [{ id: 'version-1' }] } as never;
+    const service = {
+      publish: vi.fn(),
+      version: vi.fn(),
+      versions: vi.fn().mockReturnValue(of(page)),
+    } as unknown as ReportsService;
+    const coordinator = new ReportPublicationCoordinator(service);
+
+    coordinator
+      .versions('report-1', { page: 2, pageSize: 25 })
+      .subscribe((result) => expect(result).toBe(page));
+
+    expect(service.versions).toHaveBeenCalledWith('report-1', { page: 2, pageSize: 25 });
+  });
 });
