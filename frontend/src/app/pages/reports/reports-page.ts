@@ -29,6 +29,7 @@ import { ReportEditorStore } from './report-editor.store';
 import { ReportExportCoordinator } from './report-export.coordinator';
 import { ReportListStore } from './report-list.store';
 import { ReportHistoryDrawer } from './report-history-drawer';
+import { ReportPublicationCoordinator } from './report-publication.coordinator';
 import { ReportSourceSelectionCoordinator } from './report-source-selection.coordinator';
 import {
   EligibleAction,
@@ -331,6 +332,7 @@ export class ReportsPage implements OnInit {
   );
   private readonly service = inject(ReportsService);
   private readonly exportCoordinator = inject(ReportExportCoordinator);
+  private readonly publication = inject(ReportPublicationCoordinator);
   private readonly sourceSelection = inject(ReportSourceSelectionCoordinator);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -1114,8 +1116,8 @@ export class ReportsPage implements OnInit {
     const report = this.active();
     if (!report) return;
     this.saving.set(true);
-    this.service
-      .publish(report.id, report.version, report.report_kind === 'PERIOD_CLOSE' ? '2' : '1')
+    this.publication
+      .publish(report)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
@@ -1181,7 +1183,7 @@ export class ReportsPage implements OnInit {
     this.export(version, format, this.exportOptionsFor(version.id));
   }
   viewVersion(reportId: string, revision: number): void {
-    this.service
+    this.publication
       .version(reportId, revision)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
