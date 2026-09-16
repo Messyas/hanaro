@@ -105,6 +105,12 @@ export class ReportEditorStore {
       this.selectedReports.set(new Set());
     }
   }
+  openPreview(): void {
+    this.previewOpen.set(true);
+  }
+  closePreview(): void {
+    this.previewOpen.set(false);
+  }
   setExportJob(versionId: string, job: ExportJob): void {
     const key = `${versionId}:${job.format}`;
     this.exportJobs.update((jobs) => ({ ...jobs, [key]: job }));

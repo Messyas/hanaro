@@ -124,4 +124,18 @@ describe('ReportEditorStore', () => {
     expect(store.exportOptionsFor('version-1', 'pt').language).toBe('en');
     expect(store.exportFormatFor('version-1')).toBe('CSV');
   });
+
+  it('owns preview visibility and stale transitions', () => {
+    const store = TestBed.configureTestingModule({ providers: [ReportEditorStore] }).inject(
+      ReportEditorStore,
+    );
+
+    store.openPreview();
+    store.markPreviewStale();
+    expect(store.previewOpen()).toBe(true);
+    expect(store.previewStale()).toBe(true);
+
+    store.closePreview();
+    expect(store.previewOpen()).toBe(false);
+  });
 });

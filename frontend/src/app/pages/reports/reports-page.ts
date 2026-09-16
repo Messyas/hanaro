@@ -537,7 +537,7 @@ export class ReportsPage implements OnInit {
   openReport(reportId: string, navigate = true, preserveError = false): void {
     const loadToken = ++this.workspaceLoadToken;
     if (!preserveError) this.workspaceError.set(null);
-    this.previewLoading.set(true);
+    this.editorStore.beginPreviewLoad();
     if (navigate) this.router.navigate(['/relatorios', reportId]);
     this.service
       .get(reportId)
@@ -562,7 +562,7 @@ export class ReportsPage implements OnInit {
         error: (error) => {
           if (loadToken !== this.workspaceLoadToken) return;
           this.workspaceError.set(this.message(error));
-          this.previewLoading.set(false);
+          this.editorStore.failPreviewLoad();
         },
       });
   }
@@ -574,7 +574,7 @@ export class ReportsPage implements OnInit {
       return;
     this.workspaceLoadToken++;
     this.editorStore.reset();
-    this.previewOpen.set(false);
+    this.editorStore.closePreview();
     this.active.set(null);
     this.router.navigate(['/relatorios']);
     this.loadReports();
@@ -733,13 +733,13 @@ export class ReportsPage implements OnInit {
   }
   onTitleChange(value: string): void {
     this.draftTitle.set(value);
-    this.previewStale.set(true);
+    this.editorStore.markPreviewStale();
     this.saveStatus.set('saving');
     this.draftDebounce.next();
   }
   onDescriptionChange(value: string): void {
     this.draftDescription.set(value);
-    this.previewStale.set(true);
+    this.editorStore.markPreviewStale();
     this.saveStatus.set('saving');
     this.draftDebounce.next();
   }
@@ -751,7 +751,10 @@ export class ReportsPage implements OnInit {
     this.activeDrawer.set(null);
   }
   closePreview(): void {
-    this.previewOpen.set(false);
+    this.editorStore.closePreview();
+  }
+  openPreview(): void {
+    this.editorStore.openPreview();
   }
   onDrawerSearch(kind: 'occurrence' | 'report', value: string): void {
     if (kind === 'occurrence') {
@@ -845,7 +848,7 @@ export class ReportsPage implements OnInit {
     value: string | boolean,
   ): void {
     this.scopeDraft.update((scope) => (scope ? { ...scope, [field]: value } : scope));
-    this.previewStale.set(true);
+    this.editorStore.markPreviewStale();
   }
   setScopeFilter(field: keyof ReportScope['filters'], value: string): void {
     const values = [
@@ -859,7 +862,7 @@ export class ReportsPage implements OnInit {
     this.scopeDraft.update((scope) =>
       scope ? { ...scope, filters: { ...scope.filters, [field]: values } } : scope,
     );
-    this.previewStale.set(true);
+    this.editorStore.markPreviewStale();
   }
   saveScope(): void {
     const report = this.active();
@@ -890,7 +893,7 @@ export class ReportsPage implements OnInit {
     const sections = report.sections.map((section) =>
       section.id === sectionId ? { ...section, enabled } : section,
     );
-    this.previewStale.set(true);
+    this.editorStore.markPreviewStale();
     this.saving.set(true);
     this.service
       .replaceSections(report.id, report.version, sections)
@@ -925,7 +928,7 @@ export class ReportsPage implements OnInit {
   private persistSections(sections: ReportDetail['sections']): void {
     const report = this.active();
     if (!report) return;
-    this.previewStale.set(true);
+    this.editorStore.markPreviewStale();
     this.saving.set(true);
     this.service
       .replaceSections(report.id, report.version, sections)
@@ -944,7 +947,7 @@ export class ReportsPage implements OnInit {
     if (!report || this.saving()) return;
     const ids = new Set(report.action_source_ids);
     selected ? ids.add(actionId) : ids.delete(actionId);
-    this.previewStale.set(true);
+    this.editorStore.markPreviewStale();
     this.saving.set(true);
     this.service
       .replaceActionSources(report.id, report.version, [...ids])
@@ -986,7 +989,7 @@ export class ReportsPage implements OnInit {
         captured_at: null,
       });
     }
-    this.previewStale.set(true);
+    this.editorStore.markPreviewStale();
     this.saving.set(true);
     this.service
       .replaceEvidenceSources(report.id, report.version, selectedSources)
@@ -1019,7 +1022,7 @@ export class ReportsPage implements OnInit {
       return { ...source, caption: value };
     });
     this.active.set({ ...report, evidence_sources: evidence });
-    this.previewStale.set(true);
+    this.editorStore.markPreviewStale();
     this.saving.set(true);
     this.service
       .replaceEvidenceSources(
