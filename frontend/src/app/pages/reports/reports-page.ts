@@ -403,7 +403,7 @@ export class ReportsPage implements OnInit {
   readonly saveStatus = this.editorStore.saveStatus;
   readonly lastSavedTime = this.editorStore.lastSavedTime;
   readonly activeDrawer = this.editorStore.activeDrawer;
-  readonly previewOpen = signal(false);
+  readonly previewOpen = this.editorStore.previewOpen;
 
   ngOnInit(): void {
     this.governance

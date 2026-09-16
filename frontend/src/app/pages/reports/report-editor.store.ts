@@ -54,6 +54,7 @@ export class ReportEditorStore {
   readonly dossierPreview = signal<ReportPreview | null>(null);
   readonly previewLoading = signal(false);
   readonly previewStale = signal(false);
+  readonly previewOpen = signal(false);
   readonly hasPreview = computed(() => !!this.periodPreview() || !!this.dossierPreview());
 
   beginPreviewLoad(): void {
@@ -113,5 +114,6 @@ export class ReportEditorStore {
     this.dossierPreview.set(null);
     this.previewLoading.set(false);
     this.previewStale.set(false);
+    this.previewOpen.set(false);
   }
 }
