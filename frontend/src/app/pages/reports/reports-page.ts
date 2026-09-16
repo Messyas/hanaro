@@ -358,11 +358,11 @@ export class ReportsPage implements OnInit {
   readonly createPeriodFrom = this.listStore.createPeriodFrom;
   readonly createPeriodTo = this.listStore.createPeriodTo;
   readonly creating = this.listStore.creating;
-  readonly active = signal<ReportDetail | null>(null);
+  readonly active = this.editorStore.active;
   readonly draftTitle = this.editorStore.draftTitle;
   readonly draftDescription = this.editorStore.draftDescription;
   readonly saving = this.editorStore.saving;
-  readonly workspaceError = signal<string | null>(null);
+  readonly workspaceError = this.editorStore.workspaceError;
   readonly eligible = this.editorStore.eligible;
   readonly occurrenceCandidates = this.editorStore.occurrenceCandidates;
   readonly occurrencePage = this.editorStore.occurrencePage;

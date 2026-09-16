@@ -9,6 +9,7 @@ import {
   Page,
   PeriodClosePreview,
   ReportAnalytics,
+  ReportDetail,
   ReportPreview,
   ReportListItem,
   ReportScope,
@@ -17,6 +18,8 @@ import {
 
 @Injectable()
 export class ReportEditorStore {
+  readonly active = signal<ReportDetail | null>(null);
+  readonly workspaceError = signal<string | null>(null);
   readonly exportOptionsByVersion = signal<Record<string, ExportOptions>>({});
   readonly exportFormats = signal<Record<string, ExportFormat>>({});
   readonly exportJobs = signal<Record<string, ExportJob>>({});
@@ -77,6 +80,8 @@ export class ReportEditorStore {
     this.previewLoading.set(false);
   }
   reset(): void {
+    this.active.set(null);
+    this.workspaceError.set(null);
     this.exportOptionsByVersion.set({});
     this.exportFormats.set({});
     this.exportJobs.set({});
