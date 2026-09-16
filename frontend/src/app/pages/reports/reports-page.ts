@@ -10,7 +10,7 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subject, debounceTime, distinctUntilChanged, switchMap, takeWhile, timer } from 'rxjs';
+import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { LanguageService } from '../../i18n/language.service';
 import { ListFilterInput } from '../../shared/list-filters/list-filter-input';
 import { ListFilterPopover } from '../../shared/list-filters/list-filter-popover';
@@ -26,6 +26,7 @@ import { GovernanceService } from '../governance.service';
 import { workflowCopy } from '../governance-copy';
 import { ReportPreview as ReportPreviewComponent } from './report-preview/report-preview';
 import { ReportEditorStore } from './report-editor.store';
+import { ReportExportCoordinator } from './report-export.coordinator';
 import {
   EligibleAction,
   EligibleEvidence,
@@ -324,6 +325,7 @@ export class ReportsPage implements OnInit {
         this.draftDescription().trim() !== this.active()!.description),
   );
   private readonly service = inject(ReportsService);
+  private readonly exportCoordinator = inject(ReportExportCoordinator);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
@@ -1143,8 +1145,8 @@ export class ReportsPage implements OnInit {
   ): void {
     const key = `${version.id}:${format}`;
     if (['QUEUED', 'RUNNING'].includes(this.exportJobs()[key]?.status)) return;
-    this.service
-      .requestExport(
+    this.exportCoordinator
+      .request(
         version.id,
         format,
         options,
@@ -1207,8 +1209,8 @@ export class ReportsPage implements OnInit {
       });
   }
   private restoreExports(versionId: string): void {
-    this.service
-      .exportHistory(versionId)
+    this.exportCoordinator
+      .history(versionId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (page) => {
@@ -1222,12 +1224,9 @@ export class ReportsPage implements OnInit {
       });
   }
   private pollExport(key: string, jobId: string): void {
-    timer(0, 1500)
-      .pipe(
-        switchMap(() => this.service.exportStatus(jobId)),
-        takeWhile((job) => job.status === 'QUEUED' || job.status === 'RUNNING', true),
-        takeUntilDestroyed(this.destroyRef),
-      )
+    this.exportCoordinator
+      .poll(jobId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (job) => this.setJob(key, job),
         error: (error) => this.workspaceError.set(this.message(error)),
@@ -1235,18 +1234,10 @@ export class ReportsPage implements OnInit {
   }
   download(job: ExportJob): void {
     if (!job.artifact) return;
-    this.service
-      .download(job.id)
+    this.exportCoordinator
+      .download(job)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (blob) => {
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = job.artifact?.filename ?? 'report';
-          link.click();
-          URL.revokeObjectURL(url);
-        },
         error: (error) => this.workspaceError.set(this.message(error)),
       });
   }
