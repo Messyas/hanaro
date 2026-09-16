@@ -484,7 +484,7 @@ Acceptance: no duplicate calendar logic, no long public signature, equivalent po
 
 #### WP4 — Reports contracts and Builder
 
-- [ ] Add `UpdateReportCommand`, `ReportSourceMutationCommand`, candidate queries, and export request types in `domain`.
+- [x] Add `UpdateReportCommand`, `ReportSourceMutationCommand`, candidate queries, and export request types in `domain`.
 - [x] Implement `ReportExportRequestBuilder` with immutable output and focused unit tests for defaults, schema version, options copying, and retry behavior.
 - [x] Extract `ReportExportCoordinator` for polling and `BrowserDownloadPort` for download/object URL behavior.
 - [x] Split Reports export data access into its own capability client.

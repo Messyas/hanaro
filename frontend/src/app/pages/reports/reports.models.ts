@@ -55,6 +55,30 @@ export interface CreateReportInput {
   content_schema_version?: number;
   scope?: ReportScope;
 }
+
+export interface UpdateReportCommand {
+  readonly reportId: string;
+  readonly expectedVersion: number;
+  readonly title: string;
+  readonly description: string;
+}
+
+export type ReportSourceMutationCommand =
+  | {
+      readonly kind: 'occurrence';
+      readonly operation: 'add' | 'remove' | 'replace';
+      readonly reportId: string;
+      readonly expectedVersion: number;
+      readonly ids: string[];
+    }
+  | {
+      readonly kind: 'report';
+      readonly operation: 'add' | 'remove' | 'replace';
+      readonly reportId: string;
+      readonly expectedVersion: number;
+      readonly ids: string[];
+    };
+
 export interface ExportOptions {
   language: 'pt' | 'en' | 'ko';
   include_money: boolean;

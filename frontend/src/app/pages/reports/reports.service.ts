@@ -16,6 +16,8 @@ import {
   ReportSection,
   ReportScope,
   ReportVersion,
+  ReportSourceMutationCommand,
+  UpdateReportCommand,
 } from './reports.models';
 import { serializeReportCandidateQuery } from './report-candidate-query.params';
 
@@ -56,16 +58,11 @@ export class ReportsService {
     return this.http.get<PeriodClosePreview>(`${this.base}/${reportId}/preview`);
   }
 
-  update(
-    reportId: string,
-    expectedVersion: number,
-    title: string,
-    description: string,
-  ): Observable<ReportDetail> {
-    return this.http.patch<ReportDetail>(`${this.base}/${reportId}`, {
-      expected_version: expectedVersion,
-      title,
-      description,
+  update(command: UpdateReportCommand): Observable<ReportDetail> {
+    return this.http.patch<ReportDetail>(`${this.base}/${command.reportId}`, {
+      expected_version: command.expectedVersion,
+      title: command.title,
+      description: command.description,
     });
   }
 
@@ -146,17 +143,14 @@ export class ReportsService {
     });
   }
 
-  mutateSources(
-    reportId: string,
-    kind: 'occurrence' | 'report',
-    operation: 'add' | 'remove' | 'replace',
-    expectedVersion: number,
-    ids: string[],
-  ): Observable<ReportDetail> {
-    return this.http.put<ReportDetail>(`${this.base}/${reportId}/${kind}-sources/${operation}`, {
-      expected_version: expectedVersion,
-      ids,
-    });
+  mutateSources(command: ReportSourceMutationCommand): Observable<ReportDetail> {
+    return this.http.put<ReportDetail>(
+      `${this.base}/${command.reportId}/${command.kind}-sources/${command.operation}`,
+      {
+        expected_version: command.expectedVersion,
+        ids: command.ids,
+      },
+    );
   }
 
   eligibleOccurrences(query: ReportCandidateQuery): Observable<Page<EligibleOccurrence>> {

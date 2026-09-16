@@ -724,7 +724,13 @@ export class ReportsPage implements OnInit {
     this.saving.set(true);
     this.workspaceError.set(null);
     this.service
-      .mutateSources(report.id, kind, operation, report.version, ids)
+      .mutateSources({
+        reportId: report.id,
+        kind,
+        operation,
+        expectedVersion: report.version,
+        ids,
+      })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (updated) => {
@@ -811,7 +817,12 @@ export class ReportsPage implements OnInit {
     this.saveStatus.set('saving');
     this.workspaceError.set(null);
     this.service
-      .update(report.id, report.version, this.draftTitle().trim(), this.draftDescription().trim())
+      .update({
+        reportId: report.id,
+        expectedVersion: report.version,
+        title: this.draftTitle().trim(),
+        description: this.draftDescription().trim(),
+      })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (updated) => {

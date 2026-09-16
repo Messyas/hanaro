@@ -36,7 +36,15 @@ describe('ReportsService', () => {
   });
 
   it('sends bulk sources with expected_version', () => {
-    service.mutateSources('report-1', 'occurrence', 'add', 7, ['occ-1', 'occ-2']).subscribe();
+    service
+      .mutateSources({
+        reportId: 'report-1',
+        kind: 'occurrence',
+        operation: 'add',
+        expectedVersion: 7,
+        ids: ['occ-1', 'occ-2'],
+      })
+      .subscribe();
     const request = http.expectOne('/api/v1/reports/report-1/occurrence-sources/add');
     expect(request.request.method).toBe('PUT');
     expect(request.request.body).toEqual({ expected_version: 7, ids: ['occ-1', 'occ-2'] });

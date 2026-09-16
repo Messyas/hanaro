@@ -139,9 +139,13 @@ describe('ReportsPage', () => {
     await fixture.whenStable();
     component.toggleSelection('occurrence', '842361c6-33dc-4f9a-9125-12e14885f360', true);
     component.addSelected('occurrence');
-    expect(service['mutateSources']).toHaveBeenCalledWith(report.id, 'occurrence', 'add', 2, [
-      '842361c6-33dc-4f9a-9125-12e14885f360',
-    ]);
+    expect(service['mutateSources']).toHaveBeenCalledWith({
+      reportId: report.id,
+      kind: 'occurrence',
+      operation: 'add',
+      expectedVersion: 2,
+      ids: ['842361c6-33dc-4f9a-9125-12e14885f360'],
+    });
   });
 
   it('reloads the current draft after an optimistic conflict', async () => {
