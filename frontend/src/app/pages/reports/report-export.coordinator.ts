@@ -35,6 +35,20 @@ export class ReportExportCoordinator {
     return this.service.history(versionId);
   }
 
+  restore(versionId: string): Observable<ExportJob[]> {
+    return new Observable((subscriber) => {
+      const subscription = this.history(versionId).subscribe({
+        next: (page) => {
+          subscriber.next([...page.items].reverse());
+          subscriber.complete();
+        },
+        error: (error) => subscriber.error(error),
+      });
+
+      return () => subscription.unsubscribe();
+    });
+  }
+
   poll(jobId: string): Observable<ExportJob> {
     return timer(0, 1500).pipe(
       switchMap(() => this.service.status(jobId)),

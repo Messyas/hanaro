@@ -1189,11 +1189,11 @@ export class ReportsPage implements OnInit {
   }
   private restoreExports(versionId: string): void {
     this.exportCoordinator
-      .history(versionId)
+      .restore(versionId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (page) => {
-          for (const job of [...page.items].reverse()) {
+        next: (jobs) => {
+          for (const job of jobs) {
             const key = `${versionId}:${job.format}`;
             this.setJob(key, job);
             if (job.status === 'QUEUED' || job.status === 'RUNNING') this.pollExport(key, job.id);
