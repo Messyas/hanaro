@@ -2,6 +2,29 @@ import { TestBed } from '@angular/core/testing';
 import { ReportEditorStore } from './report-editor.store';
 
 describe('ReportEditorStore', () => {
+  it('owns source selection transitions without mutating the active report', () => {
+    const store = TestBed.configureTestingModule({ providers: [ReportEditorStore] }).inject(
+      ReportEditorStore,
+    );
+    const report = {
+      occurrence_source_ids: ['already-added'],
+      report_source_ids: ['linked-report'],
+    } as never;
+    store.active.set(report);
+    store.eligible.set([{ id: 'already-added' }, { id: 'new-occurrence' }] as never);
+    store.sourceReports.set([{ id: 'linked-report' }, { id: 'new-report' }] as never);
+
+    store.toggleSourceSelection('occurrence', 'new-occurrence', true);
+    store.selectAllAvailableSources('report');
+
+    expect(store.selectedOccurrences()).toEqual(new Set(['new-occurrence']));
+    expect(store.selectedReports()).toEqual(new Set(['new-report']));
+    expect(store.active()).toBe(report);
+
+    store.clearSourceSelection('report');
+    expect(store.selectedReports()).toEqual(new Set());
+  });
+
   it('owns version history state and resets it with the editor', () => {
     const store = TestBed.configureTestingModule({ providers: [ReportEditorStore] }).inject(
       ReportEditorStore,

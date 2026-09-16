@@ -694,12 +694,7 @@ export class ReportsPage implements OnInit {
       });
   }
   toggleSelection(kind: 'occurrence' | 'report', id: string, checked: boolean): void {
-    const target = kind === 'occurrence' ? this.selectedOccurrences : this.selectedReports;
-    target.update((current) => {
-      const next = new Set(current);
-      checked ? next.add(id) : next.delete(id);
-      return next;
-    });
+    this.editorStore.toggleSourceSelection(kind, id, checked);
   }
   addSelected(kind: 'occurrence' | 'report'): void {
     const ids = [...(kind === 'occurrence' ? this.selectedOccurrences() : this.selectedReports())];
@@ -777,26 +772,10 @@ export class ReportsPage implements OnInit {
     this.loadCandidates();
   }
   selectAllDrawer(kind: 'occurrence' | 'report'): void {
-    const report = this.active();
-    if (!report) return;
-    if (kind === 'occurrence') {
-      const available = this.eligible()
-        .filter((item) => !report.occurrence_source_ids.includes(item.id))
-        .map((item) => item.id);
-      this.selectedOccurrences.set(new Set(available));
-    } else {
-      const available = this.sourceReports()
-        .filter((item) => !report.report_source_ids.includes(item.id))
-        .map((item) => item.id);
-      this.selectedReports.set(new Set(available));
-    }
+    this.editorStore.selectAllAvailableSources(kind);
   }
   clearDrawerSelection(kind: 'occurrence' | 'report'): void {
-    if (kind === 'occurrence') {
-      this.selectedOccurrences.set(new Set());
-    } else {
-      this.selectedReports.set(new Set());
-    }
+    this.editorStore.clearSourceSelection(kind);
   }
   addSelectedFromDrawer(kind: 'occurrence' | 'report'): void {
     this.addSelected(kind);
