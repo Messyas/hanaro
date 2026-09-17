@@ -163,6 +163,7 @@ export class ReportEditorStore {
   }
   setPeriodPreview(preview: PeriodClosePreview): void {
     this.periodPreview.set(preview);
+    this.analytics.set(preview.document.analytics);
     this.previewStale.set(false);
     this.previewLoading.set(false);
   }

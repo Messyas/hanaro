@@ -138,4 +138,16 @@ describe('ReportEditorStore', () => {
     store.closePreview();
     expect(store.previewOpen()).toBe(false);
   });
+
+  it('derives period-close analytics when storing its preview', () => {
+    const store = TestBed.configureTestingModule({ providers: [ReportEditorStore] }).inject(
+      ReportEditorStore,
+    );
+    const analytics = { occurrence_count: 3 } as never;
+
+    store.setPeriodPreview({ document: { analytics } } as never);
+
+    expect(store.analytics()).toBe(analytics);
+    expect(store.periodPreview()).toEqual({ document: { analytics } });
+  });
 });

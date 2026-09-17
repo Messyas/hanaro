@@ -615,7 +615,6 @@ export class ReportsPage implements OnInit {
       .subscribe({
         next: (preview) => {
           this.editorStore.setPeriodPreview(preview);
-          this.analytics.set(preview.document.analytics);
         },
         error: (error) => {
           this.workspaceError.set(this.message(error));
