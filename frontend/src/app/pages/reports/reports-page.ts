@@ -31,6 +31,17 @@ import { ReportListStore } from './report-list.store';
 import { ReportHistoryDrawer } from './report-history-drawer';
 import { ReportPublicationCoordinator } from './report-publication.coordinator';
 import { ReportPreviewCoordinator } from './report-preview.coordinator';
+import {
+  movePeriodCloseSection,
+  PeriodCloseScopeField,
+  setPeriodCloseSectionEnabled,
+  setPeriodCloseSectionTitle,
+  togglePeriodCloseAction,
+  togglePeriodCloseEvidence,
+  updatePeriodCloseEvidenceMetadata,
+  updatePeriodCloseScopeField,
+  updatePeriodCloseScopeFilter,
+} from './report-period-close.workspace';
 import { ReportSourceSelectionCoordinator } from './report-source-selection.coordinator';
 import {
   EligibleAction,
@@ -46,7 +57,6 @@ import {
   PeriodClosePreview,
   ReportPreview,
   ReportScope,
-  ReportEvidenceSource,
   ReportVersion,
 } from './reports.models';
 import { ReportsService } from './reports.service';
@@ -834,32 +844,12 @@ export class ReportsPage implements OnInit {
         },
       });
   }
-  setScopeField(
-    field:
-      | 'period_from'
-      | 'period_to'
-      | 'comparison_from'
-      | 'comparison_to'
-      | 'currency'
-      | 'comparison_mode'
-      | 'is_provisional',
-    value: string | boolean,
-  ): void {
-    this.scopeDraft.update((scope) => (scope ? { ...scope, [field]: value } : scope));
+  setScopeField(field: PeriodCloseScopeField, value: string | boolean): void {
+    this.scopeDraft.update((scope) => updatePeriodCloseScopeField(scope, field, value));
     this.editorStore.markPreviewStale();
   }
   setScopeFilter(field: keyof ReportScope['filters'], value: string): void {
-    const values = [
-      ...new Set(
-        value
-          .split(',')
-          .map((item) => item.trim())
-          .filter(Boolean),
-      ),
-    ];
-    this.scopeDraft.update((scope) =>
-      scope ? { ...scope, filters: { ...scope.filters, [field]: values } } : scope,
-    );
+    this.scopeDraft.update((scope) => updatePeriodCloseScopeFilter(scope, field, value));
     this.editorStore.markPreviewStale();
   }
   saveScope(): void {
@@ -888,9 +878,7 @@ export class ReportsPage implements OnInit {
   toggleSection(sectionId: string | undefined, enabled: boolean): void {
     const report = this.active();
     if (!report || !sectionId || this.saving()) return;
-    const sections = report.sections.map((section) =>
-      section.id === sectionId ? { ...section, enabled } : section,
-    );
+    const sections = setPeriodCloseSectionEnabled(report.sections, sectionId, enabled);
     this.editorStore.markPreviewStale();
     this.saving.set(true);
     this.service
@@ -908,19 +896,14 @@ export class ReportsPage implements OnInit {
   updateSectionTitle(sectionId: string | undefined, title: string): void {
     const report = this.active();
     if (!report || !sectionId || this.saving()) return;
-    const sections = report.sections.map((section) =>
-      section.id === sectionId ? { ...section, title } : section,
-    );
+    const sections = setPeriodCloseSectionTitle(report.sections, sectionId, title);
     this.persistSections(sections);
   }
   moveSection(sectionId: string | undefined, direction: -1 | 1): void {
     const report = this.active();
     if (!report || !sectionId || this.saving()) return;
-    const index = report.sections.findIndex((section) => section.id === sectionId);
-    const target = index + direction;
-    if (index < 0 || target < 0 || target >= report.sections.length) return;
-    const sections = [...report.sections];
-    [sections[index], sections[target]] = [sections[target], sections[index]];
+    const sections = movePeriodCloseSection(report.sections, sectionId, direction);
+    if (sections === report.sections) return;
     this.persistSections(sections);
   }
   private persistSections(sections: ReportDetail['sections']): void {
@@ -943,12 +926,11 @@ export class ReportsPage implements OnInit {
   toggleAction(actionId: string, selected: boolean): void {
     const report = this.active();
     if (!report || this.saving()) return;
-    const ids = new Set(report.action_source_ids);
-    selected ? ids.add(actionId) : ids.delete(actionId);
+    const ids = togglePeriodCloseAction(report.action_source_ids, actionId, selected);
     this.editorStore.markPreviewStale();
     this.saving.set(true);
     this.service
-      .replaceActionSources(report.id, report.version, [...ids])
+      .replaceActionSources(report.id, report.version, ids)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (updated) => {
@@ -962,30 +944,10 @@ export class ReportsPage implements OnInit {
   toggleEvidence(candidate: EligibleEvidence, selected: boolean): void {
     const report = this.active();
     if (!report || this.saving()) return;
-    const section = report.sections.find((item) => item.kind === 'EVIDENCE');
-    if (!section) {
+    const selectedSources = togglePeriodCloseEvidence(report, candidate, selected);
+    if (!selectedSources) {
       this.workspaceError.set('Adicione uma seção de evidências antes de selecionar imagens.');
       return;
-    }
-    const selectedSources = report.evidence_sources
-      .filter((item) => item.review_attachment_id !== candidate.id)
-      .map((item) => ({
-        section_key: item.section_key,
-        review_attachment_id: item.review_attachment_id,
-        published_evidence_id: item.published_evidence_id,
-        caption: item.caption,
-        role: item.role,
-        captured_at: item.captured_at,
-      }));
-    if (selected) {
-      selectedSources.push({
-        section_key: section.section_key,
-        review_attachment_id: candidate.id,
-        published_evidence_id: null,
-        caption: candidate.item_description || candidate.review_title || candidate.filename,
-        role: 'CONTEXT',
-        captured_at: null,
-      });
     }
     this.editorStore.markPreviewStale();
     this.saving.set(true);
@@ -1013,12 +975,12 @@ export class ReportsPage implements OnInit {
   ): void {
     const report = this.active();
     if (!report || this.saving()) return;
-    const evidence = report.evidence_sources.map((source) => {
-      if (source.id !== sourceId) return source;
-      if (field === 'role') return { ...source, role: value as ReportEvidenceSource['role'] };
-      if (field === 'captured_at') return { ...source, captured_at: value || null };
-      return { ...source, caption: value };
-    });
+    const evidence = updatePeriodCloseEvidenceMetadata(
+      report.evidence_sources,
+      sourceId,
+      field,
+      value,
+    );
     this.active.set({ ...report, evidence_sources: evidence });
     this.editorStore.markPreviewStale();
     this.saving.set(true);
