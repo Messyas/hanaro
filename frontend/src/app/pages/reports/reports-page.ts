@@ -30,6 +30,7 @@ import { ReportExportCoordinator } from './report-export.coordinator';
 import { ReportListStore } from './report-list.store';
 import { ReportHistoryDrawer } from './report-history-drawer';
 import { ReportPublicationCoordinator } from './report-publication.coordinator';
+import { ReportPreviewCoordinator } from './report-preview.coordinator';
 import { ReportSourceSelectionCoordinator } from './report-source-selection.coordinator';
 import {
   EligibleAction,
@@ -325,6 +326,7 @@ export class ReportsPage implements OnInit {
   private readonly service = inject(ReportsService);
   private readonly exportCoordinator = inject(ReportExportCoordinator);
   private readonly publication = inject(ReportPublicationCoordinator);
+  private readonly previewCoordinator = inject(ReportPreviewCoordinator);
   private readonly sourceSelection = inject(ReportSourceSelectionCoordinator);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -607,8 +609,8 @@ export class ReportsPage implements OnInit {
   loadAnalytics(reportId = this.active()?.id): void {
     if (!reportId) return;
     this.editorStore.beginPreviewLoad();
-    this.service
-      .periodClosePreview(reportId)
+    this.previewCoordinator
+      .loadPeriodClose(reportId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (preview) => {
@@ -823,8 +825,8 @@ export class ReportsPage implements OnInit {
     const report = this.active();
     if (!report) return;
     this.editorStore.beginPreviewLoad();
-    this.service
-      .preview(report.id)
+    this.previewCoordinator
+      .loadDossier(report.id)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (preview) => {
