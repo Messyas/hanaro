@@ -150,4 +150,16 @@ describe('ReportEditorStore', () => {
     expect(store.analytics()).toBe(analytics);
     expect(store.periodPreview()).toEqual({ document: { analytics } });
   });
+
+  it('clears preview loading and records a preview error', () => {
+    const store = TestBed.configureTestingModule({ providers: [ReportEditorStore] }).inject(
+      ReportEditorStore,
+    );
+    store.beginPreviewLoad();
+
+    store.failPreviewLoad('Preview unavailable');
+
+    expect(store.previewLoading()).toBe(false);
+    expect(store.workspaceError()).toBe('Preview unavailable');
+  });
 });

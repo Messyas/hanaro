@@ -563,8 +563,7 @@ export class ReportsPage implements OnInit {
         },
         error: (error) => {
           if (loadToken !== this.workspaceLoadToken) return;
-          this.workspaceError.set(this.message(error));
-          this.editorStore.failPreviewLoad();
+          this.editorStore.failPreviewLoad(this.message(error));
         },
       });
   }
@@ -617,8 +616,7 @@ export class ReportsPage implements OnInit {
           this.editorStore.setPeriodPreview(preview);
         },
         error: (error) => {
-          this.workspaceError.set(this.message(error));
-          this.editorStore.failPreviewLoad();
+          this.editorStore.failPreviewLoad(this.message(error));
         },
       });
   }
@@ -832,8 +830,7 @@ export class ReportsPage implements OnInit {
           this.editorStore.setDossierPreview(preview);
         },
         error: (error) => {
-          this.workspaceError.set(this.message(error));
-          this.editorStore.failPreviewLoad();
+          this.editorStore.failPreviewLoad(this.message(error));
         },
       });
   }

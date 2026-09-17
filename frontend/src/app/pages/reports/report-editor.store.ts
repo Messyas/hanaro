@@ -175,8 +175,9 @@ export class ReportEditorStore {
   markPreviewStale(): void {
     this.previewStale.set(true);
   }
-  failPreviewLoad(): void {
+  failPreviewLoad(message?: string): void {
     this.previewLoading.set(false);
+    if (message) this.workspaceError.set(message);
   }
   reset(): void {
     this.active.set(null);
