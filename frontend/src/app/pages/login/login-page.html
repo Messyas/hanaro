@@ -1,0 +1,10 @@
+<main class="login-page">
+  <div class="login-page-content">
+    <header class="login-page-brand" aria-label="Hanaro">
+      <img [src]="markSrc()" alt="" width="48" height="48" />
+      <span>Hanaro</span>
+    </header>
+
+    <app-login-dialog [standalone]="true" (authenticated)="completeLogin()" />
+  </div>
+</main>

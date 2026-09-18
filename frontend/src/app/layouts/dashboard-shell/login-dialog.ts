@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, EventEmitter, Input, Output, computed, inject, signal } from '@angular/core';
 import { DialogRef } from '@angular/cdk/dialog';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize } from 'rxjs';
@@ -95,10 +95,14 @@ const COPY: Record<LanguageCode, LoginDialogCopy> = {
   styleUrl: './login-dialog.css',
 })
 export class LoginDialog {
-  private readonly dialogRef = inject<DialogRef<boolean>>(DialogRef);
+  private readonly dialogRef = inject<DialogRef<boolean> | null>(DialogRef, { optional: true });
   private readonly auth = inject(AuthService);
   private readonly formBuilder = inject(FormBuilder);
   readonly language = inject(LanguageService);
+
+  /** Reaproveita o mesmo formulário no acesso dedicado, sem os controles da modal. */
+  @Input() standalone = false;
+  @Output() authenticated = new EventEmitter<void>();
 
   readonly copy = computed(() => COPY[this.language.currentLanguage()]);
   readonly submitting = signal(false);
@@ -111,7 +115,7 @@ export class LoginDialog {
   });
 
   close(): void {
-    if (!this.submitting()) this.dialogRef.close(false);
+    if (!this.submitting()) this.dialogRef?.close(false);
   }
 
   togglePasswordVisibility(): void {
@@ -151,7 +155,11 @@ export class LoginDialog {
         next: (authenticated) => {
           if (authenticated) {
             this.form.controls.password.reset('');
-            this.dialogRef.close(true);
+            if (this.standalone) {
+              this.authenticated.emit();
+            } else {
+              this.dialogRef?.close(true);
+            }
           } else {
             this.errorMessage.set(this.copy().unavailable);
           }
