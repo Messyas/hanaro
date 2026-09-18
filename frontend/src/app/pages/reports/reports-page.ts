@@ -30,6 +30,7 @@ import { ReportExportCoordinator } from './report-export.coordinator';
 import { ReportListStore } from './report-list.store';
 import { ReportHistoryDrawer } from './report-history-drawer';
 import { ReportPublicationCoordinator } from './report-publication.coordinator';
+import { ReportPeriodCloseCoordinator } from './report-period-close.coordinator';
 import { ReportPreviewCoordinator } from './report-preview.coordinator';
 import {
   movePeriodCloseSection,
@@ -336,6 +337,7 @@ export class ReportsPage implements OnInit {
   private readonly service = inject(ReportsService);
   private readonly exportCoordinator = inject(ReportExportCoordinator);
   private readonly publication = inject(ReportPublicationCoordinator);
+  private readonly periodClose = inject(ReportPeriodCloseCoordinator);
   private readonly previewCoordinator = inject(ReportPreviewCoordinator);
   private readonly sourceSelection = inject(ReportSourceSelectionCoordinator);
   private readonly route = inject(ActivatedRoute);
@@ -633,8 +635,8 @@ export class ReportsPage implements OnInit {
   loadActionCandidates(): void {
     const report = this.active();
     if (!report || report.report_kind !== 'PERIOD_CLOSE') return;
-    this.service
-      .eligibleActions(report.factory_id, {
+    this.periodClose
+      .loadActionCandidates(report, {
         page: this.actionPage(),
         pageSize: this.candidatePageSize,
         search: this.actionSearch().trim() || undefined,
@@ -651,8 +653,8 @@ export class ReportsPage implements OnInit {
   loadEvidenceCandidates(): void {
     const report = this.active();
     if (!report || report.report_kind !== 'PERIOD_CLOSE') return;
-    this.service
-      .eligibleEvidence(report.id, {
+    this.periodClose
+      .loadEvidenceCandidates(report, {
         page: this.evidencePage(),
         pageSize: this.candidatePageSize,
         search: this.evidenceSearch().trim() || undefined,
@@ -858,8 +860,8 @@ export class ReportsPage implements OnInit {
     if (!report || !scope || this.saving()) return;
     this.saving.set(true);
     this.workspaceError.set(null);
-    this.service
-      .updateScope(report.id, report.version, scope)
+    this.periodClose
+      .updateScope(report, scope)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (updated) => {
@@ -881,8 +883,8 @@ export class ReportsPage implements OnInit {
     const sections = setPeriodCloseSectionEnabled(report.sections, sectionId, enabled);
     this.editorStore.markPreviewStale();
     this.saving.set(true);
-    this.service
-      .replaceSections(report.id, report.version, sections)
+    this.periodClose
+      .replaceSections(report, sections)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (updated) => {
@@ -911,8 +913,8 @@ export class ReportsPage implements OnInit {
     if (!report) return;
     this.editorStore.markPreviewStale();
     this.saving.set(true);
-    this.service
-      .replaceSections(report.id, report.version, sections)
+    this.periodClose
+      .replaceSections(report, sections)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (updated) => {
@@ -929,8 +931,8 @@ export class ReportsPage implements OnInit {
     const ids = togglePeriodCloseAction(report.action_source_ids, actionId, selected);
     this.editorStore.markPreviewStale();
     this.saving.set(true);
-    this.service
-      .replaceActionSources(report.id, report.version, ids)
+    this.periodClose
+      .replaceActionSources(report, ids)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (updated) => {
@@ -951,8 +953,8 @@ export class ReportsPage implements OnInit {
     }
     this.editorStore.markPreviewStale();
     this.saving.set(true);
-    this.service
-      .replaceEvidenceSources(report.id, report.version, selectedSources)
+    this.periodClose
+      .replaceEvidenceSources(report, selectedSources)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (updated) => {
@@ -984,10 +986,9 @@ export class ReportsPage implements OnInit {
     this.active.set({ ...report, evidence_sources: evidence });
     this.editorStore.markPreviewStale();
     this.saving.set(true);
-    this.service
+    this.periodClose
       .replaceEvidenceSources(
-        report.id,
-        report.version,
+        report,
         evidence.map((source) => ({
           section_key: source.section_key,
           review_attachment_id: source.review_attachment_id,
