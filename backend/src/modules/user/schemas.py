@@ -1,11 +1,13 @@
 import re
 from datetime import datetime
-from typing import Annotated, Self
+from typing import Annotated, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 from zxcvbn import zxcvbn
 
 from ..common.schemas import PersistentDeletion, TimestampSchema
+
+UserRole = Literal["gestor", "analista", "admin"]
 
 
 class UserBase(BaseModel):
@@ -24,6 +26,7 @@ class User(TimestampSchema, UserBase, PersistentDeletion):
     notification_email: EmailStr | None = None
     phone: str | None = None
     job_title: str | None = None
+    role: UserRole = "analista"
     is_superuser: bool = False
     profile_image_url: Annotated[
         str,
@@ -48,15 +51,24 @@ class UserRead(BaseModel):
     notification_email: EmailStr | None = None
     phone: str | None = None
     job_title: str | None = None
+    role: UserRole = "analista"
     profile_image_url: str
     is_deleted: bool = False
     tier_id: int | None
     is_superuser: bool = False
 
 
+class UserAdminPage(BaseModel):
+    items: list[UserRead]
+    total_items: int
+    total_pages: int
+    page: int
+
+
 class UserCreate(UserBase):
     """Schema for creating a new user."""
 
+    role: UserRole = "analista"
     password: Annotated[
         str,
         Field(
@@ -98,6 +110,7 @@ class UserCreateInternal(UserBase):
     """Internal schema for user creation with hashed password."""
 
     hashed_password: str
+    role: UserRole = "analista"
 
 
 class UserUpdate(BaseModel):
@@ -159,6 +172,19 @@ class UserTierUpdate(BaseModel):
     """Schema for updating a user's tier."""
 
     tier_id: int
+
+
+class UserStatusUpdate(BaseModel):
+    is_active: bool
+
+
+class AdminUserUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: Annotated[str, Field(min_length=2, max_length=30)]
+    username: Annotated[str, Field(min_length=2, max_length=20, pattern=r"^[a-z0-9]+$")]
+    email: EmailStr
+    role: UserRole
 
 
 class ProfileImageResponse(BaseModel):

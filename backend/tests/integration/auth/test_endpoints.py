@@ -72,6 +72,7 @@ async def test_check_auth_authenticated(client: AsyncClient):
         "username": "testuser",
         "email": "test@example.com",
         "profile_image_url": "https://example.com/avatar.jpg",
+        "role": "admin",
         "is_superuser": True,
     }
 
@@ -88,6 +89,7 @@ async def test_check_auth_authenticated(client: AsyncClient):
         assert body["user"]["id"] == 1
         assert body["user"]["name"] == "Test User"
         assert body["user"]["username"] == "testuser"
+        assert body["user"]["role"] == "admin"
         assert body["user"]["is_superuser"] is True
         assert "session" in body
     finally:

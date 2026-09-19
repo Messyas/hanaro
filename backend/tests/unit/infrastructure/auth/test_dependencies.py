@@ -11,14 +11,19 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from crudauth import Principal
 from crudauth.exceptions import ForbiddenException, UnauthorizedException
+from starlette.requests import Request
 
 from src.infrastructure.auth import dependencies as deps
+
+
+def _request(path: str = "/api/v1/scrap/executions", method: str = "GET") -> Request:
+    return Request({"type": "http", "method": method, "path": path, "headers": []})
 
 
 @pytest.mark.asyncio
 async def test_get_current_user_no_principal_raises():
     with pytest.raises(UnauthorizedException):
-        await deps.get_current_user(principal=None, db=MagicMock())
+        await deps.get_current_user(principal=None, db=MagicMock(), request=_request())
 
 
 @pytest.mark.asyncio
@@ -26,7 +31,7 @@ async def test_get_current_user_missing_row_raises():
     """A valid principal whose row is gone/soft-deleted re-loads to None → 401."""
     with patch.object(deps.crud_users, "get", new=AsyncMock(return_value=None)):
         with pytest.raises(UnauthorizedException):
-            await deps.get_current_user(principal=Principal(user_id=1), db=MagicMock())
+            await deps.get_current_user(principal=Principal(user_id=1), db=MagicMock(), request=_request())
 
 
 @pytest.mark.asyncio
@@ -34,22 +39,62 @@ async def test_get_current_user_returns_dict_and_filters_soft_deleted():
     user = {"id": 1, "username": "x", "is_superuser": False}
     mock_get = AsyncMock(return_value=user)
     with patch.object(deps.crud_users, "get", new=mock_get):
-        result = await deps.get_current_user(principal=Principal(user_id=1), db=MagicMock())
+        result = await deps.get_current_user(principal=Principal(user_id=1), db=MagicMock(), request=_request())
 
     assert result == user
     assert mock_get.call_args.kwargs.get("is_deleted") is False
 
 
 @pytest.mark.asyncio
+async def test_get_current_user_restricts_developer_admin_to_its_scope():
+    user = {"id": 1, "username": "admin", "role": "admin", "is_superuser": True}
+    with patch.object(deps.crud_users, "get", new=AsyncMock(return_value=user)):
+        with pytest.raises(ForbiddenException):
+            await deps.get_current_user(
+                principal=Principal(user_id=1),
+                db=MagicMock(),
+                request=_request("/api/v1/reports"),
+            )
+
+
+@pytest.mark.asyncio
+async def test_get_current_user_allows_developer_admin_execution_scope():
+    user = {"id": 1, "username": "admin", "role": "admin", "is_superuser": True}
+    with patch.object(deps.crud_users, "get", new=AsyncMock(return_value=user)):
+        result = await deps.get_current_user(
+            principal=Principal(user_id=1),
+            db=MagicMock(),
+            request=_request("/api/v1/scrap/executions"),
+        )
+
+    assert result == user
+
+
+@pytest.mark.asyncio
+async def test_get_current_user_allows_developer_admin_to_update_own_profile():
+    user = {"id": 1, "username": "admin", "role": "admin", "is_superuser": True}
+    with patch.object(deps.crud_users, "get", new=AsyncMock(return_value=user)):
+        result = await deps.get_current_user(
+            principal=Principal(user_id=1),
+            db=MagicMock(),
+            request=_request("/api/v1/users/admin", "PATCH"),
+        )
+
+    assert result == user
+
+
+@pytest.mark.asyncio
 async def test_get_optional_user_none_principal_returns_none():
-    assert await deps.get_optional_user(principal=None, db=MagicMock()) is None
+    assert await deps.get_optional_user(principal=None, db=MagicMock(), request=_request()) is None
 
 
 @pytest.mark.asyncio
 async def test_get_optional_user_returns_dict():
     user = {"id": 2}
     with patch.object(deps.crud_users, "get", new=AsyncMock(return_value=user)):
-        result = await deps.get_optional_user(principal=Principal(user_id=2), db=MagicMock())
+        result = await deps.get_optional_user(
+            principal=Principal(user_id=2), db=MagicMock(), request=_request()
+        )
     assert result == user
 
 

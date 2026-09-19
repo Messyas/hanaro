@@ -1,8 +1,11 @@
+from datetime import UTC, datetime
 from typing import Annotated, Any
 
-from fastapi import APIRouter, File, UploadFile
+from fastapi import APIRouter, File, Query, UploadFile
 from fastapi.responses import FileResponse
 from fastcrud import PaginatedListResponse, compute_offset, paginated_response
+from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from starlette.concurrency import run_in_threadpool
 
 from ...infrastructure.auth.http_exceptions import HTTPException
@@ -20,9 +23,12 @@ from .profile_image import (
     ProfileImageValidationError,
 )
 from .schemas import (
+    AdminUserUpdate,
     ProfileImageResponse,
+    UserAdminPage,
     UserCreate,
     UserRead,
+    UserStatusUpdate,
     UserTierUpdate,
     UserUpdate,
 )
@@ -31,6 +37,91 @@ router = APIRouter(tags=["Users"])
 logger = get_logger()
 
 UNEXPECTED_ERROR_DETAIL = "An unexpected error occurred"
+
+
+@router.get("/admin/all", response_model=UserAdminPage)
+async def list_managed_users(
+    db: AsyncSessionDep,
+    _: CurrentSuperUserDep,
+    page: Annotated[int, Query(ge=1)] = 1,
+    items_per_page: Annotated[int, Query(ge=1, le=100)] = 25,
+) -> dict[str, Any]:
+    """Page through active and inactive accounts, excluding removed accounts."""
+    from .models import User  # noqa: PLC0415
+
+    visible = User.deleted_at.is_(None)
+    total_items = (await db.execute(select(func.count(User.id)).where(visible))).scalar_one()
+    result = await db.execute(
+        select(User).where(visible).order_by(User.name, User.id)
+        .offset((page - 1) * items_per_page).limit(items_per_page)
+    )
+    return {
+        "items": list(result.scalars().all()),
+        "total_items": total_items,
+        "total_pages": (total_items + items_per_page - 1) // items_per_page,
+        "page": page,
+    }
+
+
+@router.patch("/admin/{user_id}/status", response_model=UserRead)
+async def set_managed_user_status(
+    user_id: int, values: UserStatusUpdate, db: AsyncSessionDep, admin: CurrentSuperUserDep,
+) -> Any:
+    from .models import User  # noqa: PLC0415
+
+    user = await db.get(User, user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.deleted_at is not None:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.id == admin["id"]:
+        raise HTTPException(status_code=403, detail="You cannot deactivate your own account")
+    user.is_deleted = not values.is_active
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+
+@router.patch("/admin/{user_id}", response_model=UserRead)
+async def update_managed_user(
+    user_id: int, values: AdminUserUpdate, db: AsyncSessionDep, admin: CurrentSuperUserDep,
+) -> Any:
+    """Update account identity and managed role together."""
+    from .models import User  # noqa: PLC0415
+
+    user = await db.get(User, user_id)
+    if user is None or user.deleted_at is not None:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.id == admin["id"] and values.role != "admin":
+        raise HTTPException(status_code=403, detail="You cannot remove your own administrator access")
+
+    user.name = values.name
+    user.username = values.username
+    user.email = str(values.email)
+    user.role = values.role
+    user.is_superuser = values.role == "admin"
+    try:
+        await db.commit()
+    except IntegrityError as error:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="Username or email already exists") from error
+    await db.refresh(user)
+    return user
+
+
+@router.delete("/admin/{user_id}", status_code=204)
+async def remove_managed_user(user_id: int, db: AsyncSessionDep, admin: CurrentSuperUserDep) -> None:
+    from .models import User  # noqa: PLC0415
+
+    user = await db.get(User, user_id)
+    if user is None or user.deleted_at is not None:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.id == admin["id"]:
+        raise HTTPException(status_code=403, detail="You cannot delete your own account")
+    # Preserve references from reports and audit records.
+    user.is_deleted = True
+    user.deleted_at = datetime.now(UTC)
+    await db.commit()
 
 
 @router.post(
@@ -67,7 +158,17 @@ async def create_user(
 ) -> dict[str, Any]:
     """Create a new user account (administrators only)."""
     try:
-        return await user_service.create(user, db)
+        created = await user_service.create(user, db)
+        if user.role == "admin":
+            from .models import User  # noqa: PLC0415
+
+            created_model = await db.get(User, created["id"])
+            if created_model is not None:
+                created_model.is_superuser = True
+                await db.commit()
+                await db.refresh(created_model)
+                return UserRead.model_validate(created_model, from_attributes=True).model_dump()
+        return created
     except Exception as e:
         http_exception = handle_exception(e)
         if http_exception:
@@ -402,6 +503,9 @@ async def delete_user_account(
         if user is None:
             raise HTTPException(status_code=404, detail=f"User with username {username} not found")
 
+        if user["is_superuser"]:
+            raise HTTPException(status_code=403, detail="Superuser accounts cannot be deactivated")
+
         await user_service.verify_user_permission(current_user, username, "delete this account")
         await user_service.delete(user["id"], db)
         return {"message": "User account deactivated"}
@@ -458,6 +562,8 @@ async def gdpr_delete_user(
         user = await user_service.get_active_and_inactive_by_username(username, db)
         if user is None:
             raise HTTPException(status_code=404, detail=f"User with username {username} not found")
+        if user["is_superuser"]:
+            raise HTTPException(status_code=403, detail="Superuser accounts cannot be deleted")
         await user_service.anonymize_user(user["id"], db)
         return {"message": "User data anonymized in compliance with GDPR"}
     except Exception as e:

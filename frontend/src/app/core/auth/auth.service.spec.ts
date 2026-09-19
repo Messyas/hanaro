@@ -11,6 +11,7 @@ const USER: AuthUser = {
   notification_email: null,
   phone: null,
   job_title: null,
+  role: 'analista',
   profile_image_url: null,
   is_superuser: false,
 };

@@ -180,6 +180,7 @@ async def check_auth(
                 "notification_email": user.get("notification_email"),
                 "phone": user.get("phone"),
                 "job_title": user.get("job_title"),
+                "role": user.get("role", "admin" if user.get("is_superuser", False) else "analista"),
                 "profile_image_url": user.get("profile_image_url"),
                 "is_superuser": bool(user.get("is_superuser", False)),
             },

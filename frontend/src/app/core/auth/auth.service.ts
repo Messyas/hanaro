@@ -10,6 +10,7 @@ export interface AuthUser {
   notification_email: string | null;
   phone: string | null;
   job_title: string | null;
+  role: 'gestor' | 'analista' | 'admin';
   profile_image_url: string | null;
   is_superuser: boolean;
 }

@@ -11,12 +11,40 @@ from typing import Annotated, Any
 
 from crudauth import Principal
 from crudauth.exceptions import ForbiddenException, UnauthorizedException
-from fastapi import Depends
+from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...modules.user.crud import crud_users
 from ..database.session import async_session
 from .setup import auth
+
+_ADMIN_ALLOWED_API_PREFIXES = (
+    "/api/v1/scrap/executions",
+    "/api/v1/scrap/manual-ingestions",
+    "/api/v1/users/admin/",
+)
+_ADMIN_ALLOWED_USER_COLLECTION = "/api/v1/users/"
+
+
+def _assert_admin_scope(user: dict[str, Any], request: Request) -> None:
+    """Restrict developer administrators to users, executions and their own profile APIs."""
+    if user.get("role") != "admin":
+        return
+
+    path = request.url.path
+    if path.startswith(_ADMIN_ALLOWED_API_PREFIXES):
+        return
+    if path == _ADMIN_ALLOWED_USER_COLLECTION and request.method in {"GET", "POST"}:
+        return
+    if path == "/api/v1/users/me" and request.method == "GET":
+        return
+    if path == "/api/v1/users/me/profile-image" and request.method in {"GET", "PUT", "DELETE"}:
+        return
+    if path == f"/api/v1/users/{user['username']}" and request.method == "PATCH":
+        return
+    raise ForbiddenException(
+        "Developer administrators can only access users, executions and their own profile"
+    )
 
 
 async def get_current_principal(
@@ -44,6 +72,7 @@ async def get_optional_principal(
 async def get_current_user(
     principal: Annotated[Principal | None, Depends(get_optional_principal)],
     db: Annotated[AsyncSession, Depends(async_session)],
+    request: Request,
 ) -> dict[str, Any]:
     """Get the current authenticated user as a dict (resolved by crudauth).
 
@@ -64,18 +93,23 @@ async def get_current_user(
     if user is None:
         raise credentials_exception
 
+    _assert_admin_scope(user, request)
     return user
 
 
 async def get_optional_user(
     principal: Annotated[Principal | None, Depends(get_optional_principal)],
     db: Annotated[AsyncSession, Depends(async_session)],
+    request: Request,
 ) -> dict[str, Any] | None:
     """Get the current user as a dict if authenticated, None otherwise."""
     if principal is None:
         return None
 
-    return await crud_users.get(db=db, id=principal.user_id, is_deleted=False)
+    user = await crud_users.get(db=db, id=principal.user_id, is_deleted=False)
+    if user is not None:
+        _assert_admin_scope(user, request)
+    return user
 
 
 async def get_current_superuser(

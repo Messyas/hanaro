@@ -50,3 +50,9 @@ def test_legacy_schema_detects_the_complete_reports_module() -> None:
 
 def test_migration_order_includes_profile_repair_head() -> None:
     assert MIGRATION_ORDER["20260911_19"] < MIGRATION_ORDER["20260915_20"]
+
+
+def test_migration_order_includes_both_latest_branches_and_their_merge() -> None:
+    assert MIGRATION_ORDER["20260915_20"] < MIGRATION_ORDER["20260918_21"]
+    assert MIGRATION_ORDER["20260918_21"] < MIGRATION_ORDER["20260919_22"]
+    assert MIGRATION_ORDER["20260919_21"] < MIGRATION_ORDER["20260919_23"]
