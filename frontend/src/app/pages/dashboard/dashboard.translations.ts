@@ -96,8 +96,6 @@ export interface DashboardTranslations {
   topOffenders: string;
   topComponents: string;
   participationSelectedPeriod: string;
-  highestRateLines: string;
-  efficiencyRanking: string;
   periodStatusAria: string;
   closedMonths: string;
   partialMonth: string;
@@ -115,7 +113,6 @@ export interface DashboardTranslations {
   performanceAbsoluteAria: string;
   performanceRelativeAria: string;
   distributionAbsoluteAria: string;
-  distributionRelativeAria: string;
   rankingLimitAria: string;
   topFive: string;
   topTen: string;
@@ -220,8 +217,6 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     topOffenders: 'Top 5 ofensores',
     topComponents: 'Top 10 componentes',
     participationSelectedPeriod: 'Participação no período selecionado',
-    highestRateLines: 'Linhas com maior taxa',
-    efficiencyRanking: 'Ranking de eficiência no recorte atual',
     periodStatusAria: 'Status dos períodos',
     closedMonths: 'Jan–Jul fechados',
     partialMonth: 'Ago parcial',
@@ -240,7 +235,6 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     performanceAbsoluteAria: 'IF Cost mensal comparando realizado, referência e target',
     performanceRelativeAria: 'Scrap Rate mensal comparando o ano atual e o anterior',
     distributionAbsoluteAria: 'Distribuição do scrap por produto ou área',
-    distributionRelativeAria: 'Linhas com maior Scrap Rate',
     rankingLimitAria: 'Quantidade de itens exibidos no ranking',
     topFive: 'Top 5',
     topTen: 'Top 10',
@@ -343,8 +337,6 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     topOffenders: 'Top 5 offenders',
     topComponents: 'Top 10 components',
     participationSelectedPeriod: 'Share in the selected period',
-    highestRateLines: 'Lines with the highest rate',
-    efficiencyRanking: 'Efficiency ranking in the current selection',
     periodStatusAria: 'Period status',
     closedMonths: 'Jan–Jul closed',
     partialMonth: 'Aug partial',
@@ -363,7 +355,6 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     performanceAbsoluteAria: 'Monthly IF Cost comparing actual, reference, and target',
     performanceRelativeAria: 'Monthly Scrap Rate comparing the current and previous years',
     distributionAbsoluteAria: 'Scrap distribution by product or area',
-    distributionRelativeAria: 'Lines with the highest Scrap Rate',
     rankingLimitAria: 'Number of ranking items displayed',
     topFive: 'Top 5',
     topTen: 'Top 10',
@@ -466,8 +457,6 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     topOffenders: '상위 5개 원인',
     topComponents: '상위 10개 부품',
     participationSelectedPeriod: '선택 기간 비중',
-    highestRateLines: '비율이 높은 라인',
-    efficiencyRanking: '현재 선택 범위 효율 순위',
     periodStatusAria: '기간 상태',
     closedMonths: '1–7월 마감',
     partialMonth: '8월 부분 집계',
@@ -485,7 +474,6 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     performanceAbsoluteAria: '월별 IF Cost 실적, 기준 및 목표 비교',
     performanceRelativeAria: '현재 연도와 전년도의 월별 Scrap Rate 비교',
     distributionAbsoluteAria: '제품 또는 영역별 Scrap 분포',
-    distributionRelativeAria: 'Scrap Rate가 높은 라인',
     rankingLimitAria: '랭킹 표시 항목 수',
     topFive: '상위 5',
     topTen: '상위 10',

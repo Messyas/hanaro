@@ -36,6 +36,28 @@ export interface AppTranslations {
   settingsTabDefectTypes: string;
   settingsTabSystem: string;
   settingsTabTargets: string;
+  settingsTabProduction: string;
+  productionSettingsComingSoon: string;
+  productionSettingsDataTitle: string;
+  productionSettingsDataSubtitle: string;
+  productionSettingsCoverage: string;
+  productionSettingsMonths: string;
+  productionValueColumn: string;
+  productionQuantityColumn: string;
+  productionNoteColumn: string;
+  productionSettingsSave: string;
+  productionSettingsClear: string;
+  productionSettingsValidationError: string;
+  productionSettingsDraftSaved: string;
+  productionSettingsDraftCleared: string;
+  productionSettingsLoading: string;
+  productionSettingsSaved: string;
+  productionSettingsSaveError: string;
+  productionSettingsConflictError: string;
+  productionSettingsLoadError: string;
+  productionSettingsEmptyError: string;
+  productionSettingsCleared: string;
+  productionSettingsClearError: string;
   targetYearPlanTitle: string;
   targetYearPlanSubtitle: string;
   targetSelectYear: string;
@@ -449,6 +471,32 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     settingsTabDefectTypes: 'Tipos de Scrap',
     settingsTabSystem: 'Tipos de Scrap',
     settingsTabTargets: 'Metas de IF Cost',
+    settingsTabProduction: 'Produção e eficiência',
+    productionSettingsComingSoon:
+      'A entrada mensal estará disponível na próxima etapa. Esta aba já está reservada para o cadastro manual.',
+    productionSettingsDataTitle: 'Dados mensais de produção',
+    productionSettingsDataSubtitle:
+      'Informe o valor produzido e, quando disponível, a quantidade acabada no mesmo período do scrap.',
+    productionSettingsCoverage: 'Cobertura preenchida',
+    productionSettingsMonths: 'meses',
+    productionValueColumn: 'Valor da produção (USD)',
+    productionQuantityColumn: 'Quantidade produzida',
+    productionNoteColumn: 'Observação',
+    productionSettingsSave: 'Salvar rascunho',
+    productionSettingsClear: 'Limpar formulário',
+    productionSettingsValidationError: 'Revise os valores: eles devem ser não negativos.',
+    productionSettingsDraftSaved:
+      'Rascunho validado localmente. A persistência será conectada na próxima etapa.',
+    productionSettingsDraftCleared: 'Formulário limpo.',
+    productionSettingsLoading: 'Carregando...',
+    productionSettingsSaved: 'Dados de produção salvos com sucesso.',
+    productionSettingsSaveError: 'Não foi possível salvar os dados de produção.',
+    productionSettingsConflictError:
+      'Os dados foram alterados por outra pessoa. Recarregue antes de salvar.',
+    productionSettingsLoadError: 'Não foi possível carregar os dados de produção.',
+    productionSettingsEmptyError: 'Informe pelo menos um mês antes de salvar.',
+    productionSettingsCleared: 'Dados de produção removidos com sucesso.',
+    productionSettingsClearError: 'Não foi possível remover os dados de produção.',
     targetYearPlanTitle: 'Plano Anual de Metas (IF Cost)',
     targetYearPlanSubtitle:
       'Defina as metas mensais de custo de refugo para guiar os indicadores de desempenho e o gráfico de evolução no Dashboard.',
@@ -875,6 +923,31 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     settingsTabDefectTypes: 'Scrap Types',
     settingsTabSystem: 'Scrap Types',
     settingsTabTargets: 'IF Cost Targets',
+    settingsTabProduction: 'Production & efficiency',
+    productionSettingsComingSoon:
+      'Monthly entry will be available in the next step. This tab is reserved for the manual register.',
+    productionSettingsDataTitle: 'Monthly production data',
+    productionSettingsDataSubtitle:
+      'Enter production value and, when available, finished quantity for the same scrap period.',
+    productionSettingsCoverage: 'Filled coverage',
+    productionSettingsMonths: 'months',
+    productionValueColumn: 'Production value (USD)',
+    productionQuantityColumn: 'Produced quantity',
+    productionNoteColumn: 'Note',
+    productionSettingsSave: 'Save draft',
+    productionSettingsClear: 'Clear form',
+    productionSettingsValidationError: 'Review the values: they must be non-negative.',
+    productionSettingsDraftSaved:
+      'Draft validated locally. Persistence will be connected in the next step.',
+    productionSettingsDraftCleared: 'Form cleared.',
+    productionSettingsLoading: 'Loading...',
+    productionSettingsSaved: 'Production data saved successfully.',
+    productionSettingsSaveError: 'Production data could not be saved.',
+    productionSettingsConflictError: 'The data was changed by someone else. Reload before saving.',
+    productionSettingsLoadError: 'Production data could not be loaded.',
+    productionSettingsEmptyError: 'Enter at least one month before saving.',
+    productionSettingsCleared: 'Production data removed successfully.',
+    productionSettingsClearError: 'Production data could not be removed.',
     targetYearPlanTitle: 'Annual Target Plan (IF Cost)',
     targetYearPlanSubtitle:
       'Set monthly scrap cost targets to drive performance indicators and the evolution chart on the Dashboard.',
@@ -1300,6 +1373,32 @@ const TRANSLATIONS: Record<LanguageCode, AppTranslations> = {
     settingsTabDefectTypes: '스크랩 유형',
     settingsTabSystem: '스크랩 유형',
     settingsTabTargets: 'IF Cost 목표',
+    settingsTabProduction: '생산 및 효율성',
+    productionSettingsComingSoon:
+      '월별 입력은 다음 단계에서 제공됩니다. 이 탭은 수동 등록을 위해 준비되었습니다.',
+    productionSettingsDataTitle: '월별 생산 데이터',
+    productionSettingsDataSubtitle:
+      '스크랩과 같은 기간의 생산 금액과 가능한 경우 완제품 수량을 입력합니다.',
+    productionSettingsCoverage: '입력된 범위',
+    productionSettingsMonths: '개월',
+    productionValueColumn: '생산 금액 (USD)',
+    productionQuantityColumn: '생산 수량',
+    productionNoteColumn: '메모',
+    productionSettingsSave: '초안 저장',
+    productionSettingsClear: '양식 지우기',
+    productionSettingsValidationError: '값은 음수가 아니어야 합니다.',
+    productionSettingsDraftSaved:
+      '초안이 로컬에서 검증되었습니다. 다음 단계에서 저장 기능이 연결됩니다.',
+    productionSettingsDraftCleared: '양식이 지워졌습니다.',
+    productionSettingsLoading: '로드 중...',
+    productionSettingsSaved: '생산 데이터가 저장되었습니다.',
+    productionSettingsSaveError: '생산 데이터를 저장할 수 없습니다.',
+    productionSettingsConflictError:
+      '다른 사용자가 데이터를 변경했습니다. 저장하기 전에 다시 불러오세요.',
+    productionSettingsLoadError: '생산 데이터를 불러올 수 없습니다.',
+    productionSettingsEmptyError: '저장하기 전에 한 달 이상 입력하세요.',
+    productionSettingsCleared: '생산 데이터가 삭제되었습니다.',
+    productionSettingsClearError: '생산 데이터를 삭제할 수 없습니다.',
     targetYearPlanTitle: '연간 목표 계획 (IF Cost)',
     targetYearPlanSubtitle:
       '대시보드의 성과 지표와 추세 그래프를 안내하기 위해 월별 스크랩 비용 목표를 설정합니다.',

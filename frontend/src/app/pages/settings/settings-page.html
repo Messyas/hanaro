@@ -61,6 +61,18 @@
           <ui-icon name="chart-line" />
           <span>{{ t.settingsTabTargets }}</span>
         </button>
+
+        <button
+          type="button"
+          role="tab"
+          class="settings-tab-btn"
+          [class.active]="activeTab() === 'production'"
+          [attr.aria-selected]="activeTab() === 'production'"
+          (click)="selectTab('production')"
+        >
+          <ui-icon name="building" />
+          <span>{{ t.settingsTabProduction }}</span>
+        </button>
       }
     </nav>
   </header>
@@ -902,6 +914,150 @@
           </div>
         </footer>
       </article>
+    </div>
+  }
+
+  <!-- Conteúdo da Aba: Dados mensais de produção -->
+  @if (activeTab() === 'production') {
+    <div class="production-settings-layout">
+      @if (!canEditTargets()) {
+        <div class="targets-auth-banner" role="alert">
+          <ui-icon name="bell" />
+          <div class="auth-banner-content">
+            <strong>{{ t.targetLoginRequiredNotice }}</strong>
+          </div>
+          <button type="button" class="btn btn-primary btn-sm" (click)="openLoginDialog()">
+            <ui-icon name="log-in" />
+            <span>{{ t.targetLoginAction }}</span>
+          </button>
+        </div>
+      }
+
+      <section class="production-data">
+        <header class="settings-card-header production-data-header">
+          <div>
+            <h2>{{ t.productionSettingsDataTitle }}</h2>
+            <p>{{ t.productionSettingsDataSubtitle }}</p>
+          </div>
+          <div class="year-selector-group">
+            <span>{{ t.targetSelectYear }}:</span>
+            <app-list-filter-select
+              class="production-year-select"
+              [showLabel]="false"
+              [compact]="true"
+              layout="inline"
+              [ariaLabel]="t.targetSelectYear"
+              [options]="productionYearOptions()"
+              [value]="selectedProductionYear().toString()"
+              (changed)="selectProductionYear(+$event)"
+            />
+          </div>
+        </header>
+
+        @if (productionFeedback(); as feedback) {
+          <div
+            class="settings-feedback-toast"
+            [class.success]="feedback.type === 'success'"
+            [class.error]="feedback.type === 'error'"
+            role="status"
+          >
+            <ui-icon [name]="feedback.type === 'success' ? 'check' : 'x'" />
+            <span>{{ feedback.text }}</span>
+          </div>
+        }
+
+        <div class="production-coverage-summary" aria-live="polite">
+          <span>{{ t.productionSettingsCoverage }}</span>
+          @if (loadingProduction()) {
+            <strong>{{ t.productionSettingsLoading }}</strong>
+          } @else {
+            <strong>{{ productionFilledMonths() }}/12 {{ t.productionSettingsMonths }}</strong>
+          }
+        </div>
+
+        <div class="production-table-wrapper">
+          <table class="production-table">
+            <thead>
+              <tr>
+                <th scope="col">{{ t.targetMonthCol }}</th>
+                <th scope="col">{{ t.productionValueColumn }}</th>
+                <th scope="col">{{ t.productionQuantityColumn }}</th>
+                <th scope="col">{{ t.productionNoteColumn }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of productionMonths(); track row.month; let index = $index) {
+                <tr>
+                  <th scope="row">{{ monthLabels()[row.month - 1] }}</th>
+                  <td>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      inputmode="decimal"
+                      [attr.aria-label]="
+                        t.productionValueColumn + ' ' + monthLabels()[row.month - 1]
+                      "
+                      [ngModel]="row.productionValue"
+                      (ngModelChange)="updateProductionRow(index, 'productionValue', $event)"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      inputmode="decimal"
+                      [attr.aria-label]="
+                        t.productionQuantityColumn + ' ' + monthLabels()[row.month - 1]
+                      "
+                      [ngModel]="row.productionQuantity"
+                      (ngModelChange)="updateProductionRow(index, 'productionQuantity', $event)"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="text"
+                      maxlength="240"
+                      [attr.aria-label]="
+                        t.productionNoteColumn + ' ' + monthLabels()[row.month - 1]
+                      "
+                      [ngModel]="row.note"
+                      (ngModelChange)="updateProductionRow(index, 'note', $event)"
+                    />
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <footer class="targets-footer-actions production-footer-actions">
+          <button
+            type="button"
+            class="btn btn-outline-danger"
+            [disabled]="!canEditTargets() || productionSaving() || loadingProduction()"
+            (click)="clearProductionDraft()"
+          >
+            <ui-icon name="trash" />
+            <span>{{ t.productionSettingsClear }}</span>
+          </button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            [disabled]="
+              !canEditTargets() ||
+              productionSaving() ||
+              loadingProduction() ||
+              productionHasErrors()
+            "
+            (click)="saveProductionDraft()"
+          >
+            <ui-icon name="check" />
+            <span>{{ t.productionSettingsSave }}</span>
+          </button>
+        </footer>
+      </section>
     </div>
   }
 </section>

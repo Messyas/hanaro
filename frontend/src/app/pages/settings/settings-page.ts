@@ -8,9 +8,14 @@ import { LanguageService } from '../../i18n/language.service';
 import { LoginDialog } from '../../layouts/dashboard-shell/login-dialog';
 import { ThemeService } from '../../theme/theme.service';
 import { UiIcon } from '../../ui-icon';
+import {
+  ListFilterSelect,
+  ListFilterSelectOption,
+} from '../../shared/list-filters/list-filter-select';
 import { ScrapDefectType } from '../scrap-base/scrap-review.models';
 import { ScrapReviewService } from '../scrap-base/scrap-review.service';
 import { ScrapTargetService } from './scrap-target.service';
+import { ProductionMeasurementService } from './production-measurement.service';
 import {
   ScrapClassificationKind,
   ScrapClassificationRule,
@@ -18,9 +23,19 @@ import {
   ScrapClassificationService,
 } from './scrap-classification.service';
 
+type ProductionField = 'productionValue' | 'productionQuantity' | 'note';
+
+interface ProductionMonthRow {
+  month: number;
+  revision: number;
+  productionValue: number | null;
+  productionQuantity: number | null;
+  note: string;
+}
+
 @Component({
   selector: 'app-settings-page',
-  imports: [FormsModule, MatSlideToggle, UiIcon, CurrencyPipe, DecimalPipe],
+  imports: [FormsModule, MatSlideToggle, UiIcon, ListFilterSelect, CurrencyPipe, DecimalPipe],
   templateUrl: './settings-page.html',
   styleUrl: './settings-page.css',
 })
@@ -30,12 +45,13 @@ export class SettingsPage implements OnInit {
   readonly authService = inject(AuthService);
   readonly scrapReviewService = inject(ScrapReviewService);
   readonly scrapTargetService = inject(ScrapTargetService);
+  readonly productionMeasurementService = inject(ProductionMeasurementService);
   readonly scrapClassificationService = inject(ScrapClassificationService);
   private readonly dialog = inject(MatDialog);
 
-  readonly activeTab = signal<'preferences' | 'classifications' | 'system' | 'targets'>(
-    'preferences',
-  );
+  readonly activeTab = signal<
+    'preferences' | 'classifications' | 'system' | 'targets' | 'production'
+  >('preferences');
 
   // Defect types state
   readonly defectTypes = signal<ScrapDefectType[]>([]);
@@ -95,6 +111,13 @@ export class SettingsPage implements OnInit {
   readonly submittingTargets = signal<boolean>(false);
   readonly targetFeedback = signal<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  readonly selectedProductionYear = signal<number>(2026);
+  readonly availableProductionYears = signal<number[]>([2025, 2026, 2027]);
+  readonly productionMonths = signal<ProductionMonthRow[]>(this.createProductionMonths());
+  readonly productionSaving = signal(false);
+  readonly loadingProduction = signal(false);
+  readonly productionFeedback = signal<{ type: 'success' | 'error'; text: string } | null>(null);
+
   // Prefill assistant state
   readonly prefillMode = signal<'linear' | 'curve'>('curve');
   readonly prefillAnnualTotal = signal<number>(120000);
@@ -103,6 +126,27 @@ export class SettingsPage implements OnInit {
 
   // Computeds
   readonly canEditTargets = computed(() => this.authService.isAuthenticated());
+
+  readonly productionFilledMonths = computed(
+    () =>
+      this.productionMonths().filter(
+        (row) => row.productionValue !== null || row.productionQuantity !== null,
+      ).length,
+  );
+
+  readonly productionYearOptions = computed<readonly ListFilterSelectOption[]>(() =>
+    this.availableProductionYears().map((year) => ({ value: String(year), label: String(year) })),
+  );
+
+  readonly productionHasErrors = computed(() =>
+    this.productionMonths().some(
+      (row) =>
+        (row.productionValue !== null &&
+          (!Number.isFinite(row.productionValue) || row.productionValue < 0)) ||
+        (row.productionQuantity !== null &&
+          (!Number.isFinite(row.productionQuantity) || row.productionQuantity < 0)),
+    ),
+  );
 
   readonly currentYearTotal = computed(() =>
     this.monthlyTargets().reduce((acc, m) => acc + (Number(m.amount) || 0), 0),
@@ -177,10 +221,49 @@ export class SettingsPage implements OnInit {
       this.loadDefectTypes();
       this.loadTargets(this.selectedTargetYear());
       this.loadClassifications();
+      this.loadProduction(this.selectedProductionYear());
     }
   }
 
-  selectTab(tab: 'preferences' | 'classifications' | 'system' | 'targets'): void {
+  selectProductionYear(year: number): void {
+    this.selectedProductionYear.set(year);
+    if (this.authService.isAuthenticated()) this.loadProduction(year);
+  }
+
+  loadProduction(year: number): void {
+    this.loadingProduction.set(true);
+    this.productionMeasurementService.getYear(year).subscribe({
+      next: (measurements) => {
+        const byMonth = new Map(
+          measurements.map((measurement) => [measurement.month, measurement]),
+        );
+        this.productionMonths.set(
+          this.createProductionMonths().map((row) => {
+            const measurement = byMonth.get(row.month);
+            return measurement
+              ? {
+                  ...row,
+                  revision: measurement.revision,
+                  productionValue: measurement.production_value,
+                  productionQuantity: measurement.production_quantity,
+                  note: measurement.note,
+                }
+              : row;
+          }),
+        );
+        this.loadingProduction.set(false);
+      },
+      error: () => {
+        this.loadingProduction.set(false);
+        this.productionFeedback.set({
+          type: 'error',
+          text: this.language.translations().productionSettingsLoadError,
+        });
+      },
+    });
+  }
+
+  selectTab(tab: 'preferences' | 'classifications' | 'system' | 'targets' | 'production'): void {
     if (tab !== 'preferences' && !this.authService.isAuthenticated()) return;
     this.activeTab.set(tab);
     if (tab === 'system' && this.defectTypes().length === 0) {
@@ -190,6 +273,133 @@ export class SettingsPage implements OnInit {
     } else if (tab === 'targets') {
       this.loadTargets(this.selectedTargetYear());
     }
+  }
+
+  private createProductionMonths(): ProductionMonthRow[] {
+    return Array.from({ length: 12 }, (_, index) => ({
+      month: index + 1,
+      revision: 0,
+      productionValue: null,
+      productionQuantity: null,
+      note: '',
+    }));
+  }
+
+  updateProductionRow(index: number, field: ProductionField, value: string | number | null): void {
+    this.productionMonths.update((rows) =>
+      rows.map((row, rowIndex) => {
+        if (rowIndex !== index) return row;
+        if (field === 'note') {
+          return { ...row, [field]: String(value ?? '') };
+        }
+        if (value === '' || value === null || value === undefined) {
+          return { ...row, [field]: null };
+        }
+        const parsed = Number(value);
+        return { ...row, [field]: Number.isFinite(parsed) ? parsed : Number.NaN };
+      }),
+    );
+    this.productionFeedback.set(null);
+  }
+
+  saveProductionDraft(): void {
+    if (this.productionHasErrors()) {
+      this.productionFeedback.set({
+        type: 'error',
+        text: this.language.translations().productionSettingsValidationError,
+      });
+      return;
+    }
+    const measurements = this.productionMonths()
+      .filter((row) => row.productionValue !== null || row.productionQuantity !== null)
+      .map((row) => ({
+        month: row.month,
+        production_value: row.productionValue,
+        production_quantity: row.productionQuantity,
+        note: row.note.trim(),
+        expected_version: row.revision,
+      }));
+    if (measurements.length === 0) {
+      this.productionFeedback.set({
+        type: 'error',
+        text: this.language.translations().productionSettingsEmptyError,
+      });
+      return;
+    }
+    this.productionSaving.set(true);
+    this.productionMeasurementService
+      .saveYear(this.selectedProductionYear(), measurements)
+      .subscribe({
+        next: (saved) => {
+          this.productionFeedback.set({
+            type: 'success',
+            text: this.language.translations().productionSettingsSaved,
+          });
+          this.productionMonths.set(
+            this.createProductionMonths().map((row) => {
+              const measurement = saved.find((item) => item.month === row.month);
+              return measurement
+                ? {
+                    ...row,
+                    revision: measurement.revision,
+                    productionValue: measurement.production_value,
+                    productionQuantity: measurement.production_quantity,
+                    note: measurement.note,
+                  }
+                : row;
+            }),
+          );
+          this.productionSaving.set(false);
+        },
+        error: (error: { status?: number }) => {
+          this.productionSaving.set(false);
+          this.productionFeedback.set({
+            type: 'error',
+            text:
+              error.status === 409
+                ? this.language.translations().productionSettingsConflictError
+                : this.language.translations().productionSettingsSaveError,
+          });
+        },
+      });
+  }
+
+  clearProductionDraft(): void {
+    const expectedVersions = this.productionMonths().reduce<Record<number, number>>(
+      (versions, row) => (row.revision > 0 ? { ...versions, [row.month]: row.revision } : versions),
+      {},
+    );
+    if (Object.keys(expectedVersions).length === 0) {
+      this.productionMonths.set(this.createProductionMonths());
+      this.productionFeedback.set({
+        type: 'success',
+        text: this.language.translations().productionSettingsDraftCleared,
+      });
+      return;
+    }
+    this.productionSaving.set(true);
+    this.productionMeasurementService
+      .clearYear(this.selectedProductionYear(), expectedVersions)
+      .subscribe({
+        next: () => {
+          this.productionMonths.set(this.createProductionMonths());
+          this.productionSaving.set(false);
+          this.productionFeedback.set({
+            type: 'success',
+            text: this.language.translations().productionSettingsCleared,
+          });
+        },
+        error: (error: { status?: number }) => {
+          this.productionSaving.set(false);
+          this.productionFeedback.set({
+            type: 'error',
+            text:
+              error.status === 409
+                ? this.language.translations().productionSettingsConflictError
+                : this.language.translations().productionSettingsClearError,
+          });
+        },
+      });
   }
 
   loadClassifications(): void {

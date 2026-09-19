@@ -4,6 +4,8 @@ export type DashboardRankingLimit = 5 | 10;
 export type DashboardDataState = 'api' | 'api-empty' | 'loading' | 'error';
 export type DashboardEvolutionView = 'monthly' | 'weekly';
 export type DashboardComparison = 'ytd' | 'yoy' | 'mom';
+export type RelativeDenominatorStatus =
+  'AVAILABLE' | 'MISSING_DENOMINATOR' | 'ZERO_DENOMINATOR' | 'UNSUPPORTED_DENOMINATOR_GRAIN';
 
 export interface DashboardFilters {
   year: string;
@@ -43,25 +45,24 @@ export interface DashboardMonthlyPoint {
   actualQty: number | null;
   previousQty: number | null;
   targetQty: number;
-  materialAmountUsd: number;
-  previousMaterialAmountUsd: number;
-  productionQty: number;
-  previousProductionQty: number;
+  materialAmountUsd: number | null;
+  previousMaterialAmountUsd: number | null;
+  productionQty: number | null;
+  previousProductionQty: number | null;
+  relativeStatus: RelativeDenominatorStatus;
+  previousRelativeStatus: RelativeDenominatorStatus;
 }
 
 export interface DashboardDistributionItem {
   label: string;
   usd: number;
   qty: number;
-  relativeUsd?: number;
-  relativeQty?: number;
 }
 
 export interface DashboardSnapshot {
   monthly: readonly DashboardMonthlyPoint[];
   weekly: readonly DashboardMonthlyPoint[];
   distribution: readonly DashboardDistributionItem[];
-  relativeDistribution: readonly DashboardDistributionItem[];
   components: readonly DashboardDistributionItem[];
   lines: readonly DashboardDistributionItem[];
   models: readonly DashboardDistributionItem[];
@@ -78,17 +79,16 @@ export interface DashboardKpis {
 }
 
 export interface RelativeDashboardKpis {
-  rate: number;
+  rate: number | null;
   numerator: number;
   denominator: number;
-  variation: number;
+  variation: number | null;
 }
 
 export const EMPTY_SNAPSHOT: DashboardSnapshot = {
   monthly: [],
   weekly: [],
   distribution: [],
-  relativeDistribution: [],
   components: [],
   lines: [],
   models: [],

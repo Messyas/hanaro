@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from ....infrastructure.auth.routes import router as auth_router
 from ....modules.api_keys.routes import router as api_keys_router
+from ....modules.governance.production_routes import router as production_measurements_router
 from ....modules.governance.routes import exports_router
 from ....modules.governance.routes import router as reports_router
 from ....modules.governance.workflow_routes import router as workflow_router
@@ -22,3 +23,4 @@ router.include_router(scrap_dashboard_router, prefix="/dashboard/scrap")
 router.include_router(reports_router, prefix="/reports")
 router.include_router(exports_router)
 router.include_router(workflow_router)
+router.include_router(production_measurements_router)

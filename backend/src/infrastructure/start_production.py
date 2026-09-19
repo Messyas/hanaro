@@ -14,6 +14,7 @@ import sqlalchemy as sa
 
 from scripts.seed_demo_classifications import seed_demo_classifications
 from scripts.seed_demo_governance import seed_demo_governance
+from scripts.seed_relative_efficiency import run_seed as seed_relative_efficiency
 from scripts.setup_initial_data import setup_initial_data, validate_admin_configuration
 from src.infrastructure.database.session import engine, local_session
 from src.modules.material_scrap.classification_service import ScrapClassificationService
@@ -206,6 +207,14 @@ async def seed_demo_data() -> None:
                 )
         governance_counts = await seed_demo_governance()
         print(f"Loaded governance demo records: {governance_counts}")
+        reference_year = date.fromisoformat(os.getenv("DEMO_DATA_REFERENCE_DATE", "2026-09-03")).year
+        production_counts = await seed_relative_efficiency(
+            year=reference_year,
+            reference_year=reference_year - 1,
+            currency="USD",
+            replace=False,
+        )
+        print(f"Loaded relative-efficiency production denominators: {production_counts}")
     else:
         print("Demo Material Scrap seed is disabled")
 

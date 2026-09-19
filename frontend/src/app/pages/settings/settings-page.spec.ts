@@ -8,6 +8,7 @@ import { ScrapDefectType } from '../scrap-base/scrap-review.models';
 import { ScrapReviewService } from '../scrap-base/scrap-review.service';
 import { ScrapTargetService } from './scrap-target.service';
 import { ScrapClassificationService } from './scrap-classification.service';
+import { ProductionMeasurementService } from './production-measurement.service';
 import { SettingsPage } from './settings-page';
 
 describe('SettingsPage', () => {
@@ -33,6 +34,11 @@ describe('SettingsPage', () => {
     update: ReturnType<typeof vi.fn>;
     delete: ReturnType<typeof vi.fn>;
     reapply: ReturnType<typeof vi.fn>;
+  };
+  let productionMeasurementServiceMock: {
+    getYear: ReturnType<typeof vi.fn>;
+    saveYear: ReturnType<typeof vi.fn>;
+    clearYear: ReturnType<typeof vi.fn>;
   };
 
   const mockTypes: ScrapDefectType[] = [
@@ -82,6 +88,11 @@ describe('SettingsPage', () => {
       delete: vi.fn(),
       reapply: vi.fn(),
     };
+    productionMeasurementServiceMock = {
+      getYear: vi.fn().mockReturnValue(of([])),
+      saveYear: vi.fn().mockReturnValue(of([])),
+      clearYear: vi.fn().mockReturnValue(of(undefined)),
+    };
 
     await TestBed.configureTestingModule({
       imports: [SettingsPage],
@@ -91,6 +102,7 @@ describe('SettingsPage', () => {
         { provide: ScrapReviewService, useValue: scrapReviewServiceMock },
         { provide: ScrapTargetService, useValue: scrapTargetServiceMock },
         { provide: ScrapClassificationService, useValue: scrapClassificationServiceMock },
+        { provide: ProductionMeasurementService, useValue: productionMeasurementServiceMock },
         { provide: AuthService, useValue: authServiceMock },
       ],
     }).compileComponents();
@@ -120,6 +132,7 @@ describe('SettingsPage', () => {
     scrapReviewServiceMock.getDefectTypes.mockClear();
     scrapTargetServiceMock.getTargets.mockClear();
     scrapClassificationServiceMock.list.mockClear();
+    productionMeasurementServiceMock.getYear.mockClear();
     fixture = TestBed.createComponent(SettingsPage);
     component = fixture.componentInstance;
     fixture.detectChanges();
@@ -128,6 +141,7 @@ describe('SettingsPage', () => {
     expect(scrapReviewServiceMock.getDefectTypes).not.toHaveBeenCalled();
     expect(scrapTargetServiceMock.getTargets).not.toHaveBeenCalled();
     expect(scrapClassificationServiceMock.list).not.toHaveBeenCalled();
+    expect(productionMeasurementServiceMock.getYear).not.toHaveBeenCalled();
 
     component.selectTab('classifications');
     component.selectTab('system');
@@ -321,5 +335,73 @@ describe('SettingsPage', () => {
       expect.arrayContaining([{ month: 1, amount: 5000 }]),
     );
     expect(component.targetFeedback()?.type).toBe('success');
+  });
+
+  it('loads production measurements and preserves their revision for optimistic concurrency', () => {
+    productionMeasurementServiceMock.getYear.mockReturnValue(
+      of([
+        {
+          year: 2026,
+          month: 1,
+          scope_key: 'GLOBAL',
+          currency: 'USD',
+          production_value: 1500,
+          production_quantity: 320,
+          note: 'ERP export',
+          revision: 3,
+          status: 'CONFIRMED',
+          source: 'MANUAL',
+          author_id: 1,
+          created_at: '2026-01-01T00:00:00Z',
+        },
+      ]),
+    );
+
+    component.loadProduction(2026);
+
+    expect(productionMeasurementServiceMock.getYear).toHaveBeenCalledWith(2026);
+    expect(component.productionMonths()[0]).toMatchObject({
+      productionValue: 1500,
+      productionQuantity: 320,
+      revision: 3,
+    });
+  });
+
+  it('sends the loaded revision when saving production data', () => {
+    component.productionMonths.set([
+      {
+        month: 1,
+        revision: 4,
+        productionValue: 1000,
+        productionQuantity: 200,
+        note: 'confirmed',
+      },
+      ...component.productionMonths().slice(1),
+    ]);
+
+    component.saveProductionDraft();
+
+    expect(productionMeasurementServiceMock.saveYear).toHaveBeenCalledWith(2026, [
+      expect.objectContaining({ month: 1, expected_version: 4 }),
+    ]);
+  });
+
+  it('clears persisted production data with the known versions', () => {
+    component.productionMonths.set([
+      {
+        month: 1,
+        revision: 2,
+        productionValue: 1000,
+        productionQuantity: null,
+        note: '',
+      },
+      ...component.productionMonths().slice(1),
+    ]);
+
+    component.clearProductionDraft();
+
+    expect(productionMeasurementServiceMock.clearYear).toHaveBeenCalledWith(2026, { 1: 2 });
+    expect(component.productionMonths()[0].productionValue).toBeNull();
+    expect(component.productionMonths()[0].revision).toBe(0);
   });
 });

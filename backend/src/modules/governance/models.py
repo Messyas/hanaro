@@ -229,6 +229,48 @@ class ProductionVersion(GovernanceEntity):
     approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
 
 
+class ProductionMeasurementVersion(GovernanceEntity):
+    """Monthly global production denominators entered manually or imported."""
+
+    __tablename__ = "gov_production_measurement_versions"
+    __table_args__ = (
+        UniqueConstraint(
+            "year",
+            "month",
+            "scope_key",
+            "revision",
+            name="uq_gov_production_measurement_revision",
+        ),
+        CheckConstraint("month >= 1 AND month <= 12", name="ck_gov_production_measurement_month"),
+        CheckConstraint("revision > 0", name="ck_gov_production_measurement_revision"),
+        CheckConstraint(
+            "production_value IS NULL OR production_value >= 0",
+            name="ck_gov_production_measurement_value",
+        ),
+        CheckConstraint(
+            "production_quantity IS NULL OR production_quantity >= 0",
+            name="ck_gov_production_measurement_quantity",
+        ),
+        CheckConstraint(
+            "status IN ('DRAFT','CONFIRMED','SUPERSEDED')",
+            name="ck_gov_production_measurement_status",
+        ),
+        CheckConstraint("source IN ('MANUAL','IMPORT','ERP','MES','FINANCE')", name="ck_gov_production_measurement_source"),
+        Index("ix_gov_production_measurement_period", "year", "month", "scope_key", "status"),
+    )
+    year: Mapped[int] = mapped_column(Integer)
+    month: Mapped[int] = mapped_column(Integer)
+    scope_key: Mapped[str] = mapped_column(String(64), default="GLOBAL")
+    currency: Mapped[str] = mapped_column(String(3), default="USD")
+    production_value: Mapped[Decimal | None] = mapped_column(Numeric(24, 6), default=None)
+    production_quantity: Mapped[Decimal | None] = mapped_column(Numeric(24, 6), default=None)
+    note: Mapped[str] = mapped_column(Text, default="")
+    revision: Mapped[int] = mapped_column(Integer, default=1)
+    status: Mapped[str] = mapped_column(String(20), default="CONFIRMED")
+    source: Mapped[str] = mapped_column(String(20), default="MANUAL")
+    author_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT"), default=None)
+
+
 class ReviewPolicy(GovernanceEntity):
     __tablename__ = "gov_review_policies"
     __table_args__ = (

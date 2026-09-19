@@ -676,6 +676,22 @@ class DashboardSeriesPoint(BaseModel):
     actual: Decimal | None = None
     previous_year: Decimal | None = None
     target: Decimal | None = None
+    denominator: Decimal | None = None
+    previous_year_denominator: Decimal | None = None
+    relative_rate: Decimal | None = None
+    previous_year_relative_rate: Decimal | None = None
+    relative_status: Literal[
+        "AVAILABLE",
+        "MISSING_DENOMINATOR",
+        "ZERO_DENOMINATOR",
+        "UNSUPPORTED_DENOMINATOR_GRAIN",
+    ] = "MISSING_DENOMINATOR"
+    previous_year_relative_status: Literal[
+        "AVAILABLE",
+        "MISSING_DENOMINATOR",
+        "ZERO_DENOMINATOR",
+        "UNSUPPORTED_DENOMINATOR_GRAIN",
+    ] = "MISSING_DENOMINATOR"
 
 
 class DashboardRankingItem(BaseModel):

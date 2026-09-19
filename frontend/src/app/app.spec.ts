@@ -41,11 +41,11 @@ describe('App', () => {
     expect(TestBed.createComponent(App).componentInstance).toBeTruthy();
   });
 
-  it('should expose Dashboard, Reports, Settings and Profile inside the application shell', () => {
+  it('should expose Login separately and Dashboard, Reports, Settings and Profile inside the shell', () => {
     const shellRoute = routes.find((route) => route.children);
     const childPaths = shellRoute?.children?.map((route) => route.path);
 
-    expect(routes.some((route) => route.path === 'login')).toBe(false);
+    expect(routes.some((route) => route.path === 'login')).toBe(true);
     expect(childPaths).toEqual([
       'dashboard',
       'execucoes',

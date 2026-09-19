@@ -423,6 +423,8 @@ export class DashboardKioskStore {
                 previousMaterialAmountUsd: 0,
                 productionQty: 0,
                 previousProductionQty: 0,
+                relativeStatus: 'MISSING_DENOMINATOR',
+                previousRelativeStatus: 'MISSING_DENOMINATOR',
               };
             });
             this.monthlyPoints.set(mappedMonthly);
@@ -621,6 +623,8 @@ export class DashboardKioskStore {
       previousMaterialAmountUsd: 0,
       productionQty: 0,
       previousProductionQty: 0,
+      relativeStatus: 'MISSING_DENOMINATOR',
+      previousRelativeStatus: 'MISSING_DENOMINATOR',
     }));
   }
 }

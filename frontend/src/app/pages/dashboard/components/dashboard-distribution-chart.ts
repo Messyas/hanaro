@@ -8,7 +8,7 @@ import { NgxEchartsDirective, provideEchartsCore } from 'ngx-echarts';
 import { CHART_DESIGN, getChartTheme } from '../../../charts/chart-design.tokens';
 import { ThemeService } from '../../../theme/theme.service';
 import { LanguageCode } from '../../../i18n/language.service';
-import { DashboardAnalysis, DashboardDistributionItem, DashboardMetric } from '../dashboard.models';
+import { DashboardDistributionItem, DashboardMetric } from '../dashboard.models';
 import { DASHBOARD_LOCALES, DASHBOARD_TRANSLATIONS } from '../dashboard.translations';
 
 echarts.use([BarChart, GridComponent, TooltipComponent, AriaComponent, SVGRenderer]);
@@ -23,11 +23,7 @@ echarts.use([BarChart, GridComponent, TooltipComponent, AriaComponent, SVGRender
       class="distribution-chart"
       [style.height]="chartHeight()"
       role="img"
-      [attr.aria-label]="
-        analysis() === 'relative'
-          ? copy().distributionRelativeAria
-          : copy().distributionAbsoluteAria
-      "
+      [attr.aria-label]="copy().distributionAbsoluteAria"
       [options]="options()"
       [initOpts]="initOptions"
       [autoResize]="true"
@@ -54,7 +50,6 @@ export class DashboardDistributionChart {
 
   readonly data = input.required<readonly DashboardDistributionItem[]>();
   readonly metric = input.required<DashboardMetric>();
-  readonly analysis = input.required<DashboardAnalysis>();
   readonly language = input.required<LanguageCode>();
   readonly monetaryValuesHidden = input(false);
   readonly chartHeight = input<string>('16.5rem');
@@ -64,8 +59,7 @@ export class DashboardDistributionChart {
     const isDark = this.theme.isDark();
     const chartTheme = getChartTheme(isDark);
     const metric = this.metric();
-    const analysis = this.analysis();
-    const hidden = analysis === 'absolute' && metric === 'usd' && this.monetaryValuesHidden();
+    const hidden = metric === 'usd' && this.monetaryValuesHidden();
     const data = [...this.data()].reverse();
 
     return {
@@ -73,10 +67,7 @@ export class DashboardDistributionChart {
       textStyle: { fontFamily: chartTheme.fontFamily },
       aria: {
         show: true,
-        description:
-          analysis === 'relative'
-            ? this.copy().distributionRelativeAria
-            : this.copy().distributionAbsoluteAria,
+        description: this.copy().distributionAbsoluteAria,
       },
       grid: { top: 6, right: 78, bottom: 8, left: 6, containLabel: true },
       tooltip: {
@@ -108,11 +99,9 @@ export class DashboardDistributionChart {
           if (!item || item.name === undefined) return '';
           const rawVal = item.value ?? 0;
           const displayVal =
-            analysis === 'relative'
-              ? `${rawVal.toLocaleString(DASHBOARD_LOCALES[this.language()], { minimumFractionDigits: 2, maximumFractionDigits: 4 })}%`
-              : metric === 'usd'
-                ? this.compactCurrency(rawVal)
-                : `${new Intl.NumberFormat(DASHBOARD_LOCALES[this.language()]).format(rawVal)} ${this.copy().units}`;
+            metric === 'usd'
+              ? this.compactCurrency(rawVal)
+              : `${new Intl.NumberFormat(DASHBOARD_LOCALES[this.language()]).format(rawVal)} ${this.copy().units}`;
           return `<div style="font-weight:600;margin-bottom:2px">${item.name}</div><div>${displayVal}</div>`;
         },
       },
@@ -126,27 +115,18 @@ export class DashboardDistributionChart {
       },
       series: [
         {
-          name: analysis === 'relative' ? 'Scrap Rate' : metric === 'usd' ? 'IF Cost' : 'QTY Scrap',
+          name: metric === 'usd' ? 'IF Cost' : 'QTY Scrap',
           type: 'bar',
           data: data.map((item) => {
-            const value =
-              analysis === 'relative'
-                ? metric === 'usd'
-                  ? (item.relativeUsd ?? 0)
-                  : (item.relativeQty ?? 0)
-                : metric === 'usd'
-                  ? item.usd
-                  : item.qty;
+            const value = metric === 'usd' ? item.usd : item.qty;
             return {
               value,
               label: {
                 formatter: hidden
                   ? '•••••'
-                  : analysis === 'relative'
-                    ? `${value.toLocaleString(DASHBOARD_LOCALES[this.language()], { minimumFractionDigits: 4, maximumFractionDigits: 4 })}%`
-                    : metric === 'usd'
-                      ? this.compactCurrency(value)
-                      : `${new Intl.NumberFormat(DASHBOARD_LOCALES[this.language()]).format(value)} ${this.copy().units}`,
+                  : metric === 'usd'
+                    ? this.compactCurrency(value)
+                    : `${new Intl.NumberFormat(DASHBOARD_LOCALES[this.language()]).format(value)} ${this.copy().units}`,
               },
             };
           }),
