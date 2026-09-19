@@ -52,8 +52,7 @@ async def list_managed_users(
     visible = User.deleted_at.is_(None)
     total_items = (await db.execute(select(func.count(User.id)).where(visible))).scalar_one()
     result = await db.execute(
-        select(User).where(visible).order_by(User.name, User.id)
-        .offset((page - 1) * items_per_page).limit(items_per_page)
+        select(User).where(visible).order_by(User.name, User.id).offset((page - 1) * items_per_page).limit(items_per_page)
     )
     return {
         "items": list(result.scalars().all()),
@@ -65,7 +64,10 @@ async def list_managed_users(
 
 @router.patch("/admin/{user_id}/status", response_model=UserRead)
 async def set_managed_user_status(
-    user_id: int, values: UserStatusUpdate, db: AsyncSessionDep, admin: CurrentSuperUserDep,
+    user_id: int,
+    values: UserStatusUpdate,
+    db: AsyncSessionDep,
+    admin: CurrentSuperUserDep,
 ) -> Any:
     from .models import User  # noqa: PLC0415
 
@@ -84,7 +86,10 @@ async def set_managed_user_status(
 
 @router.patch("/admin/{user_id}", response_model=UserRead)
 async def update_managed_user(
-    user_id: int, values: AdminUserUpdate, db: AsyncSessionDep, admin: CurrentSuperUserDep,
+    user_id: int,
+    values: AdminUserUpdate,
+    db: AsyncSessionDep,
+    admin: CurrentSuperUserDep,
 ) -> Any:
     """Update account identity and managed role together."""
     from .models import User  # noqa: PLC0415

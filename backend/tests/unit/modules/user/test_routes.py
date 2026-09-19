@@ -114,10 +114,19 @@ async def test_get_users_route(async_client, mock_user_service, valid_user_dict)
 async def test_admin_status_and_role_do_not_change_superuser(async_client):
     mock_db = app.dependency_overrides[async_session]()
     user = SimpleNamespace(
-        id=2, name="Alice", username="alice", email="alice@example.com",
-        notification_email=None, phone=None, job_title=None,
-        profile_image_url="https://example.com/pic.jpg", is_deleted=False,
-        deleted_at=None, tier_id=None, is_superuser=False, role="analista",
+        id=2,
+        name="Alice",
+        username="alice",
+        email="alice@example.com",
+        notification_email=None,
+        phone=None,
+        job_title=None,
+        profile_image_url="https://example.com/pic.jpg",
+        is_deleted=False,
+        deleted_at=None,
+        tier_id=None,
+        is_superuser=False,
+        role="analista",
     )
     mock_db.get.return_value = user
 

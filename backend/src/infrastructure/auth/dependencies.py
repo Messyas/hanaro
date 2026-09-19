@@ -42,9 +42,7 @@ def _assert_admin_scope(user: dict[str, Any], request: Request) -> None:
         return
     if path == f"/api/v1/users/{user['username']}" and request.method == "PATCH":
         return
-    raise ForbiddenException(
-        "Developer administrators can only access users, executions and their own profile"
-    )
+    raise ForbiddenException("Developer administrators can only access users, executions and their own profile")
 
 
 async def get_current_principal(

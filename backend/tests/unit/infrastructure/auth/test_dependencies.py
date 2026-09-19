@@ -92,9 +92,7 @@ async def test_get_optional_user_none_principal_returns_none():
 async def test_get_optional_user_returns_dict():
     user = {"id": 2}
     with patch.object(deps.crud_users, "get", new=AsyncMock(return_value=user)):
-        result = await deps.get_optional_user(
-            principal=Principal(user_id=2), db=MagicMock(), request=_request()
-        )
+        result = await deps.get_optional_user(principal=Principal(user_id=2), db=MagicMock(), request=_request())
     assert result == user
 
 
