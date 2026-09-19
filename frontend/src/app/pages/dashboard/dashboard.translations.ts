@@ -90,7 +90,7 @@ export interface DashboardTranslations {
   monthlyView: string;
   weeklyView: string;
   currentMonthWeeks: string;
-  distributionByProduct: string;
+  topProducts: string;
   topLines: string;
   topModels: string;
   topOffenders: string;
@@ -211,11 +211,11 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     monthlyView: 'Mensal',
     weeklyView: 'Semanal',
     currentMonthWeeks: 'Semanas do período selecionado',
-    distributionByProduct: 'Distribuição por produto / área',
-    topLines: 'Top 10 linhas',
-    topModels: 'Top 10 modelos',
-    topOffenders: 'Top 5 ofensores',
-    topComponents: 'Top 10 componentes',
+    topProducts: 'Top {count} produtos / áreas',
+    topLines: 'Top {count} linhas',
+    topModels: 'Top {count} modelos',
+    topOffenders: 'Top {count} ofensores',
+    topComponents: 'Top {count} componentes',
     participationSelectedPeriod: 'Participação no período selecionado',
     periodStatusAria: 'Status dos períodos',
     closedMonths: 'Jan–Jul fechados',
@@ -331,11 +331,11 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     monthlyView: 'Monthly',
     weeklyView: 'Weekly',
     currentMonthWeeks: 'Weeks in the selected period',
-    distributionByProduct: 'Distribution by product / area',
-    topLines: 'Top 10 lines',
-    topModels: 'Top 10 models',
-    topOffenders: 'Top 5 offenders',
-    topComponents: 'Top 10 components',
+    topProducts: 'Top {count} products / areas',
+    topLines: 'Top {count} lines',
+    topModels: 'Top {count} models',
+    topOffenders: 'Top {count} offenders',
+    topComponents: 'Top {count} components',
     participationSelectedPeriod: 'Share in the selected period',
     periodStatusAria: 'Period status',
     closedMonths: 'Jan–Jul closed',
@@ -451,11 +451,11 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     monthlyView: '월별',
     weeklyView: '주별',
     currentMonthWeeks: '선택 기간의 주차',
-    distributionByProduct: '제품 / 영역별 분포',
-    topLines: '상위 10개 라인',
-    topModels: '상위 10개 모델',
-    topOffenders: '상위 5개 원인',
-    topComponents: '상위 10개 부품',
+    topProducts: '상위 {count}개 제품 / 영역',
+    topLines: '상위 {count}개 라인',
+    topModels: '상위 {count}개 모델',
+    topOffenders: '상위 {count}개 원인',
+    topComponents: '상위 {count}개 부품',
     participationSelectedPeriod: '선택 기간 비중',
     periodStatusAria: '기간 상태',
     closedMonths: '1–7월 마감',

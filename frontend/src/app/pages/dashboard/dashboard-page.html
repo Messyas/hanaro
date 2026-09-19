@@ -424,14 +424,14 @@
       <article class="panel scrap-distribution-panel">
         <div class="panel-header">
           <div>
-            <h3>{{ text().distributionByProduct }}</h3>
+            <h3>{{ barChartTitle('distribution', text().topProducts) }}</h3>
           </div>
           <div class="panel-header-actions">
             <app-list-filter-popover
               [(open)]="distributionFiltersOpen"
               [activeCount]="distributionFiltersCount()"
               [triggerLabel]="text().chartFilters"
-              [title]="text().chartFilters"
+              [title]="barChartTitle('distribution', text().topProducts)"
               [clearLabel]="text().clearChartFilters"
               [applyLabel]="text().apply"
               (cleared)="clearDistributionFilters()"
@@ -507,13 +507,13 @@
       <article class="panel ranking-panel">
         <div class="panel-header">
           <div>
-            <h3>{{ text().topLines }}</h3>
+            <h3>{{ barChartTitle('lines', text().topLines) }}</h3>
           </div>
           <div class="panel-header-actions">
             <app-list-filter-popover
               [activeCount]="rankingFiltersCount('lines')"
               [triggerLabel]="text().chartFilters"
-              [title]="text().topLines"
+              [title]="barChartTitle('lines', text().topLines)"
               [clearLabel]="text().clearChartFilters"
               [applyLabel]="text().apply"
               (cleared)="clearRankingFilters('lines')"
@@ -565,13 +565,13 @@
       <article class="panel ranking-panel">
         <div class="panel-header">
           <div>
-            <h3>{{ text().topModels }}</h3>
+            <h3>{{ barChartTitle('models', text().topModels) }}</h3>
           </div>
           <div class="panel-header-actions">
             <app-list-filter-popover
               [activeCount]="rankingFiltersCount('models')"
               [triggerLabel]="text().chartFilters"
-              [title]="text().topModels"
+              [title]="barChartTitle('models', text().topModels)"
               [clearLabel]="text().clearChartFilters"
               [applyLabel]="text().apply"
               (cleared)="clearRankingFilters('models')"
@@ -585,7 +585,7 @@
                   (changed)="changeBarChartLimit('models', $event)"
                 />
                 <app-dashboard-multi-select
-                  [label]="text().topModels"
+                  [label]="barChartTitle('models', text().topModels)"
                   [allLabel]="text().allMasculine"
                   [applyLabel]="text().apply"
                   [selectedPlural]="text().selectedPlural"
@@ -623,13 +623,13 @@
       <article class="panel ranking-panel">
         <div class="panel-header">
           <div>
-            <h3>{{ text().topComponents }}</h3>
+            <h3>{{ barChartTitle('components', text().topComponents) }}</h3>
           </div>
           <div class="panel-header-actions">
             <app-list-filter-popover
               [activeCount]="rankingFiltersCount('components')"
               [triggerLabel]="text().chartFilters"
-              [title]="text().topComponents"
+              [title]="barChartTitle('components', text().topComponents)"
               [clearLabel]="text().clearChartFilters"
               [applyLabel]="text().apply"
               (cleared)="clearRankingFilters('components')"
@@ -681,13 +681,13 @@
       <article class="panel ranking-panel">
         <div class="panel-header">
           <div>
-            <h3>{{ text().topOffenders }}</h3>
+            <h3>{{ barChartTitle('offenders', text().topOffenders) }}</h3>
           </div>
           <div class="panel-header-actions">
             <app-list-filter-popover
               [activeCount]="rankingFiltersCount('offenders')"
               [triggerLabel]="text().chartFilters"
-              [title]="text().topOffenders"
+              [title]="barChartTitle('offenders', text().topOffenders)"
               [clearLabel]="text().clearChartFilters"
               [applyLabel]="text().apply"
               (cleared)="clearRankingFilters('offenders')"
@@ -701,7 +701,7 @@
                   (changed)="changeBarChartLimit('offenders', $event)"
                 />
                 <app-dashboard-multi-select
-                  [label]="text().topOffenders"
+                  [label]="barChartTitle('offenders', text().topOffenders)"
                   [allLabel]="text().allMasculine"
                   [applyLabel]="text().apply"
                   [selectedPlural]="text().selectedPlural"

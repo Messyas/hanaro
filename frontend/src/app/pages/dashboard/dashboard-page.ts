@@ -393,6 +393,10 @@ export class DashboardPage {
     return `${this.barChartLimit(key)}`;
   }
 
+  barChartTitle(key: DashboardBarChartKey, defaultTitle: string): string {
+    return defaultTitle.replace('{count}', this.barChartLimitValue(key));
+  }
+
   changeBarChartLimit(key: DashboardBarChartKey, value: string): void {
     const limit: DashboardRankingLimit = value === '5' ? 5 : 10;
     this.barChartLimits.update((limits) => ({ ...limits, [key]: limit }));
