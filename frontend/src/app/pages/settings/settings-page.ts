@@ -216,13 +216,7 @@ export class SettingsPage implements OnInit {
   private feedbackTimeout: ReturnType<typeof setTimeout> | null = null;
 
   ngOnInit(): void {
-    // Preferences é pública; dados de configuração exigem sessão.
-    if (this.authService.isAuthenticated()) {
-      this.loadDefectTypes();
-      this.loadTargets(this.selectedTargetYear());
-      this.loadClassifications();
-      this.loadProduction(this.selectedProductionYear());
-    }
+    // Preferências são locais; cada aba protegida carrega somente quando aberta.
   }
 
   selectProductionYear(year: number): void {

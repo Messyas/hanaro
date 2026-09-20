@@ -284,6 +284,13 @@ export class DashboardPage {
       const metric = this.store.metric();
       const requestId = ++this.evolutionRequestSequence;
 
+      // O snapshot principal já contém a mesma série quando o gráfico local
+      // usa os filtros globais. Evita uma segunda chamada idêntica ao abrir a tela.
+      if (this.dashboardFiltersEqual(filters, this.store.filters())) {
+        this.evolutionSnapshot.set(null);
+        return;
+      }
+
       void this.store.loadChartSnapshot(filters, metric).then((snapshot) => {
         if (requestId === this.evolutionRequestSequence) {
           this.evolutionSnapshot.set(snapshot);
@@ -756,6 +763,29 @@ export class DashboardPage {
     if (!globalValues.length) return localValues;
     if (!localValues.length) return globalValues;
     return globalValues.filter((value) => localValues.includes(value));
+  }
+
+  private dashboardFiltersEqual(left: DashboardFilters, right: DashboardFilters): boolean {
+    const keys: (keyof DashboardFilters)[] = [
+      'year',
+      'period',
+      'component',
+      'product',
+      'line',
+      'division',
+      'week',
+    ];
+    return keys.every((key) => {
+      const leftValue = left[key];
+      const rightValue = right[key];
+      if (Array.isArray(leftValue) && Array.isArray(rightValue)) {
+        return (
+          leftValue.length === rightValue.length &&
+          leftValue.every((value, index) => value === rightValue[index])
+        );
+      }
+      return leftValue === rightValue;
+    });
   }
 
   private selectionSummary(values: readonly string[], allLabel: string): string {

@@ -113,12 +113,10 @@ describe('SettingsPage', () => {
     fixture.detectChanges();
   });
 
-  it('renders preferences tab by default and loads defect types', () => {
+  it('renders preferences tab by default without loading protected settings', () => {
     expect(component.activeTab()).toBe('preferences');
-    expect(scrapReviewServiceMock.getDefectTypes).toHaveBeenCalledWith(true);
-    expect(component.defectTypes().length).toBe(2);
-    expect(component.activeCount()).toBe(1);
-    expect(component.totalCount()).toBe(2);
+    expect(scrapReviewServiceMock.getDefectTypes).not.toHaveBeenCalled();
+    expect(component.defectTypes()).toHaveLength(0);
 
     const text = fixture.nativeElement.textContent;
     expect(text).toContain('Preferências');
@@ -155,7 +153,7 @@ describe('SettingsPage', () => {
     fixture.detectChanges();
 
     expect(component.activeTab()).toBe('classifications');
-    expect(scrapClassificationServiceMock.list).toHaveBeenCalledTimes(2);
+    expect(scrapClassificationServiceMock.list).toHaveBeenCalledTimes(1);
     const text = fixture.nativeElement.textContent;
     expect(text).toContain('Classificações de material');
   });
@@ -214,6 +212,7 @@ describe('SettingsPage', () => {
   });
 
   it('creates a new defect type collaboratively', () => {
+    component.selectTab('system');
     const created: ScrapDefectType = {
       id: 'type-3',
       code: 'QUEBRA',
@@ -280,6 +279,7 @@ describe('SettingsPage', () => {
   });
 
   it('toggles active status of an existing defect type', () => {
+    component.selectTab('system');
     const updated = { ...mockTypes[0], is_active: false };
     scrapReviewServiceMock.updateDefectType.mockReturnValue(of(updated));
 
