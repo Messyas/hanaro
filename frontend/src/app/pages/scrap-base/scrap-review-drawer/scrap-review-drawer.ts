@@ -4,6 +4,7 @@ import {
   ElementRef,
   HostListener,
   OnInit,
+  OnDestroy,
   computed,
   effect,
   inject,
@@ -41,19 +42,25 @@ import {
 import { ScrapReviewPreview } from '../scrap-review-preview/scrap-review-preview';
 import { ScrapReviewService } from '../scrap-review.service';
 import { ScrapTemplateService } from '../scrap-template.service';
+import {
+  ScrapAttachmentPreview,
+  ScrapAttachmentPreviewService,
+} from './scrap-attachment-preview.service';
 
 @Component({
   selector: 'app-scrap-review-drawer',
   imports: [InlineAlert, ScrapReviewForm, ScrapReviewPreview, StatusBadge, UiIcon],
+  providers: [ScrapAttachmentPreviewService],
   templateUrl: './scrap-review-drawer.html',
   styleUrl: './scrap-review-drawer.css',
 })
-export class ScrapReviewDrawer implements OnInit {
+export class ScrapReviewDrawer implements OnInit, OnDestroy {
   private readonly reviewService = inject(ScrapReviewService);
   private readonly templateService = inject(ScrapTemplateService);
   private readonly language = inject(LanguageService);
   private readonly authService = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly attachmentPreviewService = inject(ScrapAttachmentPreviewService);
 
   readonly t = computed(() => this.language.translations());
 
@@ -116,20 +123,13 @@ export class ScrapReviewDrawer implements OnInit {
   });
 
   readonly pendingUploadFiles = signal<File[]>([]);
+  readonly draftAttachmentPreviews = signal<ScrapAttachmentPreview[]>([]);
 
   readonly selectedDefectTypeName = computed(() => {
     const id = this.localFormModel().defectTypeId;
     if (!id) return null;
     const found = this.defectTypes().find((d) => d.id === id);
     return found ? found.name : null;
-  });
-
-  readonly draftAttachmentPreviews = computed(() => {
-    return this.pendingUploadFiles().map((file) => ({
-      url: URL.createObjectURL(file),
-      name: file.name,
-      original_filename: file.name,
-    }));
   });
 
   readonly activeOccurrenceId = computed(() => {
@@ -215,6 +215,10 @@ export class ScrapReviewDrawer implements OnInit {
     this.templateService.loadTemplates().pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
   }
 
+  ngOnDestroy(): void {
+    this.attachmentPreviewService.revokeAll();
+  }
+
   @HostListener('window:keydown.escape')
   onEscape(): void {
     this.attemptClose();
@@ -236,6 +240,7 @@ export class ScrapReviewDrawer implements OnInit {
     this.isConflict.set(false);
     this.isDirty.set(false);
     this.pendingUploadFiles.set([]);
+    this.clearDraftAttachmentPreviews();
     this.lastSavedAt.set(null);
 
     this.reviewService
@@ -276,6 +281,10 @@ export class ScrapReviewDrawer implements OnInit {
 
   onFilesSelected(files: File[]): void {
     this.pendingUploadFiles.update((current) => [...current, ...files]);
+    this.draftAttachmentPreviews.update((current) => [
+      ...current,
+      ...files.map((file) => this.attachmentPreviewService.create(file)),
+    ]);
     this.isDirty.set(true);
     // Se a revisão já existe no servidor, podemos fazer o upload imediatamente
     const currentRev = this.review();
@@ -428,6 +437,7 @@ export class ScrapReviewDrawer implements OnInit {
     this.localFormModel.set({ defectTypeId: '', title: '', description: '' });
     this.isDirty.set(false);
     this.pendingUploadFiles.set([]);
+    this.clearDraftAttachmentPreviews();
     this.error.set(null);
     this.isConflict.set(false);
     this.isPreviewMode.set(false);
@@ -511,6 +521,7 @@ export class ScrapReviewDrawer implements OnInit {
 
     this.uploading.set(true);
     this.pendingUploadFiles.set([]);
+    this.clearDraftAttachmentPreviews();
 
     return from(files).pipe(
       concatMap((file) =>
@@ -539,6 +550,11 @@ export class ScrapReviewDrawer implements OnInit {
         this.uploading.set(false);
       }),
     );
+  }
+
+  private clearDraftAttachmentPreviews(): void {
+    this.attachmentPreviewService.revokeAll();
+    this.draftAttachmentPreviews.set([]);
   }
 
   toggleEditFinalized(): void {
