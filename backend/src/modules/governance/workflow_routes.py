@@ -2,10 +2,9 @@ import uuid
 from datetime import datetime
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import func, select
 
-from ...infrastructure.auth.dependencies import get_current_superuser
 from ..user.models import User
 from .actions import (
     PlanInput,
@@ -27,7 +26,6 @@ from .routes import CurrentUserDep, DbDep
 router = APIRouter(tags=["Governance workflows"])
 Page = Annotated[int, Query(ge=1)]
 Size = Annotated[int, Query(ge=1, le=100)]
-Admin = Annotated[dict, Depends(get_current_superuser)]
 
 
 @router.get("/action-plans")
@@ -173,7 +171,7 @@ async def read_alert(alert_id: uuid.UUID, db: DbDep, user: CurrentUserDep):
 
 
 @router.get("/notification-rules")
-async def rules(db: DbDep, user: Admin, page: Page = 1, page_size: Size = 25):
+async def rules(db: DbDep, user: CurrentUserDep, page: Page = 1, page_size: Size = 25):
     total = await db.scalar(select(func.count()).select_from(NotificationRule))
     total = int(total or 0)
     rows = await db.scalars(
@@ -190,12 +188,12 @@ async def rules(db: DbDep, user: Admin, page: Page = 1, page_size: Size = 25):
 
 
 @router.post("/notification-rules", status_code=201)
-async def create_rule(data: RuleInput, db: DbDep, user: Admin):
+async def create_rule(data: RuleInput, db: DbDep, user: CurrentUserDep):
     return await save_rule(db, data)
 
 
 @router.put("/notification-rules/{rule_id}")
-async def update_rule(rule_id: uuid.UUID, data: RuleInput, db: DbDep, user: Admin):
+async def update_rule(rule_id: uuid.UUID, data: RuleInput, db: DbDep, user: CurrentUserDep):
     return await save_rule(db, data, rule_id)
 
 

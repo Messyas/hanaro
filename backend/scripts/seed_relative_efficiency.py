@@ -1,8 +1,9 @@
 """Populate demonstration production denominators for relative efficiency.
 
-The relative dashboard needs one confirmed global production record per month.
-This seed creates values and quantities for a selected year and its comparison
-year, allowing the monetary and physical views to be exercised locally.
+The relative dashboard needs global and product-level production records. This
+seed creates values and quantities for a selected year and its comparison year,
+allowing the rate timeline and the product-relative ranking to be exercised
+locally.
 
 Existing non-superseded records are preserved by default. Use ``--replace``
 only when synthetic data is intentionally meant to replace the current values.
@@ -27,7 +28,6 @@ from src.infrastructure.database.session import local_session
 from src.modules.governance.models import ProductionMeasurementVersion
 from src.modules.governance.production_service import bump_dashboard_revision
 
-
 MONTHLY_DEMONSTRATION_DATA: tuple[tuple[Decimal, Decimal], ...] = (
     (Decimal("1480000"), Decimal("96000")),
     (Decimal("1540000"), Decimal("99500")),
@@ -43,11 +43,32 @@ MONTHLY_DEMONSTRATION_DATA: tuple[tuple[Decimal, Decimal], ...] = (
     (Decimal("1880000"), Decimal("120000")),
 )
 
+# The shares add up to 100%, so the product-level seed reconciles exactly with
+# the global production denominator shown in the relative KPI.
+PRODUCT_DEMONSTRATION_SHARES: dict[str, Decimal] = {
+    "TV": Decimal("0.38"),
+    "BM": Decimal("0.27"),
+    "MNT": Decimal("0.18"),
+    "AV": Decimal("0.17"),
+}
+
 
 def demonstration_data_for(target_year: int, reference_year: int) -> tuple[tuple[Decimal, Decimal], ...]:
     """Keep the comparison year slightly below the selected-year baseline."""
     factor = Decimal("0.93") if target_year == reference_year else Decimal("1.00")
     return tuple((value * factor, quantity * factor) for value, quantity in MONTHLY_DEMONSTRATION_DATA)
+
+
+def product_demonstration_data_for(
+    target_year: int,
+    reference_year: int,
+) -> dict[str, tuple[tuple[Decimal, Decimal], ...]]:
+    """Allocate the global demonstration baseline into product scopes."""
+    global_data = demonstration_data_for(target_year, reference_year)
+    return {
+        product: tuple((value * share, quantity * share) for value, quantity in global_data)
+        for product, share in PRODUCT_DEMONSTRATION_SHARES.items()
+    }
 
 
 async def seed_relative_efficiency(
@@ -69,7 +90,9 @@ async def seed_relative_efficiency(
                 select(ProductionMeasurementVersion)
                 .where(
                     ProductionMeasurementVersion.year.in_(years),
-                    ProductionMeasurementVersion.scope_key == "GLOBAL",
+                    ProductionMeasurementVersion.scope_key.in_(
+                        ["GLOBAL", *(f"PRODUCT:{product}" for product in PRODUCT_DEMONSTRATION_SHARES)]
+                    ),
                     ProductionMeasurementVersion.status != "SUPERSEDED",
                 )
                 .order_by(
@@ -81,42 +104,50 @@ async def seed_relative_efficiency(
             )
         ).all()
     )
-    rows_by_period: dict[tuple[int, int], ProductionMeasurementVersion] = {}
+    rows_by_period: dict[tuple[int, int, str], ProductionMeasurementVersion] = {}
     for row in current_rows:
-        rows_by_period.setdefault((row.year, row.month), row)
+        rows_by_period.setdefault((row.year, row.month, row.scope_key), row)
     created = 0
     replaced = 0
     skipped = 0
 
     for target_year in years:
-        for month, (value, quantity) in enumerate(demonstration_data_for(target_year, reference_year), start=1):
-            current = rows_by_period.get((target_year, month))
-            if current is not None and not replace:
-                skipped += 1
-                continue
+        scoped_data = {"GLOBAL": demonstration_data_for(target_year, reference_year)}
+        scoped_data.update(
+            {
+                f"PRODUCT:{product}": data
+                for product, data in product_demonstration_data_for(target_year, reference_year).items()
+            }
+        )
+        for scope_key, values in scoped_data.items():
+            for month, (value, quantity) in enumerate(values, start=1):
+                current = rows_by_period.get((target_year, month, scope_key))
+                if current is not None and not replace:
+                    skipped += 1
+                    continue
 
-            revision = 1
-            if current is not None:
-                current.status = "SUPERSEDED"
-                revision = current.revision + 1
-                replaced += 1
+                revision = 1
+                if current is not None:
+                    current.status = "SUPERSEDED"
+                    revision = current.revision + 1
+                    replaced += 1
 
-            db.add(
-                ProductionMeasurementVersion(
-                    year=target_year,
-                    month=month,
-                    scope_key="GLOBAL",
-                    currency=currency,
-                    production_value=value,
-                    production_quantity=quantity,
-                    note="Dados demonstrativos para habilitar a eficiencia relativa.",
-                    revision=revision,
-                    status="CONFIRMED",
-                    source="IMPORT",
-                    author_id=None,
+                db.add(
+                    ProductionMeasurementVersion(
+                        year=target_year,
+                        month=month,
+                        scope_key=scope_key,
+                        currency=currency,
+                        production_value=value,
+                        production_quantity=quantity,
+                        note="Dados demonstrativos para habilitar a eficiencia relativa por produto.",
+                        revision=revision,
+                        status="CONFIRMED",
+                        source="IMPORT",
+                        author_id=None,
+                    )
                 )
-            )
-            created += 1
+                created += 1
 
     if created:
         await bump_dashboard_revision(db)

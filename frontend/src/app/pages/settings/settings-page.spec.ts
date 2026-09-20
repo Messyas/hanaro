@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { vi } from 'vitest';
 import { AuthService } from '../../core/auth/auth.service';
 import { LanguageService } from '../../i18n/language.service';
@@ -155,8 +155,19 @@ describe('SettingsPage', () => {
     fixture.detectChanges();
 
     expect(component.activeTab()).toBe('classifications');
+    expect(scrapClassificationServiceMock.list).toHaveBeenCalledTimes(2);
     const text = fixture.nativeElement.textContent;
     expect(text).toContain('Classificações de material');
+  });
+
+  it('shows an error when shared classifications cannot be loaded', () => {
+    scrapClassificationServiceMock.list.mockReturnValue(throwError(() => new Error('network')));
+
+    component.loadClassifications();
+
+    expect(component.loadingClassifications()).toBe(false);
+    expect(component.classificationFeedback()?.type).toBe('error');
+    expect(component.classificationFeedback()?.text).toContain('classificações compartilhadas');
   });
 
   it('renders user-controlled text as text, not executable HTML', () => {
@@ -167,6 +178,7 @@ describe('SettingsPage', () => {
         description: '"><img src=x onerror=alert(1)>',
       },
     ]);
+    scrapReviewServiceMock.getDefectTypes.mockReturnValue(of(component.defectTypes()));
     component.selectTab('system');
     fixture.detectChanges();
 

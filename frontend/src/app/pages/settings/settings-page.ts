@@ -266,12 +266,14 @@ export class SettingsPage implements OnInit {
   selectTab(tab: 'preferences' | 'classifications' | 'system' | 'targets' | 'production'): void {
     if (tab !== 'preferences' && !this.authService.isAuthenticated()) return;
     this.activeTab.set(tab);
-    if (tab === 'system' && this.defectTypes().length === 0) {
+    if (tab === 'system') {
       this.loadDefectTypes();
-    } else if (tab === 'classifications' && this.classificationRules().length === 0) {
+    } else if (tab === 'classifications') {
       this.loadClassifications();
     } else if (tab === 'targets') {
       this.loadTargets(this.selectedTargetYear());
+    } else if (tab === 'production') {
+      this.loadProduction(this.selectedProductionYear());
     }
   }
 
@@ -408,8 +410,15 @@ export class SettingsPage implements OnInit {
       next: (rules) => {
         this.classificationRules.set(rules);
         this.loadingClassifications.set(false);
+        this.classificationFeedback.set(null);
       },
-      error: () => this.loadingClassifications.set(false),
+      error: () => {
+        this.loadingClassifications.set(false);
+        this.classificationFeedback.set({
+          type: 'error',
+          text: 'Não foi possível carregar as classificações compartilhadas.',
+        });
+      },
     });
   }
 
