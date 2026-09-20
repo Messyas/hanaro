@@ -28,6 +28,15 @@ interface DashboardApiRankingItem {
   record_count: number;
 }
 
+interface DashboardApiRelativeRankingItem {
+  key: string | null;
+  numerator: string;
+  denominator: string | null;
+  rate: string | null;
+  record_count: number;
+  denominator_status: 'AVAILABLE' | 'MISSING_DENOMINATOR' | 'ZERO_DENOMINATOR';
+}
+
 interface DashboardApiSeriesPoint {
   period: string;
   actual: string | null;
@@ -52,6 +61,7 @@ interface DashboardApiResponse {
     models?: DashboardApiRankingItem[];
     offenders?: DashboardApiRankingItem[];
   };
+  relative_product_ranking?: DashboardApiRelativeRankingItem[];
 }
 
 interface ScrapFiltersResponse {
@@ -556,6 +566,16 @@ export class DashboardStore {
         label: item.key ?? 'Não classificado',
         usd: this.toNumber(item.amount),
         qty: quantityMetric ? this.toNumber(item.amount) : item.record_count,
+      })),
+      relativeProducts: (response.relative_product_ranking ?? []).map((item) => ({
+        label: item.key ?? 'NÃ£o classificado',
+        usd: this.toNumber(item.numerator),
+        qty: item.record_count,
+        rate: this.toNullableNumber(item.rate),
+        numerator: this.toNumber(item.numerator),
+        denominator: this.toNullableNumber(item.denominator),
+        recordCount: item.record_count,
+        denominatorStatus: item.denominator_status,
       })),
       // Keep the source timestamp; the page formats only the time according
       // to the currently selected language.

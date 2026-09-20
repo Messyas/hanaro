@@ -31,8 +31,9 @@ async def list_measurements(
     year: Annotated[int, Query(ge=2000, le=2200)],
     db: DbDep,
     _: CurrentUserDep,
+    scope_key: Annotated[str, Query(min_length=1, max_length=64, pattern=r"^(GLOBAL|PRODUCT:.+)$")] = "GLOBAL",
 ) -> list[ProductionMeasurementRead]:
-    return [_read_model(item) for item in await list_production_measurements(db, year)]
+    return [_read_model(item) for item in await list_production_measurements(db, year, scope_key)]
 
 
 @router.put("/{year}", response_model=list[ProductionMeasurementRead], status_code=status.HTTP_200_OK)
@@ -49,6 +50,7 @@ async def save_measurements(
             currency=payload.currency,
             measurements=payload.measurements,
             author_id=int(current_user["id"]),
+            scope_key=payload.scope_key,
         )
     except ProductionMeasurementConflictError as error:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(error)) from error
@@ -61,12 +63,14 @@ async def clear_measurements(
     payload: ProductionMeasurementClearWrite,
     db: DbDep,
     _: CurrentUserDep,
+    scope_key: Annotated[str, Query(min_length=1, max_length=64, pattern=r"^(GLOBAL|PRODUCT:.+)$")] = "GLOBAL",
 ) -> Response:
     try:
         await clear_production_measurements(
             db,
             year=year,
             expected_versions=payload.expected_versions,
+            scope_key=scope_key,
         )
     except ProductionMeasurementConflictError as error:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(error)) from error

@@ -57,6 +57,11 @@ export interface DashboardDistributionItem {
   label: string;
   usd: number;
   qty: number;
+  rate?: number | null;
+  numerator?: number;
+  denominator?: number | null;
+  recordCount?: number;
+  denominatorStatus?: 'AVAILABLE' | 'MISSING_DENOMINATOR' | 'ZERO_DENOMINATOR';
 }
 
 export interface DashboardSnapshot {
@@ -67,6 +72,7 @@ export interface DashboardSnapshot {
   lines: readonly DashboardDistributionItem[];
   models: readonly DashboardDistributionItem[];
   offenders: readonly DashboardDistributionItem[];
+  relativeProducts: readonly DashboardDistributionItem[];
   lastUpdatedAt: string;
 }
 
@@ -93,6 +99,7 @@ export const EMPTY_SNAPSHOT: DashboardSnapshot = {
   lines: [],
   models: [],
   offenders: [],
+  relativeProducts: [],
   lastUpdatedAt: '',
 };
 

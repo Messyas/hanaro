@@ -450,7 +450,7 @@
 }
 
 .scrap-chart-grid.relative-mode {
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.8fr) minmax(18rem, 0.9fr);
 }
 .scrap-chart-grid .panel,
 .scrap-rankings-grid .panel {

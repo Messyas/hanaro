@@ -10,7 +10,11 @@ from sqlalchemy import asc, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 
-from ..governance.production_service import monthly_production_denominators
+from ..governance.production_service import (
+    monthly_product_production_denominators,
+    monthly_production_denominators,
+    product_production_denominators,
+)
 from .dashboard_cache import DashboardResponseCache
 from .enums import DashboardCurrency, DashboardMetric, ImpactMode
 from .models import ScrapDashboardAggregate, ScrapDashboardState, ScrapOccurrence, ScrapTarget
@@ -21,6 +25,7 @@ from .schemas import (
     DashboardMetadata,
     DashboardRankingItem,
     DashboardRankings,
+    DashboardRelativeRankingItem,
     DashboardResponse,
     DashboardSeriesPoint,
 )
@@ -123,7 +128,7 @@ class ScrapDashboardService:
         filters: ScrapFilters,
         metric: InstrumentedAttribute[Decimal],
         dimension: InstrumentedAttribute[str],
-        limit: int,
+        limit: int | None,
     ) -> list[DashboardRankingItem]:
         total = func.sum(metric).label("total")
         records = func.sum(ScrapDashboardAggregate.record_count).label("records")
@@ -131,8 +136,9 @@ class ScrapDashboardService:
             self._active_statement(dimension.label("key"), total, records)
             .group_by(dimension)
             .order_by(desc(total), asc(dimension))
-            .limit(limit)
         )
+        if limit is not None:
+            statement = statement.limit(limit)
         conditions = _aggregate_filter_conditions(filters)
         if conditions:
             statement = statement.where(*conditions)
@@ -160,12 +166,21 @@ class ScrapDashboardService:
     ) -> dict[str, Decimal | None]:
         if not ScrapDashboardService._supports_global_production_denominator(filters):
             return {}
-        values = await monthly_production_denominators(
-            db,
-            year=year,
-            currency=currency.value,
-            use_quantity=dashboard_metric == DashboardMetric.QUANTITY,
-        )
+        if filters.products:
+            values = await monthly_product_production_denominators(
+                db,
+                year=year,
+                products=filters.products,
+                currency=currency.value,
+                use_quantity=dashboard_metric == DashboardMetric.QUANTITY,
+            )
+        else:
+            values = await monthly_production_denominators(
+                db,
+                year=year,
+                currency=currency.value,
+                use_quantity=dashboard_metric == DashboardMetric.QUANTITY,
+            )
         return {f"{year}-{month:02d}": value for month, value in values.items()}
 
     @staticmethod
@@ -174,7 +189,6 @@ class ScrapDashboardService:
             filters.organizations,
             filters.receipt_departments,
             filters.departments,
-            filters.products,
             filters.divisions,
             filters.item_types,
             filters.account_codes,
@@ -379,6 +393,42 @@ class ScrapDashboardService:
         lines = await self._ranking(db, current_filters, metric, ScrapDashboardAggregate.receipt_department, ranking_limit)
         models = await self._ranking(db, current_filters, metric, ScrapDashboardAggregate.item_code, ranking_limit)
         offenders = await self._ranking(db, current_filters, metric, ScrapDashboardAggregate.account_alias, ranking_limit)
+        all_products = await self._ranking(db, current_filters, metric, ScrapDashboardAggregate.product, None)
+        months = list(range(current_date_from.month, current_date_to.month + 1))
+        product_denominators = await product_production_denominators(
+            db,
+            year=year,
+            months=months,
+            currency=currency.value,
+            use_quantity=dashboard_metric == DashboardMetric.QUANTITY,
+        )
+        relative_product_ranking: list[DashboardRelativeRankingItem] = []
+        for item in all_products:
+            denominator = product_denominators.get(item.key or "")
+            status: Literal["AVAILABLE", "MISSING_DENOMINATOR", "ZERO_DENOMINATOR"]
+            if denominator is None:
+                status = "MISSING_DENOMINATOR"
+                rate = None
+            elif denominator == ZERO:
+                status = "ZERO_DENOMINATOR"
+                rate = None
+            else:
+                status = "AVAILABLE"
+                rate = item.amount / denominator * 100
+            relative_product_ranking.append(
+                DashboardRelativeRankingItem(
+                    key=item.key,
+                    numerator=item.amount,
+                    denominator=denominator,
+                    rate=rate,
+                    record_count=item.record_count,
+                    denominator_status=status,
+                )
+            )
+        relative_product_ranking.sort(
+            key=lambda item: (item.rate is not None, item.rate or ZERO, item.numerator), reverse=True
+        )
+        relative_product_ranking = relative_product_ranking[:ranking_limit]
         target_attainment = (
             (target_total / actual * 100).quantize(PERCENT_QUANTUM) if target_total is not None and actual else None
         )
@@ -410,6 +460,7 @@ class ScrapDashboardService:
                 offenders=offenders,
             ),
             priority_occurrences=offenders[:5],
+            relative_product_ranking=relative_product_ranking,
         )
         await self._cache.set(revision, parameters, response)
         return response

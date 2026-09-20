@@ -40,6 +40,69 @@ async def monthly_production_denominators(
     return {int(row.month): Decimal(str(row[1])) if row[1] is not None else None for row in (await db.execute(statement)).all()}
 
 
+async def product_production_denominators(
+    db: AsyncSession,
+    *,
+    year: int,
+    months: Sequence[int],
+    currency: str,
+    use_quantity: bool,
+) -> dict[str, Decimal]:
+    """Aggregate confirmed production exposure by product for a dashboard slice."""
+    if not months:
+        return {}
+    column = ProductionMeasurementVersion.production_quantity if use_quantity else ProductionMeasurementVersion.production_value
+    conditions = [
+        ProductionMeasurementVersion.year == year,
+        ProductionMeasurementVersion.month.in_(months),
+        ProductionMeasurementVersion.scope_key.like("PRODUCT:%"),
+        ProductionMeasurementVersion.status == "CONFIRMED",
+    ]
+    if not use_quantity:
+        conditions.append(ProductionMeasurementVersion.currency == currency)
+    statement = (
+        select(ProductionMeasurementVersion.scope_key, func.sum(column))
+        .where(*conditions)
+        .group_by(ProductionMeasurementVersion.scope_key)
+    )
+    return {
+        str(row.scope_key).removeprefix("PRODUCT:"): Decimal(str(row[1]))
+        for row in (await db.execute(statement)).all()
+        if row[1] is not None
+    }
+
+
+async def monthly_product_production_denominators(
+    db: AsyncSession,
+    *,
+    year: int,
+    products: Sequence[str],
+    currency: str,
+    use_quantity: bool,
+) -> dict[int, Decimal]:
+    """Aggregate monthly exposure for a selected set of products."""
+    if not products:
+        return {}
+    column = ProductionMeasurementVersion.production_quantity if use_quantity else ProductionMeasurementVersion.production_value
+    conditions = [
+        ProductionMeasurementVersion.year == year,
+        ProductionMeasurementVersion.scope_key.in_([f"PRODUCT:{product}" for product in products]),
+        ProductionMeasurementVersion.status == "CONFIRMED",
+    ]
+    if not use_quantity:
+        conditions.append(ProductionMeasurementVersion.currency == currency)
+    statement = (
+        select(ProductionMeasurementVersion.month, func.sum(column))
+        .where(*conditions)
+        .group_by(ProductionMeasurementVersion.month)
+    )
+    return {
+        int(row.month): Decimal(str(row[1]))
+        for row in (await db.execute(statement)).all()
+        if row[1] is not None
+    }
+
+
 async def bump_dashboard_revision(db: AsyncSession) -> None:
     now = datetime.now(UTC)
     state = await db.get(ScrapDashboardState, 1, with_for_update=True)
@@ -50,7 +113,9 @@ async def bump_dashboard_revision(db: AsyncSession) -> None:
     state.updated_at = now
 
 
-async def list_production_measurements(db: AsyncSession, year: int) -> list[ProductionMeasurementVersion]:
+async def list_production_measurements(
+    db: AsyncSession, year: int, scope_key: str = "GLOBAL"
+) -> list[ProductionMeasurementVersion]:
     latest_revision = (
         select(
             ProductionMeasurementVersion.year,
@@ -60,7 +125,7 @@ async def list_production_measurements(db: AsyncSession, year: int) -> list[Prod
         )
         .where(
             ProductionMeasurementVersion.year == year,
-            ProductionMeasurementVersion.scope_key == "GLOBAL",
+            ProductionMeasurementVersion.scope_key == scope_key,
             ProductionMeasurementVersion.status != "SUPERSEDED",
         )
         .group_by(
@@ -92,9 +157,10 @@ async def save_production_measurements(
     currency: str,
     measurements: Sequence[ProductionMeasurementWrite],
     author_id: int,
+    scope_key: str = "GLOBAL",
 ) -> list[ProductionMeasurementVersion]:
     if not measurements:
-        return await list_production_measurements(db, year)
+        return await list_production_measurements(db, year, scope_key)
 
     for item in measurements:
         current = await db.scalar(
@@ -102,7 +168,7 @@ async def save_production_measurements(
             .where(
                 ProductionMeasurementVersion.year == year,
                 ProductionMeasurementVersion.month == item.month,
-                ProductionMeasurementVersion.scope_key == "GLOBAL",
+                ProductionMeasurementVersion.scope_key == scope_key,
                 ProductionMeasurementVersion.status != "SUPERSEDED",
             )
             .order_by(ProductionMeasurementVersion.revision.desc())
@@ -122,7 +188,7 @@ async def save_production_measurements(
             ProductionMeasurementVersion(
                 year=year,
                 month=item.month,
-                scope_key="GLOBAL",
+                scope_key=scope_key,
                 currency=currency,
                 production_value=item.production_value,
                 production_quantity=item.production_quantity,
@@ -140,7 +206,7 @@ async def save_production_measurements(
     except IntegrityError as error:
         await db.rollback()
         raise ProductionMeasurementConflictError("Production data changed concurrently; reload before saving") from error
-    return await list_production_measurements(db, year)
+    return await list_production_measurements(db, year, scope_key)
 
 
 async def clear_production_measurements(
@@ -148,6 +214,7 @@ async def clear_production_measurements(
     *,
     year: int,
     expected_versions: dict[int, int],
+    scope_key: str = "GLOBAL",
 ) -> None:
     rows = list(
         (
@@ -155,7 +222,7 @@ async def clear_production_measurements(
                 select(ProductionMeasurementVersion)
                 .where(
                     ProductionMeasurementVersion.year == year,
-                    ProductionMeasurementVersion.scope_key == "GLOBAL",
+                    ProductionMeasurementVersion.scope_key == scope_key,
                     ProductionMeasurementVersion.status == "CONFIRMED",
                 )
                 .with_for_update()

@@ -221,6 +221,16 @@ describe('DashboardStore', () => {
         components: [],
         offenders: [],
       },
+      relative_product_ranking: [
+        {
+          key: 'TV',
+          numerator: '100',
+          denominator: '2000',
+          rate: '5',
+          record_count: 1,
+          denominator_status: 'AVAILABLE',
+        },
+      ],
     });
     await Promise.resolve();
 
@@ -229,6 +239,12 @@ describe('DashboardStore', () => {
     expect(store.snapshot().monthly[0].materialAmountUsd).toBeNull();
     expect(store.snapshot().monthly[0].relativeStatus).toBe('MISSING_DENOMINATOR');
     expect(store.relativeKpis().rate).toBeNull();
+    expect(store.snapshot().relativeProducts[0]).toMatchObject({
+      label: 'TV',
+      rate: 5,
+      numerator: 100,
+      denominator: 2000,
+    });
 
     httpMock.match((req) => req.url.includes('/api/v1/dashboard/scrap'));
   });

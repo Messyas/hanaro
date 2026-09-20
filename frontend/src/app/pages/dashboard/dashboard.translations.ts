@@ -113,6 +113,14 @@ export interface DashboardTranslations {
   performanceAbsoluteAria: string;
   performanceRelativeAria: string;
   distributionAbsoluteAria: string;
+  distributionRelativeAria: string;
+  relativeProductRanking: string;
+  relativeProductRankingHint: string;
+  noRelativeRankingHint: string;
+  scrapRate: string;
+  scrapValue: string;
+  productionValue: string;
+  occurrences: string;
   rankingLimitAria: string;
   topFive: string;
   topTen: string;
@@ -235,6 +243,14 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     performanceAbsoluteAria: 'IF Cost mensal comparando realizado, referência e target',
     performanceRelativeAria: 'Scrap Rate mensal comparando o ano atual e o anterior',
     distributionAbsoluteAria: 'Distribuição do scrap por produto ou área',
+    distributionRelativeAria: 'Ranking de produtos por Scrap Rate',
+    relativeProductRanking: 'Produtos com maior Scrap Rate',
+    relativeProductRankingHint: 'Perda proporcional: scrap dividido pelo valor produzido',
+    noRelativeRankingHint: 'Cadastre o valor produzido por produto para calcular este ranking.',
+    scrapRate: 'Scrap Rate',
+    scrapValue: 'Valor de scrap',
+    productionValue: 'Valor produzido',
+    occurrences: 'Ocorrências',
     rankingLimitAria: 'Quantidade de itens exibidos no ranking',
     topFive: 'Top 5',
     topTen: 'Top 10',
@@ -355,6 +371,14 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     performanceAbsoluteAria: 'Monthly IF Cost comparing actual, reference, and target',
     performanceRelativeAria: 'Monthly Scrap Rate comparing the current and previous years',
     distributionAbsoluteAria: 'Scrap distribution by product or area',
+    distributionRelativeAria: 'Product ranking by Scrap Rate',
+    relativeProductRanking: 'Products with highest Scrap Rate',
+    relativeProductRankingHint: 'Proportional loss: scrap divided by production value',
+    noRelativeRankingHint: 'Add production value by product to calculate this ranking.',
+    scrapRate: 'Scrap Rate',
+    scrapValue: 'Scrap value',
+    productionValue: 'Production value',
+    occurrences: 'Occurrences',
     rankingLimitAria: 'Number of ranking items displayed',
     topFive: 'Top 5',
     topTen: 'Top 10',
@@ -474,6 +498,14 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     performanceAbsoluteAria: '월별 IF Cost 실적, 기준 및 목표 비교',
     performanceRelativeAria: '현재 연도와 전년도의 월별 Scrap Rate 비교',
     distributionAbsoluteAria: '제품 또는 영역별 Scrap 분포',
+    distributionRelativeAria: 'Scrap Rate별 제품 순위',
+    relativeProductRanking: 'Scrap Rate가 높은 제품',
+    relativeProductRankingHint: '비례 손실: Scrap을 생산 가치로 나눈 값',
+    noRelativeRankingHint: '이 순위를 계산하려면 제품별 생산 가치를 등록하세요.',
+    scrapRate: 'Scrap Rate',
+    scrapValue: 'Scrap 가치',
+    productionValue: '생산 가치',
+    occurrences: '발생 건수',
     rankingLimitAria: '랭킹 표시 항목 수',
     topFive: '상위 5',
     topTen: '상위 10',

@@ -52,6 +52,7 @@ export class DashboardDistributionChart {
   readonly metric = input.required<DashboardMetric>();
   readonly language = input.required<LanguageCode>();
   readonly monetaryValuesHidden = input(false);
+  readonly valueMode = input<'absolute' | 'relative'>('absolute');
   readonly chartHeight = input<string>('16.5rem');
   readonly copy = computed(() => DASHBOARD_TRANSLATIONS[this.language()]);
   readonly initOptions = { renderer: 'svg' as const };
@@ -60,6 +61,7 @@ export class DashboardDistributionChart {
     const chartTheme = getChartTheme(isDark);
     const metric = this.metric();
     const hidden = metric === 'usd' && this.monetaryValuesHidden();
+    const relative = this.valueMode() === 'relative';
     const data = [...this.data()].reverse();
 
     return {
@@ -67,7 +69,9 @@ export class DashboardDistributionChart {
       textStyle: { fontFamily: chartTheme.fontFamily },
       aria: {
         show: true,
-        description: this.copy().distributionAbsoluteAria,
+        description: relative
+          ? this.copy().distributionRelativeAria
+          : this.copy().distributionAbsoluteAria,
       },
       grid: { top: 6, right: 78, bottom: 8, left: 6, containLabel: true },
       tooltip: {
@@ -98,6 +102,13 @@ export class DashboardDistributionChart {
           const item = params as { name?: string; value?: number };
           if (!item || item.name === undefined) return '';
           const rawVal = item.value ?? 0;
+          const source = data.find((entry) => entry.label === item.name);
+          if (relative && source) {
+            const rate = this.percentage(source.rate ?? 0);
+            const numerator = hidden ? '•••••' : this.metricValue(source.numerator ?? 0);
+            const denominator = hidden ? '•••••' : this.metricValue(source.denominator ?? 0);
+            return `<div style="font-weight:700;margin-bottom:5px">${item.name}</div><div>${this.copy().scrapRate}: ${rate}</div><div>${this.copy().scrapValue}: ${numerator}</div><div>${this.copy().productionValue}: ${denominator}</div><div>${this.copy().occurrences}: ${source.recordCount ?? 0}</div>`;
+          }
           const displayVal =
             metric === 'usd'
               ? this.compactCurrency(rawVal)
@@ -115,18 +126,21 @@ export class DashboardDistributionChart {
       },
       series: [
         {
-          name: metric === 'usd' ? 'IF Cost' : 'QTY Scrap',
+          name: relative ? this.copy().scrapRate : metric === 'usd' ? 'IF Cost' : 'QTY Scrap',
           type: 'bar',
           data: data.map((item) => {
-            const value = metric === 'usd' ? item.usd : item.qty;
+            const value = relative ? (item.rate ?? 0) : metric === 'usd' ? item.usd : item.qty;
             return {
               value,
               label: {
-                formatter: hidden
-                  ? '•••••'
-                  : metric === 'usd'
-                    ? this.compactCurrency(value)
-                    : `${new Intl.NumberFormat(DASHBOARD_LOCALES[this.language()]).format(value)} ${this.copy().units}`,
+                formatter:
+                  !relative && hidden
+                    ? '•••••'
+                    : relative
+                      ? this.percentage(value)
+                      : metric === 'usd'
+                        ? this.compactCurrency(value)
+                        : `${new Intl.NumberFormat(DASHBOARD_LOCALES[this.language()]).format(value)} ${this.copy().units}`,
               },
             };
           }),
@@ -158,5 +172,17 @@ export class DashboardDistributionChart {
     }).format(value >= 1000 ? value / 1000 : value);
 
     return value >= 1000 ? `US$ ${formatted}k` : `US$ ${formatted}`;
+  }
+
+  private percentage(value: number): string {
+    return `${new Intl.NumberFormat(DASHBOARD_LOCALES[this.language()], {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 4,
+    }).format(value)}%`;
+  }
+
+  private metricValue(value: number): string {
+    if (this.metric() === 'usd') return this.compactCurrency(value);
+    return `${new Intl.NumberFormat(DASHBOARD_LOCALES[this.language()]).format(value)} ${this.copy().units}`;
   }
 }

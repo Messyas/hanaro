@@ -25,6 +25,7 @@ class ProductionMeasurementBatchWrite(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     currency: Literal["USD", "BRL"] = "USD"
+    scope_key: str = Field(default="GLOBAL", min_length=1, max_length=64, pattern=r"^(GLOBAL|PRODUCT:.+)$")
     measurements: list[ProductionMeasurementWrite] = Field(min_length=1, max_length=12)
 
     @model_validator(mode="after")

@@ -700,6 +700,15 @@ class DashboardRankingItem(BaseModel):
     record_count: int
 
 
+class DashboardRelativeRankingItem(BaseModel):
+    key: str | None
+    numerator: Decimal
+    denominator: Decimal | None = None
+    rate: Decimal | None = None
+    record_count: int
+    denominator_status: Literal["AVAILABLE", "MISSING_DENOMINATOR", "ZERO_DENOMINATOR"]
+
+
 class DashboardRankings(BaseModel):
     products: list[DashboardRankingItem]
     components: list[DashboardRankingItem]
@@ -715,3 +724,4 @@ class DashboardResponse(BaseModel):
     weekly: list[DashboardSeriesPoint]
     rankings: DashboardRankings
     priority_occurrences: list[DashboardRankingItem]
+    relative_product_ranking: list[DashboardRelativeRankingItem] = Field(default_factory=list)

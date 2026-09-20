@@ -30,8 +30,8 @@ export class ProductionMeasurementService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = '/api/v1/production-measurements';
 
-  getYear(year: number): Observable<ProductionMeasurement[]> {
-    const params = new HttpParams().set('year', year.toString());
+  getYear(year: number, scopeKey = 'GLOBAL'): Observable<ProductionMeasurement[]> {
+    const params = new HttpParams().set('year', year.toString()).set('scope_key', scopeKey);
     return this.http.get<ProductionMeasurement[]>(this.baseUrl, { params });
   }
 
@@ -39,16 +39,23 @@ export class ProductionMeasurementService {
     year: number,
     measurements: ProductionMeasurementWrite[],
     currency: 'USD' | 'BRL' = 'USD',
+    scopeKey = 'GLOBAL',
   ): Observable<ProductionMeasurement[]> {
     return this.http.put<ProductionMeasurement[]>(`${this.baseUrl}/${year}`, {
       currency,
+      scope_key: scopeKey,
       measurements,
     });
   }
 
-  clearYear(year: number, expectedVersions: Record<number, number>): Observable<void> {
+  clearYear(
+    year: number,
+    expectedVersions: Record<number, number>,
+    scopeKey = 'GLOBAL',
+  ): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${year}`, {
       body: { expected_versions: expectedVersions },
+      params: new HttpParams().set('scope_key', scopeKey),
     });
   }
 }

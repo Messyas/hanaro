@@ -420,6 +420,34 @@
         <div class="chart-defer-placeholder" aria-hidden="true"></div>
       }
     </article>
+    @if (store.analysis() === 'relative') {
+      <article class="panel scrap-distribution-panel relative-ranking-panel">
+        <div class="panel-header">
+          <div>
+            <h3>{{ text().relativeProductRanking }}</h3>
+            <p>{{ text().relativeProductRankingHint }}</p>
+          </div>
+        </div>
+        @defer (on viewport) {
+          @if (hasRelativeProductData()) {
+            <app-dashboard-distribution-chart
+              [data]="relativeProductData()"
+              [metric]="store.metric()"
+              [language]="language.currentLanguage()"
+              [monetaryValuesHidden]="store.monetaryValuesHidden()"
+              valueMode="relative"
+            />
+          } @else {
+            <div class="chart-empty-state">
+              <strong>{{ text().noChartDataTitle }}</strong>
+              <span>{{ text().noRelativeRankingHint }}</span>
+            </div>
+          }
+        } @placeholder {
+          <div class="chart-defer-placeholder" aria-hidden="true"></div>
+        }
+      </article>
+    }
     @if (store.analysis() === 'absolute') {
       <article class="panel scrap-distribution-panel">
         <div class="panel-header">

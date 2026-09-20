@@ -29,3 +29,20 @@ def test_production_measurement_accepts_an_expected_version() -> None:
     )
 
     assert measurement.expected_version == 2
+
+
+def test_production_measurement_batch_accepts_product_scope() -> None:
+    batch = ProductionMeasurementBatchWrite(
+        scope_key="PRODUCT:TV",
+        measurements=[ProductionMeasurementWrite(month=1, production_value=Decimal("1000"))],
+    )
+
+    assert batch.scope_key == "PRODUCT:TV"
+
+
+def test_production_measurement_batch_rejects_unknown_scope() -> None:
+    with pytest.raises(ValidationError, match="scope_key"):
+        ProductionMeasurementBatchWrite(
+            scope_key="LINE:G08",
+            measurements=[ProductionMeasurementWrite(month=1, production_value=Decimal("1000"))],
+        )

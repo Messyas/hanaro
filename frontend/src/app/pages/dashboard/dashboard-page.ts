@@ -192,6 +192,13 @@ export class DashboardPage {
   readonly distributionData = computed(() => {
     return this.buildDistributionData();
   });
+  readonly relativeProductData = computed(() =>
+    this.store
+      .snapshot()
+      .relativeProducts.filter((item) => item.rate !== null)
+      .slice(0, 10),
+  );
+  readonly hasRelativeProductData = computed(() => this.relativeProductData().length > 0);
   readonly hasPerformanceData = computed(() => {
     const metric = this.store.metric();
     const analysis = this.store.analysis();
