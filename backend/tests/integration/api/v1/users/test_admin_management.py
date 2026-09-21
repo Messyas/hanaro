@@ -1,7 +1,7 @@
 import pytest
 from httpx import AsyncClient
 
-from src.infrastructure.auth.dependencies import get_current_superuser, get_current_user
+from src.infrastructure.auth.dependencies import get_current_user
 from src.interfaces.main import app
 
 pytestmark = pytest.mark.asyncio
@@ -22,11 +22,9 @@ async def test_admin_can_manage_regular_account(
         return test_superuser
 
     app.dependency_overrides[get_current_user] = regular_user
-    app.dependency_overrides[get_current_superuser] = regular_user
     assert (await client.get("/api/v1/users/admin/all")).status_code == 403
 
     app.dependency_overrides[get_current_user] = superuser
-    app.dependency_overrides[get_current_superuser] = superuser
     listed = await client.get("/api/v1/users/admin/all")
     assert listed.status_code == 200
     assert any(user["id"] == user_id for user in listed.json()["items"])

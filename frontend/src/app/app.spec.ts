@@ -4,6 +4,7 @@ import { provideRouter } from '@angular/router';
 import { vi } from 'vitest';
 import { App } from './app';
 import { routes } from './app.routes';
+import { AuthService } from './core/auth/auth.service';
 import { DashboardShell } from './layouts/dashboard-shell/dashboard-shell';
 import { LanguageService } from './i18n/language.service';
 import { ThemeService } from './theme/theme.service';
@@ -58,12 +59,14 @@ describe('App', () => {
       'planos-de-acao',
       'planos-de-acao/:planId',
       'perfil',
+      'usuarios',
       '',
       '**',
     ]);
   });
 
   it('should update sidebar and breadcrumb labels when the runtime language changes', () => {
+    TestBed.inject(AuthService).clearSession();
     const shell = TestBed.createComponent(DashboardShell).componentInstance;
     const language = TestBed.inject(LanguageService);
 

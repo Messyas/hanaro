@@ -59,9 +59,7 @@ async def test_relative_product_ranking_uses_product_exposure_instead_of_absolut
         )
         await db.commit()
 
-        denominators = await product_production_denominators(
-            db, year=2026, months=[8], currency="USD", use_quantity=False
-        )
+        denominators = await product_production_denominators(db, year=2026, months=[8], currency="USD", use_quantity=False)
         assert denominators == {"BM": Decimal("1000000"), "TV": Decimal("1000")}
 
         response = await ScrapDashboardService().get_dashboard(

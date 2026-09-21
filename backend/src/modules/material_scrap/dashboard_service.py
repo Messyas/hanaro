@@ -1,6 +1,7 @@
 """Read-only application service for the frontend dashboard contract."""
 
 import uuid
+from collections.abc import Mapping
 from dataclasses import asdict, replace
 from datetime import UTC, date, datetime
 from decimal import Decimal
@@ -166,6 +167,7 @@ class ScrapDashboardService:
     ) -> dict[str, Decimal | None]:
         if not ScrapDashboardService._supports_global_production_denominator(filters):
             return {}
+        values: Mapping[int, Decimal | None]
         if filters.products:
             values = await monthly_product_production_denominators(
                 db,
@@ -425,9 +427,7 @@ class ScrapDashboardService:
                     denominator_status=status,
                 )
             )
-        relative_product_ranking.sort(
-            key=lambda item: (item.rate is not None, item.rate or ZERO, item.numerator), reverse=True
-        )
+        relative_product_ranking.sort(key=lambda item: (item.rate is not None, item.rate or ZERO, item.numerator), reverse=True)
         relative_product_ranking = relative_product_ranking[:ranking_limit]
         target_attainment = (
             (target_total / actual * 100).quantize(PERCENT_QUANTUM) if target_total is not None and actual else None

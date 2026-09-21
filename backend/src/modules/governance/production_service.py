@@ -96,11 +96,7 @@ async def monthly_product_production_denominators(
         .where(*conditions)
         .group_by(ProductionMeasurementVersion.month)
     )
-    return {
-        int(row.month): Decimal(str(row[1]))
-        for row in (await db.execute(statement)).all()
-        if row[1] is not None
-    }
+    return {int(row.month): Decimal(str(row[1])) for row in (await db.execute(statement)).all() if row[1] is not None}
 
 
 async def bump_dashboard_revision(db: AsyncSession) -> None:

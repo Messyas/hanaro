@@ -1,4 +1,12 @@
-import { Component, ElementRef, HostListener, forwardRef, inject, input, signal } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  HostListener,
+  forwardRef,
+  inject,
+  input,
+  signal,
+} from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { UiIcon } from '../../ui-icon';
 import { UserRole, roleLabel } from './users.service';
@@ -25,7 +33,12 @@ const ROLES: readonly UserRole[] = ['analista', 'gestor', 'admin'];
         <ui-icon name="chevron-down" />
       </button>
       @if (expanded()) {
-        <ul id="user-role-options" class="role-select-options" role="listbox" [attr.aria-label]="ariaLabel()">
+        <ul
+          id="user-role-options"
+          class="role-select-options"
+          role="listbox"
+          [attr.aria-label]="ariaLabel()"
+        >
           @for (role of roles; track role) {
             <li
               role="option"

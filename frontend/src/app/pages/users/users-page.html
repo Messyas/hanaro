@@ -94,7 +94,11 @@
                     (click)="remove(user)"
                     [disabled]="auth.user()?.id === user.id || busyId() === user.id"
                     aria-label="Excluir usuário"
-                    [attr.title]="auth.user()?.id === user.id ? 'Você não pode excluir sua própria conta' : 'Excluir usuário'"
+                    [attr.title]="
+                      auth.user()?.id === user.id
+                        ? 'Você não pode excluir sua própria conta'
+                        : 'Excluir usuário'
+                    "
                   >
                     <ui-icon name="trash" />
                   </button>
