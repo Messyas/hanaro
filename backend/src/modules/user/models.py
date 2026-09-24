@@ -33,6 +33,7 @@ class User(Base, TimestampMixin, SoftDeleteMixin):
     notification_email: Mapped[str | None] = mapped_column(String(50), default=None)
     phone: Mapped[str | None] = mapped_column(String(24), default=None)
     job_title: Mapped[str | None] = mapped_column(String(80), default=None)
+    role: Mapped[str] = mapped_column(String(16), default="analista", server_default="analista")
 
     profile_image_url: Mapped[str] = mapped_column(String, default="https://profileimageurl.com")
 

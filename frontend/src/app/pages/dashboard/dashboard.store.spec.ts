@@ -87,6 +87,24 @@ describe('DashboardStore', () => {
     httpMock.match((req) => req.url.includes('/api/v1/dashboard/scrap'));
   });
 
+  it('enables relative analysis and clears filters unsupported by the global denominator', () => {
+    store.setFilter('division', ['HE']);
+    store.setFilter('week', ['W31']);
+    store.setFilter('component', 'PCBA');
+
+    store.setAnalysis('relative');
+
+    expect(store.analysis()).toBe('relative');
+    expect(store.filters().division).toEqual([]);
+    expect(store.filters().week).toEqual([]);
+    expect(store.filters().component).toBe(INITIAL_DASHBOARD_FILTERS.component);
+
+    store.setAnalysis('absolute');
+    expect(store.analysis()).toBe('absolute');
+
+    httpMock.match((req) => req.url.includes('/api/v1/dashboard/scrap'));
+  });
+
   it('handles period selection and comparison labels', () => {
     store.setFilter('period', '7');
     store.setComparison('mom');
@@ -177,5 +195,57 @@ describe('DashboardStore', () => {
     expect(store.snapshot().monthly).toEqual([]);
     expect(store.snapshot().lines).toEqual([]);
     expect(store.kpis().actual).toBe(0);
+  });
+
+  it('does not calculate a relative KPI from a partial denominator', async () => {
+    TestBed.flushEffects();
+    const reqs = httpMock.match((req) => req.url.includes('/api/v1/dashboard/scrap'));
+    reqs[reqs.length - 1].flush({
+      metadata: { generated_at: '2026-09-03T10:00:00Z' },
+      monthly: [
+        {
+          period: '2026-01',
+          actual: '100',
+          previous_year: '90',
+          target: null,
+          denominator: null,
+          previous_year_denominator: '1000',
+          relative_status: 'MISSING_DENOMINATOR',
+          previous_year_relative_status: 'AVAILABLE',
+        },
+      ],
+      rankings: {
+        products: [{ key: 'TV', amount: '100', record_count: 1 }],
+        lines: [],
+        models: [],
+        components: [],
+        offenders: [],
+      },
+      relative_product_ranking: [
+        {
+          key: 'TV',
+          numerator: '100',
+          denominator: '2000',
+          rate: '5',
+          record_count: 1,
+          denominator_status: 'AVAILABLE',
+        },
+      ],
+    });
+    await Promise.resolve();
+
+    store.setFilter('period', '0');
+
+    expect(store.snapshot().monthly[0].materialAmountUsd).toBeNull();
+    expect(store.snapshot().monthly[0].relativeStatus).toBe('MISSING_DENOMINATOR');
+    expect(store.relativeKpis().rate).toBeNull();
+    expect(store.snapshot().relativeProducts[0]).toMatchObject({
+      label: 'TV',
+      rate: 5,
+      numerator: 100,
+      denominator: 2000,
+    });
+
+    httpMock.match((req) => req.url.includes('/api/v1/dashboard/scrap'));
   });
 });

@@ -50,17 +50,11 @@ services:
       - key: SESSION_SECURE_COOKIES
         value: "true"
       - key: SESSION_BACKEND
-        value: redis
+        value: memory
       - key: CACHE_ENABLED
-        value: "true"
-      - key: CACHE_BACKEND
-        value: redis
+        value: "false"
       - key: RATE_LIMITER_ENABLED
-        value: "true"
-      - key: RATE_LIMITER_BACKEND
-        value: redis
-      - key: RATE_LIMITER_FAIL_OPEN
-        value: "true"
+        value: "false"
       - key: TASKIQ_ENABLED
         value: "false"
       - key: POSTGRES_POOL_SIZE
@@ -74,6 +68,4 @@ services:
       - key: DATABASE_URL
         sync: false
       - key: SECRET_KEY
-        sync: false
-      - key: REDIS_URL
         sync: false

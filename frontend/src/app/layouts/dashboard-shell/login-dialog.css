@@ -3,6 +3,125 @@
   width: 100%;
 }
 
+.login-page-form {
+  width: min(100%, 22rem);
+  color: var(--app-text);
+}
+
+.login-page-form h1 {
+  margin: 0 0 2rem;
+  color: var(--app-page-title);
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+}
+
+.login-page-form form {
+  display: flex;
+  flex-direction: column;
+}
+
+.login-page-form label {
+  margin: 0 0 0.5rem;
+  color: var(--app-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.login-page-form label:not(:first-child) {
+  margin-top: 1.25rem;
+}
+
+.login-page-form input {
+  width: 100%;
+  min-height: 3.25rem;
+  border: 1px solid var(--app-border-strong);
+  border-radius: 0.7rem;
+  outline: 0;
+  background: var(--app-surface);
+  color: var(--app-text);
+  padding: 0.7rem 0.9rem;
+}
+
+.login-page-form input::placeholder {
+  color: var(--app-text-subtle);
+}
+
+.login-page-form input:focus,
+.login-page-submit:focus-visible,
+.login-page-password-toggle:focus-visible {
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 4px var(--app-focus-ring);
+}
+
+.login-page-form input[aria-invalid='true'] {
+  border-color: var(--app-danger);
+}
+
+.login-page-password-input {
+  position: relative;
+}
+
+.login-page-password-input input {
+  padding-right: 3.5rem;
+}
+
+.login-page-password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.4rem;
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border: 0;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--app-text-secondary);
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.login-page-password-toggle:hover {
+  background: color-mix(in srgb, var(--app-text) 5%, transparent);
+  color: var(--app-text);
+}
+
+.login-page-feedback {
+  min-height: 1.25rem;
+  margin-top: 0.75rem;
+}
+
+.login-page-feedback p {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.login-page-submit {
+  min-height: 3.25rem;
+  margin-top: 1rem;
+  border: 1px solid var(--brand-primary);
+  border-radius: 0.7rem;
+  background: var(--brand-primary);
+  box-shadow: var(--app-shadow-action);
+  color: var(--brand-primary-contrast);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.login-page-submit:hover:not(:disabled) {
+  background: var(--brand-primary-hover);
+}
+
+.login-page-submit:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
 .login-dialog {
   overflow: hidden;
   border-radius: 1rem;

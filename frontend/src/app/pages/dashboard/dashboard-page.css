@@ -152,7 +152,7 @@
   flex: 0 0 2.55rem;
   border: 0;
   border-radius: 999px;
-  background: var(--brand-primary);
+  background: var(--app-border, #d1d5db);
   cursor: pointer;
   padding: 0.18rem;
   transition: background-color 160ms ease;
@@ -168,6 +168,15 @@
 }
 .analysis-toggle.active {
   background: var(--brand-primary);
+}
+
+.analysis-toggle:not(.active):hover {
+  background: var(--brand-primary-border);
+}
+
+.analysis-toggle:focus-visible {
+  outline: 2px solid var(--app-focus-ring);
+  outline-offset: 2px;
 }
 .analysis-toggle.active > span {
   transform: translateX(1.1rem);
@@ -438,6 +447,10 @@
   display: grid;
   grid-template-columns: minmax(0, 1.8fr) minmax(18rem, 0.9fr);
   gap: 1rem;
+}
+
+.scrap-chart-grid.relative-mode {
+  grid-template-columns: minmax(0, 1.8fr) minmax(18rem, 0.9fr);
 }
 .scrap-chart-grid .panel,
 .scrap-rankings-grid .panel {

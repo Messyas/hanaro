@@ -144,6 +144,7 @@ async def test_check_auth_route_authenticated(async_client, mock_principal, monk
         "notification_email": "alerts@example.com",
         "phone": "+55 92 99999-0000",
         "job_title": "Operadora de produção",
+        "role": "analista",
         "profile_image_url": None,
         "is_superuser": False,
     }
@@ -165,6 +166,7 @@ async def test_check_auth_route_authenticated(async_client, mock_principal, monk
     assert data["user"]["notification_email"] == "alerts@example.com"
     assert data["user"]["phone"] == "+55 92 99999-0000"
     assert data["user"]["job_title"] == "Operadora de produção"
+    assert data["user"]["role"] == "analista"
 
 
 @pytest.mark.asyncio

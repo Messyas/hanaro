@@ -113,7 +113,7 @@ FilterValue = Annotated[str, StringConstraints(min_length=1, max_length=120)]
 async def list_scrap_classifications(
     db: AsyncSessionDep,
     service: ScrapClassificationServiceDep,
-    _: CurrentSuperUserDep,
+    _: CurrentUserDep,
 ) -> list[ScrapClassificationRuleRead]:
     return await service.list(db)
 
@@ -123,7 +123,7 @@ async def create_scrap_classification(
     command: ScrapClassificationRuleWrite,
     db: AsyncSessionDep,
     service: ScrapClassificationServiceDep,
-    current_user: CurrentSuperUserDep,
+    current_user: CurrentUserDep,
 ) -> ScrapClassificationRuleRead:
     try:
         return await service.create(command, int(current_user["id"]), db)
@@ -137,7 +137,7 @@ async def update_scrap_classification(
     command: ScrapClassificationRuleWrite,
     db: AsyncSessionDep,
     service: ScrapClassificationServiceDep,
-    current_user: CurrentSuperUserDep,
+    current_user: CurrentUserDep,
 ) -> ScrapClassificationRuleRead:
     try:
         return await service.update(rule_id, command, int(current_user["id"]), db)
@@ -152,7 +152,7 @@ async def delete_scrap_classification(
     rule_id: uuid.UUID,
     db: AsyncSessionDep,
     service: ScrapClassificationServiceDep,
-    _: CurrentSuperUserDep,
+    _: CurrentUserDep,
 ) -> Response:
     try:
         await service.delete(rule_id, db)
@@ -165,7 +165,7 @@ async def delete_scrap_classification(
 async def reapply_scrap_classifications(
     db: AsyncSessionDep,
     service: ScrapClassificationServiceDep,
-    _: CurrentSuperUserDep,
+    _: CurrentUserDep,
 ) -> ScrapClassificationReapplyResult:
     count, revision = await service.reapply(db)
     return ScrapClassificationReapplyResult(reclassified_records=count, dashboard_revision=revision)

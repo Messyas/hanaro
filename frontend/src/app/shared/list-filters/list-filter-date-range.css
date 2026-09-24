@@ -1,11 +1,25 @@
 :host {
   display: block;
-  margin-bottom: 1rem;
 }
 .filter-dates-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
+}
+:host(.single-date) .filter-dates-grid {
+  display: block;
+}
+:host(.single-date) .filter-dates-grid > .date-anchor:nth-child(2) {
+  display: none;
+}
+:host(.single-date) .custom-calendar-popup {
+  right: 0;
+  left: auto;
+  z-index: 2;
+}
+:host(.calendar-up) .custom-calendar-popup {
+  top: auto;
+  bottom: calc(100% + 0.35rem);
 }
 .filter-field {
   display: flex;

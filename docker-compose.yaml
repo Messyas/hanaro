@@ -42,6 +42,13 @@ x-backend-environment: &backend-environment
   ADMIN_EMAIL: ${ADMIN_EMAIL:-}
   ADMIN_USERNAME: ${ADMIN_USERNAME:-}
   ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+  # The development image mounts automation at /app/automation rather than
+  # copying the production seed directory into /app/backend/seed.
+  SEED_DEMO_DATA: ${SEED_DEMO_DATA:-true}
+  DEMO_DATA_PATH: ${DEMO_DATA_PATH:-/app/automation/fixtures/demo-history}
+  DEMO_DATA_REFERENCE_DATE: ${DEMO_DATA_REFERENCE_DATE:-2026-09-03}
+  DEMO_DATA_EXCHANGE_RATE: ${DEMO_DATA_EXCHANGE_RATE:-5.15}
+  DEMO_DATA_EXCHANGE_RATE_SOURCE: ${DEMO_DATA_EXCHANGE_RATE_SOURCE:-synthetic_seed}
   PROFILE_IMAGE_DIR: /app/backend/data/profile-images
   PROFILE_IMAGE_MAX_BYTES: ${PROFILE_IMAGE_MAX_BYTES:-5242880}
   PROFILE_IMAGE_MAX_DIMENSION: ${PROFILE_IMAGE_MAX_DIMENSION:-4096}
@@ -49,6 +56,8 @@ x-backend-environment: &backend-environment
   SCRAP_REVIEW_IMAGE_MAX_BYTES: ${SCRAP_REVIEW_IMAGE_MAX_BYTES:-10485760}
   SCRAP_REVIEW_IMAGE_MAX_DIMENSION: ${SCRAP_REVIEW_IMAGE_MAX_DIMENSION:-8192}
   SCRAP_REVIEW_MAX_ATTACHMENTS: ${SCRAP_REVIEW_MAX_ATTACHMENTS:-8}
+  REPORT_ARTIFACT_DIR: /app/backend/data/report-artifacts
+  REPORT_EXPORT_MAX_ITEMS: ${REPORT_EXPORT_MAX_ITEMS:-5000}
 
 services:
   frontend:
@@ -94,7 +103,7 @@ services:
         - -e
         - "fetch('http://127.0.0.1:4200').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"
       interval: 10s
-      timeout: 3s
+      timeout: 5s
       retries: 5
       start_period: 30s
     develop:
@@ -142,6 +151,9 @@ services:
       - type: volume
         source: scrap_review_images
         target: /app/backend/data/scrap-review-images
+      - type: volume
+        source: report_artifacts
+        target: /app/backend/data/report-artifacts
     depends_on:
       postgres:
         condition: service_healthy
@@ -199,6 +211,10 @@ services:
 
   material-scrap-worker:
     image: hanaro-backend:dev
+    # The API builds this shared development image.  Declaring the same build
+    # here makes Compose export ``hanaro-backend:dev`` twice in parallel, which
+    # fails on Docker Desktop with "image already exists".
+    init: true
     environment: *backend-environment
     working_dir: /app/backend
     command: ["taskiq", "worker", "src.infrastructure.taskiq.worker:default_broker"]
@@ -206,6 +222,13 @@ services:
       - type: bind
         source: ./backend/src
         target: /app/backend/src
+      - type: volume
+        source: scrap_review_images
+        target: /app/backend/data/scrap-review-images
+        read_only: true
+      - type: volume
+        source: report_artifacts
+        target: /app/backend/data/report-artifacts
     depends_on:
       backend:
         condition: service_healthy
@@ -357,10 +380,7 @@ services:
   worker:
     image: hanaro-backend:dev
     profiles: ["worker"]
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
-      target: dev
+    # Reuse the API image; see material-scrap-worker above.
     init: true
     environment: *backend-environment
     working_dir: /app/backend
@@ -369,7 +389,12 @@ services:
       - type: bind
         source: ./backend/src
         target: /app/backend/src
+      - type: volume
+        source: report_artifacts
+        target: /app/backend/data/report-artifacts
     depends_on:
+      backend:
+        condition: service_healthy
       postgres:
         condition: service_healthy
       redis:
@@ -391,3 +416,4 @@ volumes:
   sonar_scanner_cache:
   profile_images:
   scrap_review_images:
+  report_artifacts:

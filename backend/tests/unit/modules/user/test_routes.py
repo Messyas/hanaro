@@ -1,7 +1,8 @@
 """Unit tests for user routes."""
 
 import base64
-from unittest.mock import AsyncMock
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 import pytest_asyncio
@@ -107,6 +108,69 @@ async def test_get_users_route(async_client, mock_user_service, valid_user_dict)
     data = resp.json()
     assert "data" in data
     assert len(data["data"]) == 1
+
+
+@pytest.mark.asyncio
+async def test_admin_status_and_role_do_not_change_superuser(async_client):
+    mock_db = app.dependency_overrides[async_session]()
+    user = SimpleNamespace(
+        id=2,
+        name="Alice",
+        username="alice",
+        email="alice@example.com",
+        notification_email=None,
+        phone=None,
+        job_title=None,
+        profile_image_url="https://example.com/pic.jpg",
+        is_deleted=False,
+        deleted_at=None,
+        tier_id=None,
+        is_superuser=False,
+        role="analista",
+    )
+    mock_db.get.return_value = user
+
+    role = await async_client.patch(
+        "/api/v1/users/admin/2",
+        json={"name": "Alice", "username": "alice", "email": "alice@example.com", "role": "gestor"},
+    )
+    assert role.status_code == 200
+    assert user.role == "gestor"
+    assert user.is_superuser is False
+
+    inactive = await async_client.patch("/api/v1/users/admin/2/status", json={"is_active": False})
+    assert inactive.status_code == 200
+    assert user.is_deleted is True
+    assert user.deleted_at is None
+
+    active = await async_client.patch("/api/v1/users/admin/2/status", json={"is_active": True})
+    assert active.status_code == 200
+    assert user.is_deleted is False
+    assert user.deleted_at is None
+
+    user.id = 99
+    user.is_superuser = True
+    assert (await async_client.patch("/api/v1/users/admin/99/status", json={"is_active": False})).status_code == 403
+    assert (await async_client.delete("/api/v1/users/admin/99")).status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_admin_user_list_is_paginated(async_client, valid_user_dict):
+    mock_db = app.dependency_overrides[async_session]()
+    count_result = MagicMock()
+    count_result.scalar_one.return_value = 26
+    rows_result = MagicMock()
+    rows_result.scalars.return_value.all.return_value = [valid_user_dict]
+    mock_db.execute.side_effect = [count_result, rows_result]
+
+    response = await async_client.get("/api/v1/users/admin/all?page=2&items_per_page=25")
+
+    assert response.status_code == 200
+    assert response.json()["page"] == 2
+    assert response.json()["total_items"] == 26
+    assert response.json()["total_pages"] == 2
+    assert len(response.json()["items"]) == 1
+    assert (await async_client.get("/api/v1/users/admin/all?items_per_page=101")).status_code == 422
 
 
 @pytest.mark.asyncio

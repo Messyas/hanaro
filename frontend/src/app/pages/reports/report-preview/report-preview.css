@@ -1,0 +1,242 @@
+:host {
+  display: block;
+}
+.report-document {
+  display: grid;
+  gap: 1rem;
+}
+.document-header,
+.document-section {
+  border: 1px solid var(--app-card-border);
+  border-radius: 0.8rem;
+  background: var(--app-surface);
+  padding: 1rem;
+}
+.document-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+h2,
+h3,
+h4,
+p {
+  margin: 0;
+}
+h2 {
+  font-size: 1.15rem;
+  color: var(--app-text-strong);
+}
+h3 {
+  font-size: 0.95rem;
+  color: var(--app-text-strong);
+}
+h4 {
+  font-size: 0.88rem;
+  color: var(--app-text-strong);
+}
+.eyebrow,
+.section-kind,
+dt {
+  color: var(--app-text-secondary);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.document-description,
+.narrative,
+.action-card > p {
+  margin-top: 0.45rem;
+  color: var(--app-text-secondary);
+  line-height: 1.5;
+}
+.scope-summary,
+.action-card dl {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+}
+.scope-summary dd,
+.action-card dd {
+  margin: 0.1rem 0 0;
+  color: var(--app-text);
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+.scope-summary {
+  min-width: 12rem;
+}
+.stale-notice,
+.coverage-note {
+  margin: 0;
+  border-radius: 0.6rem;
+  padding: 0.7rem 0.8rem;
+  color: var(--app-text);
+  background: color-mix(in srgb, var(--brand-primary) 12%, var(--app-surface));
+  font-size: 0.8rem;
+}
+.generated-at {
+  color: var(--app-text-secondary);
+  font-size: 0.75rem;
+}
+.section-heading {
+  margin-bottom: 0.8rem;
+}
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+.kpi {
+  display: grid;
+  gap: 0.2rem;
+  border-radius: 0.6rem;
+  padding: 0.7rem;
+  background: var(--app-surface-muted);
+}
+.kpi span,
+.kpi small,
+.evidence-card span {
+  color: var(--app-text-secondary);
+  font-size: 0.72rem;
+}
+.kpi strong {
+  color: var(--app-text-strong);
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+}
+.comparison-summary {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.65rem;
+  color: var(--app-text-secondary);
+  font-size: 0.8rem;
+}
+.comparison-summary strong {
+  color: var(--app-text);
+}
+.trend-chart {
+  display: flex;
+  align-items: end;
+  gap: 0.5rem;
+  min-height: 8rem;
+  margin: 0.8rem 0;
+  padding: 0.75rem 0.5rem 0.25rem;
+  border-bottom: 1px solid var(--app-divider);
+}
+.trend-point {
+  display: grid;
+  min-width: 2.2rem;
+  flex: 1;
+  align-items: end;
+  justify-items: center;
+  gap: 0.35rem;
+  height: 100%;
+}
+.trend-bar {
+  display: block;
+  width: min(1.7rem, 70%);
+  min-height: 0.35rem;
+  border-radius: 0.35rem 0.35rem 0 0;
+  background: var(--chart-bar-main);
+}
+.trend-point strong {
+  color: var(--app-text-secondary);
+  font-size: 0.65rem;
+  font-weight: 650;
+}
+.table-wrap {
+  overflow-x: auto;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+th,
+td {
+  padding: 0.55rem;
+  border-bottom: 1px solid var(--app-divider);
+  text-align: left;
+}
+th {
+  color: var(--app-text-secondary);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+}
+td:last-child {
+  font-variant-numeric: tabular-nums;
+}
+.pareto-list,
+.action-list {
+  display: grid;
+  gap: 0.7rem;
+}
+.pareto-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.8rem;
+}
+.pareto-label strong {
+  font-variant-numeric: tabular-nums;
+}
+.pareto-track {
+  height: 0.45rem;
+  margin-top: 0.3rem;
+  overflow: hidden;
+  border-radius: 99px;
+  background: var(--app-surface-muted);
+}
+.pareto-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--chart-bar-main);
+}
+.action-card,
+.evidence-card {
+  display: grid;
+  gap: 0.45rem;
+  border: 1px solid var(--app-divider);
+  border-radius: 0.6rem;
+  padding: 0.75rem;
+}
+.action-card {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.action-card > p {
+  grid-column: 1 / -1;
+}
+.evidence-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0.65rem;
+}
+.evidence-role {
+  color: var(--brand-primary);
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+}
+.evidence-card a {
+  color: var(--brand-primary);
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
+}
+.empty-section {
+  color: var(--app-text-secondary);
+  font-size: 0.82rem;
+}
+@media (max-width: 42rem) {
+  .document-header,
+  .action-card {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+  .scope-summary {
+    min-width: 0;
+  }
+}

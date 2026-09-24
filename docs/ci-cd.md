@@ -20,13 +20,42 @@ No ambiente `production`, mantenha somente:
 Sincronize o `render.yaml` da raiz como Blueprint e configure, no painel do serviço `hanaro-api`:
 
 - `DATABASE_URL`: URL Aiven PostgreSQL no formato `postgresql+asyncpg://USUARIO:SENHA@HOST:PORT/defaultdb?ssl=require`. Uma URL Aiven com `postgresql://` e `sslmode=require` também é normalizada automaticamente.
-- `REDIS_URL`: URL Aiven Valkey com TLS, por exemplo `rediss://avnadmin:SENHA@HOST:PORT/0`.
 - `SECRET_KEY`: valor aleatório forte.
 - `CORS_ORIGINS`: origem do Cloudflare Pages/Worker, por exemplo `https://seu-projeto.pages.dev`.
 - `TRUSTED_HOSTS`: hostname da API Render, por exemplo `hanaro-api.onrender.com`.
 - `ADMIN_NAME`, `ADMIN_EMAIL`, `ADMIN_USERNAME` e `ADMIN_PASSWORD`: credenciais do primeiro usuário local. O bootstrap é idempotente e não duplica a conta.
 
-O Blueprint limita o pool PostgreSQL a 5 conexões com overflow de 2, habilita cache, sessões e rate limiting Redis, e deixa Taskiq desativado. O startup aplica `alembic upgrade head`, cria o tier/usuário inicial e carrega a fixture de demonstração quando `SEED_DEMO_DATA=true`; todas essas operações podem ser repetidas sem duplicar dados. As credenciais Aiven ficam somente no Render, nunca no GitHub.
+O Blueprint limita o pool PostgreSQL a 5 conexões com overflow de 2, usa sessões
+em memória e deixa cache, rate limiter e Taskiq desabilitados. Essa é uma
+configuração deliberadamente reduzida para demonstração/testes no plano gratuito
+do Render; ela não é a configuração de produção do Hanaro. Sem Redis/Valkey e
+sem Worker Taskiq, ingestões e exportações assíncronas (CSV, PDF e PPTX) não são
+processadas nesse ambiente. Como as sessões ficam na memória do processo, elas
+podem ser perdidas em reinícios e não funcionam entre múltiplas réplicas.
+
+O startup aplica `alembic upgrade head`, cria o tier/usuário inicial e carrega a
+fixture de demonstração quando `SEED_DEMO_DATA=true`; essas operações podem ser
+repetidas sem duplicar dados. As credenciais externas ficam somente no Render,
+nunca no GitHub.
+
+### Diferença obrigatória para a implantação real
+
+Na implantação Docker da intranet, não copie as limitações do `render.yaml`.
+Use [deploy/compose.production.yaml](../deploy/compose.production.yaml), que deve
+manter:
+
+- `TASKIQ_ENABLED=true`;
+- Redis privado habilitado para sessões, rate limit, cache e broker Taskiq;
+- serviço `worker` ativo e usando o mesmo banco e Redis da API;
+- volume `report_artifacts` montado simultaneamente na API e no worker;
+- `RATE_LIMITER_FAIL_OPEN=false`;
+- `CREATE_TABLES_ON_STARTUP=false`, com migrations Alembic executadas pelo
+  serviço `migrate`.
+
+Ao retirar o ambiente de testes externo, o `render.yaml`, as configurações da
+Cloudflare e quaisquer variáveis de serviços externos devem ser removidos ou
+arquivados em uma mudança de infraestrutura separada. Não remova Redis, Taskiq,
+o worker ou o volume de artefatos da implantação Docker real.
 
 ## Cloudflare Workers
 

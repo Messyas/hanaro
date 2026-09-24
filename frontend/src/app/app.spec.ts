@@ -4,6 +4,7 @@ import { provideRouter } from '@angular/router';
 import { vi } from 'vitest';
 import { App } from './app';
 import { routes } from './app.routes';
+import { AuthService } from './core/auth/auth.service';
 import { DashboardShell } from './layouts/dashboard-shell/dashboard-shell';
 import { LanguageService } from './i18n/language.service';
 import { ThemeService } from './theme/theme.service';
@@ -41,26 +42,31 @@ describe('App', () => {
     expect(TestBed.createComponent(App).componentInstance).toBeTruthy();
   });
 
-  it('should expose Dashboard, Reports, Settings and Profile inside the application shell', () => {
+  it('should expose Login separately and Dashboard, Reports, Settings and Profile inside the shell', () => {
     const shellRoute = routes.find((route) => route.children);
     const childPaths = shellRoute?.children?.map((route) => route.path);
 
-    expect(routes.some((route) => route.path === 'login')).toBe(false);
+    expect(routes.some((route) => route.path === 'login')).toBe(true);
     expect(childPaths).toEqual([
       'dashboard',
       'execucoes',
       'base-de-scrap',
       'base-de-scrap/revisao/:occurrenceId',
       'relatorios',
-      'relatorios/:occurrenceId',
+      'relatorios/:reportId',
       'configuracoes',
+      'alertas',
+      'planos-de-acao',
+      'planos-de-acao/:planId',
       'perfil',
+      'usuarios',
       '',
       '**',
     ]);
   });
 
   it('should update sidebar and breadcrumb labels when the runtime language changes', () => {
+    TestBed.inject(AuthService).clearSession();
     const shell = TestBed.createComponent(DashboardShell).componentInstance;
     const language = TestBed.inject(LanguageService);
 
@@ -70,6 +76,8 @@ describe('App', () => {
       'Executions',
       'Scrap Base',
       'Reports',
+      'Alerts',
+      'Action plans',
       'Settings',
       'Profile',
     ]);

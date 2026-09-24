@@ -1,0 +1,507 @@
+<section class="action-plans-page list-page page-stack" aria-labelledby="action-plans-title">
+  @if (plan()) {
+    <div class="plan-back-row">
+      <button type="button" class="btn btn-ghost" (click)="back()">
+        <ui-icon name="arrow-left" />
+        {{ c().back }}
+      </button>
+    </div>
+  }
+
+  <!-- Header da Página -->
+  <header class="action-plans-header">
+    <div>
+      <h1 class="page-title" id="action-plans-title">
+        {{ plan() ? plan()!.title : c().plans }}
+      </h1>
+      @if (plan()) {
+        <p class="page-subtitle">
+          {{ plan()!.description || 'Acompanhamento do plano e tarefas operacionais.' }}
+        </p>
+      }
+    </div>
+    <div class="header-actions">
+      @if (plan()) {
+        <button type="button" class="btn btn-secondary" (click)="editPlan()">
+          <ui-icon name="pencil" />
+          Editar plano
+        </button>
+        <button type="button" class="btn btn-secondary" (click)="finishPlan()" [disabled]="busy()">
+          <ui-icon name="check" />
+          {{ plan()?.status === 'COMPLETED' ? c().reopen : c().finishPlan }}
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          (click)="newTask()"
+          [disabled]="plan()?.status === 'COMPLETED'"
+        >
+          <ui-icon name="plus" />
+          {{ c().newTask }}
+        </button>
+      } @else {
+        <button type="button" class="btn btn-primary" (click)="editPlan(true)">
+          <ui-icon name="plus" />
+          {{ c().newPlan }}
+        </button>
+      }
+    </div>
+  </header>
+
+  @if (error()) {
+    <app-inline-alert [message]="error()" />
+  }
+
+  @if (plan()) {
+    <div class="board-context-bar">
+      @if (plan()!.reports.length) {
+        <div class="linked-reports-panel">
+          <span class="panel-section-title">
+            <ui-icon name="folder" />
+            Relatórios Vinculados:
+          </span>
+          <div class="reports-chips-list">
+            @for (report of plan()!.reports; track report.id) {
+              <a
+                [routerLink]="['/relatorios', report.report_id]"
+                [queryParams]="{ revision: report.revision }"
+                class="report-chip-link"
+              >
+                <strong>{{ report.title }}</strong>
+                <span class="rev-badge">Rev {{ report.revision }}</span>
+              </a>
+            }
+          </div>
+        </div>
+      }
+      <div class="kanban-toolbar">
+        <app-list-filter-popover
+          [(open)]="boardFilterOpen"
+          [activeCount]="boardActiveFiltersCount()"
+          triggerLabel="Filtros"
+          title="Filtrar tarefas"
+          clearLabel="Limpar filtros"
+          applyLabel="Aplicar filtros"
+          (cleared)="clearBoardFilters()"
+          (applied)="loadBoard()"
+        >
+          <app-list-filter-input
+            [value]="search"
+            [label]="c().search"
+            placeholder="Filtrar tarefas..."
+            type="search"
+            (changed)="search = $event"
+          />
+          <app-list-filter-select
+            [value]="priority"
+            [options]="priorityOptions()"
+            [label]="c().priority"
+            [ariaLabel]="c().priority"
+            (changed)="priority = $event"
+          />
+        </app-list-filter-popover>
+      </div>
+    </div>
+  }
+
+  <!-- MODO LISTA: Tabela de Planos -->
+  @if (!plan()) {
+    <app-list-panel
+      title="Planos de Melhoria Cadastrados"
+      [meta]="list() ? 'TOTAL: ' + list()!.total : ''"
+    >
+      <div list-actions class="execution-list-actions">
+        <app-delayed-progress-spinner [active]="loading()" [ariaLabel]="c().loading" />
+      </div>
+
+      @if (loading() && (!list() || list()!.items.length === 0)) {
+        <app-list-table-skeleton
+          [columns]="tableColumns()"
+          [rows]="5"
+          minWidth="68rem"
+          [loadingLabel]="c().loading"
+        />
+      } @else if (error() && (!list() || list()!.items.length === 0)) {
+        <app-list-feedback
+          kind="error"
+          title="Não foi possível carregar os planos"
+          [message]="error()"
+          retryLabel="Tentar novamente"
+          (retried)="load()"
+        />
+      } @else if (!list() || list()!.items.length === 0) {
+        <app-list-feedback
+          kind="empty"
+          [title]="c().empty"
+          message="Nenhum plano de ação cadastrado no momento. Crie um novo plano para iniciar o acompanhamento."
+        />
+      } @else {
+        @if (error()) {
+          <app-inline-alert class="table-refresh-error" [message]="error()" />
+        }
+        <div class="list-table-frame" [attr.aria-busy]="loading()">
+          <table class="list-table executions-table">
+            <thead>
+              <tr>
+                <th>Plano de Ação</th>
+                <th class="align-center">Status</th>
+                <th class="align-center">Relatórios vinculados</th>
+                <th class="align-right">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of list()!.items; track item.id) {
+                <tr class="clickable-row" (click)="open(item.id)">
+                  <td>
+                    <div class="execution-id-cell">
+                      <span class="execution-id-code">{{ item.title }}</span>
+                      <span class="execution-report-name">{{
+                        item.description || 'Sem descrição informada.'
+                      }}</span>
+                    </div>
+                  </td>
+                  <td class="align-center">
+                    <app-status-badge
+                      [label]="item.status === 'COMPLETED' ? 'Concluído' : 'Em Aberto'"
+                      [tone]="getPlanStatusTone(item.status)"
+                    />
+                  </td>
+                  <td class="align-center">{{ item.reports.length }} relatório(s)</td>
+                  <td class="align-right">
+                    <button
+                      type="button"
+                      class="btn btn-secondary"
+                      (click)="$event.stopPropagation(); open(item.id)"
+                    >
+                      Ver tarefas
+                      <ui-icon name="chevron-right" />
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Paginação: mesma composição usada em Execuções -->
+        <app-list-pagination
+          [page]="page()"
+          [totalPages]="totalPages()"
+          [pageSize]="pageSize()"
+          [pageSizes]="allowedPageSizes"
+          [pageLabel]="t().executionsPaginationPage"
+          [ofLabel]="t().executionsPaginationOf"
+          [perPageLabel]="t().executionsPaginationPerPage"
+          (pageSizeChanged)="selectPageSize($event)"
+          (previous)="previousPage()"
+          (next)="nextPage()"
+        />
+      }
+    </app-list-panel>
+  }
+
+  <!-- MODO DETALHES DO PLANO: Kanban Board -->
+  @if (plan()) {
+    <!-- Colunas Kanban -->
+    <div class="kanban-board" cdkDropListGroup>
+      @for (state of states; track state) {
+        <section class="kanban-column">
+          <header class="column-header">
+            <div class="column-title-group">
+              <h3>{{ stateLabel(state) }}</h3>
+              <span class="column-count-badge">{{ columns()[state]?.total || 0 }}</span>
+            </div>
+          </header>
+
+          <div
+            class="tasks-container"
+            cdkDropList
+            [cdkDropListData]="columns()[state]?.items || []"
+            (cdkDropListDropped)="drop($event, state)"
+            [cdkDropListDisabled]="busy() || state === 'COMPLETED'"
+          >
+            @if ((columns()[state]?.items || []).length) {
+              @for (taskItem of columns()[state]?.items || []; track taskItem.id) {
+                <article
+                  class="task-card"
+                  cdkDrag
+                  [cdkDragData]="taskItem"
+                  [cdkDragDisabled]="taskItem.status === 'COMPLETED' || busy()"
+                  (click)="openTask(taskItem.id)"
+                >
+                  <div class="task-card-header">
+                    <app-status-badge
+                      [label]="taskItem.priority"
+                      [tone]="getPriorityTone(taskItem.priority)"
+                    />
+                    @if (overdue(taskItem)) {
+                      <span class="overdue-chip">{{ c().overdue }}</span>
+                    }
+                  </div>
+
+                  <strong class="task-card-title">{{ taskItem.title }}</strong>
+
+                  @if (taskItem.blocked_reason) {
+                    <div class="blocked-callout">
+                      <ui-icon name="x" />
+                      <span>{{ taskItem.blocked_reason }}</span>
+                    </div>
+                  }
+
+                  <div class="task-card-footer">
+                    @if (taskItem.due_at) {
+                      <span class="task-due-date">
+                        <ui-icon name="clock" />
+                        {{ taskItem.due_at.slice(0, 10) }}
+                      </span>
+                    }
+                    <div class="task-avatars-group">
+                      @for (person of taskItem.participants; track person.id) {
+                        <span class="avatar-badge" [title]="person.name">
+                          {{ person.name.slice(0, 2).toUpperCase() }}
+                        </span>
+                      }
+                    </div>
+                  </div>
+
+                  @if (taskItem.status === 'UNDER_VERIFICATION') {
+                    <button
+                      type="button"
+                      class="btn btn-primary btn-xs validate-btn"
+                      (click)="$event.stopPropagation(); command(taskItem, 'validate')"
+                      [disabled]="busy() || !!taskItem.blocked_reason"
+                    >
+                      <ui-icon name="check" />
+                      {{ c().validate }}
+                    </button>
+                  }
+                </article>
+              }
+            } @else {
+              <div class="empty-column-slot">
+                <span>Nenhuma tarefa</span>
+              </div>
+            }
+          </div>
+
+          <div class="column-pagination">
+            <button
+              class="btn btn-ghost btn-xs"
+              [disabled]="(columnPages[state] || 1) === 1"
+              (click)="columnPage(state, -1)"
+            >
+              {{ c().previous }}
+            </button>
+            <button
+              class="btn btn-ghost btn-xs"
+              [disabled]="!columns()[state]?.has_next"
+              (click)="columnPage(state, 1)"
+            >
+              {{ c().next }}
+            </button>
+          </div>
+        </section>
+      }
+    </div>
+  }
+
+  <!-- Drawer: Criação / Edição de Plano -->
+  @if (editingPlan()) {
+    <div class="modal-backdrop" (click)="editingPlan.set(false)">
+      <div class="detail-drawer" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+        <header class="drawer-header">
+          <div class="drawer-title-group">
+            <span class="meta-label">Plano de Ação</span>
+            <h3>{{ plan() ? 'Editar Plano' : c().newPlan }}</h3>
+          </div>
+          <button
+            type="button"
+            class="btn btn-ghost"
+            (click)="editingPlan.set(false)"
+            [attr.aria-label]="c().close"
+          >
+            <ui-icon name="x" />
+          </button>
+        </header>
+
+        <form class="drawer-form" (ngSubmit)="savePlan()">
+          <label class="form-field">
+            <span class="field-label">{{ c().title }}</span>
+            <input
+              class="form-input"
+              [(ngModel)]="planTitle"
+              name="planTitle"
+              maxlength="240"
+              required
+            />
+          </label>
+
+          <label class="form-field">
+            <span class="field-label">{{ c().description }}</span>
+            <textarea
+              class="form-textarea"
+              [(ngModel)]="planDescription"
+              name="planDesc"
+              maxlength="10000"
+            ></textarea>
+          </label>
+
+          <div class="form-section-title">
+            <span>{{ c().reports }}</span>
+          </div>
+
+          <label class="form-field">
+            <input
+              class="form-input"
+              [(ngModel)]="reportSearch"
+              name="reportSearch"
+              (ngModelChange)="reportPage = 1; loadReports()"
+              placeholder="Buscar relatórios para vincular..."
+            />
+          </label>
+
+          <div class="reports-link-list">
+            @for (report of reports(); track report.id) {
+              <div class="report-select-card">
+                <button type="button" class="report-select-btn" (click)="loadVersions(report.id)">
+                  {{ report.title }}
+                </button>
+              </div>
+            }
+          </div>
+
+          @if (versions().length) {
+            <div class="versions-select-block">
+              <span class="field-label">Versões Disponíveis</span>
+              @for (ver of versions(); track ver.id) {
+                <label class="form-checkbox">
+                  <input
+                    type="checkbox"
+                    [checked]="linkedVersions.includes(ver.id)"
+                    (change)="toggleVersion(ver.id, $any($event.target).checked)"
+                  />
+                  <span
+                    >Versão {{ ver.revision }} ({{
+                      ver.published_at ? 'Publicada' : 'Rascunho'
+                    }})</span
+                  >
+                </label>
+              }
+            </div>
+          }
+
+          <div class="drawer-footer">
+            <button type="button" class="btn btn-secondary" (click)="editingPlan.set(false)">
+              {{ c().close }}
+            </button>
+            <button type="submit" class="btn btn-primary" [disabled]="busy() || !planTitle.trim()">
+              {{ c().save }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- Drawer: Detalhes / Edição de Tarefa -->
+  @if (editingTask()) {
+    <div class="modal-backdrop" (click)="editingTask.set(false)">
+      <div class="detail-drawer" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+        <header class="drawer-header">
+          <div class="drawer-title-group">
+            <span class="meta-label">Tarefa Operacional</span>
+            <h3>{{ task() ? task()!.title : c().newTask }}</h3>
+          </div>
+          <button
+            type="button"
+            class="btn btn-ghost"
+            (click)="editingTask.set(false)"
+            [attr.aria-label]="c().close"
+          >
+            <ui-icon name="x" />
+          </button>
+        </header>
+
+        <form class="drawer-form" (ngSubmit)="saveTask()">
+          <label class="form-field">
+            <span class="field-label">{{ c().title }}</span>
+            <input class="form-input" [(ngModel)]="taskTitle" name="taskTitle" required />
+          </label>
+
+          <label class="form-field">
+            <span class="field-label">{{ c().description }}</span>
+            <textarea
+              class="form-textarea"
+              [(ngModel)]="taskDescription"
+              name="taskDesc"
+            ></textarea>
+          </label>
+
+          <div class="form-row">
+            <app-list-filter-date-range
+              [(from)]="due"
+              [fromLabel]="c().due"
+              toLabel=""
+              [single]="true"
+              popupPosition="down"
+              [locale]="
+                language.currentLanguage() === 'pt'
+                  ? 'pt-BR'
+                  : language.currentLanguage() === 'ko'
+                    ? 'ko-KR'
+                    : 'en-US'
+              "
+              clearLabel="Limpar"
+              todayLabel="Hoje"
+            />
+            <label class="form-field">
+              <span class="field-label">{{ c().priority }}</span>
+              <app-list-filter-select
+                [value]="taskPriority"
+                [options]="taskPriorityOptions()"
+                [showLabel]="false"
+                [ariaLabel]="c().priority"
+                (changed)="taskPriority = $any($event)"
+              />
+            </label>
+          </div>
+
+          <label class="form-field">
+            <span class="field-label">{{ c().blocked }}</span>
+            <input
+              class="form-input"
+              [(ngModel)]="blocked"
+              name="blocked"
+              placeholder="Informe se houver impedimento..."
+            />
+          </label>
+
+          <div class="form-field">
+            <span class="field-label">{{ c().participants }}</span>
+            <div class="participants-select-list">
+              @for (person of people(); track person.id) {
+                <label class="form-checkbox">
+                  <input
+                    type="checkbox"
+                    [checked]="selectedPeople.includes(person.id)"
+                    (change)="togglePerson(person.id, $any($event.target).checked)"
+                  />
+                  <span>{{ person.name }}</span>
+                </label>
+              }
+            </div>
+          </div>
+
+          <div class="drawer-footer">
+            <button type="button" class="btn btn-secondary" (click)="editingTask.set(false)">
+              {{ c().close }}
+            </button>
+            <button type="submit" class="btn btn-primary" [disabled]="busy() || !taskTitle.trim()">
+              {{ c().save }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+</section>

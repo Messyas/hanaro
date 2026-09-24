@@ -676,12 +676,37 @@ class DashboardSeriesPoint(BaseModel):
     actual: Decimal | None = None
     previous_year: Decimal | None = None
     target: Decimal | None = None
+    denominator: Decimal | None = None
+    previous_year_denominator: Decimal | None = None
+    relative_rate: Decimal | None = None
+    previous_year_relative_rate: Decimal | None = None
+    relative_status: Literal[
+        "AVAILABLE",
+        "MISSING_DENOMINATOR",
+        "ZERO_DENOMINATOR",
+        "UNSUPPORTED_DENOMINATOR_GRAIN",
+    ] = "MISSING_DENOMINATOR"
+    previous_year_relative_status: Literal[
+        "AVAILABLE",
+        "MISSING_DENOMINATOR",
+        "ZERO_DENOMINATOR",
+        "UNSUPPORTED_DENOMINATOR_GRAIN",
+    ] = "MISSING_DENOMINATOR"
 
 
 class DashboardRankingItem(BaseModel):
     key: str | None
     amount: Decimal
     record_count: int
+
+
+class DashboardRelativeRankingItem(BaseModel):
+    key: str | None
+    numerator: Decimal
+    denominator: Decimal | None = None
+    rate: Decimal | None = None
+    record_count: int
+    denominator_status: Literal["AVAILABLE", "MISSING_DENOMINATOR", "ZERO_DENOMINATOR"]
 
 
 class DashboardRankings(BaseModel):
@@ -699,3 +724,4 @@ class DashboardResponse(BaseModel):
     weekly: list[DashboardSeriesPoint]
     rankings: DashboardRankings
     priority_occurrences: list[DashboardRankingItem]
+    relative_product_ranking: list[DashboardRelativeRankingItem] = Field(default_factory=list)

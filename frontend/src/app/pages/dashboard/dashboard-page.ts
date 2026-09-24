@@ -192,6 +192,13 @@ export class DashboardPage {
   readonly distributionData = computed(() => {
     return this.buildDistributionData();
   });
+  readonly relativeProductData = computed(() =>
+    this.store
+      .snapshot()
+      .relativeProducts.filter((item) => item.rate !== null)
+      .slice(0, 10),
+  );
+  readonly hasRelativeProductData = computed(() => this.relativeProductData().length > 0);
   readonly hasPerformanceData = computed(() => {
     const metric = this.store.metric();
     const analysis = this.store.analysis();
@@ -207,20 +214,7 @@ export class DashboardPage {
   });
   readonly hasDistributionData = computed(() => {
     const metric = this.store.metric();
-    const analysis = this.store.analysis();
-
-    return this.distributionData().some((item) => {
-      const value =
-        analysis === 'relative'
-          ? metric === 'usd'
-            ? (item.relativeUsd ?? 0)
-            : (item.relativeQty ?? 0)
-          : metric === 'usd'
-            ? item.usd
-            : item.qty;
-
-      return value > 0;
-    });
+    return this.distributionData().some((item) => (metric === 'usd' ? item.usd : item.qty) > 0);
   });
 
   readonly linesData = computed(() =>
@@ -276,6 +270,11 @@ export class DashboardPage {
   private evolutionRequestSequence = 0;
 
   constructor() {
+    effect(() => {
+      if (this.store.analysis() === 'relative' && this.evolutionView() === 'weekly') {
+        this.selectEvolutionView('monthly');
+      }
+    });
     effect((onCleanup) => {
       this.dashboardStatus.set(`${this.text().updated} ${this.lastUpdatedLabel()}`);
       onCleanup(() => this.dashboardStatus.clear());
@@ -284,6 +283,13 @@ export class DashboardPage {
       const filters = this.evolutionQueryFilters();
       const metric = this.store.metric();
       const requestId = ++this.evolutionRequestSequence;
+
+      // O snapshot principal já contém a mesma série quando o gráfico local
+      // usa os filtros globais. Evita uma segunda chamada idêntica ao abrir a tela.
+      if (this.dashboardFiltersEqual(filters, this.store.filters())) {
+        this.evolutionSnapshot.set(null);
+        return;
+      }
 
       void this.store.loadChartSnapshot(filters, metric).then((snapshot) => {
         if (requestId === this.evolutionRequestSequence) {
@@ -318,8 +324,11 @@ export class DashboardPage {
   }
 
   selectAnalysis(analysis: DashboardAnalysis): void {
-    if (analysis === 'relative') return;
     this.store.setAnalysis(analysis);
+  }
+
+  toggleAnalysis(): void {
+    this.selectAnalysis(this.store.analysis() === 'absolute' ? 'relative' : 'absolute');
   }
 
   onComparisonChange(value: string): void {
@@ -327,6 +336,7 @@ export class DashboardPage {
   }
 
   selectEvolutionView(view: DashboardEvolutionView): void {
+    if (view === 'weekly' && this.store.analysis() === 'relative') return;
     this.evolutionView.set(view);
     if (view === 'monthly') this.changeEvolutionPeriod(INITIAL_EVOLUTION_FILTERS.period);
   }
@@ -395,6 +405,10 @@ export class DashboardPage {
 
   barChartLimitValue(key: DashboardBarChartKey): string {
     return `${this.barChartLimit(key)}`;
+  }
+
+  barChartTitle(key: DashboardBarChartKey, defaultTitle: string): string {
+    return defaultTitle.replace('{count}', this.barChartLimitValue(key));
   }
 
   changeBarChartLimit(key: DashboardBarChartKey, value: string): void {
@@ -481,6 +495,16 @@ export class DashboardPage {
     return this.store.metric() === 'usd' ? 'IF Cost' : 'QTY Scrap';
   }
 
+  relativeVariationIsFavorable(): boolean {
+    const variation = this.store.relativeKpis().variation;
+    return variation !== null && variation <= 0;
+  }
+
+  relativeVariationIsUnfavorable(): boolean {
+    const variation = this.store.relativeKpis().variation;
+    return variation !== null && variation > 0;
+  }
+
   performanceTitle(): string {
     if (this.store.analysis() === 'absolute') {
       if (this.store.metric() === 'qty') {
@@ -523,7 +547,8 @@ export class DashboardPage {
     return `${this.formatNumber(value)} ${this.text().units}`;
   }
 
-  formatPercentage(value: number, showPositiveSign = true): string {
+  formatPercentage(value: number | null, showPositiveSign = true): string {
+    if (value === null) return '—';
     const sign = showPositiveSign && value > 0 ? '+' : '';
     return `${sign}${new Intl.NumberFormat(this.locale(), { maximumFractionDigits: 1 }).format(value)}%`;
   }
@@ -558,14 +583,16 @@ export class DashboardPage {
     return new Intl.NumberFormat(this.locale(), { maximumFractionDigits: 0 }).format(value);
   }
 
-  formatRate(value: number): string {
+  formatRate(value: number | null): string {
+    if (value === null) return '—';
     return `${new Intl.NumberFormat(this.locale(), {
       minimumFractionDigits: 4,
       maximumFractionDigits: 4,
     }).format(value)}%`;
   }
 
-  formatDenominator(value: number): string {
+  formatDenominator(value: number | null): string {
+    if (value === null) return '—';
     return this.store.metric() === 'usd'
       ? this.formatPrimaryValue(value)
       : `${this.formatNumber(value)} ${this.text().units}`;
@@ -620,7 +647,6 @@ export class DashboardPage {
   }
 
   distributionEmptyStateHint(): string {
-    if (this.store.analysis() === 'relative') return this.text().noRelativeDataHint;
     return this.distributionFiltersCount() > 0
       ? this.text().noChartDataHint
       : this.text().noChartData;
@@ -664,11 +690,8 @@ export class DashboardPage {
 
   private buildDistributionData(): readonly DashboardDistributionItem[] {
     const filters = this.distributionFilters();
-    const data =
-      this.store.analysis() === 'absolute'
-        ? this.store.snapshot().distribution
-        : this.store.snapshot().relativeDistribution;
-    const labelFilter = this.store.analysis() === 'absolute' ? filters.product : filters.line;
+    const data = this.store.snapshot().distribution;
+    const labelFilter = filters.product;
 
     return data
       .filter((item) => !labelFilter.length || labelFilter.includes(item.label))
@@ -740,6 +763,29 @@ export class DashboardPage {
     if (!globalValues.length) return localValues;
     if (!localValues.length) return globalValues;
     return globalValues.filter((value) => localValues.includes(value));
+  }
+
+  private dashboardFiltersEqual(left: DashboardFilters, right: DashboardFilters): boolean {
+    const keys: (keyof DashboardFilters)[] = [
+      'year',
+      'period',
+      'component',
+      'product',
+      'line',
+      'division',
+      'week',
+    ];
+    return keys.every((key) => {
+      const leftValue = left[key];
+      const rightValue = right[key];
+      if (Array.isArray(leftValue) && Array.isArray(rightValue)) {
+        return (
+          leftValue.length === rightValue.length &&
+          leftValue.every((value, index) => value === rightValue[index])
+        );
+      }
+      return leftValue === rightValue;
+    });
   }
 
   private selectionSummary(values: readonly string[], allLabel: string): string {

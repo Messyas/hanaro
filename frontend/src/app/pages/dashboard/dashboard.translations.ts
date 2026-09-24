@@ -90,14 +90,12 @@ export interface DashboardTranslations {
   monthlyView: string;
   weeklyView: string;
   currentMonthWeeks: string;
-  distributionByProduct: string;
+  topProducts: string;
   topLines: string;
   topModels: string;
   topOffenders: string;
   topComponents: string;
   participationSelectedPeriod: string;
-  highestRateLines: string;
-  efficiencyRanking: string;
   periodStatusAria: string;
   closedMonths: string;
   partialMonth: string;
@@ -116,6 +114,13 @@ export interface DashboardTranslations {
   performanceRelativeAria: string;
   distributionAbsoluteAria: string;
   distributionRelativeAria: string;
+  relativeProductRanking: string;
+  relativeProductRankingHint: string;
+  noRelativeRankingHint: string;
+  scrapRate: string;
+  scrapValue: string;
+  productionValue: string;
+  occurrences: string;
   rankingLimitAria: string;
   topFive: string;
   topTen: string;
@@ -214,14 +219,12 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     monthlyView: 'Mensal',
     weeklyView: 'Semanal',
     currentMonthWeeks: 'Semanas do período selecionado',
-    distributionByProduct: 'Distribuição por produto / área',
-    topLines: 'Top 10 linhas',
-    topModels: 'Top 10 modelos',
-    topOffenders: 'Top 5 ofensores',
-    topComponents: 'Top 10 componentes',
+    topProducts: 'Top {count} produtos / áreas',
+    topLines: 'Top {count} linhas',
+    topModels: 'Top {count} modelos',
+    topOffenders: 'Top {count} ofensores',
+    topComponents: 'Top {count} componentes',
     participationSelectedPeriod: 'Participação no período selecionado',
-    highestRateLines: 'Linhas com maior taxa',
-    efficiencyRanking: 'Ranking de eficiência no recorte atual',
     periodStatusAria: 'Status dos períodos',
     closedMonths: 'Jan–Jul fechados',
     partialMonth: 'Ago parcial',
@@ -240,7 +243,14 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     performanceAbsoluteAria: 'IF Cost mensal comparando realizado, referência e target',
     performanceRelativeAria: 'Scrap Rate mensal comparando o ano atual e o anterior',
     distributionAbsoluteAria: 'Distribuição do scrap por produto ou área',
-    distributionRelativeAria: 'Linhas com maior Scrap Rate',
+    distributionRelativeAria: 'Ranking de produtos por Scrap Rate',
+    relativeProductRanking: 'Produtos com maior Scrap Rate',
+    relativeProductRankingHint: 'Perda proporcional: scrap dividido pelo valor produzido',
+    noRelativeRankingHint: 'Cadastre o valor produzido por produto para calcular este ranking.',
+    scrapRate: 'Scrap Rate',
+    scrapValue: 'Valor de scrap',
+    productionValue: 'Valor produzido',
+    occurrences: 'Ocorrências',
     rankingLimitAria: 'Quantidade de itens exibidos no ranking',
     topFive: 'Top 5',
     topTen: 'Top 10',
@@ -337,14 +347,12 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     monthlyView: 'Monthly',
     weeklyView: 'Weekly',
     currentMonthWeeks: 'Weeks in the selected period',
-    distributionByProduct: 'Distribution by product / area',
-    topLines: 'Top 10 lines',
-    topModels: 'Top 10 models',
-    topOffenders: 'Top 5 offenders',
-    topComponents: 'Top 10 components',
+    topProducts: 'Top {count} products / areas',
+    topLines: 'Top {count} lines',
+    topModels: 'Top {count} models',
+    topOffenders: 'Top {count} offenders',
+    topComponents: 'Top {count} components',
     participationSelectedPeriod: 'Share in the selected period',
-    highestRateLines: 'Lines with the highest rate',
-    efficiencyRanking: 'Efficiency ranking in the current selection',
     periodStatusAria: 'Period status',
     closedMonths: 'Jan–Jul closed',
     partialMonth: 'Aug partial',
@@ -363,7 +371,14 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     performanceAbsoluteAria: 'Monthly IF Cost comparing actual, reference, and target',
     performanceRelativeAria: 'Monthly Scrap Rate comparing the current and previous years',
     distributionAbsoluteAria: 'Scrap distribution by product or area',
-    distributionRelativeAria: 'Lines with the highest Scrap Rate',
+    distributionRelativeAria: 'Product ranking by Scrap Rate',
+    relativeProductRanking: 'Products with highest Scrap Rate',
+    relativeProductRankingHint: 'Proportional loss: scrap divided by production value',
+    noRelativeRankingHint: 'Add production value by product to calculate this ranking.',
+    scrapRate: 'Scrap Rate',
+    scrapValue: 'Scrap value',
+    productionValue: 'Production value',
+    occurrences: 'Occurrences',
     rankingLimitAria: 'Number of ranking items displayed',
     topFive: 'Top 5',
     topTen: 'Top 10',
@@ -460,14 +475,12 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     monthlyView: '월별',
     weeklyView: '주별',
     currentMonthWeeks: '선택 기간의 주차',
-    distributionByProduct: '제품 / 영역별 분포',
-    topLines: '상위 10개 라인',
-    topModels: '상위 10개 모델',
-    topOffenders: '상위 5개 원인',
-    topComponents: '상위 10개 부품',
+    topProducts: '상위 {count}개 제품 / 영역',
+    topLines: '상위 {count}개 라인',
+    topModels: '상위 {count}개 모델',
+    topOffenders: '상위 {count}개 원인',
+    topComponents: '상위 {count}개 부품',
     participationSelectedPeriod: '선택 기간 비중',
-    highestRateLines: '비율이 높은 라인',
-    efficiencyRanking: '현재 선택 범위 효율 순위',
     periodStatusAria: '기간 상태',
     closedMonths: '1–7월 마감',
     partialMonth: '8월 부분 집계',
@@ -485,7 +498,14 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     performanceAbsoluteAria: '월별 IF Cost 실적, 기준 및 목표 비교',
     performanceRelativeAria: '현재 연도와 전년도의 월별 Scrap Rate 비교',
     distributionAbsoluteAria: '제품 또는 영역별 Scrap 분포',
-    distributionRelativeAria: 'Scrap Rate가 높은 라인',
+    distributionRelativeAria: 'Scrap Rate별 제품 순위',
+    relativeProductRanking: 'Scrap Rate가 높은 제품',
+    relativeProductRankingHint: '비례 손실: Scrap을 생산 가치로 나눈 값',
+    noRelativeRankingHint: '이 순위를 계산하려면 제품별 생산 가치를 등록하세요.',
+    scrapRate: 'Scrap Rate',
+    scrapValue: 'Scrap 가치',
+    productionValue: '생산 가치',
+    occurrences: '발생 건수',
     rankingLimitAria: '랭킹 표시 항목 수',
     topFive: '상위 5',
     topTen: '상위 10',

@@ -90,6 +90,37 @@ export class DashboardShell {
   ];
   readonly navigation = computed<readonly NavigationItem[]>(() => {
     const t = this.language.translations();
+    if (this.auth.status() === 'checking') return [];
+
+    const isDeveloperAdmin =
+      this.auth.user()?.role === 'admin' || this.auth.user()?.is_superuser === true;
+    if (isDeveloperAdmin) {
+      return [
+        {
+          path: '/execucoes',
+          icon: 'clock',
+          label: t.navExecutions,
+          requiresAuthentication: true,
+        },
+        {
+          path: '/usuarios',
+          icon: 'users',
+          label:
+            this.language.currentLanguage() === 'en'
+              ? 'Users'
+              : this.language.currentLanguage() === 'ko'
+                ? '사용자'
+                : 'Usuários',
+          requiresAuthentication: true,
+        },
+        {
+          path: '/perfil',
+          icon: 'users',
+          label: t.navProfile,
+          requiresAuthentication: true,
+        },
+      ];
+    }
     return [
       {
         path: '/dashboard',
@@ -115,10 +146,47 @@ export class DashboardShell {
         requiresAuthentication: true,
       },
       {
+        path: '/alertas',
+        icon: 'clock',
+        label:
+          this.language.currentLanguage() === 'pt'
+            ? 'Alertas'
+            : this.language.currentLanguage() === 'ko'
+              ? '알림'
+              : 'Alerts',
+        requiresAuthentication: true,
+      },
+      {
+        path: '/planos-de-acao',
+        icon: 'folder',
+        label:
+          this.language.currentLanguage() === 'pt'
+            ? 'Planos de ação'
+            : this.language.currentLanguage() === 'ko'
+              ? '실행 계획'
+              : 'Action plans',
+        requiresAuthentication: true,
+      },
+      {
         path: '/configuracoes',
         icon: 'cog',
         label: t.navSettings,
       },
+      ...(this.auth.user()?.is_superuser
+        ? [
+            {
+              path: '/usuarios',
+              icon: 'users' as IconName,
+              label:
+                this.language.currentLanguage() === 'en'
+                  ? 'Users'
+                  : this.language.currentLanguage() === 'ko'
+                    ? '사용자'
+                    : 'Usuários',
+              requiresAuthentication: true,
+            },
+          ]
+        : []),
       {
         path: '/perfil',
         icon: 'users',
@@ -219,7 +287,11 @@ export class DashboardShell {
 
   currentBreadcrumbs(): readonly NavigationItem[] {
     const currentPath = this.router.url.split(/[?#]/, 1)[0];
-    return this.findNavigationTrail(this.navigation(), currentPath) ?? [this.navigation()[0]];
+    const navigation = this.navigation();
+    return (
+      this.findNavigationTrail(navigation, currentPath) ??
+      (navigation.length ? [navigation[0]] : [])
+    );
   }
 
   breadcrumbIcon(item: NavigationItem): IconName {
@@ -232,6 +304,11 @@ export class DashboardShell {
   }
 
   userRole(): string {
+    const role = this.auth.user()?.role;
+    if (role === 'admin') return 'Admin';
+    if (role === 'gestor') return 'Gestor';
+    if (role === 'analista') return 'Analista';
+
     const jobTitle = this.auth.user()?.job_title?.trim();
     if (jobTitle) return jobTitle;
 

@@ -1,0 +1,423 @@
+<section class="alerts-page list-page page-stack" aria-labelledby="alerts-title">
+  <!-- Header da Página -->
+  <header class="alerts-header">
+    <h1 class="page-title" id="alerts-title">{{ c().alerts }}</h1>
+  </header>
+
+  @if (error()) {
+    <app-inline-alert [message]="error()" />
+  }
+  @if (!available()) {
+    <app-inline-alert [message]="c().unavailable" />
+  }
+
+  <!-- Tabela de Alertas com Painel Padronizado -->
+  <app-list-panel
+    [title]="c().notificationsHistory"
+    [meta]="page() ? c().total + ': ' + page()!.total : ''"
+  >
+    <div list-actions class="alert-list-actions">
+      <app-delayed-progress-spinner [active]="loading()" [ariaLabel]="c().loading" />
+      <app-list-filter-popover
+        [(open)]="filterOpen"
+        [activeCount]="activeFiltersCount()"
+        [triggerLabel]="c().filters"
+        [title]="c().filterAlerts"
+        [clearLabel]="c().clearFilters"
+        [applyLabel]="c().applyFilters"
+        (cleared)="clearFilters()"
+        (applied)="pageNumber = 1; load()"
+      >
+        <app-list-filter-select
+          [value]="type"
+          [options]="typeOptions()"
+          [label]="c().type"
+          [ariaLabel]="c().type"
+          (changed)="type = $event"
+        />
+        <app-list-filter-select
+          [value]="severity"
+          [options]="severityOptions()"
+          [label]="c().severity"
+          [ariaLabel]="c().severity"
+          (changed)="severity = $event"
+        />
+        <app-list-filter-select
+          [value]="unread"
+          [options]="unreadOptions()"
+          [label]="c().unread"
+          [ariaLabel]="c().unread"
+          (changed)="unread = $event"
+        />
+        <app-list-filter-date-range
+          [from]="dateFrom"
+          [to]="dateTo"
+          [fromLabel]="c().dateFrom"
+          [toLabel]="c().dateTo"
+          [locale]="calendarLocale()"
+          (fromChange)="dateFrom = $event"
+          (toChange)="dateTo = $event"
+        />
+      </app-list-filter-popover>
+    </div>
+
+    @if (loading() && !page()) {
+      <div class="loading-state">
+        <app-delayed-progress-spinner [active]="true" [ariaLabel]="c().loading" />
+      </div>
+    } @else if (!page() || page()!.items.length === 0) {
+      <app-list-feedback kind="empty" [title]="c().empty" [message]="c().noAlertsMatch" />
+    } @else {
+      <div class="list-table-frame" [attr.aria-busy]="loading()">
+        <table class="list-table alerts-table">
+          <thead>
+            <tr>
+              <th>{{ c().title }}</th>
+              <th class="align-center" style="width: 130px">{{ c().severity }}</th>
+              <th>{{ c().type }}</th>
+              <th style="width: 120px">{{ c().date }}</th>
+              <th class="align-center" style="width: 110px">{{ c().status }}</th>
+              <th class="align-right" style="width: 180px">{{ c().actions }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (alert of page()!.items; track alert.id) {
+              <tr [class.unread-row]="!alert.read_at">
+                <td>
+                  <div class="alert-title-cell">
+                    <span class="alert-title-text">{{ alertTitle(alert) }}</span>
+                    @if (alertDescription(alert); as description) {
+                      <span class="alert-desc-text">{{ description }}</span>
+                    }
+                    @if (alert.body.observed && alert.body.threshold) {
+                      <span class="alert-threshold-text">
+                        {{ c().observed }}: {{ alert.body.observed }} {{ alert.body.currency }} /
+                        {{ c().threshold }}:
+                        {{ alert.body.threshold }}
+                      </span>
+                    }
+                  </div>
+                </td>
+                <td class="align-center">
+                  <app-status-badge
+                    [label]="formatSeverity(alert.severity)"
+                    [tone]="getSeverityTone(alert.severity)"
+                  />
+                </td>
+                <td>
+                  <span class="event-type-badge">{{ formatEventType(alert.event_type) }}</span>
+                </td>
+                <td>
+                  <span class="date-text">{{ alert.created_at.slice(0, 10) }}</span>
+                </td>
+                <td class="align-center">
+                  <app-status-badge
+                    [label]="alert.read_at ? c().readStatus : c().unreadStatus"
+                    [tone]="alert.read_at ? 'neutral' : 'warning'"
+                  />
+                </td>
+                <td class="align-right">
+                  <div class="row-actions">
+                    @if (!alert.read_at) {
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-xs"
+                        (click)="read(alert)"
+                        [title]="c().read"
+                      >
+                        <ui-icon name="check" />
+                        {{ c().read }}
+                      </button>
+                    }
+                    @if (alert.body.link) {
+                      <a
+                        [routerLink]="safeLink(alert.body.link)"
+                        class="btn btn-secondary btn-xs alert-open-button"
+                        [attr.aria-label]="c().open"
+                        [title]="c().open"
+                      >
+                        <ui-icon name="eye" />
+                      </a>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Paginação -->
+      <app-list-pagination
+        [page]="pageNumber"
+        [totalPages]="totalPages()"
+        [pageSize]="pageSize"
+        [pageSizes]="allowedPageSizes"
+        [pageLabel]="c().page"
+        [ofLabel]="c().of"
+        [perPageLabel]="c().perPage"
+        (previous)="previousPage()"
+        (next)="nextPage()"
+      />
+    }
+  </app-list-panel>
+
+  <!-- Drawer: Configurações de Regras -->
+  @if (settings()) {
+    <div class="modal-backdrop" (click)="settings.set(false)">
+      <div class="detail-drawer" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+        <header class="drawer-header">
+          <div class="drawer-title-group">
+            <span class="meta-label">{{ c().triggerSettings }}</span>
+            <h3>{{ c().settings }}</h3>
+          </div>
+          <div class="drawer-header-actions">
+            <button type="button" class="btn btn-primary btn-sm" (click)="edit()">
+              <ui-icon name="plus" />
+              {{ c().createRule }}
+            </button>
+            <button
+              type="button"
+              class="btn btn-ghost"
+              (click)="settings.set(false)"
+              [attr.aria-label]="c().close"
+            >
+              <ui-icon name="x" />
+            </button>
+          </div>
+        </header>
+
+        <div class="drawer-content">
+          @if (!rules()?.items?.length) {
+            <app-list-feedback
+              kind="empty"
+              [title]="c().noRules"
+              [message]="c().noRulesDescription"
+            />
+          } @else {
+            <div class="rules-list">
+              @for (rule of rules()?.items || []; track rule.id) {
+                <div class="rule-card">
+                  <div class="rule-info">
+                    <button type="button" class="rule-title-btn" (click)="edit(rule)">
+                      {{ rule.name }}
+                    </button>
+                    <span class="rule-meta"
+                      >{{ formatEventType(rule.event_type) }} ·
+                      {{ rule.channels.join(' + ') }}</span
+                    >
+                  </div>
+                  <button type="button" class="btn btn-secondary btn-xs" (click)="edit(rule)">
+                    <ui-icon name="pencil" />
+                    {{ c().edit }}
+                  </button>
+                </div>
+              }
+            </div>
+
+            <div class="drawer-pagination">
+              <button
+                class="btn btn-secondary btn-sm"
+                [disabled]="rulePage === 1"
+                (click)="rulePage = rulePage - 1; loadRules()"
+              >
+                {{ c().previous }}
+              </button>
+              <span class="page-indicator">{{ rulePage }}</span>
+              <button
+                class="btn btn-secondary btn-sm"
+                [disabled]="!rules()?.has_next"
+                (click)="rulePage = rulePage + 1; loadRules()"
+              >
+                {{ c().next }}
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Drawer: Criação / Edição de Regra -->
+  @if (editing()) {
+    <div class="modal-backdrop" (click)="editing.set(false)">
+      <div class="detail-drawer" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+        <header class="drawer-header">
+          <div class="drawer-title-group">
+            <span class="meta-label">{{ c().notificationRule }}</span>
+            <h3>{{ rule.id ? c().editRule : c().createRule }}</h3>
+          </div>
+          <button
+            type="button"
+            class="btn btn-ghost"
+            (click)="editing.set(false)"
+            [attr.aria-label]="c().close"
+          >
+            <ui-icon name="x" />
+          </button>
+        </header>
+
+        <form class="drawer-form" (ngSubmit)="save()">
+          <label class="form-field">
+            <span class="field-label">{{ c().ruleName }}</span>
+            <input class="form-input" [(ngModel)]="rule.name" name="ruleName" required />
+          </label>
+
+          <label class="form-field">
+            <span class="field-label">{{ c().type }}</span>
+            <select
+              class="form-select"
+              [(ngModel)]="rule.event_type"
+              name="ruleType"
+              (change)="changeType()"
+            >
+              @for (t of types; track t) {
+                <option [value]="t">{{ formatEventType(t) }}</option>
+              }
+            </select>
+          </label>
+
+          <div class="form-row">
+            <label class="form-field">
+              <span class="field-label">{{ c().threshold }}</span>
+              <input class="form-input" [(ngModel)]="rule.threshold" name="threshold" required />
+            </label>
+            <label class="form-field">
+              <span class="field-label">{{ c().currency }}</span>
+              <select class="form-select" [(ngModel)]="rule.currency" name="currency">
+                <option value="USD">USD</option>
+                <option value="BRL">BRL</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="form-row">
+            <label class="form-field">
+              <span class="field-label">{{ c().window }}</span>
+              <input
+                type="number"
+                class="form-input"
+                [(ngModel)]="rule.window_days"
+                name="windowDays"
+                min="1"
+              />
+            </label>
+            <label class="form-field">
+              <span class="field-label">{{ c().cooldown }}</span>
+              <input
+                type="number"
+                class="form-input"
+                [(ngModel)]="rule.cooldown_minutes"
+                name="cooldown"
+                min="1"
+              />
+            </label>
+          </div>
+
+          <label class="form-checkbox">
+            <input type="checkbox" [(ngModel)]="rule.enabled" name="enabled" />
+            <span>{{ c().enabled }}</span>
+          </label>
+
+          <div class="form-channels">
+            <span class="field-label">{{ c().notificationChannels }}</span>
+            <div class="channel-options">
+              <label class="form-checkbox">
+                <input
+                  type="checkbox"
+                  [checked]="rule.channels.includes('FRONT')"
+                  (change)="channel('FRONT', $any($event.target).checked)"
+                />
+                <span>{{ c().front }}</span>
+              </label>
+              <label class="form-checkbox">
+                <input
+                  type="checkbox"
+                  [checked]="rule.channels.includes('EMAIL')"
+                  (change)="channel('EMAIL', $any($event.target).checked)"
+                />
+                <span>{{ c().emailChannel }}</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="drawer-footer">
+            <button type="button" class="btn btn-secondary" (click)="editing.set(false)">
+              {{ c().close }}
+            </button>
+            <button type="submit" class="btn btn-primary" [disabled]="busy() || !rule.name.trim()">
+              {{ c().save }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- Drawer: Emails Simulados -->
+  @if (showEmails()) {
+    <div class="modal-backdrop" (click)="showEmails.set(false)">
+      <div class="detail-drawer" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+        <header class="drawer-header">
+          <div class="drawer-title-group">
+            <span class="meta-label">{{ c().outbox }}</span>
+            <h3>{{ c().email }}</h3>
+          </div>
+          <button
+            type="button"
+            class="btn btn-ghost"
+            (click)="showEmails.set(false)"
+            [attr.aria-label]="c().close"
+          >
+            <ui-icon name="x" />
+          </button>
+        </header>
+
+        <div class="drawer-content">
+          <div class="simulation-banner">
+            <ui-icon name="mail" />
+            <span>{{ c().simulation }}</span>
+          </div>
+
+          @if (!emails().length) {
+            <app-list-feedback
+              kind="empty"
+              [title]="c().noEmails"
+              [message]="c().noEmailsDescription"
+            />
+          } @else {
+            <div class="emails-list">
+              @for (mail of emails(); track mail.id) {
+                <div class="email-card">
+                  <div class="email-header">
+                    <strong>{{ mail.subject }}</strong>
+                    <span class="email-recipient">{{ mail.recipient }}</span>
+                  </div>
+                  <pre class="email-body-text">{{ mail.body }}</pre>
+                  <span class="status-chip">{{ mail.status }}</span>
+                </div>
+              }
+            </div>
+
+            <div class="drawer-pagination">
+              <button
+                class="btn btn-secondary btn-sm"
+                [disabled]="emailPage === 1"
+                (click)="emailPage = emailPage - 1; loadEmails()"
+              >
+                {{ c().previous }}
+              </button>
+              <span class="page-indicator">{{ emailPage }}</span>
+              <button
+                class="btn btn-secondary btn-sm"
+                (click)="emailPage = emailPage + 1; loadEmails()"
+              >
+                {{ c().next }}
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</section>

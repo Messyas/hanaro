@@ -15,6 +15,30 @@ def test_user_create_accepts_a_strong_passphrase() -> None:
     )
 
     assert user.password == "violet canoe glacier lantern 8472"
+    assert user.role == "analista"
+
+
+@pytest.mark.parametrize("role", ["analista", "gestor", "admin"])
+def test_user_create_accepts_managed_roles(role: str) -> None:
+    user = UserCreate(
+        name="Alice Example",
+        username="alice",
+        email="alice@example.com",
+        password="violet canoe glacier lantern 8472",
+        role=role,
+    )
+    assert user.role == role
+
+
+def test_user_create_rejects_unknown_role() -> None:
+    with pytest.raises(ValidationError):
+        UserCreate(
+            name="Alice Example",
+            username="alice",
+            email="alice@example.com",
+            password="violet canoe glacier lantern 8472",
+            role="operator",
+        )
 
 
 @pytest.mark.parametrize(

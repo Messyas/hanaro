@@ -1,0 +1,239 @@
+:host {
+  display: block;
+  color: var(--app-text);
+}
+.workflow-page {
+  padding: clamp(0.5rem, 2vw, 1.5rem);
+}
+header,
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.toolbar {
+  justify-content: flex-start;
+  margin-block: 1rem;
+}
+h1 {
+  font-size: 1.7rem;
+}
+h2 {
+  font-size: 1.3rem;
+  margin-block: 1.5rem 0.75rem;
+}
+h3 {
+  font-size: 1rem;
+}
+p,
+.description {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  max-width: 72ch;
+}
+.muted,
+time {
+  color: var(--app-text-secondary);
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: var(--app-text);
+  border: 1px solid var(--app-card-border);
+  border-radius: 0.6rem;
+  padding: 0.6rem 0.8rem;
+  background: var(--app-surface);
+  max-width: 100%;
+}
+button {
+  cursor: pointer;
+  min-height: 2.6rem;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+button:hover:not(:disabled) {
+  background: var(--app-surface-muted);
+}
+button.primary {
+  background: var(--brand-primary);
+  color: var(--brand-primary-contrast);
+}
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--app-focus-ring);
+  outline-offset: 3px;
+}
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-block: 0.7rem;
+  font-size: 0.95rem;
+}
+label.check {
+  flex-direction: row;
+  align-items: center;
+}
+textarea {
+  min-height: 7rem;
+  resize: vertical;
+}
+a {
+  color: var(--brand-primary);
+  text-underline-offset: 3px;
+}
+.board {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+.column {
+  background: var(--app-surface-muted);
+  padding: 1rem;
+  border-radius: 0.8rem;
+  min-height: 16rem;
+}
+.column h3 {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.task-card {
+  background: var(--app-surface);
+  border: 1px solid var(--app-card-border);
+  border-radius: 0.8rem;
+  padding: 1rem;
+  margin-block: 1rem;
+  overflow-wrap: anywhere;
+}
+.task-title {
+  text-align: start;
+  font-weight: 650;
+  white-space: normal;
+}
+.text-button {
+  border: 0;
+  padding: 0;
+  background: none;
+}
+.tag {
+  font-size: 0.85rem;
+}
+.avatars {
+  display: flex;
+  gap: 0.3rem;
+  margin-block: 0.5rem;
+}
+.avatars span {
+  display: grid;
+  place-content: center;
+  min-width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background-color: var(--app-surface-muted);
+  background-size: cover;
+  background-position: center;
+  font-size: 0.8rem;
+}
+.drawer {
+  position: fixed;
+  inset-block: 0;
+  inset-inline-end: 0;
+  width: min(38rem, 100%);
+  box-sizing: border-box;
+  background: var(--app-surface);
+  box-shadow: -8px 0 30px rgb(0 0 0 / 0.16);
+  z-index: 80;
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+.drawer header {
+  position: sticky;
+  top: -1.5rem;
+  background: var(--app-surface);
+  padding-block: 0.6rem;
+  z-index: 1;
+}
+.record-list > a,
+.record-list > article {
+  display: block;
+  padding: 1.2rem 0;
+  border-bottom: 1px solid var(--app-card-border);
+}
+.record-list a span {
+  display: block;
+  color: var(--app-text-secondary);
+  margin-block-start: 0.5rem;
+}
+.error {
+  padding: 1rem;
+  background: var(--app-surface-muted);
+  border: 1px solid var(--app-card-border);
+}
+.history {
+  padding-block: 0.6rem;
+  border-bottom: 1px solid var(--app-card-border);
+}
+.cdk-drag-placeholder {
+  opacity: 0.3;
+}
+.cdk-drag-preview {
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.15);
+}
+.fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+.email-body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: inherit;
+}
+.alert-details {
+  margin-block: 0.75rem;
+}
+::selection {
+  background: var(--brand-primary);
+  color: var(--brand-primary-contrast);
+}
+@media (max-width: 1100px) {
+  .board {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 650px) {
+  .board,
+  .fields {
+    grid-template-columns: 1fr;
+  }
+  input,
+  select,
+  textarea {
+    font-size: 1rem;
+  }
+  .drawer {
+    padding: 1rem;
+  }
+  header {
+    align-items: flex-start;
+  }
+  .column {
+    min-height: 10rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    scroll-behavior: auto;
+  }
+}
