@@ -24,6 +24,10 @@ interface CalendarDay {
   imports: [UiIcon],
   templateUrl: './list-filter-date-range.html',
   styleUrl: './list-filter-date-range.css',
+  host: {
+    '[class.single-date]': 'single()',
+    '[class.calendar-up]': "popupPosition() === 'up'",
+  },
 })
 export class ListFilterDateRange {
   readonly from = model('');
@@ -33,6 +37,8 @@ export class ListFilterDateRange {
   readonly locale = input('pt-BR');
   readonly clearLabel = input('Limpar');
   readonly todayLabel = input('Hoje');
+  readonly single = input(false);
+  readonly popupPosition = input<'down' | 'up'>('down');
   readonly changed = output<void>();
 
   readonly fromOpen = signal(false);

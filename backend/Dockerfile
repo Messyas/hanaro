@@ -51,7 +51,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 RUN groupadd --system app \
     && useradd --system --gid app --create-home app \
-    && mkdir -p /app/backend/data/profile-images /app/backend/data/scrap-review-images \
+    && mkdir -p /app/backend/data/profile-images /app/backend/data/scrap-review-images /app/backend/data/report-artifacts \
     && chown -R app:app /app/backend/data
 
 COPY --chown=app:app backend/src ./src

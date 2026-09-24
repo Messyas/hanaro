@@ -48,11 +48,11 @@ async def create_first_superuser() -> None:
                 user_model = await user_service.get_by_email(email, session)
                 if user_model:
                     logger.info(f"Superuser with email {email} already exists.")
-                    if not user_model["is_superuser"]:
+                    if not user_model["is_superuser"] or user_model.get("role") != "admin":
                         stmt = (
                             update(User)
                             .where(User.id == user_model["id"])
-                            .values(is_superuser=True)
+                            .values(is_superuser=True, role="admin")
                         )
                         await session.execute(stmt)
                         await session.commit()
@@ -61,7 +61,7 @@ async def create_first_superuser() -> None:
             except UserNotFoundError:
                 logger.info(f"No user found with email {email}, creating a new superuser")
 
-            user_data = UserCreate(name=name, email=email, username=username, password=password)
+            user_data = UserCreate(name=name, email=email, username=username, password=password, role="admin")
 
             user = await user_service.create(user_data, session)
 
@@ -70,7 +70,7 @@ async def create_first_superuser() -> None:
             else:
                 user_id = user["id"]
 
-            stmt = update(User).where(User.id == user_id).values(is_superuser=True)
+            stmt = update(User).where(User.id == user_id).values(is_superuser=True, role="admin")
             await session.execute(stmt)
             await session.commit()
 

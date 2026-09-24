@@ -405,7 +405,7 @@ export class DashboardPerformanceChart {
     const numerator = this.metric() === 'usd' ? item.actualUsd : item.actualQty;
     if (this.analysis() === 'absolute' || numerator === null) return numerator;
     const denominator = this.metric() === 'usd' ? item.materialAmountUsd : item.productionQty;
-    return denominator > 0 ? (numerator / denominator) * 100 : null;
+    return denominator !== null && denominator > 0 ? (numerator / denominator) * 100 : null;
   }
 
   previousValue(item: DashboardMonthlyPoint): number | null {
@@ -413,7 +413,7 @@ export class DashboardPerformanceChart {
     if (this.analysis() === 'absolute' || numerator === null) return numerator;
     const denominator =
       this.metric() === 'usd' ? item.previousMaterialAmountUsd : item.previousProductionQty;
-    return denominator > 0 ? (numerator / denominator) * 100 : null;
+    return denominator !== null && denominator > 0 ? (numerator / denominator) * 100 : null;
   }
 
   targetValue(item: DashboardMonthlyPoint): number {

@@ -205,9 +205,12 @@ async def test_update_profile_contact_fields_and_reverify_changed_email(user_ser
     )
 
     updated = mock_crud.update.await_args.kwargs["object"]
-    assert updated.notification_email == "alerts@example.com"
-    assert updated.phone == "+55 92 99999-0000"
-    assert updated.job_title == "Operador de produção"
+    assert updated == {
+        "email": "new@example.com",
+        "notification_email": "alerts@example.com",
+        "phone": "+55 92 99999-0000",
+        "job_title": "Operador de produção",
+    }
 
 
 @pytest.mark.asyncio

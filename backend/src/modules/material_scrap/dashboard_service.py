@@ -1,15 +1,21 @@
 """Read-only application service for the frontend dashboard contract."""
 
 import uuid
+from collections.abc import Mapping
 from dataclasses import asdict, replace
 from datetime import UTC, date, datetime
 from decimal import Decimal
-from typing import Any
+from typing import Any, Literal
 
 from sqlalchemy import asc, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 
+from ..governance.production_service import (
+    monthly_product_production_denominators,
+    monthly_production_denominators,
+    product_production_denominators,
+)
 from .dashboard_cache import DashboardResponseCache
 from .enums import DashboardCurrency, DashboardMetric, ImpactMode
 from .models import ScrapDashboardAggregate, ScrapDashboardState, ScrapOccurrence, ScrapTarget
@@ -20,6 +26,7 @@ from .schemas import (
     DashboardMetadata,
     DashboardRankingItem,
     DashboardRankings,
+    DashboardRelativeRankingItem,
     DashboardResponse,
     DashboardSeriesPoint,
 )
@@ -122,7 +129,7 @@ class ScrapDashboardService:
         filters: ScrapFilters,
         metric: InstrumentedAttribute[Decimal],
         dimension: InstrumentedAttribute[str],
-        limit: int,
+        limit: int | None,
     ) -> list[DashboardRankingItem]:
         total = func.sum(metric).label("total")
         records = func.sum(ScrapDashboardAggregate.record_count).label("records")
@@ -130,8 +137,9 @@ class ScrapDashboardService:
             self._active_statement(dimension.label("key"), total, records)
             .group_by(dimension)
             .order_by(desc(total), asc(dimension))
-            .limit(limit)
         )
+        if limit is not None:
+            statement = statement.limit(limit)
         conditions = _aggregate_filter_conditions(filters)
         if conditions:
             statement = statement.where(*conditions)
@@ -147,6 +155,110 @@ class ScrapDashboardService:
             ScrapTarget.currency == currency.value,
         )
         return {int(row.month): Decimal(str(row.amount)) for row in (await db.execute(statement)).all()}
+
+    @staticmethod
+    async def _production_denominators(
+        db: AsyncSession,
+        *,
+        year: int,
+        currency: DashboardCurrency,
+        dashboard_metric: DashboardMetric,
+        filters: ScrapFilters,
+    ) -> dict[str, Decimal | None]:
+        if not ScrapDashboardService._supports_global_production_denominator(filters):
+            return {}
+        values: Mapping[int, Decimal | None]
+        if filters.products:
+            values = await monthly_product_production_denominators(
+                db,
+                year=year,
+                products=filters.products,
+                currency=currency.value,
+                use_quantity=dashboard_metric == DashboardMetric.QUANTITY,
+            )
+        else:
+            values = await monthly_production_denominators(
+                db,
+                year=year,
+                currency=currency.value,
+                use_quantity=dashboard_metric == DashboardMetric.QUANTITY,
+            )
+        return {f"{year}-{month:02d}": value for month, value in values.items()}
+
+    @staticmethod
+    def _supports_global_production_denominator(filters: ScrapFilters) -> bool:
+        scoped_filters = (
+            filters.organizations,
+            filters.receipt_departments,
+            filters.departments,
+            filters.divisions,
+            filters.item_types,
+            filters.account_codes,
+            filters.account_aliases,
+            filters.item_codes,
+        )
+        return not any(values for values in scoped_filters) and filters.week is None
+
+    @staticmethod
+    def _monthly_point(
+        *,
+        year: int,
+        month: int,
+        current_months: dict[str, Decimal],
+        previous_months: dict[str, Decimal],
+        targets: dict[int, Decimal],
+        data_through: date | None,
+        current_denominators: dict[str, Decimal | None],
+        previous_denominators: dict[str, Decimal | None],
+        denominator_scope_supported: bool,
+    ) -> DashboardSeriesPoint:
+        period = f"{year}-{month:02d}"
+        actual = current_months.get(
+            period,
+            ZERO
+            if data_through is not None
+            and (year < data_through.year or (year == data_through.year and month <= data_through.month))
+            else None,
+        )
+        previous = previous_months.get(f"{year - 1}-{month:02d}")
+        denominator = current_denominators.get(period)
+        previous_denominator = previous_denominators.get(f"{year - 1}-{month:02d}")
+        relative_status = ScrapDashboardService._relative_status(denominator, denominator_scope_supported)
+        previous_relative_status = ScrapDashboardService._relative_status(previous_denominator, denominator_scope_supported)
+        return DashboardSeriesPoint(
+            period=period,
+            actual=actual,
+            previous_year=previous,
+            target=targets.get(month),
+            denominator=denominator,
+            previous_year_denominator=previous_denominator,
+            relative_rate=(actual / denominator * 100)
+            if actual is not None and denominator is not None and denominator != ZERO
+            else None,
+            previous_year_relative_rate=(previous / previous_denominator * 100)
+            if previous is not None and previous_denominator is not None and previous_denominator != ZERO
+            else None,
+            relative_status=relative_status,
+            previous_year_relative_status=previous_relative_status,
+        )
+
+    @staticmethod
+    def _relative_status(
+        denominator: Decimal | None,
+        denominator_scope_supported: bool,
+    ) -> Literal[
+        "AVAILABLE",
+        "MISSING_DENOMINATOR",
+        "ZERO_DENOMINATOR",
+        "UNSUPPORTED_DENOMINATOR_GRAIN",
+    ]:
+        if not denominator_scope_supported:
+            return "UNSUPPORTED_DENOMINATOR_GRAIN"
+        if denominator is None:
+            return "MISSING_DENOMINATOR"
+        if denominator == ZERO:
+            return "ZERO_DENOMINATOR"
+        return "AVAILABLE"
 
     async def get_dashboard(
         self,
@@ -201,6 +313,21 @@ class ScrapDashboardService:
         previous_months = await self._series(db, previous_filters, metric, weekly=False)
         current_weeks = await self._series(db, current_filters, metric, weekly=True)
         previous_weeks = await self._series(db, previous_filters, metric, weekly=True)
+        current_denominators = await self._production_denominators(
+            db,
+            year=year,
+            currency=currency,
+            dashboard_metric=dashboard_metric,
+            filters=current_filters,
+        )
+        previous_denominators = await self._production_denominators(
+            db,
+            year=year - 1,
+            currency=currency,
+            dashboard_metric=dashboard_metric,
+            filters=previous_filters,
+        )
+        denominator_scope_supported = self._supports_global_production_denominator(current_filters)
 
         current_by_week: dict[int, Decimal] = {}
         for period_key, val in current_weeks.items():
@@ -242,24 +369,23 @@ class ScrapDashboardService:
                 actual=current_by_week.get(w, ZERO) if w <= max_current_week else None,
                 previous_year=previous_by_week.get(w),
                 target=None,
+                relative_status="UNSUPPORTED_DENOMINATOR_GRAIN",
+                previous_year_relative_status="UNSUPPORTED_DENOMINATOR_GRAIN",
             )
             for w in display_weeks
         ]
 
         monthly_points = [
-            DashboardSeriesPoint(
-                period=f"{year}-{month:02d}",
-                actual=current_months.get(
-                    f"{year}-{month:02d}",
-                    ZERO
-                    if (
-                        data_through is not None
-                        and (year < data_through.year or (year == data_through.year and month <= data_through.month))
-                    )
-                    else None,
-                ),
-                previous_year=previous_months.get(f"{year - 1}-{month:02d}"),
-                target=targets.get(month),
+            self._monthly_point(
+                year=year,
+                month=month,
+                current_months=current_months,
+                previous_months=previous_months,
+                targets=targets,
+                data_through=data_through,
+                current_denominators=current_denominators,
+                previous_denominators=previous_denominators,
+                denominator_scope_supported=denominator_scope_supported,
             )
             for month in range(1, 13)
         ]
@@ -269,6 +395,40 @@ class ScrapDashboardService:
         lines = await self._ranking(db, current_filters, metric, ScrapDashboardAggregate.receipt_department, ranking_limit)
         models = await self._ranking(db, current_filters, metric, ScrapDashboardAggregate.item_code, ranking_limit)
         offenders = await self._ranking(db, current_filters, metric, ScrapDashboardAggregate.account_alias, ranking_limit)
+        all_products = await self._ranking(db, current_filters, metric, ScrapDashboardAggregate.product, None)
+        months = list(range(current_date_from.month, current_date_to.month + 1))
+        product_denominators = await product_production_denominators(
+            db,
+            year=year,
+            months=months,
+            currency=currency.value,
+            use_quantity=dashboard_metric == DashboardMetric.QUANTITY,
+        )
+        relative_product_ranking: list[DashboardRelativeRankingItem] = []
+        for item in all_products:
+            denominator = product_denominators.get(item.key or "")
+            status: Literal["AVAILABLE", "MISSING_DENOMINATOR", "ZERO_DENOMINATOR"]
+            if denominator is None:
+                status = "MISSING_DENOMINATOR"
+                rate = None
+            elif denominator == ZERO:
+                status = "ZERO_DENOMINATOR"
+                rate = None
+            else:
+                status = "AVAILABLE"
+                rate = item.amount / denominator * 100
+            relative_product_ranking.append(
+                DashboardRelativeRankingItem(
+                    key=item.key,
+                    numerator=item.amount,
+                    denominator=denominator,
+                    rate=rate,
+                    record_count=item.record_count,
+                    denominator_status=status,
+                )
+            )
+        relative_product_ranking.sort(key=lambda item: (item.rate is not None, item.rate or ZERO, item.numerator), reverse=True)
+        relative_product_ranking = relative_product_ranking[:ranking_limit]
         target_attainment = (
             (target_total / actual * 100).quantize(PERCENT_QUANTUM) if target_total is not None and actual else None
         )
@@ -300,6 +460,7 @@ class ScrapDashboardService:
                 offenders=offenders,
             ),
             priority_occurrences=offenders[:5],
+            relative_product_ranking=relative_product_ranking,
         )
         await self._cache.set(revision, parameters, response)
         return response

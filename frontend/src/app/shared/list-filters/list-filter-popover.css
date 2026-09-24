@@ -122,6 +122,8 @@
   cursor: pointer;
 }
 .popover-body {
+  display: grid;
+  gap: 1rem;
   padding: 1.25rem;
 }
 .popover-footer {

@@ -11,6 +11,7 @@ fonte de verdade para toda operacao protegida.
 | Dashboard e modo TV | Publica | Nao aplicavel | `GET /api/v1/dashboard/scrap*` e leitura de metas sao publicos para exibicao em TV. O contrato deve permanecer agregado e sem dados pessoais. |
 | Opcoes de filtro | Publica | Nao aplicavel | `GET /api/v1/scrap/filters` fornece somente valores distintos para montar filtros publicos; nao retorna linhas de transacao. |
 | Relatorios detalhados | Usuario autenticado | Nao aplicavel | `GET /api/v1/scrap` exige `CurrentUserDep`; esconder a tela no frontend nao substitui essa verificacao. |
+| Relatorios publicados | Usuario autenticado | Usuario autenticado | O MVP permite criar, compor, publicar e exportar relatorios a qualquer usuario autenticado; autoria e auditoria permanecem obrigatorias. |
 | Metas do dashboard | Publica | Superusuario | A consulta e publica; `PUT /api/v1/dashboard/scrap/targets/{year}/{month}` exige `CurrentSuperUserDep`. |
 | Aliases de codigos | Usuario autenticado | Superusuario | Configuracao compartilhada. Somente administrador pode altera-la. |
 | Perfil | Proprio usuario | Proprio usuario | Identidade e privilegios sao derivados da sessao, nunca do payload. |
@@ -24,6 +25,9 @@ fonte de verdade para toda operacao protegida.
 - Toda mutacao de configuracao compartilhada exige autenticacao, CSRF valido quando usar sessao e autorizacao de superusuario.
 - O perfil nao aceita `tier`, `is_superuser`, papel ou identificador de outro usuario.
 - O bootstrap local de uma conta administrativa e feito por `python -m scripts.setup_initial_data`. Ele cria um usuario local provisionado; nao existe SQLAdmin nem credencial administrativa paralela em runtime.
+- Depois do bootstrap, um administrador cria contas reais por `POST /api/v1/users/`.
+  A rota exige `CurrentSuperUserDep`; auto cadastro e criacao por usuario comum
+  permanecem desabilitados.
 - Login usa exclusivamente `username` e senha locais. Nao ha login social ou provisionamento por identidade externa.
 
 ## Testes minimos

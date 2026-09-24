@@ -5,6 +5,7 @@ import uuid as uuid_mod
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from sqlalchemy.orm.exc import StaleDataError
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.responses import Response
 
@@ -12,6 +13,7 @@ from ....infrastructure.auth.http_exceptions import (
     HTTPException,
 )
 from ....infrastructure.logging import get_logger
+from ...governance.exceptions import ReportConflictError, ReportError, ReportNotFoundError
 from ..constants import EXCEPTION_MAPPING, GENERIC_ERROR_MESSAGE, SUPPORT_ID_LENGTH
 from ..exceptions import (
     DomainError,
@@ -59,6 +61,15 @@ def register_exception_handlers(app: FastAPI) -> None:
     its message since the frontend needs the credit info for upgrade prompts.
     """
     app.add_middleware(CatchAllErrorMiddleware)
+
+    @app.exception_handler(ReportError)
+    async def governance_error(request: Request, exc: ReportError) -> JSONResponse:
+        code = 409 if isinstance(exc, ReportConflictError) else 404 if isinstance(exc, ReportNotFoundError) else 422
+        return JSONResponse(status_code=code, content={"detail": str(exc)})
+
+    @app.exception_handler(StaleDataError)
+    async def concurrent_change(request: Request, exc: StaleDataError) -> JSONResponse:
+        return JSONResponse(status_code=409, content={"detail": "Record changed concurrently; reload before retrying"})
 
     @app.exception_handler(RequestValidationError)
     async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:

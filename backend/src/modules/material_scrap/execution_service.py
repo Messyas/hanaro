@@ -371,6 +371,19 @@ async def mark_execution_failed(
         step.message = execution.failure_message
         step.error_code = command.failure_code
         step.updated_at = now
+    from ..governance.notifications.service import emit  # noqa: PLC0415
+
+    emit(
+        db,
+        "INGESTION_FAILED",
+        execution.id,
+        {
+            "title": "Falha na ingestão",
+            "severity": "CRITICAL",
+            "link": "/execucoes",
+            "description": "A execução terminou com falha.",
+        },
+    )
     notification_id: uuid.UUID | None = None
     if command.notify_developers:
         notification = ScrapExecutionNotification(

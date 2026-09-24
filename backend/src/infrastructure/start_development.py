@@ -6,7 +6,13 @@ import asyncio
 import os
 
 from .database.session import create_tables
-from .start_production import _run_migrations
+from .start_production import _prepare_initial_data, _run_migrations, _start_demo_seed_process
+
+
+def _has_admin_configuration() -> bool:
+    """Return whether local bootstrap credentials were configured explicitly."""
+    required = ("ADMIN_NAME", "ADMIN_EMAIL", "ADMIN_USERNAME", "ADMIN_PASSWORD")
+    return all(os.getenv(name, "").strip() for name in required)
 
 
 async def _prepare_development() -> None:
@@ -14,6 +20,11 @@ async def _prepare_development() -> None:
     # baseline schema is created first so Alembic can safely reconcile it.
     await create_tables()
     await _run_migrations()
+    if _has_admin_configuration():
+        await _prepare_initial_data()
+    else:
+        print("Initial administrator bootstrap skipped: configure ADMIN_* in the root .env to enable it")
+    _start_demo_seed_process()
 
 
 def main() -> None:

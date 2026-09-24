@@ -1,0 +1,122 @@
+<section class="users-page list-page page-stack" aria-labelledby="users-title">
+  <header class="users-header">
+    <h1 id="users-title" class="page-title">Usuários</h1>
+    <button type="button" class="btn btn-primary" (click)="create()">
+      <ui-icon name="plus" />
+      Novo usuário
+    </button>
+  </header>
+
+  <app-list-panel title="Usuários cadastrados" [meta]="'TOTAL: ' + totalItems()">
+    @if (loading() && users().length === 0) {
+      <p class="users-empty" role="status">Carregando usuários...</p>
+    } @else if (loadError() && users().length === 0) {
+      <app-list-feedback
+        kind="error"
+        title="Não foi possível carregar os usuários"
+        message="Tente novamente."
+        retryLabel="Tentar novamente"
+        (retried)="load()"
+      />
+    } @else if (users().length === 0) {
+      <p class="users-empty">Nenhum usuário cadastrado.</p>
+    } @else {
+      <div class="list-table-frame" [attr.aria-busy]="loading()">
+        <table class="list-table users-table">
+          <colgroup>
+            <col class="user-name-column" />
+            <col class="user-username-column" />
+            <col class="user-email-column" />
+            <col class="user-role-column" />
+            <col class="user-status-column" />
+            <col class="user-actions-column" />
+          </colgroup>
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>Usuário</th>
+              <th>E-mail</th>
+              <th>Cargo</th>
+              <th>Status</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (user of users(); track user.id) {
+              <tr>
+                <td>
+                  <strong>{{ user.name }}</strong>
+                  @if (user.is_superuser) {
+                    <span class="admin-badge">Admin</span>
+                  }
+                </td>
+                <td>{{ user.username }}</td>
+                <td>{{ user.email }}</td>
+                <td>
+                  {{ roleLabel(user.role) }}
+                </td>
+                <td>
+                  <div class="status-cell">
+                    <button
+                      class="analysis-toggle"
+                      type="button"
+                      role="switch"
+                      [class.active]="!user.is_deleted"
+                      [attr.aria-checked]="!user.is_deleted"
+                      [disabled]="auth.user()?.id === user.id || busyId() === user.id"
+                      [attr.aria-label]="
+                        'Conta de ' + user.name + (user.is_deleted ? ' inativa' : ' ativa')
+                      "
+                      (click)="toggle(user, user.is_deleted)"
+                    >
+                      <span></span>
+                    </button>
+                    <app-status-badge
+                      [label]="user.is_deleted ? 'Inativo' : 'Ativo'"
+                      [tone]="user.is_deleted ? 'neutral' : 'success'"
+                    />
+                  </div>
+                </td>
+                <td class="row-actions">
+                  <button
+                    type="button"
+                    class="action-icon"
+                    (click)="edit(user)"
+                    [disabled]="busyId() === user.id"
+                    aria-label="Editar usuário"
+                    title="Editar usuário"
+                  >
+                    <ui-icon name="pencil" />
+                  </button>
+                  <button
+                    type="button"
+                    class="action-icon danger"
+                    (click)="remove(user)"
+                    [disabled]="auth.user()?.id === user.id || busyId() === user.id"
+                    aria-label="Excluir usuário"
+                    [attr.title]="
+                      auth.user()?.id === user.id
+                        ? 'Você não pode excluir sua própria conta'
+                        : 'Excluir usuário'
+                    "
+                  >
+                    <ui-icon name="trash" />
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <app-list-pagination
+        [page]="page()"
+        [totalPages]="totalPages()"
+        [pageSize]="pageSize()"
+        [pageSizes]="allowedPageSizes"
+        (pageSizeChanged)="selectPageSize($event)"
+        (previous)="previousPage()"
+        (next)="nextPage()"
+      />
+    }
+  </app-list-panel>
+</section>

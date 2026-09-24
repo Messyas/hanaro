@@ -21,7 +21,7 @@ BACKEND_DEBUG=true
 CREATE_TABLES_ON_STARTUP=true
 CACHE_ENABLED=true
 RATE_LIMITER_ENABLED=true
-TASKIQ_ENABLED=false
+TASKIQ_ENABLED=true
 SECRET_KEY=gere-um-novo-segredo-para-este-ambiente
 ```
 
@@ -36,7 +36,10 @@ Estas alterações devem ser feitas depois de confirmar que a operação local f
 - Remova `REDIS_URL` e `DATABASE_URL` das variáveis configuradas no Render. No código, eles podem permanecer: são overrides opcionais e não impedem a execução local.
 - Se a integração Aiven não for mais desejada no código, remova primeiro os testes e a documentação referentes a `rediss://` e `DATABASE_URL`; depois remova as variáveis e os fallbacks associados. Faça isso em um commit separado da migração de dados.
 - Mantenha `SESSION_BACKEND=redis`, `CACHE_BACKEND=redis` e `RATE_LIMITER_BACKEND=redis` se o Redis local estiver ativo. Para uma demonstração sem Redis, use `SESSION_BACKEND=memory`, `CACHE_ENABLED=false` e `RATE_LIMITER_ENABLED=false`.
-- Deixe `TASKIQ_ENABLED=false` enquanto não existir worker local. Para reativá-lo, suba Redis, configure `TASKIQ_ENABLED=true` e execute o worker no mesmo ambiente.
+- A implantação real deve usar `TASKIQ_ENABLED=true`, Redis e o serviço `worker`.
+  `TASKIQ_ENABLED=false` é aceito somente em uma demonstração limitada, como o
+  plano gratuito do Render; nesse modo, ingestões e exportações assíncronas não
+  são processadas.
 - Ajuste `CORS_ORIGINS` e `TRUSTED_HOSTS` para hosts locais, ou mantenha CORS desativado se o proxy do frontend continuar garantindo mesma origem.
 
 Não é necessário modificar o driver PostgreSQL: sem `DATABASE_URL`, a aplicação já monta a URL assíncrona pelas variáveis `POSTGRES_*`.
@@ -60,6 +63,9 @@ Não cancele as contas antes de confirmar que o ambiente local está funcionando
 - [ ] Login, sessões, cache e rate limit testados na máquina/rede local, se forem necessários.
 - [ ] Frontend acessa a API local sem depender do domínio Cloudflare.
 - [ ] Migrações Alembic executam no banco local.
+- [ ] `TASKIQ_ENABLED=true`, Redis e o worker estão ativos.
+- [ ] API e worker compartilham o volume privado `report_artifacts`.
+- [ ] Exportações CSV, PDF e PPTX terminam e podem ser baixadas após reiniciar os containers.
 - [ ] Nenhuma credencial Aiven, Render ou Cloudflare permanece em `.env`, commits ou logs.
 - [ ] Workflow de deploy externo desativado ou removido em PR próprio.
 - [ ] Dados Aiven descartados e serviços externos/tokens cancelados ou revogados após os testes acima.

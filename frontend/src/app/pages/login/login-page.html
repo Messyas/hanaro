@@ -1,0 +1,14 @@
+<main class="login-page">
+  <div class="login-page-content">
+    <header class="login-page-brand" aria-label="Hanaro">
+      <span class="login-page-mark" aria-hidden="true">
+        <img [ngSrc]="markSrc()" alt="" width="192" height="192" priority />
+      </span>
+      <span class="login-page-brand-name">Hanaro</span>
+    </header>
+
+    <div class="login-card">
+      <app-login-dialog [standalone]="true" (authenticated)="completeLogin()" />
+    </div>
+  </div>
+</main>

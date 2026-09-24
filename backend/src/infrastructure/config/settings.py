@@ -314,6 +314,13 @@ class ScrapReviewImageSettings(BaseSettings):
     SCRAP_REVIEW_MAX_ATTACHMENTS: int = config("SCRAP_REVIEW_MAX_ATTACHMENTS", default=8, cast=int)
 
 
+class ReportExportSettings(BaseSettings):
+    """Private storage and bounded generation settings for report artifacts."""
+
+    REPORT_ARTIFACT_DIR: str = config("REPORT_ARTIFACT_DIR", default="data/report-artifacts")
+    REPORT_EXPORT_MAX_ITEMS: int = config("REPORT_EXPORT_MAX_ITEMS", default=5000, cast=int)
+
+
 class SecuritySettings(BaseSettings):
     """Security validation settings."""
 
@@ -437,6 +444,7 @@ class Settings(
     AdminSettings,
     ProfileImageSettings,
     ScrapReviewImageSettings,
+    ReportExportSettings,
     SecuritySettings,
     LoggingSettings,
     NotificationSettings,

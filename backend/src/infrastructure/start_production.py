@@ -14,6 +14,7 @@ import sqlalchemy as sa
 
 from scripts.seed_demo_classifications import seed_demo_classifications
 from scripts.seed_demo_governance import seed_demo_governance
+from scripts.seed_relative_efficiency import run_seed as seed_relative_efficiency
 from scripts.setup_initial_data import setup_initial_data, validate_admin_configuration
 from src.infrastructure.database.session import engine, local_session
 from src.modules.material_scrap.classification_service import ScrapClassificationService
@@ -32,6 +33,19 @@ MIGRATION_ORDER = {
     "20260902_09": 9,
     "20260903_10": 10,
     "20260904_11": 11,
+    "20260906_12": 12,
+    "20260909_13": 13,
+    "20260909_14": 14,
+    "20260910_15": 15,
+    "20260911_16": 16,
+    "20260911_17": 17,
+    "20260911_18": 18,
+    "20260911_19": 19,
+    "20260915_20": 20,
+    "20260918_21": 21,
+    "20260919_21": 22,
+    "20260919_22": 23,
+    "20260919_23": 24,
 }
 
 
@@ -52,6 +66,22 @@ def _legacy_schema_revision(tables: set[str], columns: dict[str, set[str]]) -> s
     }
     if not revision_02_tables <= tables:
         return None
+    reports_module_tables = {
+        "gov_report_occurrence_sources",
+        "gov_report_sources",
+        "gov_report_version_sources",
+    }
+    reports_module_columns = {
+        "description",
+        "status",
+        "created_by_user_id",
+        "updated_by_user_id",
+        "version",
+        "updated_at",
+        "archived_at",
+    }
+    if reports_module_tables <= tables and reports_module_columns <= columns.get("gov_reports", set()):
+        return "20260909_13"
     automation_columns = columns.get("scrap_automation_executions", set())
     if (
         "scrap_classification_rules" in tables
@@ -109,7 +139,13 @@ async def _detect_legacy_schema_revision() -> tuple[str | None, str | None]:
             tables = set(inspector.get_table_names())
             columns = {
                 table: {column["name"] for column in inspector.get_columns(table)}
-                for table in tables & {"scrap_ingestion_runs", "scrap_transactions", "scrap_automation_executions"}
+                for table in tables
+                & {
+                    "scrap_ingestion_runs",
+                    "scrap_transactions",
+                    "scrap_automation_executions",
+                    "gov_reports",
+                }
             }
             return tables, columns
 
@@ -175,6 +211,14 @@ async def seed_demo_data() -> None:
                 )
         governance_counts = await seed_demo_governance()
         print(f"Loaded governance demo records: {governance_counts}")
+        reference_year = date.fromisoformat(os.getenv("DEMO_DATA_REFERENCE_DATE", "2026-09-03")).year
+        production_counts = await seed_relative_efficiency(
+            year=reference_year,
+            reference_year=reference_year - 1,
+            currency="USD",
+            replace=False,
+        )
+        print(f"Loaded relative-efficiency production denominators: {production_counts}")
     else:
         print("Demo Material Scrap seed is disabled")
 

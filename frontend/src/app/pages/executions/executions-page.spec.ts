@@ -164,6 +164,21 @@ describe('ExecutionsPage', () => {
     expect(compiled.querySelector('.detail-drawer')).toBeFalsy();
   });
 
+  it('provides a keyboard-focusable control to open execution details', () => {
+    const compiled = fixture.nativeElement as HTMLElement;
+    const trigger = compiled.querySelector<HTMLButtonElement>('.execution-details-trigger');
+
+    expect(trigger?.type).toBe('button');
+    expect(trigger?.getAttribute('aria-label')).toBe(component.t().executionsDetailTitle);
+
+    trigger?.click();
+
+    expect(mockExecutionsService.getDetail).toHaveBeenCalledWith(
+      '22222222-2222-2222-2222-222222222222',
+    );
+    expect(mockExecutionsService.getDetail).toHaveBeenCalledTimes(1);
+  });
+
   it('should update texts dynamically when system language changes to en and ko', () => {
     component.language.setLanguage('en');
     fixture.detectChanges();

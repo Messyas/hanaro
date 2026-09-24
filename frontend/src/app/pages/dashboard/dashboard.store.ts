@@ -19,6 +19,7 @@ import {
   DEFAULT_FILTER_OPTIONS,
   EMPTY_SNAPSHOT,
   RelativeDashboardKpis,
+  RelativeDenominatorStatus,
 } from './dashboard.models';
 
 interface DashboardApiRankingItem {
@@ -27,11 +28,24 @@ interface DashboardApiRankingItem {
   record_count: number;
 }
 
+interface DashboardApiRelativeRankingItem {
+  key: string | null;
+  numerator: string;
+  denominator: string | null;
+  rate: string | null;
+  record_count: number;
+  denominator_status: 'AVAILABLE' | 'MISSING_DENOMINATOR' | 'ZERO_DENOMINATOR';
+}
+
 interface DashboardApiSeriesPoint {
   period: string;
   actual: string | null;
   previous_year: string | null;
   target: string | null;
+  denominator: string | null;
+  previous_year_denominator: string | null;
+  relative_status: RelativeDenominatorStatus;
+  previous_year_relative_status: RelativeDenominatorStatus;
 }
 
 interface DashboardApiResponse {
@@ -47,6 +61,7 @@ interface DashboardApiResponse {
     models?: DashboardApiRankingItem[];
     offenders?: DashboardApiRankingItem[];
   };
+  relative_product_ranking?: DashboardApiRelativeRankingItem[];
 }
 
 interface ScrapFiltersResponse {
@@ -207,9 +222,25 @@ export class DashboardStore {
             : point.actualQty,
       ),
     );
+    const hasIncompleteCurrentDenominator = selected.some((point) => {
+      const actual = metric === 'usd' ? point.actualUsd : point.actualQty;
+      return actual !== null && point.relativeStatus !== 'AVAILABLE';
+    });
     const denominator = this.sum(
       selected.map((point) => (metric === 'usd' ? point.materialAmountUsd : point.productionQty)),
     );
+    const hasIncompleteReferenceDenominator = reference.some(({ point, usePreviousYear }) => {
+      const actual =
+        metric === 'usd'
+          ? usePreviousYear
+            ? point.previousUsd
+            : point.actualUsd
+          : usePreviousYear
+            ? point.previousQty
+            : point.actualQty;
+      const status = usePreviousYear ? point.previousRelativeStatus : point.relativeStatus;
+      return actual !== null && status !== 'AVAILABLE';
+    });
     const referenceDenominator = this.sum(
       reference.map(({ point, usePreviousYear }) =>
         metric === 'usd'
@@ -221,15 +252,21 @@ export class DashboardStore {
             : point.productionQty,
       ),
     );
-    const rate = denominator > 0 ? (numerator / denominator) * 100 : 0;
+    const rate =
+      !hasIncompleteCurrentDenominator && denominator > 0 ? (numerator / denominator) * 100 : null;
     const referenceRate =
-      referenceDenominator > 0 ? (referenceNumerator / referenceDenominator) * 100 : 0;
+      !hasIncompleteReferenceDenominator && referenceDenominator > 0
+        ? (referenceNumerator / referenceDenominator) * 100
+        : null;
 
     return {
       rate,
       numerator,
       denominator,
-      variation: referenceRate > 0 ? ((rate - referenceRate) / referenceRate) * 100 : 0,
+      variation:
+        rate !== null && referenceRate !== null && referenceRate > 0
+          ? ((rate - referenceRate) / referenceRate) * 100
+          : null,
     };
   });
 
@@ -489,10 +526,16 @@ export class DashboardStore {
             : null
           : null,
         targetQty: 0,
-        materialAmountUsd: 0,
-        previousMaterialAmountUsd: 0,
-        productionQty: 0,
-        previousProductionQty: 0,
+        materialAmountUsd: apiPoint ? this.toNullableNumber(apiPoint.denominator) : null,
+        previousMaterialAmountUsd: apiPoint
+          ? this.toNullableNumber(apiPoint.previous_year_denominator)
+          : null,
+        productionQty: apiPoint ? this.toNullableNumber(apiPoint.denominator) : null,
+        previousProductionQty: apiPoint
+          ? this.toNullableNumber(apiPoint.previous_year_denominator)
+          : null,
+        relativeStatus: apiPoint?.relative_status ?? 'MISSING_DENOMINATOR',
+        previousRelativeStatus: apiPoint?.previous_year_relative_status ?? 'MISSING_DENOMINATOR',
       };
     });
 
@@ -503,13 +546,6 @@ export class DashboardStore {
         label: item.key ?? 'Não classificado',
         usd: this.toNumber(item.amount),
         qty: quantityMetric ? this.toNumber(item.amount) : item.record_count,
-      })),
-      relativeDistribution: (response.rankings.lines ?? []).map((item) => ({
-        label: item.key ?? 'Não classificado',
-        usd: this.toNumber(item.amount),
-        qty: quantityMetric ? this.toNumber(item.amount) : item.record_count,
-        relativeUsd: undefined,
-        relativeQty: undefined,
       })),
       components: (response.rankings.components ?? []).map((item) => ({
         label: item.key ?? 'Não classificado',
@@ -531,6 +567,16 @@ export class DashboardStore {
         usd: this.toNumber(item.amount),
         qty: quantityMetric ? this.toNumber(item.amount) : item.record_count,
       })),
+      relativeProducts: (response.relative_product_ranking ?? []).map((item) => ({
+        label: item.key ?? 'NÃ£o classificado',
+        usd: this.toNumber(item.numerator),
+        qty: item.record_count,
+        rate: this.toNullableNumber(item.rate),
+        numerator: this.toNumber(item.numerator),
+        denominator: this.toNullableNumber(item.denominator),
+        recordCount: item.record_count,
+        denominatorStatus: item.denominator_status,
+      })),
       // Keep the source timestamp; the page formats only the time according
       // to the currently selected language.
       lastUpdatedAt: response.metadata.generated_at,
@@ -550,10 +596,12 @@ export class DashboardStore {
       actualQty: quantityMetric ? this.toNullableNumber(point.actual) : null,
       previousQty: quantityMetric ? this.toNullableNumber(point.previous_year) : null,
       targetQty: 0,
-      materialAmountUsd: 0,
-      previousMaterialAmountUsd: 0,
-      productionQty: 0,
-      previousProductionQty: 0,
+      materialAmountUsd: this.toNullableNumber(point.denominator),
+      previousMaterialAmountUsd: this.toNullableNumber(point.previous_year_denominator),
+      productionQty: this.toNullableNumber(point.denominator),
+      previousProductionQty: this.toNullableNumber(point.previous_year_denominator),
+      relativeStatus: point.relative_status,
+      previousRelativeStatus: point.previous_year_relative_status,
     };
   }
 

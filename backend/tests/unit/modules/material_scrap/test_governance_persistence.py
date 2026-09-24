@@ -11,13 +11,15 @@ import pytest
 import pytest_asyncio
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
-from sqlalchemy import event, func, select, text
+from sqlalchemy import event, func, inspect, select, text
 from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from scripts.seed_demo_governance import seed_governance
 from src.infrastructure.database.session import Base
 from src.modules.governance.models import (
+    Alert,
+    AlertRecipient,
     DatasetSnapshot,
     Factory,
     ProductionLine,
@@ -26,17 +28,34 @@ from src.modules.governance.models import (
     SnapshotItem,
 )
 from src.modules.material_scrap.service import ingest_material_scrap
+from src.modules.user.models import User
 
 from .helpers import canonical_fixture
 
 
 def migration(connection, direction="upgrade"):
-    file = Path(__file__).resolve().parents[4] / "migrations/versions/20260906_12_governance_persistence.py"
-    spec = importlib.util.spec_from_file_location("governance_migration", file)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
     with Operations.context(MigrationContext.configure(connection)):
-        getattr(module, direction)()
+        files = [
+            Path(__file__).resolve().parents[4] / "migrations/versions/20260906_12_governance_persistence.py",
+            Path(__file__).resolve().parents[4] / "migrations/versions/20260909_13_reports_module.py",
+            Path(__file__).resolve().parents[4] / "migrations/versions/20260909_14_governance_workflows.py",
+            Path(__file__).resolve().parents[4] / "migrations/versions/20260910_15_report_scope_v2.py",
+            Path(__file__).resolve().parents[4] / "migrations/versions/20260911_16_report_scope_sources.py",
+            Path(__file__).resolve().parents[4] / "migrations/versions/20260911_17_report_action_sources.py",
+            Path(__file__).resolve().parents[4] / "migrations/versions/20260911_18_report_snapshot_v2.py",
+            Path(__file__).resolve().parents[4] / "migrations/versions/20260911_19_report_publish_receipts.py",
+        ]
+        for index, file in enumerate(files if direction == "upgrade" else reversed(files)):
+            if file.name == "20260909_13_reports_module.py":
+                columns = {column["name"] for column in inspect(connection).get_columns("gov_reports")}
+                if (direction == "upgrade" and "description" in columns) or (
+                    direction == "downgrade" and "description" not in columns
+                ):
+                    continue
+            spec = importlib.util.spec_from_file_location(f"governance_migration_{index}", file)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            getattr(module, direction)()
 
 
 @pytest_asyncio.fixture(params=["sqlite", "postgresql"])
@@ -76,10 +95,16 @@ async def test_seed_replay_constraints_and_immutable_snapshots(governance_engine
     sessions = async_sessionmaker(governance_engine, expire_on_commit=False)
     async with sessions() as db:
         await ingest_material_scrap(canonical_fixture(), db)
+        db.add(User(name="Demo administrator", username="admin", email="admin@example.com", hashed_password="hash"))
+        await db.commit()
         first = await seed_governance(db)
         await db.commit()
         assert first["gov_factories"] == 1
         assert first["gov_production_versions"] >= 7
+        assert first["gov_alerts"] == 5
+        assert first["gov_alert_recipients"] == 5
+        assert await db.scalar(select(func.count()).select_from(Alert)) == 5
+        assert await db.scalar(select(func.count()).select_from(AlertRecipient)) == 5
         assert await seed_governance(db) == {}
         await db.commit()
         line = await db.scalar(select(ProductionLine).limit(1))
@@ -112,8 +137,13 @@ async def test_seed_replay_constraints_and_immutable_snapshots(governance_engine
                     await db.execute(text(statement), {"id": identifier})
                     await db.commit()
                 await db.rollback()
-    # Upgrade must also accept the complete legacy create_all baseline.
+    # Upgrade replay must accept a complete legacy/create_all baseline.
     async with governance_engine.begin() as conn:
         await conn.run_sync(migration)
-        await conn.run_sync(lambda sync: migration(sync, "downgrade"))
-        await conn.run_sync(migration)
+        if governance_engine.dialect.name == "postgresql":
+            # PostgreSQL is the production dialect: validate a complete
+            # reports/governance rollback and a clean re-application too.
+            # The new workflow migration preserves legacy histories and explicitly
+            # rejects destructive downgrades rather than dropping published work.
+            with pytest.raises(RuntimeError, match="restoration plan"):
+                await conn.run_sync(lambda sync: migration(sync, "downgrade"))

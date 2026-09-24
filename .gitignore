@@ -108,7 +108,9 @@ celerybeat.pid
 deploy/.env.production
 deploy/nginx/certs/*
 !deploy/nginx/certs/README.md
-.venv
+.venv/
+.venv-ci/
+.venv-ci311/
 env/
 venv/
 ENV/

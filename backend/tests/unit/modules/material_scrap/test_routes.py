@@ -73,6 +73,21 @@ async def test_listing_filters_search_pagination_and_allowlist(scrap_client: Asy
 
 
 @pytest.mark.asyncio
+async def test_authenticated_users_manage_shared_classifications(scrap_client: AsyncClient) -> None:
+    payload = {
+        "kind": "PRODUCT_ALIAS",
+        "source_value": "F700-1234",
+        "target_value": "TV 55 Premium",
+    }
+
+    created = await scrap_client.post("/api/v1/scrap/classifications", json=payload)
+
+    assert created.status_code == 201
+    assert created.json()["source_value"] == payload["source_value"]
+    assert (await scrap_client.get("/api/v1/scrap/classifications")).json()[0]["id"] == created.json()["id"]
+
+
+@pytest.mark.asyncio
 async def test_listing_exposes_and_filters_review_state(scrap_client: AsyncClient) -> None:
     listing = (await scrap_client.get("/api/v1/scrap", params={"page_size": 1})).json()
     occurrence_id = listing["items"][0]["occurrence_id"]
