@@ -496,7 +496,7 @@ Acceptance: the Builder constructs only a valid request; HTTP serialization, pol
 
 #### WP5 — Governance capability split
 
-- [ ] Define discriminated `ActionTaskCommand` variants with required payloads per action.
+- [x] Define discriminated `ActionTaskCommand` variants with required payloads per action.
 - [x] Replace `board(id, status, page, search, priority)` with `getBoard(query)`.
 - [ ] Split `GovernanceService` and shared models into Action Plans and Alerts capabilities plus explicitly shared contracts.
 - [ ] Move Action Plans and Alerts into their respective module folders with feature routes and route-scoped state.

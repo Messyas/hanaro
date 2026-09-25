@@ -25,6 +25,7 @@ import { UiIcon } from '../../ui-icon';
 import { GovernanceService } from '../governance.service';
 import {
   ActionTask,
+  ActionTaskCommand,
   HistoryEntry,
   Person,
   Plan,
@@ -426,11 +427,11 @@ export class ActionPlans {
       });
   }
 
-  command(task: ActionTask, command: string, extra: object = {}) {
+  sendTaskCommand(task: ActionTask, action: ActionTaskCommand) {
     if (this.busy()) return;
     this.busy.set(true);
     this.api
-      .command(task, command, extra)
+      .command(task, action)
       .pipe(takeUntilDestroyed(this.destroy))
       .subscribe({
         next: (updated) => {
@@ -448,11 +449,16 @@ export class ActionPlans {
   }
 
   drop(event: CdkDragDrop<ActionTask[]>, status: TaskState) {
+    if (status === 'COMPLETED') return;
     const task = event.item.data as ActionTask;
-    if (status === 'COMPLETED' || task.status === 'COMPLETED') return;
+    if (task.status === 'COMPLETED') return;
 
     this.moveTaskInBoard(task, status, event.currentIndex);
-    this.command(task, 'move', { status, position: event.currentIndex * 1024 });
+    this.sendTaskCommand(task, {
+      command: 'move',
+      status,
+      position: event.currentIndex * 1024,
+    });
   }
 
   private moveTaskInBoard(task: ActionTask, targetStatus: TaskState, targetIndex: number): void {

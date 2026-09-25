@@ -268,7 +268,9 @@
                     <button
                       type="button"
                       class="btn btn-primary btn-xs validate-btn"
-                      (click)="$event.stopPropagation(); command(taskItem, 'validate')"
+                      (click)="
+                        $event.stopPropagation(); sendTaskCommand(taskItem, { command: 'validate' })
+                      "
                       [disabled]="busy() || !!taskItem.blocked_reason"
                     >
                       <ui-icon name="check" />

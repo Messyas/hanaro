@@ -9,6 +9,14 @@ export interface WorkflowPage<T> {
   has_next: boolean;
 }
 export type TaskState = 'PLANNED' | 'IN_PROGRESS' | 'UNDER_VERIFICATION' | 'COMPLETED';
+export type MovableTaskState = Exclude<TaskState, 'COMPLETED'>;
+
+export type ActionTaskCommand =
+  | { command: 'move'; status: MovableTaskState; position: number }
+  | { command: 'validate' }
+  | { command: 'reopen' }
+  | { command: 'comment'; comment: string };
+
 export interface ActionTaskBoardQuery {
   planId: string;
   status: TaskState;

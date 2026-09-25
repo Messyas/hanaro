@@ -3,6 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import {
   ActionTask,
   ActionTaskBoardQuery,
+  ActionTaskCommand,
   AlertItem,
   HistoryEntry,
   Person,
@@ -50,11 +51,10 @@ export class GovernanceService {
       ? this.http.put<ActionTask>(`${this.base}/action-plans/${planId}/tasks/${taskId}`, data)
       : this.http.post<ActionTask>(`${this.base}/action-plans/${planId}/tasks`, data);
   }
-  command(task: ActionTask, command: string, extra: object = {}) {
+  command(task: ActionTask, action: ActionTaskCommand) {
     return this.http.post<ActionTask>(`${this.base}/actions/${task.id}/commands`, {
       expected_version: task.version,
-      command,
-      ...extra,
+      ...action,
     });
   }
   history(id: string, page = 1) {
