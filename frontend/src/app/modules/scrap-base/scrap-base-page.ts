@@ -39,7 +39,7 @@ import {
   ScrapTemplatePopover,
   TemplateUpdateRequest,
 } from './scrap-template-popover/scrap-template-popover';
-import { ScrapTemplateService } from './scrap-template.service';
+import { ScrapTemplateStore } from './scrap-template.store';
 
 const PAGE_SIZES = [25, 50, 100, 200] as const;
 
@@ -70,7 +70,7 @@ export class ScrapBasePage implements OnInit {
   private readonly scrapBaseService = inject(ScrapBaseService);
   private readonly reviewService = inject(ScrapReviewService);
   private readonly defectTypesService = inject(DefectTypesService);
-  private readonly templateService = inject(ScrapTemplateService);
+  private readonly templateStore = inject(ScrapTemplateStore);
   private readonly bulkReview = inject(ScrapBulkReviewCoordinator);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
@@ -121,8 +121,8 @@ export class ScrapBasePage implements OnInit {
   readonly showBulkDialog = this.bulkReview.showBulkDialog;
 
   // Modelos de revisão salvos (Templates)
-  readonly templates = computed(() => this.templateService.templates());
-  readonly templatesLoading = computed(() => this.templateService.loading());
+  readonly templates = this.templateStore.templates;
+  readonly templatesLoading = this.templateStore.loading;
   readonly isTemplatePopoverOpen = signal(false);
   readonly activeTemplate = this.bulkReview.activeTemplate;
   readonly templateMutationId = signal<string | null>(null);
@@ -223,7 +223,7 @@ export class ScrapBasePage implements OnInit {
       });
 
     // Carregar templates favoritos
-    this.templateService.loadTemplates().pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
+    this.templateStore.loadTemplates().pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
 
     // Se navegou trazendo uma referência selecionada (ex: vindo de /relatorios)
     const navState = history.state?.referenceReview as ScrapReview | undefined;
@@ -378,7 +378,7 @@ export class ScrapBasePage implements OnInit {
   onDeleteTemplate(templateId: string): void {
     this.templateMutationId.set(templateId);
     this.templateFeedback.set(null);
-    this.templateService
+    this.templateStore
       .deleteTemplate(templateId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
@@ -399,7 +399,7 @@ export class ScrapBasePage implements OnInit {
   onUpdateTemplate(request: TemplateUpdateRequest): void {
     this.templateMutationId.set(request.id);
     this.templateFeedback.set(null);
-    this.templateService
+    this.templateStore
       .updateTemplate(request.id, request.payload)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({

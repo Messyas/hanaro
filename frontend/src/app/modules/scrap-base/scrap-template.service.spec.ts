@@ -28,13 +28,11 @@ describe('ScrapTemplateService', () => {
     });
     service = TestBed.inject(ScrapTemplateService);
     httpTesting = TestBed.inject(HttpTestingController);
-    service.templates.set([template]);
-    service.setActiveTemplate(template);
   });
 
   afterEach(() => httpTesting.verify());
 
-  it('updates a template and synchronizes the list and active selection', () => {
+  it('sends a template update to the API and returns the updated record', () => {
     const payload = {
       name: 'Modelo refinado',
       title: 'Título refinado',
@@ -45,8 +43,6 @@ describe('ScrapTemplateService', () => {
 
     service.updateTemplate(template.id, payload).subscribe((result) => {
       expect(result).toEqual(updated);
-      expect(service.templates()).toEqual([updated]);
-      expect(service.activeTemplate()).toEqual(updated);
     });
 
     const request = httpTesting.expectOne('/api/v1/scrap/reviews/templates/tpl-1');

@@ -1,7 +1,7 @@
-import { environment } from '../../../environments/environment';
 import { HttpClient } from '@angular/common/http';
-import { Injectable, inject, signal } from '@angular/core';
-import { Observable, tap } from 'rxjs';
+import { Injectable, inject } from '@angular/core';
+import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
 import {
   ScrapReviewTemplate,
   ScrapReviewTemplateCreate,
@@ -13,66 +13,25 @@ export class ScrapTemplateService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiBaseUrl}/scrap/reviews/templates`;
 
-  readonly templates = signal<ScrapReviewTemplate[]>([]);
-  readonly loading = signal(false);
-  readonly activeTemplate = signal<ScrapReviewTemplate | null>(null);
-
   loadTemplates(): Observable<ScrapReviewTemplate[]> {
-    this.loading.set(true);
-    return this.http.get<ScrapReviewTemplate[]>(this.baseUrl).pipe(
-      tap({
-        next: (items) => {
-          this.templates.set(items);
-          this.loading.set(false);
-        },
-        error: () => {
-          this.loading.set(false);
-        },
-      }),
-    );
+    return this.http.get<ScrapReviewTemplate[]>(this.baseUrl);
   }
 
   createTemplate(payload: ScrapReviewTemplateCreate): Observable<ScrapReviewTemplate> {
-    return this.http.post<ScrapReviewTemplate>(this.baseUrl, payload).pipe(
-      tap((created) => {
-        this.templates.update((current) => [
-          created,
-          ...current.filter((t) => t.id !== created.id),
-        ]);
-      }),
-    );
+    return this.http.post<ScrapReviewTemplate>(this.baseUrl, payload);
   }
 
   updateTemplate(
     templateId: string,
     payload: ScrapReviewTemplateUpdate,
   ): Observable<ScrapReviewTemplate> {
-    return this.http
-      .patch<ScrapReviewTemplate>(`${this.baseUrl}/${encodeURIComponent(templateId)}`, payload)
-      .pipe(
-        tap((updated) => {
-          this.templates.update((current) =>
-            current.map((template) => (template.id === updated.id ? updated : template)),
-          );
-          if (this.activeTemplate()?.id === updated.id) {
-            this.activeTemplate.set(updated);
-          }
-        }),
-      );
-  }
-
-  deleteTemplate(templateId: string): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/${encodeURIComponent(templateId)}`).pipe(
-      tap(() => {
-        this.templates.update((current) => current.filter((t) => t.id !== templateId));
-        if (this.activeTemplate()?.id === templateId) {
-          this.activeTemplate.set(null);
-        }
-      }),
+    return this.http.patch<ScrapReviewTemplate>(
+      `${this.baseUrl}/${encodeURIComponent(templateId)}`,
+      payload,
     );
   }
 
-  setActiveTemplate(template: ScrapReviewTemplate | null): void {
-    this.activeTemplate.set(template);
+  deleteTemplate(templateId: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${encodeURIComponent(templateId)}`);
   }
 }

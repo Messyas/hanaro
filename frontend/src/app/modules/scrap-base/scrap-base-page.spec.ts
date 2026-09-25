@@ -9,7 +9,7 @@ import { ScrapBasePage } from './scrap-base-page';
 import { ScrapBaseService } from './scrap-base.service';
 import { ScrapReviewService } from './scrap-review.service';
 import { DefectTypesService } from './defect-types.service';
-import { ScrapTemplateService } from './scrap-template.service';
+import { ScrapTemplateStore } from './scrap-template.store';
 
 describe('ScrapBasePage', () => {
   let component: ScrapBasePage;
@@ -90,7 +90,7 @@ describe('ScrapBasePage', () => {
         { provide: ScrapBaseService, useValue: scrapBaseServiceMock },
         { provide: ScrapReviewService, useValue: scrapReviewServiceMock },
         { provide: DefectTypesService, useValue: scrapReviewServiceMock },
-        { provide: ScrapTemplateService, useValue: scrapTemplateServiceMock },
+        { provide: ScrapTemplateStore, useValue: scrapTemplateServiceMock },
         { provide: AuthService, useValue: authServiceMock },
       ],
     }).compileComponents();

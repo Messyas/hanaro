@@ -7,7 +7,7 @@ import { LanguageService } from '../../../core/i18n/language.service';
 import { ScrapReview } from '../scrap-review.models';
 import { ScrapReviewService } from '../scrap-review.service';
 import { DefectTypesService } from '../defect-types.service';
-import { ScrapTemplateService } from '../scrap-template.service';
+import { ScrapTemplateStore } from '../scrap-template.store';
 import { ScrapReviewDrawer } from './scrap-review-drawer';
 
 describe('ScrapReviewDrawer', () => {
@@ -91,7 +91,7 @@ describe('ScrapReviewDrawer', () => {
         LanguageService,
         { provide: ScrapReviewService, useValue: reviewServiceMock },
         { provide: DefectTypesService, useValue: reviewServiceMock },
-        { provide: ScrapTemplateService, useValue: scrapTemplateServiceMock },
+        { provide: ScrapTemplateStore, useValue: scrapTemplateServiceMock },
         { provide: AuthService, useValue: authServiceMock },
       ],
     }).compileComponents();

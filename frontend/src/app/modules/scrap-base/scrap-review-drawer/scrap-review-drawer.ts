@@ -32,7 +32,7 @@ import {
 import { ScrapReviewPreview } from '../scrap-review-preview/scrap-review-preview';
 import { ScrapReviewService } from '../scrap-review.service';
 import { DefectTypesService } from '../defect-types.service';
-import { ScrapTemplateService } from '../scrap-template.service';
+import { ScrapTemplateStore } from '../scrap-template.store';
 import { ScrapReviewQueueStore } from '../scrap-review-queue.store';
 import {
   ScrapReviewWorkflowCoordinator,
@@ -58,7 +58,7 @@ import {
 export class ScrapReviewDrawer implements OnInit, OnDestroy {
   private readonly reviewService = inject(ScrapReviewService);
   private readonly defectTypesService = inject(DefectTypesService);
-  private readonly templateService = inject(ScrapTemplateService);
+  private readonly templateStore = inject(ScrapTemplateStore);
   private readonly language = inject(LanguageService);
   private readonly authService = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
@@ -114,7 +114,7 @@ export class ScrapReviewDrawer implements OnInit, OnDestroy {
   readonly matchingTemplate = computed(() => {
     const revId = this.review()?.id;
     if (!revId) return null;
-    return this.templateService.templates().find((t) => t.source_review_id === revId) || null;
+    return this.templateStore.templates().find((t) => t.source_review_id === revId) || null;
   });
 
   readonly isFavoriteTemplate = computed(() => !!this.matchingTemplate());
@@ -215,7 +215,7 @@ export class ScrapReviewDrawer implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadDefectTypes();
-    this.templateService.loadTemplates().pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
+    this.templateStore.loadTemplates().pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
   }
 
   ngOnDestroy(): void {
@@ -629,7 +629,7 @@ export class ScrapReviewDrawer implements OnInit, OnDestroy {
   toggleFavoriteTemplate(): void {
     const currentTpl = this.matchingTemplate();
     if (currentTpl) {
-      this.templateService
+      this.templateStore
         .deleteTemplate(currentTpl.id)
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe({
@@ -652,7 +652,7 @@ export class ScrapReviewDrawer implements OnInit, OnDestroy {
     const name = this.customTemplateName().trim();
     if (!rev || !name) return;
 
-    this.templateService
+    this.templateStore
       .createTemplate({
         name,
         title: rev.title,
