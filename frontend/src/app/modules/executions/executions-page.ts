@@ -10,7 +10,7 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Subject, Subscription, debounceTime, distinctUntilChanged, timer } from 'rxjs';
+import { timer } from 'rxjs';
 import { LanguageService } from '../../i18n/language.service';
 import { ListFilterDateRange } from '../../shared/list-filters/list-filter-date-range';
 import { ListFilterInput } from '../../shared/list-filters/list-filter-input';
@@ -32,16 +32,13 @@ import {
   AutomationExecutionStatus,
   AutomationSnapshotStatus,
   ExecutionDetail,
-  ExecutionPage,
-  ExecutionSortField,
   ExecutionStepCode,
   ExecutionStepStatus,
-  ExecutionsFilterParams,
-  SortOrder,
 } from './executions.models';
 import { ExecutionsService } from './executions.service';
 import { ExecutionManualUploadDialog } from './execution-manual-upload-dialog';
 import { ExecutionDetailDrawer, ExecutionDetailFormatters } from './execution-detail-drawer';
+import { ExecutionsListStore } from './executions-list.store';
 
 const ALLOWED_PAGE_SIZES = [10, 25, 50, 100] as const;
 const PAGE_SIZE_STORAGE_KEY = 'hanaro-executions-page-size';
@@ -69,6 +66,7 @@ const EXECUTION_POLL_INTERVAL_MS = 5_000;
   ],
   templateUrl: './executions-page.html',
   styleUrl: './executions-page.css',
+  providers: [ExecutionsListStore],
   host: {
     '(document:keydown.escape)': 'handleEscapeKey()',
   },
@@ -78,8 +76,7 @@ export class ExecutionsPage implements OnInit {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly destroyRef = inject(DestroyRef);
   private readonly isBrowser = isPlatformBrowser(this.platformId);
-  private readonly searchSubject = new Subject<string>();
-  private listRequest: Subscription | null = null;
+  readonly listStore = inject(ExecutionsListStore);
 
   readonly language = inject(LanguageService);
   readonly t = computed(() => this.language.translations());
@@ -87,14 +84,14 @@ export class ExecutionsPage implements OnInit {
   readonly allowedPageSizes = ALLOWED_PAGE_SIZES;
 
   // Filtros e paginação
-  readonly dateFrom = signal<string>('');
-  readonly dateTo = signal<string>('');
-  readonly statusFilter = signal<AutomationExecutionStatus | ''>('');
-  readonly searchQuery = signal<string>('');
-  readonly page = signal<number>(1);
-  readonly pageSize = signal<number>(this.readInitialPageSize());
-  readonly sortBy = signal<ExecutionSortField>('started_at');
-  readonly sortOrder = signal<SortOrder>('desc');
+  readonly dateFrom = this.listStore.dateFrom;
+  readonly dateTo = this.listStore.dateTo;
+  readonly statusFilter = this.listStore.statusFilter;
+  readonly searchQuery = this.listStore.searchQuery;
+  readonly page = this.listStore.page;
+  readonly pageSize = this.listStore.pageSize;
+  readonly sortBy = this.listStore.sortBy;
+  readonly sortOrder = this.listStore.sortOrder;
 
   // Popovers e Dropdowns customizados
   readonly filterOpen = signal<boolean>(false);
@@ -130,9 +127,9 @@ export class ExecutionsPage implements OnInit {
   });
 
   // Estado da listagem
-  readonly data = signal<ExecutionPage | null>(null);
-  readonly loading = signal<boolean>(false);
-  readonly error = signal<string | null>(null);
+  readonly data = this.listStore.data;
+  readonly loading = this.listStore.loading;
+  readonly error = this.listStore.error;
   readonly tableColumns = computed(() => [
     this.t().executionsColProcess,
     this.t().executionsColOrigin,
@@ -169,14 +166,7 @@ export class ExecutionsPage implements OnInit {
   };
 
   ngOnInit(): void {
-    this.searchSubject
-      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
-      .subscribe((query) => {
-        this.searchQuery.set(query);
-        this.page.set(1);
-        this.loadExecutions();
-      });
-
+    this.pageSize.set(this.readInitialPageSize());
     this.loadExecutions();
 
     timer(EXECUTION_POLL_INTERVAL_MS, EXECUTION_POLL_INTERVAL_MS)
@@ -241,54 +231,8 @@ export class ExecutionsPage implements OnInit {
     return language === 'pt' ? 'pt-BR' : language === 'ko' ? 'ko-KR' : 'en-US';
   }
 
-  private isValidIsoDateString(str: string): boolean {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(str)) return false;
-    const [y, m, d] = str.split('-').map(Number);
-    if (m < 1 || m > 12 || d < 1 || d > 31) return false;
-    const testDate = new Date(y, m - 1, d);
-    return (
-      testDate.getFullYear() === y && testDate.getMonth() === m - 1 && testDate.getDate() === d
-    );
-  }
   loadExecutions(): void {
-    if (this.dateRangeError()) {
-      return; // Não envia consulta ao backend com intervalo de datas inválido
-    }
-
-    this.loading.set(true);
-    this.error.set(null);
-
-    const params: ExecutionsFilterParams = {
-      page: this.page(),
-      page_size: this.pageSize(),
-      sort_by: this.sortBy(),
-      sort_order: this.sortOrder(),
-    };
-
-    if (this.dateFrom() && this.isValidIsoDateString(this.dateFrom())) {
-      params.date_from = this.dateFrom();
-    }
-    if (this.dateTo() && this.isValidIsoDateString(this.dateTo())) {
-      params.date_to = this.dateTo();
-    }
-    if (this.statusFilter()) params.status = this.statusFilter() as AutomationExecutionStatus;
-    if (this.searchQuery().trim()) params.search = this.searchQuery().trim();
-
-    this.listRequest?.unsubscribe();
-    this.listRequest = this.executionsService
-      .list(params)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (result) => {
-          this.data.set(result);
-          this.loading.set(false);
-        },
-        error: (err: { error?: { detail?: string }; message?: string }) => {
-          const message = err.error?.detail || err.message || 'Erro ao carregar dados do servidor.';
-          this.error.set(message);
-          this.loading.set(false);
-        },
-      });
+    this.listStore.load();
   }
 
   refresh(): void {
@@ -345,7 +289,7 @@ export class ExecutionsPage implements OnInit {
     const normalized = rawValue.replace(/\//g, '-').trim();
     this.dateFrom.set(normalized);
     // Dispara a busca apenas se o campo estiver vazio ou for uma data ISO completa e válida
-    if (!normalized || this.isValidIsoDateString(normalized)) {
+    if (!normalized || isValidIsoDateString(normalized)) {
       if (!this.dateRangeError()) {
         this.page.set(1);
         this.loadExecutions();
@@ -358,7 +302,7 @@ export class ExecutionsPage implements OnInit {
     const normalized = rawValue.replace(/\//g, '-').trim();
     this.dateTo.set(normalized);
     // Dispara a busca apenas se o campo estiver vazio ou for uma data ISO completa e válida
-    if (!normalized || this.isValidIsoDateString(normalized)) {
+    if (!normalized || isValidIsoDateString(normalized)) {
       if (!this.dateRangeError()) {
         this.page.set(1);
         this.loadExecutions();
@@ -375,11 +319,11 @@ export class ExecutionsPage implements OnInit {
 
   onSearchInput(event: Event): void {
     const value = (event.target as HTMLInputElement).value;
-    this.searchSubject.next(value);
+    this.listStore.queueSearch(value);
   }
 
   onSharedSearch(value: string): void {
-    this.searchSubject.next(value);
+    this.listStore.queueSearch(value);
   }
 
   onPageSizeChange(event: Event): void {
@@ -694,4 +638,12 @@ export class ExecutionsPage implements OnInit {
         return 'badge badge-neutral';
     }
   }
+}
+
+function isValidIsoDateString(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split('-').map(Number);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return false;
+  const date = new Date(year, month - 1, day);
+  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
 }
