@@ -20,7 +20,7 @@ import { BRAND_CONFIG } from '../../theme/brand.config';
 import { AuthService } from '../../core/auth/auth.service';
 import { LoginDialog } from './login-dialog';
 import { LogoutConfirmDialog } from './logout-confirm-dialog';
-import { DashboardStatusService } from '../../pages/dashboard/dashboard-status.service';
+import { ShellStatusService } from '../../core/shell/shell-status.service';
 
 interface NavigationItem {
   icon: IconName;
@@ -56,7 +56,7 @@ export class DashboardShell {
   readonly auth = inject(AuthService);
   readonly theme = inject(ThemeService);
   readonly language = inject(LanguageService);
-  readonly dashboardStatus = inject(DashboardStatusService);
+  readonly dashboardStatus = inject(ShellStatusService);
   readonly brand = BRAND_CONFIG;
   readonly sidebarOpen = signal(true);
   readonly isMobile = signal(false);

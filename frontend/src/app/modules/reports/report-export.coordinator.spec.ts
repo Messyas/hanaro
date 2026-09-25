@@ -1,11 +1,32 @@
 import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { vi } from 'vitest';
-import { BrowserDownloadAdapter } from './browser-download.adapter';
+import { BROWSER_DOWNLOAD } from './browser-download.port';
 import { ReportExportCoordinator } from './report-export.coordinator';
 import { ReportExportService } from './report-export.service';
 
 describe('ReportExportCoordinator', () => {
+  it('downloads an exported artifact through the configured port', () => {
+    const blob = new Blob(['report']);
+    const download = vi.fn();
+    const service = { download: vi.fn().mockReturnValue(of(blob)) };
+    TestBed.configureTestingModule({
+      providers: [
+        ReportExportCoordinator,
+        { provide: ReportExportService, useValue: service },
+        { provide: BROWSER_DOWNLOAD, useValue: { download } },
+      ],
+    });
+
+    const coordinator = TestBed.inject(ReportExportCoordinator);
+    coordinator
+      .download({ id: 'job-1', artifact: { filename: 'report.pdf' } } as never)
+      .subscribe();
+
+    expect(service.download).toHaveBeenCalledWith('job-1');
+    expect(download).toHaveBeenCalledWith(blob, 'report.pdf');
+  });
+
   it('restores export history in newest-first order', () => {
     const oldest = { id: 'job-oldest', status: 'COMPLETED' } as never;
     const newest = { id: 'job-newest', status: 'COMPLETED' } as never;
@@ -16,7 +37,7 @@ describe('ReportExportCoordinator', () => {
       providers: [
         ReportExportCoordinator,
         { provide: ReportExportService, useValue: service },
-        { provide: BrowserDownloadAdapter, useValue: { download: vi.fn() } },
+        { provide: BROWSER_DOWNLOAD, useValue: { download: vi.fn() } },
       ],
     });
 
@@ -38,7 +59,7 @@ describe('ReportExportCoordinator', () => {
       providers: [
         ReportExportCoordinator,
         { provide: ReportExportService, useValue: service },
-        { provide: BrowserDownloadAdapter, useValue: { download: vi.fn() } },
+        { provide: BROWSER_DOWNLOAD, useValue: { download: vi.fn() } },
       ],
     });
 

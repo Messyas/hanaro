@@ -10,6 +10,8 @@ import { provideRouter } from '@angular/router';
 import { routes } from './app.routes';
 import { provideClientHydration } from '@angular/platform-browser';
 import { apiCacheInterceptor } from './core/http/api-cache.interceptor';
+import { BROWSER_DOWNLOAD } from './modules/reports/browser-download.port';
+import { BrowserDownloadAdapter } from './modules/reports/browser-download.adapter';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -24,5 +26,6 @@ export const appConfig: ApplicationConfig = {
     ),
     provideRouter(routes),
     provideClientHydration(),
+    { provide: BROWSER_DOWNLOAD, useExisting: BrowserDownloadAdapter },
   ],
 };

@@ -1,7 +1,7 @@
 import { Injectable, signal } from '@angular/core';
 
 @Injectable({ providedIn: 'root' })
-export class DashboardStatusService {
+export class ShellStatusService {
   readonly label = signal<string | null>(null);
 
   set(label: string): void {

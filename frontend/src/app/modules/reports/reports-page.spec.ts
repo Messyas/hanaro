@@ -12,6 +12,7 @@ import { ReportSourceService } from './report-source.service';
 import { ReportPublicationService } from './report-publication.service';
 import { ReportCatalogService } from './report-catalog.service';
 import { ReportPeriodCloseService } from './report-period-close.service';
+import { BROWSER_DOWNLOAD } from './browser-download.port';
 
 describe('ReportsPage', () => {
   let fixture: ComponentFixture<ReportsPage>;
@@ -116,6 +117,7 @@ describe('ReportsPage', () => {
       imports: [ReportsPage],
       providers: [
         provideRouter([]),
+        { provide: BROWSER_DOWNLOAD, useValue: { download: vi.fn() } },
         LanguageService,
         {
           provide: GovernanceCapabilitiesService,

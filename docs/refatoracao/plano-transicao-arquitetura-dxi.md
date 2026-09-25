@@ -1,6 +1,16 @@
 # Plano de transição para a arquitetura DXi
 
-Data: 25/09/2026. Status: proposta para execução incremental; nenhuma refatoração de código realizada nesta análise.
+Data: 25/09/2026. Status: execução parcial das etapas 0–3 e da porta de download de relatórios. As demais etapas continuam planejadas.
+
+### Implementação realizada em 25/09/2026
+
+- `pages/{login,users,dashboard}` foi consolidado em `modules/{auth,users,dashboard}`; os caminhos públicos das rotas e os guards foram preservados.
+- O estado do cabeçalho passou para `core/shell/shell-status.service.ts`; o layout deixou de importar dashboard.
+- `DashboardStore` mantém estado, efeitos e proteção contra respostas antigas. `DashboardDataService` concentra HTTP, parâmetros da consulta, DTOs e conversão dos dados.
+- `ReportExportCoordinator` consome `BROWSER_DOWNLOAD`; `app.config.ts` fornece o adapter concreto no injector raiz.
+- A exceção de `modules/reports` foi corrigida no `.gitignore` para permitir o versionamento de novos arquivos dessa feature.
+
+Validação desta implementação: `npm run build`, `npm run build:cloudflare` e `npm test -- --watch=false` em `frontend/` (45 arquivos, 166 testes). As próximas prioridades são reduzir o contrato de tipos de defeito entre settings e scrap-base, corrigir a dependência do login no diálogo do layout e separar os demais serviços globais por responsabilidade.
 
 ## 1. Decisão de arquitetura
 
@@ -12,9 +22,9 @@ O projeto declara Angular `^22.1.0` em `frontend/package.json`. “6.1” é a n
 
 Manter `frontend/` e `backend/` inicialmente. `client/` e `server/` são equivalentes organizacionais, mas renomeá-los não melhora SOLID. Se for necessária correspondência literal ao guia, realizar essa renomeação em uma entrega final independente, atualizando Docker, CI, deploy, scripts e documentação.
 
-## 2. Diagnóstico confirmado no workspace
+## 2. Diagnóstico inicial, antes desta implementação
 
-O grafo foi consultado para orientação e as conclusões abaixo foram verificadas nos arquivos atuais. O grafo ainda referencia documentos que estão excluídos no workspace; esses documentos não foram restaurados nem usados como evidência de implementação atual.
+O grafo foi consultado para orientação e as conclusões abaixo foram verificadas nos arquivos anteriores à implementação registrada acima. As linhas relativas a páginas, dashboard, layout, porta de download e `.gitignore` descrevem problemas já corrigidos nesta entrega. Documentos anteriormente excluídos do workspace não foram restaurados nem usados como evidência.
 
 | Evidência | Implicação para a transição |
 | --- | --- |
@@ -126,7 +136,7 @@ Não criar obrigatoriamente `components/services/models/utils` dentro de cada fe
 - Evitar arquivos genéricos `helpers.ts`, `common.ts` ou `utils.ts`. Preferir `date-range.ts`, `report-filename.ts` etc.
 - Evitar renomear todos os arquivos só por estilo. Primeiro consolidar diretórios e fronteiras.
 
-## 4. Mapa de movimentação
+## 4. Mapa de movimentação a partir da estrutura inicial
 
 | Origem atual | Destino proposto | Observação |
 | --- | --- | --- |
@@ -236,7 +246,7 @@ O agrupamento de governança pode ser adiado se o inventário revelar custo elev
 
 ## 9. Validação, riscos e reversão
 
-Na implementação, executar a partir de `frontend/` os scripts existentes: `npm run build`, `npm run build:cloudflare` e `npm test -- --watch=false`, conforme as áreas afetadas. Registrar uma baseline antes de alterar código. Nesta entrega de planejamento esses comandos não foram executados.
+Na implementação, executar a partir de `frontend/` os scripts existentes: `npm run build`, `npm run build:cloudflare` e `npm test -- --watch=false`, conforme as áreas afetadas. Os dois builds e a suíte de testes passaram nesta entrega; a migração de assets e ambientes continua pendente.
 
 Testes de comportamento prioritários:
 

@@ -1,7 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable, from, mergeMap, of, switchMap, takeWhile, timer } from 'rxjs';
-import { BrowserDownloadAdapter } from './browser-download.adapter';
-import { BrowserDownloadPort } from './browser-download.port';
+import { BROWSER_DOWNLOAD } from './browser-download.port';
 import {
   ExportFormat,
   ExportJob,
@@ -15,7 +14,7 @@ import { ReportExportService } from './report-export.service';
 @Injectable({ providedIn: 'root' })
 export class ReportExportCoordinator {
   private readonly service = inject(ReportExportService);
-  private readonly browserDownload: BrowserDownloadPort = inject(BrowserDownloadAdapter);
+  private readonly browserDownload = inject(BROWSER_DOWNLOAD);
 
   request(
     version: ReportVersion,

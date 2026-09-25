@@ -6,14 +6,14 @@ export const routes: Routes = [
   {
     path: 'login',
     title: 'Login | Hanaro',
-    loadComponent: () => import('./pages/login/login-page').then((module) => module.LoginPage),
+    loadComponent: () => import('./modules/auth/login-page').then((module) => module.LoginPage),
   },
   {
     path: 'dashboard/kiosk',
     title: 'Modo Kiosk | Hanaro',
     canActivate: [adminScopeGuard],
     loadComponent: () =>
-      import('./pages/dashboard/kiosk/dashboard-kiosk-page').then(
+      import('./modules/dashboard/kiosk/dashboard-kiosk-page').then(
         (module) => module.DashboardKioskPage,
       ),
   },
@@ -26,7 +26,7 @@ export const routes: Routes = [
         title: 'Dashboard',
         canActivate: [adminScopeGuard],
         loadComponent: () =>
-          import('./pages/dashboard/dashboard-page').then((module) => module.DashboardPage),
+          import('./modules/dashboard/dashboard-page').then((module) => module.DashboardPage),
       },
       {
         path: 'execucoes',
@@ -92,7 +92,8 @@ export const routes: Routes = [
         path: 'usuarios',
         title: 'Usuários',
         canActivate: [superuserGuard],
-        loadComponent: () => import('./pages/users/users-page').then((module) => module.UsersPage),
+        loadComponent: () =>
+          import('./modules/users/users-page').then((module) => module.UsersPage),
       },
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
       { path: '**', redirectTo: 'dashboard' },

@@ -1,7 +1,5 @@
 import { isPlatformBrowser } from '@angular/common';
-import { HttpClient, HttpParams } from '@angular/common/http';
 import { computed, effect, inject, Injectable, PLATFORM_ID, signal } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
 import {
   DashboardAnalysis,
   DashboardComparison,
@@ -12,82 +10,14 @@ import {
   DashboardFilters,
   DashboardKpis,
   DashboardMetric,
-  DashboardMonthlyPoint,
   DashboardMultiFilterKey,
   DashboardRankingLimit,
   DashboardSnapshot,
   DEFAULT_FILTER_OPTIONS,
   EMPTY_SNAPSHOT,
   RelativeDashboardKpis,
-  RelativeDenominatorStatus,
 } from './dashboard.models';
-
-interface DashboardApiRankingItem {
-  key: string | null;
-  amount: string;
-  record_count: number;
-}
-
-interface DashboardApiRelativeRankingItem {
-  key: string | null;
-  numerator: string;
-  denominator: string | null;
-  rate: string | null;
-  record_count: number;
-  denominator_status: 'AVAILABLE' | 'MISSING_DENOMINATOR' | 'ZERO_DENOMINATOR';
-}
-
-interface DashboardApiSeriesPoint {
-  period: string;
-  actual: string | null;
-  previous_year: string | null;
-  target: string | null;
-  denominator: string | null;
-  previous_year_denominator: string | null;
-  relative_status: RelativeDenominatorStatus;
-  previous_year_relative_status: RelativeDenominatorStatus;
-}
-
-interface DashboardApiResponse {
-  metadata: {
-    generated_at: string;
-  };
-  monthly: DashboardApiSeriesPoint[];
-  weekly?: DashboardApiSeriesPoint[];
-  rankings: {
-    products: DashboardApiRankingItem[];
-    components?: DashboardApiRankingItem[];
-    lines?: DashboardApiRankingItem[];
-    models?: DashboardApiRankingItem[];
-    offenders?: DashboardApiRankingItem[];
-  };
-  relative_product_ranking?: DashboardApiRelativeRankingItem[];
-}
-
-interface ScrapFiltersResponse {
-  organizations: string[];
-  receipt_departments?: string[];
-  departments: string[];
-  item_types: string[];
-  items: string[];
-  account_aliases: string[];
-  periods: string[];
-}
-
-const MONTH_NAMES = [
-  'Jan',
-  'Fev',
-  'Mar',
-  'Abr',
-  'Mai',
-  'Jun',
-  'Jul',
-  'Ago',
-  'Set',
-  'Out',
-  'Nov',
-  'Dez',
-] as const;
+import { DashboardDataService, DASHBOARD_ALL_COMPONENTS } from './dashboard-data.service';
 
 export const INITIAL_DASHBOARD_FILTERS: DashboardFilters = {
   year: '2026',
@@ -96,12 +26,12 @@ export const INITIAL_DASHBOARD_FILTERS: DashboardFilters = {
   line: [],
   division: [],
   week: [],
-  component: 'Todos',
+  component: DASHBOARD_ALL_COMPONENTS,
 };
 
 @Injectable()
 export class DashboardStore {
-  private readonly http = inject(HttpClient, { optional: true });
+  private readonly data = inject(DashboardDataService);
   private readonly platformId = inject(PLATFORM_ID);
   private readonly canUseApi = isPlatformBrowser(this.platformId);
   private apiRequestSequence = 0;
@@ -313,15 +243,10 @@ export class DashboardStore {
     metric: DashboardMetric = this.metric(),
     rankingLimit: DashboardRankingLimit = this.rankingLimit(),
   ): Promise<DashboardSnapshot | null> {
-    if (!this.canUseApi || !this.http) return null;
+    if (!this.canUseApi) return null;
 
     try {
-      const response = await firstValueFrom(
-        this.http.get<DashboardApiResponse>('/api/v1/dashboard/scrap', {
-          params: this.apiParams(filters, rankingLimit, metric),
-        }),
-      );
-      return this.mapApiResponse(response, metric);
+      return await this.data.getSnapshot(filters, metric, rankingLimit);
     } catch {
       return null;
     }
@@ -344,11 +269,9 @@ export class DashboardStore {
   }
 
   private async loadFilterOptions(): Promise<void> {
-    if (!this.canUseApi || !this.http) return;
+    if (!this.canUseApi) return;
     try {
-      const res = await firstValueFrom(
-        this.http.get<ScrapFiltersResponse>('/api/v1/scrap/filters'),
-      );
+      const res = await this.data.getFilters();
       this.filterOptionsSignal.update((prev) => ({
         ...prev,
         lines: res.receipt_departments?.length
@@ -430,7 +353,7 @@ export class DashboardStore {
     rankingLimit: DashboardRankingLimit,
   ): Promise<void> {
     const requestId = ++this.apiRequestSequence;
-    if (!this.canUseApi || !this.http) {
+    if (!this.canUseApi) {
       this.apiSnapshot.set(EMPTY_SNAPSHOT);
       this.dataState.set('api-empty');
       return;
@@ -438,14 +361,8 @@ export class DashboardStore {
 
     this.dataState.set('loading');
     try {
-      const response = await firstValueFrom(
-        this.http.get<DashboardApiResponse>('/api/v1/dashboard/scrap', {
-          params: this.apiParams(filters, rankingLimit, metric),
-        }),
-      );
+      const snapshot = await this.data.getSnapshot(filters, metric, rankingLimit);
       if (requestId !== this.apiRequestSequence) return;
-
-      const snapshot = this.mapApiResponse(response, metric);
       this.apiSnapshot.set(snapshot);
       this.dataState.set(this.hasUsableSnapshot(snapshot) ? 'api' : 'api-empty');
     } catch {
@@ -455,178 +372,10 @@ export class DashboardStore {
     }
   }
 
-  private apiParams(
-    filters: DashboardFilters,
-    rankingLimit: DashboardRankingLimit,
-    metric: DashboardMetric,
-  ): HttpParams {
-    let params = new HttpParams()
-      .set('year', filters.year)
-      .set('currency', 'USD')
-      .set('metric', metric === 'usd' ? 'if_cost' : 'quantity')
-      .set('impact_mode', 'absolute')
-      .set('ranking_limit', String(rankingLimit));
-
-    params = this.appendValues(params, 'products', filters.product);
-    params = this.appendValues(params, 'receipt_departments', filters.line);
-    params = this.appendValues(params, 'divisions', filters.division);
-    if (filters.component !== INITIAL_DASHBOARD_FILTERS.component) {
-      params = params.append('item_types', filters.component);
-    }
-    if (filters.week.length === 1) {
-      const week = Number(filters.week[0].replace(/\D/g, ''));
-      if (Number.isFinite(week) && week > 0) params = params.set('week', String(week));
-    }
-    if (filters.period !== 'ytd') {
-      const month = Number(filters.period) + 1;
-      params = params
-        .set('date_from', `${filters.year}-${String(month).padStart(2, '0')}-01`)
-        .set('date_to', this.monthEndDate(filters.year, month));
-    }
-
-    return params;
-  }
-
-  private appendValues(params: HttpParams, key: string, values: readonly string[]): HttpParams {
-    return values.reduce((nextParams, value) => nextParams.append(key, value), params);
-  }
-
-  private mapApiResponse(
-    response: DashboardApiResponse,
-    metric: DashboardMetric,
-  ): DashboardSnapshot {
-    const quantityMetric = metric === 'qty';
-    const monthlyByIndex = new Map(
-      response.monthly.map((point) => [Number(point.period.slice(5, 7)) - 1, point]),
-    );
-    const monthly: DashboardMonthlyPoint[] = Array.from({ length: 12 }, (_, index) => {
-      const apiPoint = monthlyByIndex.get(index);
-
-      return {
-        month: MONTH_NAMES[index],
-        actualUsd: quantityMetric ? null : apiPoint ? this.toNullableNumber(apiPoint.actual) : null,
-        previousUsd: quantityMetric
-          ? null
-          : apiPoint
-            ? this.toNullableNumber(apiPoint.previous_year)
-            : null,
-        targetUsd: quantityMetric
-          ? 0
-          : apiPoint
-            ? (this.toNullableNumber(apiPoint.target) ?? 0)
-            : 0,
-        actualQty: quantityMetric
-          ? apiPoint
-            ? this.toNullableNumber(apiPoint.actual)
-            : null
-          : null,
-        previousQty: quantityMetric
-          ? apiPoint
-            ? this.toNullableNumber(apiPoint.previous_year)
-            : null
-          : null,
-        targetQty: 0,
-        materialAmountUsd: apiPoint ? this.toNullableNumber(apiPoint.denominator) : null,
-        previousMaterialAmountUsd: apiPoint
-          ? this.toNullableNumber(apiPoint.previous_year_denominator)
-          : null,
-        productionQty: apiPoint ? this.toNullableNumber(apiPoint.denominator) : null,
-        previousProductionQty: apiPoint
-          ? this.toNullableNumber(apiPoint.previous_year_denominator)
-          : null,
-        relativeStatus: apiPoint?.relative_status ?? 'MISSING_DENOMINATOR',
-        previousRelativeStatus: apiPoint?.previous_year_relative_status ?? 'MISSING_DENOMINATOR',
-      };
-    });
-
-    return {
-      monthly,
-      weekly: (response.weekly ?? []).map((point) => this.mapApiWeeklyPoint(point, metric)),
-      distribution: response.rankings.products.map((item) => ({
-        label: item.key ?? 'Não classificado',
-        usd: this.toNumber(item.amount),
-        qty: quantityMetric ? this.toNumber(item.amount) : item.record_count,
-      })),
-      components: (response.rankings.components ?? []).map((item) => ({
-        label: item.key ?? 'Não classificado',
-        usd: this.toNumber(item.amount),
-        qty: quantityMetric ? this.toNumber(item.amount) : item.record_count,
-      })),
-      lines: (response.rankings.lines ?? []).map((item) => ({
-        label: item.key ?? 'Não classificado',
-        usd: this.toNumber(item.amount),
-        qty: quantityMetric ? this.toNumber(item.amount) : item.record_count,
-      })),
-      models: (response.rankings.models ?? []).map((item) => ({
-        label: item.key ?? 'Não classificado',
-        usd: this.toNumber(item.amount),
-        qty: quantityMetric ? this.toNumber(item.amount) : item.record_count,
-      })),
-      offenders: (response.rankings.offenders ?? []).map((item) => ({
-        label: item.key ?? 'Não classificado',
-        usd: this.toNumber(item.amount),
-        qty: quantityMetric ? this.toNumber(item.amount) : item.record_count,
-      })),
-      relativeProducts: (response.relative_product_ranking ?? []).map((item) => ({
-        label: item.key ?? 'NÃ£o classificado',
-        usd: this.toNumber(item.numerator),
-        qty: item.record_count,
-        rate: this.toNullableNumber(item.rate),
-        numerator: this.toNumber(item.numerator),
-        denominator: this.toNullableNumber(item.denominator),
-        recordCount: item.record_count,
-        denominatorStatus: item.denominator_status,
-      })),
-      // Keep the source timestamp; the page formats only the time according
-      // to the currently selected language.
-      lastUpdatedAt: response.metadata.generated_at,
-    };
-  }
-
-  private mapApiWeeklyPoint(
-    point: DashboardApiSeriesPoint,
-    metric: DashboardMetric,
-  ): DashboardMonthlyPoint {
-    const quantityMetric = metric === 'qty';
-    return {
-      month: this.weekLabel(point.period),
-      actualUsd: quantityMetric ? null : this.toNullableNumber(point.actual),
-      previousUsd: quantityMetric ? null : this.toNullableNumber(point.previous_year),
-      targetUsd: quantityMetric ? 0 : (this.toNullableNumber(point.target) ?? 0),
-      actualQty: quantityMetric ? this.toNullableNumber(point.actual) : null,
-      previousQty: quantityMetric ? this.toNullableNumber(point.previous_year) : null,
-      targetQty: 0,
-      materialAmountUsd: this.toNullableNumber(point.denominator),
-      previousMaterialAmountUsd: this.toNullableNumber(point.previous_year_denominator),
-      productionQty: this.toNullableNumber(point.denominator),
-      previousProductionQty: this.toNullableNumber(point.previous_year_denominator),
-      relativeStatus: point.relative_status,
-      previousRelativeStatus: point.previous_year_relative_status,
-    };
-  }
-
-  private weekLabel(period: string): string {
-    const match = period.match(/W(\d{1,2})$/);
-    return match ? `W${match[1]}` : period;
-  }
-
   private hasUsableSnapshot(snapshot: DashboardSnapshot): boolean {
     return (
       snapshot.monthly.some((point) => (point.actualUsd ?? 0) > 0) &&
       snapshot.distribution.length > 0
     );
-  }
-
-  private monthEndDate(year: string, month: number): string {
-    const date = new Date(Number(year), month, 0);
-    return `${year}-${String(month).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-  }
-
-  private toNumber(value: string): number {
-    return Number(value);
-  }
-
-  private toNullableNumber(value: string | null): number | null {
-    return value === null ? null : Number(value);
   }
 }

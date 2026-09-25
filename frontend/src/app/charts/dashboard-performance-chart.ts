@@ -18,12 +18,12 @@ import {
   DashboardEvolutionView,
   DashboardMetric,
   DashboardMonthlyPoint,
-} from '../pages/dashboard/dashboard.models';
+} from '../modules/dashboard/dashboard.models';
 import {
   DASHBOARD_LOCALES,
   DASHBOARD_MONTHS,
   DASHBOARD_TRANSLATIONS,
-} from '../pages/dashboard/dashboard.translations';
+} from '../modules/dashboard/dashboard.translations';
 
 echarts.use([
   LineChart,

@@ -25,7 +25,7 @@ import {
   DashboardSingleFilterKey,
 } from './dashboard.models';
 import { DashboardStore, INITIAL_DASHBOARD_FILTERS } from './dashboard.store';
-import { DashboardStatusService } from './dashboard-status.service';
+import { ShellStatusService } from '../../core/shell/shell-status.service';
 import {
   DASHBOARD_LOCALES,
   DASHBOARD_MONTHS,
@@ -107,7 +107,7 @@ const COMPARISON_OPTIONS: readonly DashboardComparison[] = ['ytd', 'yoy', 'mom']
 export class DashboardPage {
   readonly store = inject(DashboardStore);
   readonly language = inject(LanguageService);
-  private readonly dashboardStatus = inject(DashboardStatusService);
+  private readonly dashboardStatus = inject(ShellStatusService);
   readonly evolutionFiltersOpen = signal(false);
   readonly distributionFiltersOpen = signal(false);
   readonly evolutionView = signal<DashboardEvolutionView>('monthly');
