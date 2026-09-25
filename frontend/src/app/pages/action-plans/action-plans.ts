@@ -32,9 +32,11 @@ import {
   WorkflowPage,
 } from '../governance.models';
 import { workflowCopy } from '../governance-copy';
-import { ReportCatalogService } from '../../modules/reports/report-catalog.service';
-import { ReportPublicationService } from '../../modules/reports/report-publication.service';
-import { ReportListItem, ReportVersion } from '../../modules/reports/reports.models';
+import {
+  ActionPlanReportLookup,
+  ActionPlanReportOption,
+  ActionPlanReportVersionOption,
+} from '../../modules/reports/reports.public-api';
 
 const ALLOWED_PAGE_SIZES = PAGE_SIZE_OPTIONS;
 const DEFAULT_PAGE_SIZE: PageSize = 25;
@@ -64,8 +66,7 @@ const PAGE_SIZE_STORAGE_KEY = 'hanaro-action-plans-page-size';
 })
 export class ActionPlans {
   private readonly api = inject(GovernanceService);
-  private readonly reportsApi = inject(ReportCatalogService);
-  private readonly reportPublicationApi = inject(ReportPublicationService);
+  private readonly reportLookup = inject(ActionPlanReportLookup);
   private readonly destroy = inject(DestroyRef);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -85,7 +86,7 @@ export class ActionPlans {
   readonly task = signal<ActionTask | null>(null);
   readonly history = signal<WorkflowPage<HistoryEntry> | null>(null);
   readonly people = signal<Person[]>([]);
-  readonly reports = signal<ReportListItem[]>([]);
+  readonly reports = signal<ActionPlanReportOption[]>([]);
   readonly boardFilterOpen = signal(false);
   readonly priorityOptions = computed(() => [
     { value: '', label: this.c().all },
@@ -97,7 +98,7 @@ export class ActionPlans {
   readonly taskPriorityOptions = computed(() =>
     this.priorityOptions().filter((option) => option.value),
   );
-  readonly versions = signal<ReportVersion[]>([]);
+  readonly versions = signal<ActionPlanReportVersionOption[]>([]);
   readonly allowedPageSizes = ALLOWED_PAGE_SIZES;
   readonly page = signal(1);
   readonly pageSize = signal<number>(
@@ -281,17 +282,17 @@ export class ActionPlans {
   }
 
   loadReports() {
-    this.reportsApi
-      .list({ page: this.reportPage, pageSize: 25, search: this.reportSearch, status: 'PUBLISHED' })
+    this.reportLookup
+      .searchPublishedReports(this.reportSearch)
       .pipe(takeUntilDestroyed(this.destroy))
-      .subscribe({ next: (p) => this.reports.set(p.items), error: (e) => this.fail(e) });
+      .subscribe({ next: (reports) => this.reports.set(reports), error: (e) => this.fail(e) });
   }
 
   loadVersions(reportId: string) {
-    this.reportPublicationApi
-      .versions(reportId)
+    this.reportLookup
+      .listPublishedVersions(reportId)
       .pipe(takeUntilDestroyed(this.destroy))
-      .subscribe({ next: (p) => this.versions.set(p.items), error: (e) => this.fail(e) });
+      .subscribe({ next: (versions) => this.versions.set(versions), error: (e) => this.fail(e) });
   }
 
   toggleVersion(id: string, checked: boolean) {

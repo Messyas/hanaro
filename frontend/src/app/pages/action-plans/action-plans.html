@@ -361,9 +361,13 @@
           </label>
 
           <div class="reports-link-list">
-            @for (report of reports(); track report.id) {
+            @for (report of reports(); track report.reportId) {
               <div class="report-select-card">
-                <button type="button" class="report-select-btn" (click)="loadVersions(report.id)">
+                <button
+                  type="button"
+                  class="report-select-btn"
+                  (click)="loadVersions(report.reportId)"
+                >
                   {{ report.title }}
                 </button>
               </div>
@@ -373,16 +377,16 @@
           @if (versions().length) {
             <div class="versions-select-block">
               <span class="field-label">Versões Disponíveis</span>
-              @for (ver of versions(); track ver.id) {
+              @for (ver of versions(); track ver.versionId) {
                 <label class="form-checkbox">
                   <input
                     type="checkbox"
-                    [checked]="linkedVersions.includes(ver.id)"
-                    (change)="toggleVersion(ver.id, $any($event.target).checked)"
+                    [checked]="linkedVersions.includes(ver.versionId)"
+                    (change)="toggleVersion(ver.versionId, $any($event.target).checked)"
                   />
                   <span
                     >Versão {{ ver.revision }} ({{
-                      ver.published_at ? 'Publicada' : 'Rascunho'
+                      ver.publishedAt ? 'Publicada' : 'Rascunho'
                     }})</span
                   >
                 </label>
