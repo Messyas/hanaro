@@ -8,6 +8,8 @@ import { AuthService } from './core/auth/auth.service';
 import { DashboardShell } from './layouts/dashboard-shell/dashboard-shell';
 import { LanguageService } from './i18n/language.service';
 import { ThemeService } from './theme/theme.service';
+import { ACTION_PLANS_ROUTES } from './modules/action-plans/action-plans.routes';
+import { SCRAP_BASE_ROUTES } from './modules/scrap-base/scrap-base.routes';
 
 describe('App', () => {
   beforeEach(async () => {
@@ -51,18 +53,18 @@ describe('App', () => {
       'dashboard',
       'execucoes',
       'base-de-scrap',
-      'base-de-scrap/revisao/:occurrenceId',
       'relatorios',
       'relatorios/:reportId',
       'configuracoes',
       'alertas',
       'planos-de-acao',
-      'planos-de-acao/:planId',
       'perfil',
       'usuarios',
       '',
       '**',
     ]);
+    expect(SCRAP_BASE_ROUTES.map((route) => route.path)).toEqual(['', 'revisao/:occurrenceId']);
+    expect(ACTION_PLANS_ROUTES.map((route) => route.path)).toEqual(['', ':planId']);
   });
 
   it('should update sidebar and breadcrumb labels when the runtime language changes', () => {

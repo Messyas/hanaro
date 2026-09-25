@@ -339,7 +339,7 @@ export class SettingsPage {
         this.loadingClassifications.set(false);
         this.classificationFeedback.set({
           type: 'error',
-          text: 'NÃ£o foi possÃ­vel carregar as classificaÃ§Ãµes compartilhadas.',
+          text: 'Não foi possível carregar as classificações compartilhadas.',
         });
       },
     });
@@ -348,10 +348,10 @@ export class SettingsPage {
   classificationKindLabel(kind: ScrapClassificationKind): string {
     return {
       PRODUCT_ALIAS: 'Apelido de produto',
-      ORGANIZATION: 'OrganizaÃ§Ã£o â†’ produto/divisÃ£o',
+      ORGANIZATION: 'Organização → produto/divisão',
       DEPARTMENT: 'Setor de recebimento â†’ departamento',
       COUNTING: 'Conta â†’ entra no IF Cost',
-      ITEM_TYPE: 'DescriÃ§Ã£o â†’ tipo de item',
+      ITEM_TYPE: 'Descrição → tipo de item',
     }[kind];
   }
 
@@ -406,7 +406,7 @@ export class SettingsPage {
         );
         this.classificationFeedback.set({
           type: 'success',
-          text: 'Regra salva. Reaplique para refletir dados jÃ¡ ingeridos.',
+          text: 'Regra salva. Reaplique para refletir dados já ingeridos.',
         });
         this.resetClassificationForm();
       },
@@ -414,7 +414,7 @@ export class SettingsPage {
         this.savingClassification.set(false);
         this.classificationFeedback.set({
           type: 'error',
-          text: error.error?.detail || 'NÃ£o foi possÃ­vel salvar a regra.',
+          text: error.error?.detail || 'Não foi possível salvar a regra.',
         });
       },
     });
@@ -436,7 +436,7 @@ export class SettingsPage {
         this.savingClassification.set(false);
         this.classificationFeedback.set({
           type: 'error',
-          text: 'NÃ£o foi possÃ­vel remover a regra.',
+          text: 'Não foi possível remover a regra.',
         });
       },
     });
@@ -457,7 +457,7 @@ export class SettingsPage {
         this.savingClassification.set(false);
         this.classificationFeedback.set({
           type: 'error',
-          text: 'NÃ£o foi possÃ­vel reaplicar as classificaÃ§Ãµes.',
+          text: 'Não foi possível reaplicar as classificações.',
         });
       },
     });
