@@ -14,19 +14,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import {
-  Observable,
-  catchError,
-  concatMap,
-  finalize,
-  from,
-  map,
-  of,
-  switchMap,
-  tap,
-  toArray,
-  Subscription,
-} from 'rxjs';
+import { Subscription } from 'rxjs';
 import { LanguageService } from '../../../core/i18n/language.service';
 import { AuthService } from '../../../core/auth/auth.service';
 import { ObjectUrlRegistry } from '../../../core/browser/object-url-registry';
@@ -47,6 +35,10 @@ import { DefectTypesService } from '../defect-types.service';
 import { ScrapTemplateService } from '../scrap-template.service';
 import { ScrapReviewQueueStore } from '../scrap-review-queue.store';
 import {
+  ScrapReviewWorkflowCoordinator,
+  ScrapReviewWorkflowResult,
+} from '../scrap-review-workflow.coordinator';
+import {
   ScrapAttachmentPreview,
   ScrapAttachmentPreviewService,
 } from './scrap-attachment-preview.service';
@@ -54,7 +46,12 @@ import {
 @Component({
   selector: 'app-scrap-review-drawer',
   imports: [InlineAlert, ScrapReviewForm, ScrapReviewPreview, StatusBadge, UiIcon],
-  providers: [ScrapAttachmentPreviewService, ObjectUrlRegistry, ScrapReviewQueueStore],
+  providers: [
+    ScrapAttachmentPreviewService,
+    ObjectUrlRegistry,
+    ScrapReviewQueueStore,
+    ScrapReviewWorkflowCoordinator,
+  ],
   templateUrl: './scrap-review-drawer.html',
   styleUrl: './scrap-review-drawer.css',
 })
@@ -67,6 +64,7 @@ export class ScrapReviewDrawer implements OnInit, OnDestroy {
   private readonly destroyRef = inject(DestroyRef);
   private readonly attachmentPreviewService = inject(ScrapAttachmentPreviewService);
   private readonly queue = inject(ScrapReviewQueueStore);
+  private readonly workflow = inject(ScrapReviewWorkflowCoordinator);
   private reviewRequest?: Subscription;
 
   readonly t = computed(() => this.language.translations());
@@ -287,7 +285,8 @@ export class ScrapReviewDrawer implements OnInit, OnDestroy {
   }
 
   onFilesSelected(files: File[]): void {
-    this.pendingUploadFiles.update((current) => [...current, ...files]);
+    if (!files.length || this.uploading()) return;
+    this.pendingUploadFiles.update((pending) => [...pending, ...files]);
     this.draftAttachmentPreviews.update((current) => [
       ...current,
       ...files.map((file) => this.attachmentPreviewService.create(file)),
@@ -296,12 +295,25 @@ export class ScrapReviewDrawer implements OnInit, OnDestroy {
     // Se a revisão já existe no servidor, podemos fazer o upload imediatamente
     const currentRev = this.review();
     if (currentRev?.id) {
-      this.uploadPendingFilesSequentially(currentRev.id)
+      const queuedFiles = this.takePendingUploads();
+      this.workflow
+        .uploadToExistingReview(currentRev, queuedFiles)
         .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe({
-          next: (updated) => {
-            this.reviewSaved.emit(updated);
-          },
+        .subscribe((result) => {
+          this.uploading.set(false);
+          if (result.kind === 'saved') {
+            this.review.set(result.review);
+            this.isDirty.set(this.pendingUploadFiles().length > 0);
+            this.reviewSaved.emit(result.review);
+          } else if (result.kind === 'attachments-failed') {
+            this.review.set(result.review);
+            this.restoreFailedUploads(result.failedFiles);
+            this.error.set(this.attachmentFailureMessage(result.messages));
+            this.reviewSaved.emit(result.review);
+          } else {
+            this.restoreFailedUploads(files);
+            this.showWorkflowFailure(result, 'Erro ao enviar anexos.');
+          }
         });
     }
   }
@@ -335,45 +347,7 @@ export class ScrapReviewDrawer implements OnInit, OnDestroy {
   saveDraft(): void {
     const occId = this.activeOccurrenceId();
     if (!occId || this.saving() || this.isReadOnly()) return;
-
-    this.saving.set(true);
-    this.error.set(null);
-    this.isConflict.set(false);
-
-    const m = this.localFormModel();
-    const payload: ScrapReviewWrite = {
-      defect_type_id: m.defectTypeId || null,
-      title: m.title.trim(),
-      description: m.description.trim(),
-      expected_version: this.review()?.version ?? null,
-    };
-
-    this.reviewService
-      .saveDraft(occId, payload)
-      .pipe(
-        takeUntilDestroyed(this.destroyRef),
-        switchMap((savedReview) => {
-          this.review.set(savedReview);
-          return this.uploadPendingFilesSequentially(savedReview.id);
-        }),
-      )
-      .subscribe({
-        next: (updatedReview) => {
-          this.saving.set(false);
-          this.isDirty.set(false);
-          this.lastSavedAt.set(new Date());
-          this.reviewSaved.emit(updatedReview);
-        },
-        error: (err) => {
-          this.saving.set(false);
-          if (err.status === 409) {
-            this.isConflict.set(true);
-            this.error.set(this.t().scrapConflictError);
-          } else {
-            this.error.set(err.error?.detail || err.message || 'Erro ao salvar rascunho.');
-          }
-        },
-      });
+    this.runDraftWorkflow(occId, this.currentWritePayload());
   }
 
   saveDraftAndAdvance(): void {
@@ -383,46 +357,7 @@ export class ScrapReviewDrawer implements OnInit, OnDestroy {
     }
     const occId = this.activeOccurrenceId();
     if (!occId || this.saving() || this.finalizing()) return;
-
-    this.saving.set(true);
-    this.error.set(null);
-    this.isConflict.set(false);
-
-    const m = this.localFormModel();
-    const payload: ScrapReviewWrite = {
-      defect_type_id: m.defectTypeId || null,
-      title: m.title.trim(),
-      description: m.description.trim(),
-      expected_version: this.review()?.version ?? null,
-    };
-
-    this.reviewService
-      .saveDraft(occId, payload)
-      .pipe(
-        takeUntilDestroyed(this.destroyRef),
-        switchMap((savedReview) => {
-          this.review.set(savedReview);
-          return this.uploadPendingFilesSequentially(savedReview.id);
-        }),
-      )
-      .subscribe({
-        next: (updatedReview) => {
-          this.saving.set(false);
-          this.isDirty.set(false);
-          this.lastSavedAt.set(new Date());
-          this.reviewSaved.emit(updatedReview);
-          this.nextInQueue();
-        },
-        error: (err) => {
-          this.saving.set(false);
-          if (err.status === 409) {
-            this.isConflict.set(true);
-            this.error.set(this.t().scrapConflictError);
-          } else {
-            this.error.set(err.error?.detail || err.message || 'Erro ao salvar rascunho.');
-          }
-        },
-      });
+    this.runDraftWorkflow(occId, this.currentWritePayload(), true);
   }
 
   nextInQueue(): void {
@@ -472,99 +407,124 @@ export class ScrapReviewDrawer implements OnInit, OnDestroy {
     this.finalizing.set(true);
     this.error.set(null);
     this.isConflict.set(false);
+    const files = this.takePendingUploads();
 
-    const m = this.localFormModel();
-    const payload: ScrapReviewWrite = {
-      defect_type_id: m.defectTypeId,
-      title: m.title.trim(),
-      description: m.description.trim(),
-      expected_version: this.review()?.version ?? null,
-    };
-
-    this.reviewService
-      .saveDraft(occId, payload)
-      .pipe(
-        takeUntilDestroyed(this.destroyRef),
-        switchMap((savedReview) => {
-          this.review.set(savedReview);
-          return this.uploadPendingFilesSequentially(savedReview.id);
-        }),
-        switchMap((reviewWithAttachments) => {
-          return this.reviewService.finalize(occId, reviewWithAttachments.version);
-        }),
-      )
-      .subscribe({
-        next: (finalReview) => {
-          this.review.set(finalReview);
-          this.finalizing.set(false);
+    this.workflow
+      .finalizeReview(occId, this.currentWritePayload(true), files)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((result) => {
+        this.finalizing.set(false);
+        this.uploading.set(false);
+        if (result.kind === 'finalized') {
+          this.review.set(result.review);
+          this.clearDraftAttachmentPreviews();
           this.isDirty.set(false);
-          this.reviewSaved.emit(finalReview);
+          this.reviewSaved.emit(result.review);
 
           if (this.isQueueMode()) {
-            if (!this.isQueueLast()) {
-              this.nextInQueue();
-            } else {
+            if (!this.isQueueLast()) this.nextInQueue();
+            else {
               this.queueFinished.emit();
               this.attemptClose();
             }
           } else {
             this.isPreviewMode.set(true);
           }
-        },
-        error: (err) => {
-          this.finalizing.set(false);
-          if (err.status === 409) {
-            this.isConflict.set(true);
-            this.error.set(this.t().scrapConflictError);
-          } else {
-            this.error.set(err.error?.detail || err.message || 'Erro ao finalizar relatório.');
-          }
-        },
+        } else if (result.kind === 'attachments-failed') {
+          this.review.set(result.review);
+          this.restoreFailedUploads(result.failedFiles);
+          this.error.set(this.attachmentFailureMessage(result.messages));
+          this.reviewSaved.emit(result.review);
+        } else {
+          if (result.review) this.review.set(result.review);
+          if (result.stage !== 'finalize') this.restoreFailedUploads(files);
+          this.showWorkflowFailure(result, 'Erro ao finalizar relatório.');
+        }
       });
-  }
-
-  private uploadPendingFilesSequentially(reviewId: string): Observable<ScrapReview> {
-    const files = [...this.pendingUploadFiles()];
-    if (files.length === 0) {
-      return of(this.review()!);
-    }
-
-    this.uploading.set(true);
-    this.pendingUploadFiles.set([]);
-    this.clearDraftAttachmentPreviews();
-
-    return (from(files) as Observable<File>).pipe(
-      concatMap((file) =>
-        this.reviewService.uploadAttachment(reviewId, file).pipe(
-          tap((attachment) => {
-            this.review.update((r) => {
-              if (!r) return null;
-              return {
-                ...r,
-                attachments: [...r.attachments, attachment],
-                version: r.version + 1,
-              };
-            });
-          }),
-          catchError((err) => {
-            this.error.set(
-              `${this.t().scrapAttachmentUploadError} (${file.name}): ${err.error?.detail || err.message}`,
-            );
-            return of(null);
-          }),
-        ),
-      ),
-      toArray(),
-      map(() => this.review()!),
-      finalize(() => {
-        this.uploading.set(false);
-      }),
-    );
   }
 
   private clearDraftAttachmentPreviews(): void {
     this.attachmentPreviewService.revokeAll();
     this.draftAttachmentPreviews.set([]);
+  }
+
+  private currentWritePayload(requireDefectType = false): ScrapReviewWrite {
+    const model = this.localFormModel();
+    return {
+      defect_type_id: requireDefectType ? model.defectTypeId : model.defectTypeId || null,
+      title: model.title.trim(),
+      description: model.description.trim(),
+      expected_version: this.review()?.version ?? null,
+    };
+  }
+
+  private takePendingUploads(): File[] {
+    const files = [...this.pendingUploadFiles()];
+    this.pendingUploadFiles.set([]);
+    this.clearDraftAttachmentPreviews();
+    this.uploading.set(files.length > 0);
+    return files;
+  }
+
+  private restoreFailedUploads(files: File[]): void {
+    if (!files.length) return;
+    this.pendingUploadFiles.update((pending) => [...pending, ...files]);
+    this.draftAttachmentPreviews.update((previews) => [
+      ...previews,
+      ...files.map((file) => this.attachmentPreviewService.create(file)),
+    ]);
+    this.isDirty.set(true);
+  }
+
+  private attachmentFailureMessage(messages: string[]): string {
+    return `${this.t().scrapAttachmentUploadError}: ${messages.join('; ')}`;
+  }
+
+  private showWorkflowFailure(
+    result: Extract<ScrapReviewWorkflowResult, { kind: 'failed' }>,
+    fallback: string,
+  ): void {
+    const error = result.error as {
+      status?: number;
+      error?: { detail?: string };
+      message?: string;
+    } | null;
+    if (error?.status === 409) {
+      this.isConflict.set(true);
+      this.error.set(this.t().scrapConflictError);
+    } else {
+      this.error.set(error?.error?.detail || error?.message || fallback);
+    }
+  }
+
+  private runDraftWorkflow(occurrenceId: string, payload: ScrapReviewWrite, advance = false): void {
+    const files = this.takePendingUploads();
+    this.saving.set(true);
+    this.error.set(null);
+    this.isConflict.set(false);
+    this.workflow
+      .saveDraft(occurrenceId, payload, files)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((result) => {
+        this.saving.set(false);
+        this.uploading.set(false);
+        if (result.kind === 'saved') {
+          this.review.set(result.review);
+          this.isDirty.set(false);
+          this.lastSavedAt.set(new Date());
+          this.reviewSaved.emit(result.review);
+          if (advance) this.nextInQueue();
+        } else if (result.kind === 'attachments-failed') {
+          this.review.set(result.review);
+          this.restoreFailedUploads(result.failedFiles);
+          this.error.set(this.attachmentFailureMessage(result.messages));
+          this.lastSavedAt.set(new Date());
+          this.reviewSaved.emit(result.review);
+        } else {
+          this.restoreFailedUploads(files);
+          this.showWorkflowFailure(result, 'Erro ao salvar rascunho.');
+        }
+      });
   }
 
   toggleEditFinalized(): void {
@@ -603,48 +563,35 @@ export class ScrapReviewDrawer implements OnInit, OnDestroy {
   }
 
   saveFinalizedEdit(): void {
-    const occId = this.activeOccurrenceId();
-    if (!occId || this.saving() || !this.canSaveFinalized()) return;
-
+    const occurrenceId = this.activeOccurrenceId();
+    if (!occurrenceId || this.saving() || !this.canSaveFinalized()) return;
+    const files = this.takePendingUploads();
     this.saving.set(true);
     this.error.set(null);
     this.isConflict.set(false);
 
-    const m = this.localFormModel();
-    const payload: ScrapReviewWrite = {
-      defect_type_id: m.defectTypeId || null,
-      title: m.title.trim(),
-      description: m.description.trim(),
-      expected_version: this.review()?.version ?? null,
-    };
-
-    this.reviewService
-      .saveDraft(occId, payload)
-      .pipe(
-        takeUntilDestroyed(this.destroyRef),
-        switchMap((savedReview) => {
-          this.review.set(savedReview);
-          return this.uploadPendingFilesSequentially(savedReview.id);
-        }),
-      )
-      .subscribe({
-        next: (updatedReview) => {
-          this.saving.set(false);
+    this.workflow
+      .saveDraft(occurrenceId, this.currentWritePayload(), files)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((result) => {
+        this.saving.set(false);
+        this.uploading.set(false);
+        if (result.kind === 'saved') {
+          this.review.set(result.review);
           this.isDirty.set(false);
           this.lastSavedAt.set(new Date());
           this.isEditingFinalized.set(false);
           this.isPreviewMode.set(true);
-          this.reviewSaved.emit(updatedReview);
-        },
-        error: (err) => {
-          this.saving.set(false);
-          if (err.status === 409) {
-            this.isConflict.set(true);
-            this.error.set(this.t().scrapConflictError);
-          } else {
-            this.error.set(err.error?.detail || err.message || 'Erro ao salvar alterações.');
-          }
-        },
+          this.reviewSaved.emit(result.review);
+        } else if (result.kind === 'attachments-failed') {
+          this.review.set(result.review);
+          this.restoreFailedUploads(result.failedFiles);
+          this.error.set(this.attachmentFailureMessage(result.messages));
+          this.reviewSaved.emit(result.review);
+        } else {
+          this.restoreFailedUploads(files);
+          this.showWorkflowFailure(result, 'Erro ao salvar alterações.');
+        }
       });
   }
 
