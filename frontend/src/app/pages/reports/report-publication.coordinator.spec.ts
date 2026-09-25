@@ -2,49 +2,49 @@ import { of } from 'rxjs';
 import { vi } from 'vitest';
 import { ReportPublicationCoordinator } from './report-publication.coordinator';
 import { ReportDetail, ReportVersion } from './reports.models';
-import { ReportsService } from './reports.service';
+import { ReportPublicationService } from './report-publication.service';
 
 describe('ReportPublicationCoordinator', () => {
   it('publishes with the report version and matching template', () => {
     const published = {} as ReportVersion;
-    const service = {
+    const publication = {
       publish: vi.fn().mockReturnValue(of(published)),
       version: vi.fn(),
-    } as unknown as ReportsService;
-    const coordinator = new ReportPublicationCoordinator(service);
+    } as unknown as ReportPublicationService;
+    const coordinator = new ReportPublicationCoordinator(publication);
     const report = { id: 'report-1', version: 4, report_kind: 'PERIOD_CLOSE' } as ReportDetail;
 
     coordinator.publish(report).subscribe((result) => expect(result).toBe(published));
 
-    expect(service.publish).toHaveBeenCalledWith('report-1', 4, '2');
+    expect(publication.publish).toHaveBeenCalledWith('report-1', 4, '2');
   });
 
   it('loads a published version for the history drawer', () => {
     const version = {} as ReportVersion;
-    const service = {
+    const publication = {
       publish: vi.fn(),
       version: vi.fn().mockReturnValue(of(version)),
-    } as unknown as ReportsService;
-    const coordinator = new ReportPublicationCoordinator(service);
+    } as unknown as ReportPublicationService;
+    const coordinator = new ReportPublicationCoordinator(publication);
 
     coordinator.version('report-1', 3).subscribe((result) => expect(result).toBe(version));
 
-    expect(service.version).toHaveBeenCalledWith('report-1', 3);
+    expect(publication.version).toHaveBeenCalledWith('report-1', 3);
   });
 
   it('loads the paginated version history', () => {
     const page = { items: [{ id: 'version-1' }] } as never;
-    const service = {
+    const publication = {
       publish: vi.fn(),
       version: vi.fn(),
       versions: vi.fn().mockReturnValue(of(page)),
-    } as unknown as ReportsService;
-    const coordinator = new ReportPublicationCoordinator(service);
+    } as unknown as ReportPublicationService;
+    const coordinator = new ReportPublicationCoordinator(publication);
 
     coordinator
       .versions('report-1', { page: 2, pageSize: 25 })
       .subscribe((result) => expect(result).toBe(page));
 
-    expect(service.versions).toHaveBeenCalledWith('report-1', { page: 2, pageSize: 25 });
+    expect(publication.versions).toHaveBeenCalledWith('report-1', { page: 2, pageSize: 25 });
   });
 });

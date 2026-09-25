@@ -29,6 +29,7 @@ import {
 } from '../governance.models';
 import { workflowCopy } from '../governance-copy';
 import { ReportsService } from '../reports/reports.service';
+import { ReportPublicationService } from '../reports/report-publication.service';
 import { ReportListItem, ReportVersion } from '../reports/reports.models';
 
 const ALLOWED_PAGE_SIZES = [10, 25, 50, 100] as const;
@@ -60,6 +61,7 @@ const DEFAULT_PAGE_SIZE = 25;
 export class ActionPlans {
   private readonly api = inject(GovernanceService);
   private readonly reportsApi = inject(ReportsService);
+  private readonly reportPublicationApi = inject(ReportPublicationService);
   private readonly destroy = inject(DestroyRef);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -303,7 +305,7 @@ export class ActionPlans {
   }
 
   loadVersions(reportId: string) {
-    this.reportsApi
+    this.reportPublicationApi
       .versions(reportId)
       .pipe(takeUntilDestroyed(this.destroy))
       .subscribe({ next: (p) => this.versions.set(p.items), error: (e) => this.fail(e) });

@@ -7,12 +7,14 @@ import { ReportDetail, ReportPreview, ReportVersion } from './reports.models';
 import { ReportsPage } from './reports-page';
 import { ReportsService } from './reports.service';
 import { ReportSourceService } from './report-source.service';
+import { ReportPublicationService } from './report-publication.service';
 
 describe('ReportsPage', () => {
   let fixture: ComponentFixture<ReportsPage>;
   let component: ReportsPage;
   let service: Record<string, ReturnType<typeof vi.fn>>;
   let sourceService: Record<string, ReturnType<typeof vi.fn>>;
+  let publicationService: Record<string, ReturnType<typeof vi.fn>>;
 
   const report: ReportDetail = {
     id: '77d1ad54-1b7e-4986-809b-a81cc503430c',
@@ -61,7 +63,10 @@ describe('ReportsPage', () => {
       get: vi.fn().mockReturnValue(of(report)),
       update: vi.fn().mockReturnValue(of({ ...report, version: 3 })),
       preview: vi.fn().mockReturnValue(of(preview)),
+    };
+    publicationService = {
       publish: vi.fn().mockReturnValue(of({} as ReportVersion)),
+      version: vi.fn().mockReturnValue(of({} as ReportVersion)),
       versions: vi.fn().mockReturnValue(
         of({
           items: [],
@@ -106,6 +111,7 @@ describe('ReportsPage', () => {
         LanguageService,
         { provide: ReportsService, useValue: service },
         { provide: ReportSourceService, useValue: sourceService },
+        { provide: ReportPublicationService, useValue: publicationService },
       ],
     }).compileComponents();
     TestBed.inject(LanguageService).setLanguage('pt');
@@ -133,7 +139,7 @@ describe('ReportsPage', () => {
       search: undefined,
     });
     expect(service['preview']).toHaveBeenCalledWith(report.id);
-    expect(service['versions']).toHaveBeenCalledWith(report.id, {
+    expect(publicationService['versions']).toHaveBeenCalledWith(report.id, {
       page: 1,
       pageSize: 25,
     });
