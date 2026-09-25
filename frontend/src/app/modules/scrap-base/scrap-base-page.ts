@@ -28,6 +28,7 @@ import {
   SortOrder,
 } from './scrap-base.models';
 import { ScrapBaseService } from './scrap-base.service';
+import { ScrapBulkReviewCoordinator } from './scrap-bulk-review.coordinator';
 import { ScrapBulkReviewDialog } from './scrap-bulk-review-dialog/scrap-bulk-review-dialog';
 import { ScrapReviewDrawer } from './scrap-review-drawer/scrap-review-drawer';
 import { ScrapDefectType, ScrapReview, ScrapReviewBulkResult } from './scrap-review.models';
@@ -63,12 +64,14 @@ const PAGE_SIZES = [25, 50, 100, 200] as const;
   ],
   templateUrl: './scrap-base-page.html',
   styleUrl: './scrap-base-page.css',
+  providers: [ScrapBulkReviewCoordinator],
 })
 export class ScrapBasePage implements OnInit {
   private readonly scrapBaseService = inject(ScrapBaseService);
   private readonly reviewService = inject(ScrapReviewService);
   private readonly defectTypesService = inject(DefectTypesService);
   private readonly templateService = inject(ScrapTemplateService);
+  private readonly bulkReview = inject(ScrapBulkReviewCoordinator);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -105,27 +108,26 @@ export class ScrapBasePage implements OnInit {
   readonly error = signal<string | null>(null);
 
   // Modo de seleção e IDs selecionados
-  readonly selectionMode = signal(false);
-  readonly selectedOccurrenceIds = signal<Set<string>>(new Set());
+  readonly selectionMode = this.bulkReview.selectionMode;
+  readonly selectedOccurrenceIds = this.bulkReview.selectedOccurrenceIds;
+  readonly selectedCount = this.bulkReview.selectedCount;
 
   // Drawer de análise e referência em massa
   readonly openedOccurrenceId = signal<string | null>(null);
   readonly selectedOccurrenceForDrawer = signal<ScrapListItem | null>(null);
   readonly activeQueueIds = signal<string[]>([]);
   readonly activeQueueOccurrences = signal<ScrapListItem[]>([]);
-  readonly activeReferenceReview = signal<ScrapReview | null>(null);
-  readonly showBulkDialog = signal(false);
+  readonly activeReferenceReview = this.bulkReview.activeReferenceReview;
+  readonly showBulkDialog = this.bulkReview.showBulkDialog;
 
   // Modelos de revisão salvos (Templates)
   readonly templates = computed(() => this.templateService.templates());
   readonly templatesLoading = computed(() => this.templateService.loading());
   readonly isTemplatePopoverOpen = signal(false);
-  readonly activeTemplate = signal<ScrapReviewTemplate | null>(null);
+  readonly activeTemplate = this.bulkReview.activeTemplate;
   readonly templateMutationId = signal<string | null>(null);
   readonly templateFeedback = signal<string | null>(null);
   readonly templateFeedbackKind = signal<'success' | 'error'>('success');
-
-  readonly selectedCount = computed(() => this.selectedOccurrenceIds().size);
 
   readonly displayedItems = computed(() => {
     const items = this.data()?.items || [];
@@ -136,18 +138,11 @@ export class ScrapBasePage implements OnInit {
   });
 
   isItemSelectable(item: ScrapListItem | null | undefined): boolean {
-    if (!item || !item.occurrence_id) return false;
-    if (item.occurrence_status !== 'ACTIVE') return false;
-    if (item.review_status === 'REVIEWED') return false;
-    return true;
+    return this.bulkReview.isItemSelectable(item);
   }
 
   readonly isAllPageSelected = computed(() => {
-    const items = this.displayedItems();
-    const eligible = items.filter((item) => this.isItemSelectable(item));
-    if (eligible.length === 0) return false;
-    const selected = this.selectedOccurrenceIds();
-    return eligible.every((item) => selected.has(item.occurrence_id!));
+    return this.bulkReview.isAllPageSelected(this.displayedItems());
   });
 
   readonly tableColumns = computed(() => {
@@ -291,64 +286,23 @@ export class ScrapBasePage implements OnInit {
   }
 
   toggleSelectionMode(): void {
-    const nextMode = !this.selectionMode();
-    this.selectionMode.set(nextMode);
-    this.clearSelection();
-    if (!nextMode) {
-      this.activeTemplate.set(null);
-      this.activeReferenceReview.set(null);
-    }
+    this.bulkReview.toggleSelectionMode();
     this.page.set(1);
     this.loadScrap();
   }
 
   toggleSelectAllOnPage(): void {
-    const items = this.displayedItems();
-    const eligible = items.filter((item) => this.isItemSelectable(item));
-    const selected = new Set(this.selectedOccurrenceIds());
-
-    if (this.isAllPageSelected()) {
-      for (const item of eligible) {
-        selected.delete(item.occurrence_id!);
-      }
-    } else {
-      for (const item of eligible) {
-        selected.add(item.occurrence_id!);
-      }
+    if (this.bulkReview.toggleSelectAllOnPage(this.displayedItems())) {
+      alert('O limite máximo de seleção para operação em lote é de 500 itens.');
     }
-
-    this.selectedOccurrenceIds.set(selected);
   }
 
   toggleItemSelection(target: ScrapListItem | string | null, event?: Event): void {
     event?.stopPropagation();
-    if (!target) return;
-
-    let occurrenceId: string | null = null;
-    let item: ScrapListItem | undefined;
-
-    if (typeof target === 'string') {
-      occurrenceId = target;
-      item = this.data()?.items.find((i) => i.occurrence_id === target);
-    } else {
-      occurrenceId = target.occurrence_id;
-      item = target;
+    const change = this.bulkReview.toggleItemSelection(target, this.data()?.items ?? []);
+    if (change === 'limit-reached') {
+      alert('O limite máximo de seleção para operação em lote é de 500 itens.');
     }
-
-    if (!occurrenceId) return;
-    if (item && !this.isItemSelectable(item)) return;
-
-    const selected = new Set(this.selectedOccurrenceIds());
-    if (selected.has(occurrenceId)) {
-      selected.delete(occurrenceId);
-    } else {
-      if (selected.size >= 500) {
-        alert('O limite máximo de seleção para operação em lote é de 500 itens.');
-        return;
-      }
-      selected.add(occurrenceId);
-    }
-    this.selectedOccurrenceIds.set(selected);
   }
 
   onRowClick(item: ScrapListItem): void {
@@ -364,7 +318,7 @@ export class ScrapBasePage implements OnInit {
   }
 
   clearSelection(): void {
-    this.selectedOccurrenceIds.set(new Set());
+    this.bulkReview.clearSelection();
   }
 
   openReview(item: ScrapListItem): void {
@@ -391,28 +345,14 @@ export class ScrapBasePage implements OnInit {
   }
 
   openBulkDialog(): void {
-    if (this.selectedCount() < 1 || (!this.activeTemplate() && !this.activeReferenceReview())) {
-      return;
-    }
-    this.showBulkDialog.set(true);
+    this.bulkReview.openBulkDialog();
   }
 
   closeBulkDialog(): void {
-    this.showBulkDialog.set(false);
+    this.bulkReview.closeBulkDialog();
   }
 
-  onBulkCompleted(result: ScrapReviewBulkResult): void {
-    // Remove os IDs criados com sucesso da seleção atual
-    const currentSelected = new Set(this.selectedOccurrenceIds());
-    for (const createdId of result.created_occurrence_ids) {
-      currentSelected.delete(createdId);
-    }
-    this.selectedOccurrenceIds.set(currentSelected);
-
-    // Se aplicou a referência, pode desativar
-    this.activeReferenceReview.set(null);
-    this.activeTemplate.set(null);
-    if (currentSelected.size === 0) this.selectionMode.set(false);
+  onBulkCompleted(_result: ScrapReviewBulkResult): void {
     this.loadScrap();
   }
 

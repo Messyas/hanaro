@@ -15,8 +15,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { LanguageService } from '../../../core/i18n/language.service';
 import { InlineAlert } from '../../../shared/components/list-view/inline-alert/inline-alert';
 import { UiIcon } from '../../../shared/components/ui-icon/ui-icon';
-import { ScrapReview, ScrapReviewBulkCreate, ScrapReviewBulkResult } from '../scrap-review.models';
-import { ScrapReviewService } from '../scrap-review.service';
+import { ScrapReview, ScrapReviewBulkResult } from '../scrap-review.models';
+import { ScrapBulkReviewCoordinator } from '../scrap-bulk-review.coordinator';
 import { ScrapReviewTemplate } from '../scrap-template.models';
 
 @Component({
@@ -26,7 +26,7 @@ import { ScrapReviewTemplate } from '../scrap-template.models';
   styleUrl: './scrap-bulk-review-dialog.css',
 })
 export class ScrapBulkReviewDialog implements AfterViewInit {
-  private readonly reviewService = inject(ScrapReviewService);
+  private readonly workflow = inject(ScrapBulkReviewCoordinator);
   private readonly language = inject(LanguageService);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -41,9 +41,15 @@ export class ScrapBulkReviewDialog implements AfterViewInit {
   readonly bulkCompleted = output<ScrapReviewBulkResult>();
 
   readonly copyAttachments = signal(false);
-  readonly isSubmitting = signal(false);
-  readonly error = signal<string | null>(null);
-  readonly bulkResult = signal<ScrapReviewBulkResult | null>(null);
+  readonly isSubmitting = this.workflow.isSubmitting.asReadonly();
+  readonly error = computed(() => {
+    const error = this.workflow.error();
+    if (typeof error === 'string') return error;
+    if (!error || typeof error !== 'object') return null;
+    const candidate = error as { error?: { detail?: string }; message?: string };
+    return candidate.error?.detail || candidate.message || this.t().scrapTemplateUpdateError;
+  });
+  readonly bulkResult = this.workflow.bulkResult.asReadonly();
 
   readonly sourceName = computed(
     () => this.preselectedTemplate()?.name || this.preselectedReference()?.title || '',
@@ -78,33 +84,15 @@ export class ScrapBulkReviewDialog implements AfterViewInit {
   }
 
   executeBulk(): void {
-    const ids = this.selectedOccurrenceIds();
-    const template = this.preselectedTemplate();
-    const reference = this.preselectedReference();
-    if (ids.length === 0 || (!template && !reference) || this.isSubmitting()) return;
-
-    const payload: ScrapReviewBulkCreate = {
-      occurrence_ids: ids,
-      copy_attachments: this.canCopyAttachments() && this.copyAttachments(),
-      ...(template ? { template_id: template.id } : { reference_review_id: reference!.id }),
-    };
-
-    this.isSubmitting.set(true);
-    this.error.set(null);
-    this.reviewService
-      .bulkCreate(payload)
+    this.workflow
+      .executeBulk(
+        this.copyAttachments(),
+        this.selectedOccurrenceIds(),
+        this.preselectedTemplate(),
+        this.preselectedReference(),
+      )
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (result) => {
-          this.isSubmitting.set(false);
-          this.bulkResult.set(result);
-          this.bulkCompleted.emit(result);
-        },
-        error: (error: { error?: { detail?: string }; message?: string }) => {
-          this.isSubmitting.set(false);
-          this.error.set(error.error?.detail || error.message || this.t().scrapTemplateUpdateError);
-        },
-      });
+      .subscribe((result) => this.bulkCompleted.emit(result));
   }
 
   translateSkipReason(reason: 'NOT_ACTIVE' | 'ALREADY_REVIEWED'): string {
@@ -114,6 +102,7 @@ export class ScrapBulkReviewDialog implements AfterViewInit {
   }
 
   close(): void {
+    this.workflow.closeBulkDialog();
     this.closed.emit();
   }
 }
