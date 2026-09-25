@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { AuthService } from '../../../core/auth/auth.service';
-import { LanguageService } from '../../../i18n/language.service';
+import { LanguageService } from '../../../core/i18n/language.service';
 import { ScrapReviewForm } from './scrap-review-form';
 
 describe('ScrapReviewForm', () => {

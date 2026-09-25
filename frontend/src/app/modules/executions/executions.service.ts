@@ -1,3 +1,4 @@
+import { environment } from '../../../environments/environment';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
@@ -6,7 +7,7 @@ import { ExecutionDetail, ExecutionPage, ExecutionsFilterParams } from './execut
 @Injectable({ providedIn: 'root' })
 export class ExecutionsService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = '/api/v1/scrap/executions';
+  private readonly baseUrl = `${environment.apiBaseUrl}/scrap/executions`;
 
   list(filters: ExecutionsFilterParams = {}): Observable<ExecutionPage> {
     let params = new HttpParams();
@@ -37,7 +38,7 @@ export class ExecutionsService {
     const body = new FormData();
     body.append('file', file, file.name);
     return this.http.post<{ task_id: string; execution_id: string; status: 'QUEUED' }>(
-      '/api/v1/scrap/manual-ingestions',
+      `${environment.apiBaseUrl}/scrap/manual-ingestions`,
       body,
     );
   }

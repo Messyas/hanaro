@@ -1,4 +1,4 @@
-import { LanguageCode } from '../../../i18n/language.service';
+import { LanguageCode } from '../../../core/i18n/language.service';
 
 export interface KioskTranslations {
   executiveTag: string;

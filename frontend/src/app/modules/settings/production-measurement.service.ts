@@ -1,3 +1,4 @@
+import { environment } from '../../../environments/environment';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
@@ -28,7 +29,7 @@ export interface ProductionMeasurementWrite {
 @Injectable({ providedIn: 'root' })
 export class ProductionMeasurementService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = '/api/v1/production-measurements';
+  private readonly baseUrl = `${environment.apiBaseUrl}/production-measurements`;
 
   getYear(year: number, scopeKey = 'GLOBAL'): Observable<ProductionMeasurement[]> {
     const params = new HttpParams().set('year', year.toString()).set('scope_key', scopeKey);

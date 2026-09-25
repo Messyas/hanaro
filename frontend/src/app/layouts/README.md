@@ -2,13 +2,13 @@
 
 Estruturas de composição reutilizadas por páginas:
 
-- layout principal com navegação;
-- layout de autenticação;
-- layout do modo TV sem controles pessoais;
-- regiões de conteúdo, cabeçalho e navegação responsiva.
+- `main-layout/`: navegação, cabeçalho, regiões de conteúdo e breadcrumbs.
+
+Outros layouts são criados quando houver composição visual própria. O layout
+principal usa a API pública da funcionalidade de autenticação para abrir o login.
 
 Layouts não consultam a API diretamente nem contêm regras de negócio. Eles
 recebem estado de componentes/serviços e expõem pontos de composição.
 
 O cadastro de seções, subseções e seus breadcrumbs está documentado no
-[guia do dashboard shell](dashboard-shell/README.md).
+[guia do layout principal](main-layout/README.md).

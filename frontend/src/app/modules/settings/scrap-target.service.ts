@@ -1,3 +1,4 @@
+import { environment } from '../../../environments/environment';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
@@ -23,7 +24,7 @@ export interface ScrapTargetBatchUpsert {
 @Injectable({ providedIn: 'root' })
 export class ScrapTargetService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = '/api/v1/dashboard/scrap/targets';
+  private readonly baseUrl = `${environment.apiBaseUrl}/dashboard/scrap/targets`;
 
   getTargets(year?: number): Observable<ScrapTarget[]> {
     let params = new HttpParams();

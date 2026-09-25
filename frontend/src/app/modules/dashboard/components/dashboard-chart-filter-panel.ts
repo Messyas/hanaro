@@ -1,5 +1,5 @@
 import { Component, input, output } from '@angular/core';
-import { UiIcon } from '../../../ui-icon';
+import { UiIcon } from '../../../shared/components/ui-icon/ui-icon';
 
 export type DashboardChartFilterPanelVariant = 'default' | 'distribution';
 

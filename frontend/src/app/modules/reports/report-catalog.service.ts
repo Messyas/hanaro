@@ -1,3 +1,4 @@
+import { environment } from '../../../environments/environment';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
@@ -13,7 +14,7 @@ export interface ReportCatalogQuery {
 @Injectable({ providedIn: 'root' })
 export class ReportCatalogService {
   private readonly http = inject(HttpClient);
-  private readonly base = '/api/v1/reports';
+  private readonly base = `${environment.apiBaseUrl}/reports`;
 
   list(query: ReportCatalogQuery): Observable<Page<ReportListItem>> {
     let params = new HttpParams().set('page', query.page).set('page_size', query.pageSize);

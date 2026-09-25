@@ -5,10 +5,10 @@ import { vi } from 'vitest';
 import { App } from './app';
 import { routes } from './app.routes';
 import { AuthService } from './core/auth/auth.service';
-import { DashboardShell } from './layouts/dashboard-shell/dashboard-shell';
-import { LanguageService } from './i18n/language.service';
-import { ThemeService } from './theme/theme.service';
-import { ACTION_PLANS_ROUTES } from './modules/action-plans/action-plans.routes';
+import { MainLayout } from './layouts/main-layout/main-layout';
+import { LanguageService } from './core/i18n/language.service';
+import { ThemeService } from './core/theme/theme.service';
+import { ACTION_PLANS_ROUTES } from './modules/governance/action-plans/action-plans.routes';
 import { SCRAP_BASE_ROUTES } from './modules/scrap-base/scrap-base.routes';
 
 describe('App', () => {
@@ -35,7 +35,7 @@ describe('App', () => {
     });
 
     await TestBed.configureTestingModule({
-      imports: [App, DashboardShell],
+      imports: [App, MainLayout],
       providers: [provideHttpClient(), provideRouter(routes)],
     }).compileComponents();
   });
@@ -69,7 +69,7 @@ describe('App', () => {
 
   it('should update sidebar and breadcrumb labels when the runtime language changes', () => {
     TestBed.inject(AuthService).clearSession();
-    const shell = TestBed.createComponent(DashboardShell).componentInstance;
+    const shell = TestBed.createComponent(MainLayout).componentInstance;
     const language = TestBed.inject(LanguageService);
 
     language.setLanguage('en');

@@ -10,28 +10,28 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { timer } from 'rxjs';
-import { LanguageService } from '../../i18n/language.service';
-import { ListFilterDateRange } from '../../shared/list-filters/list-filter-date-range';
-import { ListFilterInput } from '../../shared/list-filters/list-filter-input';
-import { ListFilterPopover } from '../../shared/list-filters/list-filter-popover';
+import { LanguageService } from '../../core/i18n/language.service';
+import { ListFilterDateRange } from '../../shared/components/list-filters/list-filter-date-range';
+import { ListFilterInput } from '../../shared/components/list-filters/list-filter-input';
+import { ListFilterPopover } from '../../shared/components/list-filters/list-filter-popover';
 import {
   ListFilterSelect,
   ListFilterSelectOption,
-} from '../../shared/list-filters/list-filter-select';
-import { InlineAlert } from '../../shared/list-view/inline-alert/inline-alert';
-import { DelayedProgressSpinner } from '../../shared/list-view/delayed-progress-spinner/delayed-progress-spinner';
-import { ListFeedback } from '../../shared/list-view/list-feedback/list-feedback';
-import { ListPagination } from '../../shared/list-view/list-pagination/list-pagination';
-import { ListPanel } from '../../shared/list-view/list-panel/list-panel';
+} from '../../shared/components/list-filters/list-filter-select';
+import { InlineAlert } from '../../shared/components/list-view/inline-alert/inline-alert';
+import { DelayedProgressSpinner } from '../../shared/components/list-view/delayed-progress-spinner/delayed-progress-spinner';
+import { ListFeedback } from '../../shared/components/list-view/list-feedback/list-feedback';
+import { ListPagination } from '../../shared/components/list-view/list-pagination/list-pagination';
+import { ListPanel } from '../../shared/components/list-view/list-panel/list-panel';
 import {
   PAGE_SIZE_OPTIONS,
   PageSize,
   PageSizePreference,
-} from '../../shared/list-view/page-size-preference';
-import { ListTableSkeleton } from '../../shared/list-view/list-table-skeleton/list-table-skeleton';
-import { StatusBadge } from '../../shared/list-view/status-badge/status-badge';
-import type { StatusBadgeTone } from '../../shared/list-view/status-badge/status-badge';
-import { UiIcon } from '../../ui-icon';
+} from '../../shared/components/list-view/page-size-preference';
+import { ListTableSkeleton } from '../../shared/components/list-view/list-table-skeleton/list-table-skeleton';
+import { StatusBadge } from '../../shared/components/list-view/status-badge/status-badge';
+import type { StatusBadgeTone } from '../../shared/components/list-view/status-badge/status-badge';
+import { UiIcon } from '../../shared/components/ui-icon/ui-icon';
 import {
   AutomationExecutionStatus,
   AutomationSnapshotStatus,

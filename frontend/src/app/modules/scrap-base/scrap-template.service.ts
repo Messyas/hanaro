@@ -1,3 +1,4 @@
+import { environment } from '../../../environments/environment';
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
@@ -10,7 +11,7 @@ import {
 @Injectable({ providedIn: 'root' })
 export class ScrapTemplateService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = '/api/v1/scrap/reviews/templates';
+  private readonly baseUrl = `${environment.apiBaseUrl}/scrap/reviews/templates`;
 
   readonly templates = signal<ScrapReviewTemplate[]>([]);
   readonly loading = signal(false);

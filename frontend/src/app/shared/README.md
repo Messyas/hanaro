@@ -12,3 +12,5 @@ Um item compartilhado:
 - inclui testes de comportamento e acessibilidade.
 
 Componentes usados por apenas uma funcionalidade permanecem dentro do módulo.
+Os componentes compartilhados ficam em `components/` e os tokens visuais em
+`styles/`. `shared/` não importa `core/`, `layouts/` nem `modules/`.

@@ -12,9 +12,9 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { LanguageService } from '../../../i18n/language.service';
-import { InlineAlert } from '../../../shared/list-view/inline-alert/inline-alert';
-import { UiIcon } from '../../../ui-icon';
+import { LanguageService } from '../../../core/i18n/language.service';
+import { InlineAlert } from '../../../shared/components/list-view/inline-alert/inline-alert';
+import { UiIcon } from '../../../shared/components/ui-icon/ui-icon';
 import { ScrapReview, ScrapReviewBulkCreate, ScrapReviewBulkResult } from '../scrap-review.models';
 import { ScrapReviewService } from '../scrap-review.service';
 import { ScrapReviewTemplate } from '../scrap-template.models';

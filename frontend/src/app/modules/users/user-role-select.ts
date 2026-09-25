@@ -8,7 +8,7 @@ import {
   signal,
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
-import { UiIcon } from '../../ui-icon';
+import { UiIcon } from '../../shared/components/ui-icon/ui-icon';
 import { UserRole, roleLabel } from './users.service';
 
 const ROLES: readonly UserRole[] = ['analista', 'gestor', 'admin'];

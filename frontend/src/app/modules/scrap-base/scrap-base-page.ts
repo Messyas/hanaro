@@ -3,22 +3,22 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, Subscription, debounceTime, distinctUntilChanged } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
-import { LanguageService } from '../../i18n/language.service';
-import { ListFilterDateRange } from '../../shared/list-filters/list-filter-date-range';
-import { ListFilterInput } from '../../shared/list-filters/list-filter-input';
-import { ListFilterPopover } from '../../shared/list-filters/list-filter-popover';
+import { LanguageService } from '../../core/i18n/language.service';
+import { ListFilterDateRange } from '../../shared/components/list-filters/list-filter-date-range';
+import { ListFilterInput } from '../../shared/components/list-filters/list-filter-input';
+import { ListFilterPopover } from '../../shared/components/list-filters/list-filter-popover';
 import {
   ListFilterSelect,
   ListFilterSelectOption,
-} from '../../shared/list-filters/list-filter-select';
-import { DelayedProgressSpinner } from '../../shared/list-view/delayed-progress-spinner/delayed-progress-spinner';
-import { InlineAlert } from '../../shared/list-view/inline-alert/inline-alert';
-import { ListFeedback } from '../../shared/list-view/list-feedback/list-feedback';
-import { ListPagination } from '../../shared/list-view/list-pagination/list-pagination';
-import { ListPanel } from '../../shared/list-view/list-panel/list-panel';
-import { ListTableSkeleton } from '../../shared/list-view/list-table-skeleton/list-table-skeleton';
-import { StatusBadge } from '../../shared/list-view/status-badge/status-badge';
-import { UiIcon } from '../../ui-icon';
+} from '../../shared/components/list-filters/list-filter-select';
+import { DelayedProgressSpinner } from '../../shared/components/list-view/delayed-progress-spinner/delayed-progress-spinner';
+import { InlineAlert } from '../../shared/components/list-view/inline-alert/inline-alert';
+import { ListFeedback } from '../../shared/components/list-view/list-feedback/list-feedback';
+import { ListPagination } from '../../shared/components/list-view/list-pagination/list-pagination';
+import { ListPanel } from '../../shared/components/list-view/list-panel/list-panel';
+import { ListTableSkeleton } from '../../shared/components/list-view/list-table-skeleton/list-table-skeleton';
+import { StatusBadge } from '../../shared/components/list-view/status-badge/status-badge';
+import { UiIcon } from '../../shared/components/ui-icon/ui-icon';
 import {
   ScrapFilterParams,
   ScrapListItem,
@@ -32,6 +32,7 @@ import { ScrapBulkReviewDialog } from './scrap-bulk-review-dialog/scrap-bulk-rev
 import { ScrapReviewDrawer } from './scrap-review-drawer/scrap-review-drawer';
 import { ScrapDefectType, ScrapReview, ScrapReviewBulkResult } from './scrap-review.models';
 import { ScrapReviewService } from './scrap-review.service';
+import { DefectTypesService } from './defect-types.service';
 import { ScrapReviewTemplate } from './scrap-template.models';
 import {
   ScrapTemplatePopover,
@@ -66,6 +67,7 @@ const PAGE_SIZES = [25, 50, 100, 200] as const;
 export class ScrapBasePage implements OnInit {
   private readonly scrapBaseService = inject(ScrapBaseService);
   private readonly reviewService = inject(ScrapReviewService);
+  private readonly defectTypesService = inject(DefectTypesService);
   private readonly templateService = inject(ScrapTemplateService);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
@@ -217,7 +219,7 @@ export class ScrapBasePage implements OnInit {
 
   ngOnInit(): void {
     // Carregar catálogo de tipos
-    this.reviewService
+    this.defectTypesService
       .getDefectTypes(false)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({

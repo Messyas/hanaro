@@ -4,7 +4,7 @@ import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize, map, switchMap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthenticatedUserSession } from '../../core/auth/authenticated-user-session';
-import { LanguageService } from '../../i18n/language.service';
+import { LanguageService } from '../../core/i18n/language.service';
 import { ProfileService } from './profile.service';
 
 interface ProfileFormSnapshot {

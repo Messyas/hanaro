@@ -1,15 +1,15 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { LanguageService } from '../../i18n/language.service';
-import { UiIcon } from '../../ui-icon';
-import { DashboardPerformanceChart } from './components/dashboard-performance-chart';
+import { LanguageService } from '../../core/i18n/language.service';
+import { UiIcon } from '../../shared/components/ui-icon/ui-icon';
+import { DashboardPerformanceChart } from './charts/dashboard-performance-chart';
 import { DashboardDistributionChart } from './components/dashboard-distribution-chart';
 import { DashboardMultiSelect } from './components/dashboard-multi-select';
 import {
   ListFilterSelect,
   ListFilterSelectOption,
-} from '../../shared/list-filters/list-filter-select';
-import { ListFilterPopover } from '../../shared/list-filters/list-filter-popover';
+} from '../../shared/components/list-filters/list-filter-select';
+import { ListFilterPopover } from '../../shared/components/list-filters/list-filter-popover';
 
 import {
   DashboardAnalysis,

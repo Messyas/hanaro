@@ -1,3 +1,4 @@
+import { environment } from '../../../environments/environment';
 import { isPlatformBrowser } from '@angular/common';
 import { HttpRequest, HttpResponse } from '@angular/common/http';
 import { Inject, Injectable, PLATFORM_ID } from '@angular/core';
@@ -26,7 +27,7 @@ export class ApiCacheService {
     return (
       this.enabled &&
       request.method === 'GET' &&
-      request.urlWithParams.includes('/api/v1/') &&
+      request.urlWithParams.includes(`${environment.apiBaseUrl}/`) &&
       request.responseType !== 'blob' &&
       !request.urlWithParams.includes('/download')
     );

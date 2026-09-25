@@ -1,8 +1,8 @@
 import { Component, computed, inject } from '@angular/core';
 import { NgOptimizedImage } from '@angular/common';
 import { Router } from '@angular/router';
-import { LoginDialog } from '../../layouts/dashboard-shell/login-dialog';
-import { ThemeService } from '../../theme/theme.service';
+import { LoginDialog } from './login-dialog';
+import { ThemeService } from '../../core/theme/theme.service';
 
 @Component({
   selector: 'app-login-page',

@@ -1,3 +1,4 @@
+import { environment } from '../../../environments/environment';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
@@ -6,7 +7,7 @@ import { ScrapFilterParams, ScrapPage } from './scrap-base.models';
 @Injectable({ providedIn: 'root' })
 export class ScrapBaseService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = '/api/v1/scrap';
+  private readonly baseUrl = `${environment.apiBaseUrl}/scrap`;
   list(filters: ScrapFilterParams = {}): Observable<ScrapPage> {
     let params = new HttpParams();
 

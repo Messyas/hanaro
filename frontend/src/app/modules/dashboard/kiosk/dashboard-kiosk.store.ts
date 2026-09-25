@@ -1,3 +1,4 @@
+import { environment } from '../../../../environments/environment';
 import { isPlatformBrowser } from '@angular/common';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, PLATFORM_ID, computed, effect, inject, signal } from '@angular/core';
@@ -341,7 +342,7 @@ export class DashboardKioskStore {
       const year = new Date().getFullYear();
       const [dashRes, summaryRes, scrapRes, unreviewedRes, reviewedRes] = await Promise.allSettled([
         firstValueFrom(
-          this.http.get<DashboardApiResponse>('/api/v1/dashboard/scrap', {
+          this.http.get<DashboardApiResponse>(`${environment.apiBaseUrl}/dashboard/scrap`, {
             params: new HttpParams()
               .set('year', String(year))
               .set('currency', 'USD')
@@ -350,7 +351,9 @@ export class DashboardKioskStore {
               .set('ranking_limit', '10'),
           }),
         ),
-        firstValueFrom(this.http.get<ScrapSummaryResponse>('/api/v1/dashboard/scrap/summary')),
+        firstValueFrom(
+          this.http.get<ScrapSummaryResponse>(`${environment.apiBaseUrl}/dashboard/scrap/summary`),
+        ),
         firstValueFrom(
           this.http.get<{
             items: Array<{
@@ -366,7 +369,7 @@ export class DashboardKioskStore {
               organization_code?: string;
             }>;
             total_items: number;
-          }>('/api/v1/scrap', {
+          }>(`${environment.apiBaseUrl}/scrap`, {
             params: new HttpParams()
               .set('page', '1')
               .set('page_size', '4')
@@ -375,7 +378,7 @@ export class DashboardKioskStore {
           }),
         ),
         firstValueFrom(
-          this.http.get<{ total_items: number }>('/api/v1/scrap', {
+          this.http.get<{ total_items: number }>(`${environment.apiBaseUrl}/scrap`, {
             params: new HttpParams()
               .set('page', '1')
               .set('page_size', '1')
@@ -383,7 +386,7 @@ export class DashboardKioskStore {
           }),
         ),
         firstValueFrom(
-          this.http.get<{ total_items: number }>('/api/v1/scrap', {
+          this.http.get<{ total_items: number }>(`${environment.apiBaseUrl}/scrap`, {
             params: new HttpParams()
               .set('page', '1')
               .set('page_size', '1')
@@ -553,14 +556,20 @@ export class DashboardKioskStore {
 
       const [linesRes, sectorsRes] = await Promise.allSettled([
         firstValueFrom(
-          this.http.get<ScrapBreakdownItemResponse[]>('/api/v1/dashboard/scrap/breakdown', {
-            params: params.set('group_by', 'receipt_department'),
-          }),
+          this.http.get<ScrapBreakdownItemResponse[]>(
+            `${environment.apiBaseUrl}/dashboard/scrap/breakdown`,
+            {
+              params: params.set('group_by', 'receipt_department'),
+            },
+          ),
         ),
         firstValueFrom(
-          this.http.get<ScrapBreakdownItemResponse[]>('/api/v1/dashboard/scrap/breakdown', {
-            params: params.set('group_by', 'department'),
-          }),
+          this.http.get<ScrapBreakdownItemResponse[]>(
+            `${environment.apiBaseUrl}/dashboard/scrap/breakdown`,
+            {
+              params: params.set('group_by', 'department'),
+            },
+          ),
         ),
       ]);
 

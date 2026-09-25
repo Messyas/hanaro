@@ -3,11 +3,12 @@ import { ActivatedRoute, Router, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { vi } from 'vitest';
 import { AuthService } from '../../core/auth/auth.service';
-import { LanguageService } from '../../i18n/language.service';
+import { LanguageService } from '../../core/i18n/language.service';
 import { ScrapPage } from './scrap-base.models';
 import { ScrapBasePage } from './scrap-base-page';
 import { ScrapBaseService } from './scrap-base.service';
 import { ScrapReviewService } from './scrap-review.service';
+import { DefectTypesService } from './defect-types.service';
 import { ScrapTemplateService } from './scrap-template.service';
 
 describe('ScrapBasePage', () => {
@@ -88,6 +89,7 @@ describe('ScrapBasePage', () => {
         LanguageService,
         { provide: ScrapBaseService, useValue: scrapBaseServiceMock },
         { provide: ScrapReviewService, useValue: scrapReviewServiceMock },
+        { provide: DefectTypesService, useValue: scrapReviewServiceMock },
         { provide: ScrapTemplateService, useValue: scrapTemplateServiceMock },
         { provide: AuthService, useValue: authServiceMock },
       ],

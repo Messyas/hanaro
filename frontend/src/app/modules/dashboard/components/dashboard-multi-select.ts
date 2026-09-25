@@ -1,5 +1,5 @@
 import { Component, computed, ElementRef, input, output, signal, viewChild } from '@angular/core';
-import { UiIcon } from '../../../ui-icon';
+import { UiIcon } from '../../../shared/components/ui-icon/ui-icon';
 
 @Component({
   selector: 'app-dashboard-multi-select',

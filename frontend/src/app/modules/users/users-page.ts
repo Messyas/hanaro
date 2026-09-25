@@ -5,11 +5,11 @@ import { ManagedUser, UsersService, roleLabel } from './users.service';
 import { UserDialog } from './user-dialog';
 import { DeleteUserDialog } from './delete-user-dialog';
 import { EditUserDialog } from './edit-user-dialog';
-import { ListPanel } from '../../shared/list-view/list-panel/list-panel';
-import { ListPagination } from '../../shared/list-view/list-pagination/list-pagination';
-import { StatusBadge } from '../../shared/list-view/status-badge/status-badge';
-import { UiIcon } from '../../ui-icon';
-import { ListFeedback } from '../../shared/list-view/list-feedback/list-feedback';
+import { ListPanel } from '../../shared/components/list-view/list-panel/list-panel';
+import { ListPagination } from '../../shared/components/list-view/list-pagination/list-pagination';
+import { StatusBadge } from '../../shared/components/list-view/status-badge/status-badge';
+import { UiIcon } from '../../shared/components/ui-icon/ui-icon';
+import { ListFeedback } from '../../shared/components/list-view/list-feedback/list-feedback';
 import { AuthService } from '../../core/auth/auth.service';
 
 @Component({

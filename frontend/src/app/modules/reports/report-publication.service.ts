@@ -1,3 +1,4 @@
+import { environment } from '../../../environments/environment';
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
@@ -6,7 +7,7 @@ import { Page, ReportCandidateQuery, ReportVersion } from './reports.models';
 @Injectable({ providedIn: 'root' })
 export class ReportPublicationService {
   private readonly http = inject(HttpClient);
-  private readonly base = '/api/v1/reports';
+  private readonly base = `${environment.apiBaseUrl}/reports`;
 
   publish(
     reportId: string,

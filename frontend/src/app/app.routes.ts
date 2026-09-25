@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 import { adminScopeGuard, authenticatedGuard, superuserGuard } from './core/auth/auth.guard';
-import { DashboardShell } from './layouts/dashboard-shell/dashboard-shell';
+import { MainLayout } from './layouts/main-layout/main-layout';
 
 export const routes: Routes = [
   {
@@ -19,7 +19,7 @@ export const routes: Routes = [
   },
   {
     path: '',
-    component: DashboardShell,
+    component: MainLayout,
     children: [
       {
         path: 'dashboard',
@@ -71,13 +71,15 @@ export const routes: Routes = [
         path: 'alertas',
         canActivate: [authenticatedGuard, adminScopeGuard],
         loadChildren: () =>
-          import('./modules/alerts/alerts.routes').then((module) => module.ALERTS_ROUTES),
+          import('./modules/governance/alerts/alerts.routes').then(
+            (module) => module.ALERTS_ROUTES,
+          ),
       },
       {
         path: 'planos-de-acao',
         canActivate: [authenticatedGuard, adminScopeGuard],
         loadChildren: () =>
-          import('./modules/action-plans/action-plans.routes').then(
+          import('./modules/governance/action-plans/action-plans.routes').then(
             (module) => module.ACTION_PLANS_ROUTES,
           ),
       },

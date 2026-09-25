@@ -1,8 +1,8 @@
 import { Component, DestroyRef, inject, input, output, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { A11yModule } from '@angular/cdk/a11y';
-import { InlineAlert } from '../../shared/list-view/inline-alert/inline-alert';
-import { UiIcon } from '../../ui-icon';
+import { InlineAlert } from '../../shared/components/list-view/inline-alert/inline-alert';
+import { UiIcon } from '../../shared/components/ui-icon/ui-icon';
 import { ExecutionsService } from './executions.service';
 
 @Component({

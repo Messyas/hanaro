@@ -5,7 +5,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { DashboardKioskStore } from './dashboard-kiosk.store';
 import { DashboardKioskPage } from './dashboard-kiosk-page';
-import { LanguageService } from '../../../i18n/language.service';
+import { LanguageService } from '../../../core/i18n/language.service';
 
 describe('DashboardKioskStore', () => {
   let store: DashboardKioskStore;

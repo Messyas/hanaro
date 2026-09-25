@@ -1,6 +1,6 @@
 import { Component, HostListener, computed, inject, input, signal } from '@angular/core';
-import { LanguageService } from '../../../i18n/language.service';
-import { UiIcon } from '../../../ui-icon';
+import { LanguageService } from '../../../core/i18n/language.service';
+import { UiIcon } from '../../../shared/components/ui-icon/ui-icon';
 import { ScrapListItem } from '../scrap-base.models';
 import { ScrapReview, ScrapReviewFormModel } from '../scrap-review.models';
 

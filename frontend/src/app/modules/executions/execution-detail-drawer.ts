@@ -1,7 +1,7 @@
 import { Component, computed, input, output, inject } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { A11yModule } from '@angular/cdk/a11y';
-import { LanguageService } from '../../i18n/language.service';
+import { LanguageService } from '../../core/i18n/language.service';
 import {
   AutomationExecutionStatus,
   AutomationSnapshotStatus,
@@ -9,7 +9,7 @@ import {
   ExecutionStepCode,
   ExecutionStepStatus,
 } from './executions.models';
-import { UiIcon } from '../../ui-icon';
+import { UiIcon } from '../../shared/components/ui-icon/ui-icon';
 
 export interface ExecutionDetailFormatters {
   formatDateTime(value: string | null): string;

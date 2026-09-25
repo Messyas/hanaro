@@ -11,14 +11,14 @@ import {
   signal,
 } from '@angular/core';
 import { Router } from '@angular/router';
-import { LanguageService } from '../../../i18n/language.service';
-import { ThemeService } from '../../../theme/theme.service';
-import { UiIcon } from '../../../ui-icon';
-import { DashboardPerformanceChart } from '../../../charts/dashboard-performance-chart';
+import { LanguageService } from '../../../core/i18n/language.service';
+import { ThemeService } from '../../../core/theme/theme.service';
+import { UiIcon } from '../../../shared/components/ui-icon/ui-icon';
+import { DashboardPerformanceChart } from '../charts/dashboard-performance-chart';
 import {
   ListFilterSelect,
   ListFilterSelectOption,
-} from '../../../shared/list-filters/list-filter-select';
+} from '../../../shared/components/list-filters/list-filter-select';
 import { DashboardKioskStore } from './dashboard-kiosk.store';
 import { KIOSK_TRANSLATIONS } from './dashboard-kiosk.translations';
 

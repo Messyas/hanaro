@@ -26,12 +26,12 @@ import {
   tap,
   toArray,
 } from 'rxjs';
-import { LanguageService } from '../../../i18n/language.service';
+import { LanguageService } from '../../../core/i18n/language.service';
 import { AuthService } from '../../../core/auth/auth.service';
 import { ObjectUrlRegistry } from '../../../core/browser/object-url-registry';
-import { InlineAlert } from '../../../shared/list-view/inline-alert/inline-alert';
-import { StatusBadge } from '../../../shared/list-view/status-badge/status-badge';
-import { UiIcon } from '../../../ui-icon';
+import { InlineAlert } from '../../../shared/components/list-view/inline-alert/inline-alert';
+import { StatusBadge } from '../../../shared/components/list-view/status-badge/status-badge';
+import { UiIcon } from '../../../shared/components/ui-icon/ui-icon';
 import { ScrapListItem } from '../scrap-base.models';
 import { ScrapReviewForm } from '../scrap-review-form/scrap-review-form';
 import {
@@ -42,6 +42,7 @@ import {
 } from '../scrap-review.models';
 import { ScrapReviewPreview } from '../scrap-review-preview/scrap-review-preview';
 import { ScrapReviewService } from '../scrap-review.service';
+import { DefectTypesService } from '../defect-types.service';
 import { ScrapTemplateService } from '../scrap-template.service';
 import {
   ScrapAttachmentPreview,
@@ -57,6 +58,7 @@ import {
 })
 export class ScrapReviewDrawer implements OnInit, OnDestroy {
   private readonly reviewService = inject(ScrapReviewService);
+  private readonly defectTypesService = inject(DefectTypesService);
   private readonly templateService = inject(ScrapTemplateService);
   private readonly language = inject(LanguageService);
   private readonly authService = inject(AuthService);
@@ -226,7 +228,7 @@ export class ScrapReviewDrawer implements OnInit, OnDestroy {
   }
 
   loadDefectTypes(): void {
-    this.reviewService
+    this.defectTypesService
       .getDefectTypes(false)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({

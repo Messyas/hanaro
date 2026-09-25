@@ -1,6 +1,6 @@
 # Plano de transição para a arquitetura DXi
 
-Data: 25/09/2026. Status: execução parcial das etapas 0–3 e da porta de download de relatórios. As demais etapas continuam planejadas.
+Data: 25/09/2026. Status: estrutura de pastas migrada e fronteiras principais verificadas; a reorganização interna de relatórios e outras extrações de responsabilidade seguem planejadas.
 
 ### Implementação realizada em 25/09/2026
 
@@ -10,7 +10,22 @@ Data: 25/09/2026. Status: execução parcial das etapas 0–3 e da porta de down
 - `ReportExportCoordinator` consome `BROWSER_DOWNLOAD`; `app.config.ts` fornece o adapter concreto no injector raiz.
 - A exceção de `modules/reports` foi corrigida no `.gitignore` para permitir o versionamento de novos arquivos dessa feature.
 
-Validação desta implementação: `npm run build`, `npm run build:cloudflare` e `npm test -- --watch=false` em `frontend/` (45 arquivos, 166 testes). As próximas prioridades são reduzir o contrato de tipos de defeito entre settings e scrap-base, corrigir a dependência do login no diálogo do layout e separar os demais serviços globais por responsabilidade.
+Validação da primeira entrega: `npm run build`, `npm run build:cloudflare` e `npm test -- --watch=false` em `frontend/` (45 arquivos, 166 testes).
+
+### Continuação da migração de pastas
+
+- `app/i18n` e serviços de `theme` foram movidos para `core/`; a configuração de marca foi movida para `core/config/`.
+- Ícones, componentes de listas/filtros e tokens de tema foram movidos para `shared/components/` e `shared/styles/`.
+- Os gráficos passaram a `modules/dashboard/charts/`. O layout passou a `layouts/main-layout/` e o formulário de login a `modules/auth/`.
+- Alerts e action-plans foram agrupados em `modules/governance/`, junto de seus serviços, modelos e textos. Reports consome a API pública de governance.
+- `settings` passou a consumir `DefectTypesService` pela API pública de scrap-base. As operações de tipos de defeito saíram de `ScrapReviewService`.
+- Logos foram movidos para `src/assets/` e copiados pelo build nas URLs antigas; favicon e inicialização do tema permanecem em `public/`.
+- `src/environments/` contém a URL pública da API por build. Os serviços Angular usam essa configuração; os builds de produção e Cloudflare selecionam `environment.prod.ts`.
+- `npm run check:architecture` valida imports entre `core`, `modules`, `layouts` e `shared`. O layout acessa o formulário de auth por sua API pública.
+
+Validação desta continuação: `npm run build`, `npm run build:cloudflare`, `npm test -- --watch=false` (46 arquivos, 166 testes), `npm run format:check` e `npm run check:architecture`. Os SVGs movidos foram conferidos no diretório de saída do build, nas mesmas URLs públicas.
+
+`fonts/` não foi criado: a fonte usada vem de `@fontsource-variable/fustat`, sem arquivo local a duplicar. O nome `frontend/` foi mantido porque a arquitetura interna já corresponde à seção 6 e renomear a raiz exigiria alterar deploy e CI.
 
 ## 1. Decisão de arquitetura
 
@@ -137,6 +152,8 @@ Não criar obrigatoriamente `components/services/models/utils` dentro de cada fe
 - Evitar renomear todos os arquivos só por estilo. Primeiro consolidar diretórios e fronteiras.
 
 ## 4. Mapa de movimentação a partir da estrutura inicial
+
+As movimentações desta tabela foram concluídas nesta continuação, com duas adaptações: os componentes compartilhados foram agrupados em `shared/components/`, e os arquivos de governança foram agrupados em `modules/governance/`. Os diretórios `environments/` e `assets/` também foram configurados. A subdivisão interna de reports permanece como trabalho futuro.
 
 | Origem atual | Destino proposto | Observação |
 | --- | --- | --- |

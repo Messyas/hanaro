@@ -1,3 +1,4 @@
+import { environment } from '../../../environments/environment';
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
@@ -14,7 +15,7 @@ import { serializeReportCandidateQuery } from './report-candidate-query.params';
 @Injectable({ providedIn: 'root' })
 export class ReportSourceService {
   private readonly http = inject(HttpClient);
-  private readonly base = '/api/v1/reports';
+  private readonly base = `${environment.apiBaseUrl}/reports`;
 
   mutateSources(command: ReportSourceMutationCommand): Observable<ReportDetail> {
     return this.http.put<ReportDetail>(

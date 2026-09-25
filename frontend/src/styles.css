@@ -2,8 +2,8 @@
 @import '@angular/material/prebuilt-themes/azure-blue.css';
 @import '@angular/cdk/overlay-prebuilt.css';
 @import 'tailwindcss';
-@import './app/theme/hanaro.theme.css';
-@import './app/shared/list-view/list-table.css';
+@import './app/shared/styles/hanaro.theme.css';
+@import './app/shared/components/list-view/list-table.css';
 @import './app/app.css';
 
 :root {

@@ -5,9 +5,9 @@ import * as echarts from 'echarts/core';
 import type { EChartsCoreOption } from 'echarts/core';
 import { SVGRenderer } from 'echarts/renderers';
 import { NgxEchartsDirective, provideEchartsCore } from 'ngx-echarts';
-import { CHART_DESIGN, getChartTheme } from '../../../charts/chart-design.tokens';
-import { ThemeService } from '../../../theme/theme.service';
-import { LanguageCode } from '../../../i18n/language.service';
+import { CHART_DESIGN, getChartTheme } from '../charts/chart-design.tokens';
+import { ThemeService } from '../../../core/theme/theme.service';
+import { LanguageCode } from '../../../core/i18n/language.service';
 import { DashboardDistributionItem, DashboardMetric } from '../dashboard.models';
 import { DASHBOARD_LOCALES, DASHBOARD_TRANSLATIONS } from '../dashboard.translations';
 

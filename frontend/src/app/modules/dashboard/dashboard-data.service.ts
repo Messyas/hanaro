@@ -1,3 +1,4 @@
+import { environment } from '../../../environments/environment';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { firstValueFrom, map } from 'rxjs';
@@ -84,7 +85,9 @@ export class DashboardDataService {
   private readonly http = inject(HttpClient);
 
   getFilters(): Promise<ScrapFiltersResponse> {
-    return firstValueFrom(this.http.get<ScrapFiltersResponse>('/api/v1/scrap/filters'));
+    return firstValueFrom(
+      this.http.get<ScrapFiltersResponse>(`${environment.apiBaseUrl}/scrap/filters`),
+    );
   }
 
   getSnapshot(
@@ -94,7 +97,7 @@ export class DashboardDataService {
   ): Promise<DashboardSnapshot> {
     return firstValueFrom(
       this.http
-        .get<DashboardApiResponse>('/api/v1/dashboard/scrap', {
+        .get<DashboardApiResponse>(`${environment.apiBaseUrl}/dashboard/scrap`, {
           params: this.apiParams(filters, rankingLimit, metric),
         })
         .pipe(map((response) => this.mapApiResponse(response, metric))),

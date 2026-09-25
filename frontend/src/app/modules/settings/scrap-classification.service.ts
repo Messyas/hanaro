@@ -1,3 +1,4 @@
+import { environment } from '../../../environments/environment';
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
@@ -28,7 +29,7 @@ export type ScrapClassificationRuleWrite = Omit<
 @Injectable({ providedIn: 'root' })
 export class ScrapClassificationService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = '/api/v1/scrap/classifications';
+  private readonly baseUrl = `${environment.apiBaseUrl}/scrap/classifications`;
 
   list(): Observable<ScrapClassificationRule[]> {
     return this.http.get<ScrapClassificationRule[]>(this.baseUrl);

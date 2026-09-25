@@ -4,15 +4,15 @@ import { FormsModule } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSlideToggle } from '@angular/material/slide-toggle';
 import { AuthService } from '../../core/auth/auth.service';
-import { LanguageService } from '../../i18n/language.service';
-import { LoginDialog } from '../../layouts/dashboard-shell/login-dialog';
-import { ThemeService } from '../../theme/theme.service';
-import { UiIcon } from '../../ui-icon';
+import { LanguageService } from '../../core/i18n/language.service';
+import { LoginDialog } from '../auth/auth.public-api';
+import { ThemeService } from '../../core/theme/theme.service';
+import { UiIcon } from '../../shared/components/ui-icon/ui-icon';
 import {
   ListFilterSelect,
   ListFilterSelectOption,
-} from '../../shared/list-filters/list-filter-select';
-import { ScrapDefectType, ScrapReviewService } from '../scrap-base/scrap-base.public-api';
+} from '../../shared/components/list-filters/list-filter-select';
+import { ScrapDefectType, DefectTypesService } from '../scrap-base/scrap-base.public-api';
 import { ScrapTargetService } from './scrap-target.service';
 import { SettingsStore, SettingsTab } from './settings.store';
 import {
@@ -42,7 +42,7 @@ export class SettingsPage {
   readonly theme = inject(ThemeService);
   readonly language = inject(LanguageService);
   readonly authService = inject(AuthService);
-  readonly scrapReviewService = inject(ScrapReviewService);
+  readonly defectTypesService = inject(DefectTypesService);
   readonly scrapTargetService = inject(ScrapTargetService);
   readonly productionMeasurementService = inject(ProductionMeasurementService);
   readonly scrapClassificationService = inject(ScrapClassificationService);
@@ -478,7 +478,7 @@ export class SettingsPage {
 
   loadDefectTypes(): void {
     this.loadingDefectTypes.set(true);
-    this.scrapReviewService.getDefectTypes(true).subscribe({
+    this.defectTypesService.getDefectTypes(true).subscribe({
       next: (types) => {
         this.defectTypes.set(types);
         this.loadingDefectTypes.set(false);
@@ -497,7 +497,7 @@ export class SettingsPage {
     this.submitting.set(true);
     this.feedbackMessage.set(null);
 
-    this.scrapReviewService
+    this.defectTypesService
       .createDefectType({
         name,
         code,
@@ -521,7 +521,7 @@ export class SettingsPage {
   }
 
   toggleActive(type: ScrapDefectType, checked: boolean): void {
-    this.scrapReviewService.updateDefectType(type.id, { is_active: checked }).subscribe({
+    this.defectTypesService.updateDefectType(type.id, { is_active: checked }).subscribe({
       next: (updated) => {
         this.defectTypes.update((types) =>
           types.map((item) => (item.id === updated.id ? updated : item)),
@@ -548,7 +548,7 @@ export class SettingsPage {
     if (!name || this.submitting()) return;
 
     this.submitting.set(true);
-    this.scrapReviewService
+    this.defectTypesService
       .updateDefectType(type.id, {
         name,
         description: this.editDesc().trim() || null,
@@ -582,7 +582,7 @@ export class SettingsPage {
     this.submitting.set(true);
     this.confirmingDeleteItem.set(null);
 
-    this.scrapReviewService.deleteDefectType(type.id).subscribe({
+    this.defectTypesService.deleteDefectType(type.id).subscribe({
       next: () => {
         this.submitting.set(false);
         this.defectTypes.update((types) => types.filter((item) => item.id !== type.id));

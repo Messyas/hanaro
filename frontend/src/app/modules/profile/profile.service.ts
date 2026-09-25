@@ -1,3 +1,4 @@
+import { environment } from '../../../environments/environment';
 import { HttpClient } from '@angular/common/http';
 import { Service, inject } from '@angular/core';
 import { Observable } from 'rxjs';
@@ -28,18 +29,26 @@ export class ProfileService {
   private readonly http = inject(HttpClient);
 
   getCurrent(): Observable<UserProfile> {
-    return this.http.get<UserProfile>('/api/v1/users/me');
+    return this.http.get<UserProfile>(`${environment.apiBaseUrl}/users/me`);
   }
 
   update(username: string, profile: ProfileUpdate): Observable<unknown> {
-    return this.http.patch(`/api/v1/users/${encodeURIComponent(username)}`, profile);
+    return this.http.patch(
+      `${environment.apiBaseUrl}/users/${encodeURIComponent(username)}`,
+      profile,
+    );
   }
 
   uploadImage(image: FormData): Observable<ProfileImageResponse> {
-    return this.http.put<ProfileImageResponse>('/api/v1/users/me/profile-image', image);
+    return this.http.put<ProfileImageResponse>(
+      `${environment.apiBaseUrl}/users/me/profile-image`,
+      image,
+    );
   }
 
   removeImage(): Observable<ProfileImageResponse> {
-    return this.http.delete<ProfileImageResponse>('/api/v1/users/me/profile-image');
+    return this.http.delete<ProfileImageResponse>(
+      `${environment.apiBaseUrl}/users/me/profile-image`,
+    );
   }
 }

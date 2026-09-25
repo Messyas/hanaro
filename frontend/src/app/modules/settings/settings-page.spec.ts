@@ -2,9 +2,9 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { vi } from 'vitest';
 import { AuthService } from '../../core/auth/auth.service';
-import { LanguageService } from '../../i18n/language.service';
-import { ThemeService } from '../../theme/theme.service';
-import { ScrapDefectType, ScrapReviewService } from '../scrap-base/scrap-base.public-api';
+import { LanguageService } from '../../core/i18n/language.service';
+import { ThemeService } from '../../core/theme/theme.service';
+import { ScrapDefectType, DefectTypesService } from '../scrap-base/scrap-base.public-api';
 import { ScrapTargetService } from './scrap-target.service';
 import { ScrapClassificationService } from './scrap-classification.service';
 import { ProductionMeasurementService } from './production-measurement.service';
@@ -98,7 +98,7 @@ describe('SettingsPage', () => {
       providers: [
         LanguageService,
         ThemeService,
-        { provide: ScrapReviewService, useValue: scrapReviewServiceMock },
+        { provide: DefectTypesService, useValue: scrapReviewServiceMock },
         { provide: ScrapTargetService, useValue: scrapTargetServiceMock },
         { provide: ScrapClassificationService, useValue: scrapClassificationServiceMock },
         { provide: ProductionMeasurementService, useValue: productionMeasurementServiceMock },

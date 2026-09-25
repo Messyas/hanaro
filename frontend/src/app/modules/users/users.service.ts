@@ -1,3 +1,4 @@
+import { environment } from '../../../environments/environment';
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
@@ -37,7 +38,7 @@ export interface NewUser {
 @Injectable({ providedIn: 'root' })
 export class UsersService {
   private readonly http = inject(HttpClient);
-  private readonly base = '/api/v1/users';
+  private readonly base = `${environment.apiBaseUrl}/users`;
 
   list(page: number, itemsPerPage: number): Observable<ManagedUsersPage> {
     return this.http.get<ManagedUsersPage>(`${this.base}/admin/all`, {

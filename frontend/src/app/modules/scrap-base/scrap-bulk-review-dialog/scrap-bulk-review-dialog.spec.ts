@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { vi } from 'vitest';
-import { LanguageService } from '../../../i18n/language.service';
+import { LanguageService } from '../../../core/i18n/language.service';
 import { ScrapReview } from '../scrap-review.models';
 import { ScrapReviewService } from '../scrap-review.service';
 import { ScrapReviewTemplate } from '../scrap-template.models';

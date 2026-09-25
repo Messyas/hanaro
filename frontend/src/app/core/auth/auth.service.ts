@@ -1,3 +1,4 @@
+import { environment } from '../../../environments/environment';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Observable, catchError, finalize, map, of, shareReplay, switchMap, tap } from 'rxjs';
@@ -53,12 +54,14 @@ export class AuthService {
     const body = new HttpParams().set('username', username.trim()).set('password', password);
 
     return this.http
-      .post<{ csrf_token: string }>('/api/v1/auth/login', body)
+      .post<{ csrf_token: string }>(`${environment.apiBaseUrl}/auth/login`, body)
       .pipe(switchMap(() => this.refreshSession()));
   }
 
   logout(): Observable<unknown> {
-    return this.http.post('/api/v1/auth/logout', {}).pipe(tap(() => this.clearSession()));
+    return this.http
+      .post(`${environment.apiBaseUrl}/auth/logout`, {})
+      .pipe(tap(() => this.clearSession()));
   }
 
   clearSession(): void {
@@ -68,7 +71,7 @@ export class AuthService {
   }
 
   private fetchSession(): Observable<boolean> {
-    return this.http.get<AuthCheckResponse>('/api/v1/auth/check-auth').pipe(
+    return this.http.get<AuthCheckResponse>(`${environment.apiBaseUrl}/auth/check-auth`).pipe(
       map((response) => {
         if (response.authenticated && response.user) {
           this.currentUser.set(response.user);
