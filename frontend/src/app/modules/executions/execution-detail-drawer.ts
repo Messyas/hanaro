@@ -1,5 +1,6 @@
 import { Component, computed, input, output, inject } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
+import { A11yModule } from '@angular/cdk/a11y';
 import { LanguageService } from '../../i18n/language.service';
 import {
   AutomationExecutionStatus,
@@ -26,7 +27,7 @@ export interface ExecutionDetailFormatters {
 
 @Component({
   selector: 'app-execution-detail-drawer',
-  imports: [DecimalPipe, UiIcon],
+  imports: [A11yModule, DecimalPipe, UiIcon],
   templateUrl: './execution-detail-drawer.html',
   styleUrl: './execution-detail-drawer.css',
 })
@@ -42,4 +43,10 @@ export class ExecutionDetailDrawer {
   readonly formatters = input.required<ExecutionDetailFormatters>();
   readonly closed = output<void>();
   readonly retryRequested = output<void>();
+
+  handleEscape(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.closed.emit();
+  }
 }

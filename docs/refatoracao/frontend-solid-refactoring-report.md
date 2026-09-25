@@ -477,8 +477,8 @@ Acceptance: `/perfil` behavior is unchanged; the feature passes targeted tests, 
 - [x] Delete the obsolete custom datepicker implementation and obsolete test.
 - [x] Introduce `CalendarGridOptions`/`CalendarGridContext` in the shared date-range implementation.
 - [x] Move Executions into `modules/executions` with feature routes, data access, route-scoped list state, detail UI, and upload UI separated by responsibility.
-- [ ] Introduce a typed page-size preference and scheduler/clock seam only where tests require substitution.
-- [ ] Complete dialog focus management and keyboard behavior.
+- [x] Introduce a typed shared page-size preference for Executions and Action Plans; keep a scheduler/clock seam deferred until tests require substitution.
+- [x] Complete focus trapping, focus restoration, and Escape handling for the Executions upload and detail dialogs.
 
 Acceptance: no duplicate calendar logic, no long public signature, equivalent polling/upload/detail behavior, and preserved `/execucoes` URL.
 

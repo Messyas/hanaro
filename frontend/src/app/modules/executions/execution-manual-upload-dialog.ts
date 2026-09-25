@@ -1,12 +1,13 @@
 import { Component, DestroyRef, inject, input, output, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { A11yModule } from '@angular/cdk/a11y';
 import { InlineAlert } from '../../shared/list-view/inline-alert/inline-alert';
 import { UiIcon } from '../../ui-icon';
 import { ExecutionsService } from './executions.service';
 
 @Component({
   selector: 'app-execution-manual-upload-dialog',
-  imports: [InlineAlert, UiIcon],
+  imports: [A11yModule, InlineAlert, UiIcon],
   templateUrl: './execution-manual-upload-dialog.html',
   styleUrl: './execution-manual-upload-dialog.css',
 })
@@ -26,6 +27,12 @@ export class ExecutionManualUploadDialog {
     this.file.set(null);
     this.error.set(null);
     this.closed.emit();
+  }
+
+  handleEscape(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.close();
   }
 
   selectFile(event: Event): void {

@@ -5,6 +5,9 @@
       role="dialog"
       aria-modal="true"
       aria-labelledby="manual-upload-title"
+      cdkTrapFocus
+      [cdkTrapFocusAutoCapture]="true"
+      (keydown.escape)="handleEscape($event)"
       (click)="$event.stopPropagation()"
     >
       <header class="manual-upload-header">
