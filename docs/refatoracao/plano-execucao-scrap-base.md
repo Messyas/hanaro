@@ -1,6 +1,6 @@
 # Plano de execução da refatoração de scrap-base
 
-Status: em execução. Entregas 0 a 4 implementadas; as entregas de código passaram pelos builds, checker arquitetural e formatação previstos. Testes não foram executados nesta sessão; movimentos de diretórios da entrega 5 ainda pendentes.
+Status: implementação das entregas 0 a 5 concluída. Builds normal/Cloudflare, checker arquitetural, formatação e verificação de imports/recursos passaram. Testes não foram executados nesta sessão e permanecem pendentes.
 
 ### Progresso
 
@@ -11,7 +11,7 @@ Status: em execução. Entregas 0 a 4 implementadas; as entregas de código pass
 | 2. Fila de revisão | Store local ao drawer para IDs, índice e metadados; cancelamento de consulta antiga; proteção contra troca/fechamento durante operações; build, checker e formatação passaram. Testes pendentes. | `89f2643` |
 | 3. Workflow de revisão | Coordenador tipado para salvar, upload sequencial e finalização; falha de anexo bloqueia finalização, preserva o rascunho e devolve arquivos que falharam para retry. Build normal, Cloudflare, checker e formatação passaram. Testes pendentes. | `b784d79` |
 | 4. Modelos e listagem | `ScrapTemplateService` ficou restrito ao HTTP e `ScrapTemplateStore` compartilha estado no escopo da rota. `ScrapListStore` agora possui filtros, paginação, debounce, montagem dos parâmetros, cancelamento de consultas e estado de resultado. Builds normal/Cloudflare, checker e formatação passaram; testes pendentes. | `fe4e488`, `cb4c4d1` |
-| 5. Diretórios funcionais | Planejada; ainda não iniciada. | — |
+| 5. Diretórios funcionais | Movimentos concluídos; rotas, recursos dos componentes e API pública de `settings` preservados. Build normal/Cloudflare, checker e formatação passaram. Testes pendentes. | `98053ec` |
 
 ## Objetivo e limites
 
@@ -19,15 +19,15 @@ Reduzir as responsabilidades de `ScrapBasePage` e `ScrapReviewDrawer` por fluxos
 
 O backend não será reestruturado nesta sequência. `ScrapReviewService`, `ScrapBaseService` e `DefectTypesService` continuam como clientes HTTP. Coordenadores e stores terão escopo da página ou do drawer, conforme o tempo de vida do estado. Não criar um serviço global que guarde seleção ou rascunhos de usuários diferentes.
 
-## Estado atual verificado
+## Baseline anterior à implementação
 
 | Fluxo | Local atual | Responsabilidades misturadas |
 | --- | --- | --- |
 | Listagem e seleção | `scrap-base-page.ts` | Filtros, busca, paginação, chamada HTTP, seleção de até 500 ocorrências, abertura do drawer e do diálogo. |
-| Revisão em lote | `scrap-base-page.ts`, `scrap-bulk-review-dialog/scrap-bulk-review-dialog.ts` | Origem por modelo ou revisão, payload, envio, erro e atualização dos IDs selecionados após resultado parcial. |
-| Fila individual | `scrap-base-page.ts`, `scrap-review-drawer/scrap-review-drawer.ts` | Construção da fila, índice, transição entre ocorrências, salvamento, finalização e encerramento. |
-| Revisão e anexos | `scrap-review-drawer/scrap-review-drawer.ts` | Formulário, versão esperada, HTTP, upload sequencial, conflito, prévia e limpeza de URLs temporárias. |
-| Modelos | `scrap-template.service.ts`, página, drawer e popover | HTTP e signals globais no mesmo serviço; ativação, criação, edição, exclusão e favoritos em componentes diferentes. |
+| Revisão em lote | `scrap-base-page.ts`, `review/scrap-bulk-review-dialog/scrap-bulk-review-dialog.ts` | Origem por modelo ou revisão, payload, envio, erro e atualização dos IDs selecionados após resultado parcial. |
+| Fila individual | `scrap-base-page.ts`, `review/scrap-review-drawer/scrap-review-drawer.ts` | Construção da fila, índice, transição entre ocorrências, salvamento, finalização e encerramento. |
+| Revisão e anexos | `review/scrap-review-drawer/`, `review/scrap-review-workflow.coordinator.ts` | Formulário, versão esperada, HTTP, upload sequencial, conflito, prévia e limpeza de URLs temporárias. |
+| Modelos | `templates/scrap-template.service.ts`, `templates/scrap-template.store.ts`, página, drawer e popover | HTTP e signals globais no mesmo serviço; ativação, criação, edição, exclusão e favoritos em componentes diferentes. |
 
 Há testes existentes para seleção, envio por modelo e por revisão, fila e upload antes da finalização. Eles são a base de regressão, mas não cobrem todos os resultados parciais, cancelamentos e respostas antigas. A última tentativa de build com a árvore limpa mostrou erros de tipos também fora de scrap-base. A primeira entrega abaixo deve determinar a causa antes de usar o build como critério de regressão.
 
@@ -41,7 +41,7 @@ Critério: comando, ambiente e resultado do baseline ficam reproduzíveis em CI 
 
 ## Entrega 1 — revisão em lote
 
-Criar `scrap-bulk-review.coordinator.ts` em `modules/scrap-base/`, fornecido por `ScrapBasePage` para compartilhar a mesma instância com o diálogo. O coordenador possuirá `selectionMode`, IDs selecionados, origem ativa, abertura do diálogo, estado de envio e resultado. A página manterá os filtros, a página atual e a recarga da lista. O diálogo manterá foco, tradução, resumo e comandos visuais; chamará o coordenador para executar a operação. O `ScrapReviewService` continuará responsável apenas pelo HTTP.
+Criar `review/scrap-bulk-review.coordinator.ts` em `modules/scrap-base/`, fornecido por `ScrapBasePage` para compartilhar a mesma instância com o diálogo. O coordenador possuirá `selectionMode`, IDs selecionados, origem ativa, abertura do diálogo, estado de envio e resultado. A página manterá os filtros, a página atual e a recarga da lista. O diálogo manterá foco, tradução, resumo e comandos visuais; chamará o coordenador para executar a operação. O `ScrapReviewService` continuará responsável apenas pelo HTTP.
 
 Regras a preservar ou explicitar na API do coordenador:
 
@@ -51,7 +51,7 @@ Regras a preservar ou explicitar na API do coordenador:
 - Em sucesso parcial, retirar apenas `created_occurrence_ids`. Manter IDs ignorados selecionados e exibir `skipped` e os motivos no diálogo. A página recarrega a lista uma vez após a conclusão. Em erro, manter seleção e origem para permitir nova tentativa.
 - Ao fechar/cancelar o diálogo, limpar apenas seu estado transitório. Ao sair da página, a instância e a seleção são descartadas. Não mover a fila individual para este coordenador.
 
-Alterar `scrap-base-page.ts`, seu HTML e `scrap-bulk-review-dialog/`; acrescentar `scrap-bulk-review.coordinator.spec.ts` e ajustar specs existentes para fornecer a instância no escopo correto. Cobrir seleção entre páginas, limite, item inelegível, origem exclusiva, anexos opt-in, envio duplicado, falha com retry, resultado parcial e limpeza ao sair da página. Aceite: mesma rota e interface, com uma única origem de verdade para o estado do lote.
+Alterar `scrap-base-page.ts`, seu HTML e `review/scrap-bulk-review-dialog/`; acrescentar `review/scrap-bulk-review.coordinator.spec.ts` e ajustar specs existentes para fornecer a instância no escopo correto. Cobrir seleção entre páginas, limite, item inelegível, origem exclusiva, anexos opt-in, envio duplicado, falha com retry, resultado parcial e limpeza ao sair da página. Aceite: mesma rota e interface, com uma única origem de verdade para o estado do lote.
 
 ## Entrega 2 — fila de revisão individual
 
@@ -63,7 +63,7 @@ Criar `scrap-review-queue.store.ts`, com estado de fila limitado à sessão da p
 - Metadados de uma ocorrência fora da página carregada podem estar ausentes. Nesse caso, apresentar estado sem metadados até obter os dados disponíveis, sem mostrar os dados da ocorrência anterior. Não criar novo endpoint sem verificar o backend.
 - Requisição de uma ocorrência antiga não pode sobrescrever o item atual após avanço rápido. Cancelar a assinatura anterior ou comparar a chave da requisição antes de aplicar a resposta.
 
-Alterar `scrap-base-page.ts`, `scrap-review-drawer.ts` e seus specs; adicionar spec da store com avanço, retorno, último item, conflito, descarte e resposta atrasada. Aceite: a fila funciona com um ou vários IDs, não perde rascunho silenciosamente e não mostra dados de outro item.
+Alterar `scrap-base-page.ts`, `review/scrap-review-drawer/scrap-review-drawer.ts` e seus specs; adicionar spec da store com avanço, retorno, último item, conflito, descarte e resposta atrasada. Aceite: a fila funciona com um ou vários IDs, não perde rascunho silenciosamente e não mostra dados de outro item.
 
 ## Entrega 3 — operação de revisão e anexos
 
@@ -81,19 +81,19 @@ Aceite: o drawer concentra apresentação e estado transitório do formulário; 
 
 ## Entrega 5 — diretórios funcionais e documentação
 
-Depois que cada responsabilidade tiver um dono, fazer **apenas movimentos de arquivos** em commit separado. Estrutura sugerida:
+Concluída. A feature agora está organizada assim:
 
 ```text
 modules/scrap-base/
 ├── scrap-base-page.{ts,html,css,spec.ts}
 ├── scrap-base.routes.ts
 ├── scrap-base.public-api.ts
-├── list/                 # lista, filtros, tipos e respectivos testes
-├── review/               # serviço de revisão, modelos locais, drawer, formulário, anexos, fila e lote
-└── templates/            # catálogo, popover e respectivos testes
+├── list/       # modelos da lista, serviço HTTP, store e specs
+├── review/     # revisão, anexos, fila, lote, serviços e specs
+└── templates/  # modelos, API, store, popover e specs
 ```
 
-Manter TS, HTML, CSS e spec de cada componente juntos. Atualizar imports relativos, URLs de templates/estilos e specs; verificar que não há arquivos duplicados nos caminhos antigos. `settings` deve continuar importando `DefectTypesService` e `ScrapDefectType` somente por `scrap-base.public-api.ts`. Não criar diretórios vazios nem mover um modelo de domínio para `shared` só porque vários arquivos da mesma feature o usam. Executar build e checker após cada grupo de movimentos; atualizar o grafo ao concluir alterações de código conforme `AGENTS.md`.
+Os pares TS/HTML/CSS/spec dos componentes foram mantidos juntos. Imports relativos e URLs de templates/estilos foram atualizados; não há cópias nos caminhos anteriores. `settings` continua importando `DefectTypesService` e `ScrapDefectType` por `scrap-base.public-api.ts`. Builds normal e Cloudflare, checker arquitetural, formatação e verificação de resolução dos imports passaram.
 
 ## Verificação final e critério de conclusão
 
