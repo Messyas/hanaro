@@ -107,14 +107,17 @@ def view(entity):
     return {column.name: getattr(entity, column.name) for column in entity.__table__.columns}
 
 
-def report_link_view(version: ReportVersion) -> dict:
+def report_link_view(version: ReportVersion, report: Report) -> dict:
     content = version.content
-    report = content.get("document", {}).get("report", {}) if version.content_schema_version >= 2 else content.get("report", {})
+    snapshot_report = (
+        content.get("document", {}).get("report", {}) if version.content_schema_version >= 2 else content.get("report", {})
+    )
     return {
         "id": version.id,
         "report_id": version.report_id,
         "revision": version.revision,
-        "title": report.get("title", ""),
+        "code": report.code,
+        "title": snapshot_report.get("title") or report.title,
     }
 
 
@@ -124,13 +127,14 @@ async def plan_list_items(db: AsyncSession, plans: list[ActionPlan]) -> list[dic
     if not items:
         return []
     report_rows = await db.execute(
-        select(PlanReport.plan_id, ReportVersion)
+        select(PlanReport.plan_id, ReportVersion, Report)
         .join(ReportVersion, ReportVersion.id == PlanReport.report_version_id)
+        .join(Report, Report.id == ReportVersion.report_id)
         .where(PlanReport.plan_id.in_(items))
         .order_by(PlanReport.plan_id, ReportVersion.report_id, ReportVersion.revision, ReportVersion.id)
     )
-    for plan_id, version in report_rows:
-        items[plan_id]["reports"].append(report_link_view(version))
+    for plan_id, version, report in report_rows:
+        items[plan_id]["reports"].append(report_link_view(version, report))
     return [items[plan.id] for plan in plans]
 
 
@@ -178,15 +182,16 @@ async def save_plan(db: AsyncSession, data: PlanInput, actor_id: int, plan_id=No
 
 async def plan_detail(db, plan_id):
     result = view(await get_plan(db, plan_id))
-    result["reports"] = [
-        report_link_view(v)
-        for v in await db.scalars(
-            select(ReportVersion)
+    rows = (
+        await db.execute(
+            select(ReportVersion, Report)
             .join(PlanReport, PlanReport.report_version_id == ReportVersion.id)
+            .join(Report, Report.id == ReportVersion.report_id)
             .where(PlanReport.plan_id == plan_id)
             .order_by(ReportVersion.report_id, ReportVersion.revision, ReportVersion.id)
         )
-    ]
+    ).all()
+    result["reports"] = [report_link_view(version, report) for version, report in rows]
     return result
 
 

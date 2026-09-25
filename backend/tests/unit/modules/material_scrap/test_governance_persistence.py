@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from scripts.seed_demo_governance import seed_governance
 from src.infrastructure.database.session import Base
-from src.modules.governance.actions import PlanInput, TaskInput, save_plan, save_task
+from src.modules.governance.actions import PlanInput, TaskInput, plan_detail, plan_list_items, save_plan, save_task
 from src.modules.governance.exceptions import ReportConflictError
 from src.modules.governance.models import (
     ActionPlan,
@@ -28,8 +28,10 @@ from src.modules.governance.models import (
     DatasetSnapshot,
     Factory,
     ImprovementAction,
+    PlanReport,
     ProductionLine,
     ProductionVersion,
+    Report,
     ReportVersion,
     SnapshotItem,
 )
@@ -112,9 +114,17 @@ async def test_seed_replay_constraints_and_immutable_snapshots(governance_engine
         assert first["gov_alerts"] == 5
         assert first["gov_alert_recipients"] == 5
         assert first["gov_consumer_receipts"] == 5
+        assert first["gov_plan_reports"] == 3
         assert await db.scalar(select(func.count()).select_from(Alert)) == 5
         assert await db.scalar(select(func.count()).select_from(AlertRecipient)) == 5
         assert await db.scalar(select(func.count()).select_from(ConsumerReceipt)) == 5
+        assert await db.scalar(select(func.count()).select_from(PlanReport)) == 3
+        assert await db.scalar(select(func.count()).select_from(Report).where(Report.status == "PUBLISHED")) == 3
+        plan = await db.scalar(select(ActionPlan))
+        linked = (await plan_detail(db, plan.id))["reports"]
+        assert {item["code"] for item in linked} == {"DEMO-REL-001", "DEMO-REL-002", "DEMO-REL-003"}
+        assert all(item["title"] == "Relatorio demonstrativo" for item in linked)
+        assert (await plan_list_items(db, [plan]))[0]["reports"] == linked
         assert await seed_governance(db) == {}
         await db.commit()
         line = await db.scalar(select(ProductionLine).limit(1))

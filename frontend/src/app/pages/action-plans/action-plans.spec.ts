@@ -257,6 +257,47 @@ describe('ActionPlans pagination', () => {
     expect(component.columns()['UNDER_VERIFICATION'].items[0].status).toBe('UNDER_VERIFICATION');
   });
 
+  it('disables task changes while the plan is completed', () => {
+    const task = {
+      id: 'task-1',
+      plan_id: plan.id,
+      title: 'Repair',
+      description: '',
+      priority: 'MEDIUM',
+      due_at: null,
+      is_blocked: false,
+      blocked_reason: null,
+      version: 1,
+      status: 'UNDER_VERIFICATION',
+      position: 0,
+      participants: [],
+    } satisfies ActionTask;
+    component.plan.set({ ...plan, status: 'COMPLETED', reports: [] });
+    component.columns.set({
+      UNDER_VERIFICATION: { items: [task], total: 1, has_next: false },
+    });
+    governanceService.task.mockReturnValue(of(task));
+    fixture.detectChanges();
+
+    expect(
+      (fixture.nativeElement.querySelector('.validate-btn') as HTMLButtonElement).disabled,
+    ).toBe(true);
+    expect(
+      fixture.nativeElement.querySelector('.task-card')?.classList.contains('cdk-drag-disabled'),
+    ).toBe(true);
+
+    component.openTask(task.id);
+    fixture.detectChanges();
+    expect(
+      (
+        fixture.nativeElement.querySelector(
+          '.task-detail-drawer button[type="submit"]',
+        ) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+    expect(fixture.nativeElement.querySelector('.task-activity-actions')).toBeNull();
+  });
+
   it('selects and removes occurrences when saving a task', () => {
     component.plan.set({ ...plan, reports: [] });
     component.newTask();

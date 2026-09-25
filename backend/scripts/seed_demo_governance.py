@@ -35,6 +35,7 @@ from src.modules.governance.models import (
     ImprovementAction,
     LineLayout,
     OutboxEvent,
+    PlanReport,
     ProductionLine,
     ProductionVersion,
     Report,
@@ -93,6 +94,7 @@ async def seed_governance(db: AsyncSession) -> dict[str, int]:
     recipient = await db.scalar(select(User).where(User.username == admin_username, User.is_deleted.is_(False)))
     if recipient is None:
         recipient = await db.scalar(select(User).where(User.is_deleted.is_(False)).order_by(User.id))
+    plan_is_new = await db.get(ActionPlan, seed_id("action-plan")) is None
     plan = await add(
         ActionPlan,
         "action-plan",
@@ -233,7 +235,12 @@ async def seed_governance(db: AsyncSession) -> dict[str, int]:
             snapshot.sealed_at = instant
             await db.flush()
         report = await add(
-            Report, f"{key}-report", factory_id=factory.id, code=f"DEMO-REL-{index + 1:03}", title="Relatorio demonstrativo"
+            Report,
+            f"{key}-report",
+            factory_id=factory.id,
+            code=f"DEMO-REL-{index + 1:03}",
+            title="Relatorio demonstrativo",
+            status="PUBLISHED",
         )
         version = await add(
             ReportVersion,
@@ -248,6 +255,8 @@ async def seed_governance(db: AsyncSession) -> dict[str, int]:
         if version.published_at is None:
             version.published_at = instant
             await db.flush()
+        if plan_is_new:
+            await add(PlanReport, f"{key}-plan-report", plan_id=plan.id, report_version_id=version.id)
         await add(
             ExportJob,
             f"{key}-export",

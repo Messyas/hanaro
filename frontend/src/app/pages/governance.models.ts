@@ -15,7 +15,7 @@ export interface Plan {
   description: string;
   status: 'OPEN' | 'COMPLETED';
   version: number;
-  reports: { id: string; report_id: string; revision: number; title: string }[];
+  reports: { id: string; report_id: string; revision: number; code?: string; title: string }[];
 }
 export interface ActionTask {
   id: string;

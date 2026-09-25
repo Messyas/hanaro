@@ -67,7 +67,7 @@
                 [queryParams]="{ revision: report.revision }"
                 class="report-chip-link"
               >
-                <strong>{{ report.title }}</strong>
+                <strong>{{ report.code ? report.code + ' - ' : '' }}{{ report.title }}</strong>
                 <span class="rev-badge">Rev {{ report.revision }}</span>
               </a>
             }
@@ -254,7 +254,9 @@
             cdkDropList
             [cdkDropListData]="columns()[state]?.items || []"
             (cdkDropListDropped)="drop($event, state)"
-            [cdkDropListDisabled]="busy() || state === 'COMPLETED'"
+            [cdkDropListDisabled]="
+              busy() || plan()?.status === 'COMPLETED' || state === 'COMPLETED'
+            "
           >
             @if ((columns()[state]?.items || []).length) {
               @for (taskItem of columns()[state]?.items || []; track taskItem.id) {
@@ -262,7 +264,9 @@
                   class="task-card"
                   cdkDrag
                   [cdkDragData]="taskItem"
-                  [cdkDragDisabled]="taskItem.status === 'COMPLETED' || busy()"
+                  [cdkDragDisabled]="
+                    taskItem.status === 'COMPLETED' || plan()?.status === 'COMPLETED' || busy()
+                  "
                   (click)="openTask(taskItem.id)"
                 >
                   <div class="task-card-header">
@@ -313,7 +317,7 @@
                       type="button"
                       class="btn btn-primary btn-xs validate-btn"
                       (click)="$event.stopPropagation(); command(taskItem, 'validate')"
-                      [disabled]="busy() || taskItem.is_blocked"
+                      [disabled]="busy() || plan()?.status === 'COMPLETED' || taskItem.is_blocked"
                     >
                       <ui-icon name="check" />
                       {{ c().validate }}
@@ -409,7 +413,7 @@
             @for (report of reports(); track report.id) {
               <div class="report-select-card">
                 <button type="button" class="report-select-btn" (click)="loadVersions(report.id)">
-                  {{ report.title }}
+                  {{ report.code }} - {{ report.title }}
                 </button>
               </div>
             }
@@ -668,7 +672,11 @@
             <button type="button" class="btn btn-secondary" (click)="editingTask.set(false)">
               {{ c().close }}
             </button>
-            <button type="submit" class="btn btn-primary" [disabled]="busy() || !taskTitle.trim()">
+            <button
+              type="submit"
+              class="btn btn-primary"
+              [disabled]="busy() || plan()?.status === 'COMPLETED' || !taskTitle.trim()"
+            >
               {{ c().save }}
             </button>
           </div>
