@@ -23,21 +23,11 @@ import {
 } from '../../shared/list-view/page-size-preference';
 import { UiIcon } from '../../ui-icon';
 import { ActionPlansService } from './action-plans.service';
+import { ActionPlansStore } from './action-plans.store';
 import { GovernanceDirectoryService } from '../../core/governance/governance-directory.service';
-import { Person, WorkflowPage } from '../../core/governance/governance.models';
-import {
-  ActionTask,
-  ActionTaskCommand,
-  HistoryEntry,
-  Plan,
-  TaskState,
-} from './action-plans.models';
+import { ActionTask, ActionTaskCommand, TaskState } from './action-plans.models';
 import { workflowCopy } from '../../pages/governance-copy';
-import {
-  ActionPlanReportLookup,
-  ActionPlanReportOption,
-  ActionPlanReportVersionOption,
-} from '../reports/reports.public-api';
+import { ActionPlanReportLookup } from '../reports/reports.public-api';
 
 const ALLOWED_PAGE_SIZES = PAGE_SIZE_OPTIONS;
 const DEFAULT_PAGE_SIZE: PageSize = 25;
@@ -64,8 +54,10 @@ const PAGE_SIZE_STORAGE_KEY = 'hanaro-action-plans-page-size';
   ],
   templateUrl: './action-plans.html',
   styleUrls: ['./action-plans.css'],
+  providers: [ActionPlansStore],
 })
 export class ActionPlans {
+  private readonly store = inject(ActionPlansStore);
   private readonly planApi = inject(ActionPlansService);
   private readonly directoryApi = inject(GovernanceDirectoryService);
   private readonly reportLookup = inject(ActionPlanReportLookup);
@@ -77,19 +69,19 @@ export class ActionPlans {
   readonly t = computed(() => this.language.translations());
   readonly c = computed(() => workflowCopy[this.language.currentLanguage()]);
   readonly states: TaskState[] = ['PLANNED', 'IN_PROGRESS', 'UNDER_VERIFICATION', 'COMPLETED'];
-  readonly list = signal<WorkflowPage<Plan> | null>(null);
-  readonly plan = signal<Plan | null>(null);
-  readonly columns = signal<Record<string, WorkflowPage<ActionTask>>>({});
-  readonly error = signal('');
-  readonly loading = signal(false);
-  readonly busy = signal(false);
-  readonly editingPlan = signal(false);
-  readonly editingTask = signal(false);
-  readonly task = signal<ActionTask | null>(null);
-  readonly history = signal<WorkflowPage<HistoryEntry> | null>(null);
-  readonly people = signal<Person[]>([]);
-  readonly reports = signal<ActionPlanReportOption[]>([]);
-  readonly boardFilterOpen = signal(false);
+  readonly list = this.store.list;
+  readonly plan = this.store.plan;
+  readonly columns = this.store.columns;
+  readonly error = this.store.error;
+  readonly loading = this.store.loading;
+  readonly busy = this.store.busy;
+  readonly editingPlan = this.store.editingPlan;
+  readonly editingTask = this.store.editingTask;
+  readonly task = this.store.task;
+  readonly history = this.store.history;
+  readonly people = this.store.people;
+  readonly reports = this.store.reports;
+  readonly boardFilterOpen = this.store.boardFilterOpen;
   readonly priorityOptions = computed(() => [
     { value: '', label: this.c().all },
     { value: 'LOW', label: this.c().low },
@@ -100,7 +92,7 @@ export class ActionPlans {
   readonly taskPriorityOptions = computed(() =>
     this.priorityOptions().filter((option) => option.value),
   );
-  readonly versions = signal<ActionPlanReportVersionOption[]>([]);
+  readonly versions = this.store.versions;
   readonly allowedPageSizes = ALLOWED_PAGE_SIZES;
   readonly page = signal(1);
   readonly pageSize = signal<number>(

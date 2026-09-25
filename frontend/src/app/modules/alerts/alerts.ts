@@ -1,4 +1,4 @@
-import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -15,9 +15,9 @@ import { StatusBadge, StatusBadgeTone } from '../../shared/list-view/status-badg
 import { ListPanel } from '../../shared/list-view/list-panel/list-panel';
 import { UiIcon } from '../../ui-icon';
 import { workflowCopy } from '../../pages/governance-copy';
-import { Person, WorkflowPage } from '../../core/governance/governance.models';
-import { AlertItem, NotificationEmail, Rule } from './alerts.models';
+import { AlertItem, Rule } from './alerts.models';
 import { AlertsService } from './alerts.service';
+import { AlertsStore } from './alerts.store';
 import { GovernanceDirectoryService } from '../../core/governance/governance-directory.service';
 
 @Component({
@@ -38,27 +38,29 @@ import { GovernanceDirectoryService } from '../../core/governance/governance-dir
   ],
   templateUrl: './alerts.html',
   styleUrls: ['./alerts.css'],
+  providers: [AlertsStore],
 })
 export class Alerts {
+  private readonly store = inject(AlertsStore);
   private readonly alertsApi = inject(AlertsService);
   private readonly directoryApi = inject(GovernanceDirectoryService);
   private readonly capabilitiesApi = inject(GovernanceCapabilitiesService);
   private readonly destroy = inject(DestroyRef);
   readonly language = inject(LanguageService);
   readonly c = computed(() => workflowCopy[this.language.currentLanguage()]);
-  readonly page = signal<WorkflowPage<AlertItem> | null>(null);
-  readonly error = signal('');
-  readonly busy = signal(false);
-  readonly available = signal(true);
-  readonly loading = signal(false);
-  readonly editing = signal(false);
-  readonly settings = signal(false);
-  readonly rules = signal<WorkflowPage<Rule> | null>(null);
-  readonly people = signal<Person[]>([]);
-  readonly tiers = signal<Person[]>([]);
-  readonly emails = signal<NotificationEmail[]>([]);
-  readonly showEmails = signal(false);
-  readonly filterOpen = signal(false);
+  readonly page = this.store.page;
+  readonly error = this.store.error;
+  readonly busy = this.store.busy;
+  readonly available = this.store.available;
+  readonly loading = this.store.loading;
+  readonly editing = this.store.editing;
+  readonly settings = this.store.settings;
+  readonly rules = this.store.rules;
+  readonly people = this.store.people;
+  readonly tiers = this.store.tiers;
+  readonly emails = this.store.emails;
+  readonly showEmails = this.store.showEmails;
+  readonly filterOpen = this.store.filterOpen;
   readonly types = [
     'SCRAP_RELEVANT',
     'COST_EXCEEDED',
