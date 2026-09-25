@@ -5,7 +5,8 @@ import { vi } from 'vitest';
 import { LanguageService } from '../../i18n/language.service';
 import { ReportDetail, ReportPreview, ReportVersion } from './reports.models';
 import { ReportsPage } from './reports-page';
-import { ReportsService } from './reports.service';
+import { ReportEditorService } from './report-editor.service';
+import { ReportDossierPreviewService } from './report-dossier-preview.service';
 import { ReportSourceService } from './report-source.service';
 import { ReportPublicationService } from './report-publication.service';
 import { ReportCatalogService } from './report-catalog.service';
@@ -14,7 +15,8 @@ import { ReportPeriodCloseService } from './report-period-close.service';
 describe('ReportsPage', () => {
   let fixture: ComponentFixture<ReportsPage>;
   let component: ReportsPage;
-  let service: Record<string, ReturnType<typeof vi.fn>>;
+  let editorService: Record<string, ReturnType<typeof vi.fn>>;
+  let dossierPreviewService: Record<string, ReturnType<typeof vi.fn>>;
   let sourceService: Record<string, ReturnType<typeof vi.fn>>;
   let publicationService: Record<string, ReturnType<typeof vi.fn>>;
   let catalogService: Record<string, ReturnType<typeof vi.fn>>;
@@ -50,10 +52,10 @@ describe('ReportsPage', () => {
   };
 
   beforeEach(async () => {
-    service = {
+    editorService = {
       update: vi.fn().mockReturnValue(of({ ...report, version: 3 })),
-      preview: vi.fn().mockReturnValue(of(preview)),
     };
+    dossierPreviewService = { load: vi.fn().mockReturnValue(of(preview)) };
     catalogService = {
       list: vi.fn().mockReturnValue(
         of({
@@ -114,7 +116,8 @@ describe('ReportsPage', () => {
       providers: [
         provideRouter([]),
         LanguageService,
-        { provide: ReportsService, useValue: service },
+        { provide: ReportEditorService, useValue: editorService },
+        { provide: ReportDossierPreviewService, useValue: dossierPreviewService },
         { provide: ReportCatalogService, useValue: catalogService },
         { provide: ReportSourceService, useValue: sourceService },
         { provide: ReportPublicationService, useValue: publicationService },
@@ -145,7 +148,7 @@ describe('ReportsPage', () => {
       pageSize: 25,
       search: undefined,
     });
-    expect(service['preview']).toHaveBeenCalledWith(report.id);
+    expect(dossierPreviewService['load']).toHaveBeenCalledWith(report.id);
     expect(publicationService['versions']).toHaveBeenCalledWith(report.id, {
       page: 1,
       pageSize: 25,

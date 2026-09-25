@@ -1,13 +1,13 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { PeriodClosePreview, ReportPreview } from './reports.models';
-import { ReportsService } from './reports.service';
+import { ReportDossierPreviewService } from './report-dossier-preview.service';
 import { ReportPeriodCloseService } from './report-period-close.service';
 
 @Injectable({ providedIn: 'root' })
 export class ReportPreviewCoordinator {
   constructor(
-    private readonly service: ReportsService,
+    private readonly dossierPreview: ReportDossierPreviewService,
     private readonly periodClose: ReportPeriodCloseService,
   ) {}
 
@@ -16,6 +16,6 @@ export class ReportPreviewCoordinator {
   }
 
   loadDossier(reportId: string): Observable<ReportPreview> {
-    return this.service.preview(reportId);
+    return this.dossierPreview.load(reportId);
   }
 }

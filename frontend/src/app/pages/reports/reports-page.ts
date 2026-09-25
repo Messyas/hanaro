@@ -60,7 +60,7 @@ import {
   ReportScope,
   ReportVersion,
 } from './reports.models';
-import { ReportsService } from './reports.service';
+import { ReportEditorService } from './report-editor.service';
 import { ReportCatalogService } from './report-catalog.service';
 
 const PAGE_SIZES = [25, 50, 100] as const;
@@ -335,7 +335,7 @@ export class ReportsPage implements OnInit {
       (this.draftTitle().trim() !== this.active()!.title ||
         this.draftDescription().trim() !== this.active()!.description),
   );
-  private readonly service = inject(ReportsService);
+  private readonly editor = inject(ReportEditorService);
   private readonly catalog = inject(ReportCatalogService);
   private readonly exportCoordinator = inject(ReportExportCoordinator);
   private readonly publication = inject(ReportPublicationCoordinator);
@@ -802,7 +802,7 @@ export class ReportsPage implements OnInit {
     this.saving.set(true);
     this.saveStatus.set('saving');
     this.workspaceError.set(null);
-    this.service
+    this.editor
       .update({
         reportId: report.id,
         expectedVersion: report.version,

@@ -3,10 +3,8 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { ReportCatalogService } from './report-catalog.service';
 import { ReportPeriodCloseService } from './report-period-close.service';
-import { ReportsService } from './reports.service';
 
-describe('ReportsService', () => {
-  let service: ReportsService;
+describe('Report data access services', () => {
   let catalog: ReportCatalogService;
   let periodClose: ReportPeriodCloseService;
   let http: HttpTestingController;
@@ -14,14 +12,12 @@ describe('ReportsService', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [
-        ReportsService,
         ReportCatalogService,
         ReportPeriodCloseService,
         provideHttpClient(),
         provideHttpClientTesting(),
       ],
     });
-    service = TestBed.inject(ReportsService);
     catalog = TestBed.inject(ReportCatalogService);
     periodClose = TestBed.inject(ReportPeriodCloseService);
     http = TestBed.inject(HttpTestingController);
