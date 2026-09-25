@@ -41,15 +41,10 @@ export const routes: Routes = [
         path: 'base-de-scrap',
         title: 'Base de Scrap',
         canActivate: [authenticatedGuard, adminScopeGuard],
-        loadComponent: () =>
-          import('./pages/scrap-base/scrap-base-page').then((module) => module.ScrapBasePage),
-      },
-      {
-        path: 'base-de-scrap/revisao/:occurrenceId',
-        title: 'Análise de Scrap',
-        canActivate: [authenticatedGuard, adminScopeGuard],
-        loadComponent: () =>
-          import('./pages/scrap-base/scrap-base-page').then((module) => module.ScrapBasePage),
+        loadChildren: () =>
+          import('./modules/scrap-base/scrap-base.routes').then(
+            (module) => module.SCRAP_BASE_ROUTES,
+          ),
       },
       {
         path: 'relatorios',

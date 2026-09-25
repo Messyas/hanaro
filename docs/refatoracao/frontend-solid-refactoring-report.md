@@ -506,7 +506,7 @@ Acceptance: the old broad `GovernanceService` is deleted; each feature depends o
 
 #### WP6 — Scrap Base and Settings
 
-- [ ] Move Scrap Base/Review into one feature boundary with separate list, review, attachment, and template capabilities.
+- [x] Move Scrap Base/Review into `modules/scrap-base` with feature routes and separate list, review, attachment, and template capabilities.
 - [x] Move object URL creation/revocation behind an attachment-scoped registry shared by review preview and local attachments; cleanup runs on removal and destroy.
 - [ ] Move Settings into its module and split tab/capability state.
 - [ ] Extract target-plan and classification calculations into pure domain functions.

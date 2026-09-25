@@ -12,8 +12,8 @@ import {
   ListFilterSelect,
   ListFilterSelectOption,
 } from '../../shared/list-filters/list-filter-select';
-import { ScrapDefectType } from '../scrap-base/scrap-review.models';
-import { ScrapReviewService } from '../scrap-base/scrap-review.service';
+import { ScrapDefectType } from '../../modules/scrap-base/scrap-review.models';
+import { ScrapReviewService } from '../../modules/scrap-base/scrap-review.service';
 import { ScrapTargetService } from './scrap-target.service';
 import { ProductionMeasurementService } from './production-measurement.service';
 import {
