@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import {
   ActionTask,
+  ActionTaskBoardQuery,
   AlertItem,
   HistoryEntry,
   Person,
@@ -28,10 +29,18 @@ export class GovernanceService {
       ? this.http.put<Plan>(`${this.base}/action-plans/${id}`, data)
       : this.http.post<Plan>(`${this.base}/action-plans`, data);
   }
-  board(id: string, status: TaskState, page = 1, search = '', priority = '') {
-    return this.http.get<WorkflowPage<ActionTask>>(`${this.base}/action-plans/${id}/tasks`, {
-      params: { status, page, search, ...(priority ? { priority } : {}) },
-    });
+  getBoard(query: ActionTaskBoardQuery) {
+    return this.http.get<WorkflowPage<ActionTask>>(
+      `${this.base}/action-plans/${query.planId}/tasks`,
+      {
+        params: {
+          status: query.status,
+          page: query.page,
+          search: query.search ?? '',
+          ...(query.priority ? { priority: query.priority } : {}),
+        },
+      },
+    );
   }
   task(id: string) {
     return this.http.get<ActionTask>(`${this.base}/actions/${id}`);

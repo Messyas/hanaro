@@ -235,7 +235,13 @@ export class ActionPlans {
     if (!plan) return;
     forkJoin(
       this.states.map((status) =>
-        this.api.board(plan.id, status, this.columnPages[status] || 1, this.search, this.priority),
+        this.api.getBoard({
+          planId: plan.id,
+          status,
+          page: this.columnPages[status] || 1,
+          search: this.search,
+          priority: this.priority,
+        }),
       ),
     )
       .pipe(takeUntilDestroyed(this.destroy))

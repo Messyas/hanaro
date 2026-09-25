@@ -9,6 +9,14 @@ export interface WorkflowPage<T> {
   has_next: boolean;
 }
 export type TaskState = 'PLANNED' | 'IN_PROGRESS' | 'UNDER_VERIFICATION' | 'COMPLETED';
+export interface ActionTaskBoardQuery {
+  planId: string;
+  status: TaskState;
+  page: number;
+  search?: string;
+  priority?: string;
+}
+
 export interface Plan {
   id: string;
   title: string;
