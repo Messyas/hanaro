@@ -1,6 +1,6 @@
 # Plano de execução da refatoração de scrap-base
 
-Status: em execução. As entregas 0 a 2 estão implementadas; as entregas 0 e 2 passaram por build, checker arquitetural e formatação nesta continuação. Testes não foram executados.
+Status: em execução. Entregas 0 a 3 implementadas; entrega 4 parcial, com catálogo de modelos separado do transporte. Build normal, checker arquitetural e formatação passaram nesta etapa. Testes não foram executados.
 
 ### Progresso
 
@@ -10,7 +10,8 @@ Status: em execução. As entregas 0 a 2 estão implementadas; as entregas 0 e 2
 | 1. Revisão em lote | Coordenador implementado e builds/formatação/checker passaram. Testes de regressão pendentes. | `fb003e3` |
 | 2. Fila de revisão | Store local ao drawer para IDs, índice e metadados; cancelamento de consulta antiga; proteção contra troca/fechamento durante operações; build, checker e formatação passaram. Testes pendentes. | `89f2643` |
 | 3. Workflow de revisão | Coordenador tipado para salvar, upload sequencial e finalização; falha de anexo bloqueia finalização, preserva o rascunho e devolve arquivos que falharam para retry. Build normal, Cloudflare, checker e formatação passaram. Testes pendentes. | `b784d79` |
-| 4–5 | Planejadas; ainda não iniciadas. | — |
+| 4. Modelos e listagem | Parcial: `ScrapTemplateService` ficou restrito ao HTTP; `ScrapTemplateStore` mantém catálogo e loading e tem escopo de rota compartilhado entre página e drawer. A extração da listagem ainda está pendente. Build, checker e formatação passaram; testes pendentes. | `fe4e488` |
+| 5. Diretórios funcionais | Planejada; ainda não iniciada. | — |
 
 ## Objetivo e limites
 
@@ -74,7 +75,7 @@ Aceite: o drawer concentra apresentação e estado transitório do formulário; 
 
 ## Entrega 4 — modelos e listagem
 
-Separar, se os testes das etapas anteriores confirmarem a utilidade, o HTTP de `ScrapTemplateService` do estado de modelos usado por página e drawer. Uma store com escopo de página pode manter catálogo, carregamento, origem ativa e mutações; o serviço HTTP fica com listar/criar/editar/excluir. Preservar criação a partir de uma revisão, favorito, atualização do modelo ativo, feedback e exclusão. Evitar duas stores distintas que possam divergir entre página e drawer.
+`ScrapTemplateService` contém apenas as operações HTTP; `ScrapTemplateStore` mantém catálogo, loading e mutações, com provider no escopo de rota para compartilhar a mesma instância entre página e drawer. A origem ativa permanece no coordenador de lote, evitando duplicar estado. Preservar listar/criar/editar/excluir. Preservar criação a partir de uma revisão, favorito, atualização do modelo ativo, feedback e exclusão. Evitar duas stores distintas que possam divergir entre página e drawer.
 
 Extrair listagem, filtros e paginação de `ScrapBasePage` para `scrap-list.store.ts` no mesmo escopo. A store monta `ScrapFilterParams`, cancela a consulta anterior e guarda dados/loading/erro. O modo de seleção do lote informa `exclude_reviewed`, mas os IDs selecionados continuam no coordenador de lote. Preservar debounce de 300 ms, filtro por usuário, faixa de datas, ordenação, paginação e atualização local após salvar uma revisão. Cobrir resposta fora de ordem, erro, lista vazia e troca de filtros. Essas duas extrações podem ser entregas independentes.
 
