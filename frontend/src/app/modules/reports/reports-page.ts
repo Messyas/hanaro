@@ -22,8 +22,8 @@ import { ListPagination } from '../../shared/list-view/list-pagination/list-pagi
 import { ListPanel } from '../../shared/list-view/list-panel/list-panel';
 import { StatusBadge } from '../../shared/list-view/status-badge/status-badge';
 import { UiIcon } from '../../ui-icon';
-import { GovernanceService } from '../governance.service';
-import { workflowCopy } from '../governance-copy';
+import { GovernanceService } from '../../pages/governance.service';
+import { workflowCopy } from '../../pages/governance-copy';
 import { ReportPreview as ReportPreviewComponent } from './report-preview/report-preview';
 import { ReportEditorStore } from './report-editor.store';
 import { ReportExportCoordinator } from './report-export.coordinator';

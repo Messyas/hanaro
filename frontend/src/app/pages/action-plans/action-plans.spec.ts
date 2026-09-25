@@ -5,8 +5,8 @@ import { vi } from 'vitest';
 import { LanguageService } from '../../i18n/language.service';
 import { GovernanceService } from '../governance.service';
 import { Plan, WorkflowPage } from '../governance.models';
-import { ReportCatalogService } from '../reports/report-catalog.service';
-import { ReportPublicationService } from '../reports/report-publication.service';
+import { ReportCatalogService } from '../../modules/reports/report-catalog.service';
+import { ReportPublicationService } from '../../modules/reports/report-publication.service';
 import { ActionPlans } from './action-plans';
 
 describe('ActionPlans pagination', () => {

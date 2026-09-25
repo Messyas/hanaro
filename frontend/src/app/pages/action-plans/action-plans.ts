@@ -28,9 +28,9 @@ import {
   WorkflowPage,
 } from '../governance.models';
 import { workflowCopy } from '../governance-copy';
-import { ReportCatalogService } from '../reports/report-catalog.service';
-import { ReportPublicationService } from '../reports/report-publication.service';
-import { ReportListItem, ReportVersion } from '../reports/reports.models';
+import { ReportCatalogService } from '../../modules/reports/report-catalog.service';
+import { ReportPublicationService } from '../../modules/reports/report-publication.service';
+import { ReportListItem, ReportVersion } from '../../modules/reports/reports.models';
 
 const ALLOWED_PAGE_SIZES = [10, 25, 50, 100] as const;
 const PAGE_SIZE_STORAGE_KEY = 'hanaro-action-plans-page-size';

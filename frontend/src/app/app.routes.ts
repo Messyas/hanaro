@@ -54,14 +54,14 @@ export const routes: Routes = [
         title: 'Relatórios',
         canActivate: [authenticatedGuard, adminScopeGuard],
         loadComponent: () =>
-          import('./pages/reports/reports-page').then((module) => module.ReportsPage),
+          import('./modules/reports/reports-page').then((module) => module.ReportsPage),
       },
       {
         path: 'relatorios/:reportId',
         title: 'Relatório de Scrap',
         canActivate: [authenticatedGuard, adminScopeGuard],
         loadComponent: () =>
-          import('./pages/reports/reports-page').then((module) => module.ReportsPage),
+          import('./modules/reports/reports-page').then((module) => module.ReportsPage),
       },
       {
         path: 'configuracoes',
