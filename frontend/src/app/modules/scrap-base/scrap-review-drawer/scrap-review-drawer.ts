@@ -526,7 +526,7 @@ export class ScrapReviewDrawer implements OnInit, OnDestroy {
     this.pendingUploadFiles.set([]);
     this.clearDraftAttachmentPreviews();
 
-    return from(files).pipe(
+    return (from(files) as Observable<File>).pipe(
       concatMap((file) =>
         this.reviewService.uploadAttachment(reviewId, file).pipe(
           tap((attachment) => {

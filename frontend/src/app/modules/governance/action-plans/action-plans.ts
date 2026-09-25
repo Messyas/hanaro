@@ -3,7 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { forkJoin, Observable } from 'rxjs';
 import { LanguageService } from '../../../core/i18n/language.service';
 import { ListFilterDateRange } from '../../../shared/components/list-filters/list-filter-date-range';
 import { ListFilterInput } from '../../../shared/components/list-filters/list-filter-input';
@@ -31,6 +31,7 @@ import { GovernanceDirectoryService } from '../governance-directory.service';
 import { ActionTask, ActionTaskCommand, TaskState } from './action-plans.models';
 import { workflowCopy } from '../governance-copy';
 import { ActionPlanReportLookup } from './action-plan-report-lookup.service';
+import { WorkflowPage } from '../governance.models';
 
 const ALLOWED_PAGE_SIZES = PAGE_SIZE_OPTIONS;
 const DEFAULT_PAGE_SIZE: PageSize = 25;
@@ -230,22 +231,21 @@ export class ActionPlans {
   loadBoard() {
     const plan = this.plan();
     if (!plan) return;
-    forkJoin(
-      this.states.map((status) =>
-        this.planApi.getBoard({
-          planId: plan.id,
-          status,
-          page: this.columnPages[status] || 1,
-          search: this.search,
-          priority: this.priority,
-        }),
-      ),
-    )
+    const boardRequests: Observable<WorkflowPage<ActionTask>>[] = this.states.map((status) =>
+      this.planApi.getBoard({
+        planId: plan.id,
+        status,
+        page: this.columnPages[status] || 1,
+        search: this.search,
+        priority: this.priority,
+      }),
+    );
+    forkJoin(boardRequests)
       .pipe(takeUntilDestroyed(this.destroy))
       .subscribe({
-        next: (pages) =>
+        next: (pages: WorkflowPage<ActionTask>[]) =>
           this.columns.set(Object.fromEntries(this.states.map((s, i) => [s, pages[i]]))),
-        error: (e) => this.fail(e),
+        error: (e: { status?: number; error?: { detail?: string } }) => this.fail(e),
       });
   }
 

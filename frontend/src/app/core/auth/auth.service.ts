@@ -72,7 +72,7 @@ export class AuthService {
 
   private fetchSession(): Observable<boolean> {
     return this.http.get<AuthCheckResponse>(`${environment.apiBaseUrl}/auth/check-auth`).pipe(
-      map((response) => {
+      map<AuthCheckResponse, boolean>((response) => {
         if (response.authenticated && response.user) {
           this.currentUser.set(response.user);
           this.authenticationStatus.set('authenticated');
@@ -82,7 +82,7 @@ export class AuthService {
         this.clearSession();
         return false;
       }),
-      catchError(() => {
+      catchError<boolean, Observable<boolean>>(() => {
         this.clearSession();
         return of(false);
       }),

@@ -50,9 +50,9 @@ export class ReportExportCoordinator {
 
   restoreAndPoll(versionId: string): Observable<ExportJob> {
     return this.restore(versionId).pipe(
-      mergeMap((jobs) =>
-        from(jobs).pipe(
-          mergeMap((job) =>
+      mergeMap<ExportJob[], Observable<ExportJob>>((jobs: ExportJob[]) =>
+        (from(jobs) as Observable<ExportJob>).pipe(
+          mergeMap<ExportJob, Observable<ExportJob>>((job: ExportJob) =>
             job.status === 'QUEUED' || job.status === 'RUNNING' ? this.poll(job.id) : of(job),
           ),
         ),
@@ -63,7 +63,10 @@ export class ReportExportCoordinator {
   poll(jobId: string): Observable<ExportJob> {
     return timer(0, 1500).pipe(
       switchMap(() => this.service.status(jobId)),
-      takeWhile((job) => job.status === 'QUEUED' || job.status === 'RUNNING', true),
+      takeWhile<ExportJob>(
+        (job: ExportJob) => job.status === 'QUEUED' || job.status === 'RUNNING',
+        true,
+      ),
     );
   }
 

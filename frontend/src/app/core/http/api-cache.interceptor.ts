@@ -1,6 +1,6 @@
 import { HttpEvent, HttpInterceptorFn, HttpResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { defer, filter, finalize, of, shareReplay, tap } from 'rxjs';
+import { Observable, defer, filter, finalize, of, shareReplay, tap } from 'rxjs';
 import { ApiCacheService } from './api-cache.service';
 
 export const apiCacheInterceptor: HttpInterceptorFn = (request, next) => {
@@ -24,10 +24,9 @@ export const apiCacheInterceptor: HttpInterceptorFn = (request, next) => {
   const existing = cache.getInFlight(key);
   if (existing) return existing;
 
-  const request$ = defer(() => next(request)).pipe(
-    filter(
-      (event: HttpEvent<unknown>): event is HttpResponse<unknown> => event instanceof HttpResponse,
-    ),
+  const events$ = defer(() => next(request)) as Observable<HttpEvent<unknown>>;
+  const request$: Observable<HttpResponse<unknown>> = events$.pipe(
+    filter((event): event is HttpResponse<unknown> => event instanceof HttpResponse),
     tap((response) => {
       if (response.status >= 200 && response.status < 300) cache.set(request, response);
     }),
