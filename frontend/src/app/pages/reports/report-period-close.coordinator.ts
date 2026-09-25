@@ -10,42 +10,42 @@ import {
   ReportSection,
 } from './reports.models';
 import { ReportEvidenceSourceInput } from './report-period-close.workspace';
-import { ReportsService } from './reports.service';
+import { ReportPeriodCloseService } from './report-period-close.service';
 
 @Injectable({ providedIn: 'root' })
 export class ReportPeriodCloseCoordinator {
-  constructor(private readonly service: ReportsService) {}
+  constructor(private readonly periodClose: ReportPeriodCloseService) {}
 
   loadActionCandidates(
     report: ReportDetail,
     query: ReportCandidateQuery,
   ): Observable<Page<EligibleAction>> {
-    return this.service.eligibleActions(report.factory_id, query);
+    return this.periodClose.eligibleActions(report.factory_id, query);
   }
 
   loadEvidenceCandidates(
     report: ReportDetail,
     query: ReportCandidateQuery,
   ): Observable<Page<EligibleEvidence>> {
-    return this.service.eligibleEvidence(report.id, query);
+    return this.periodClose.eligibleEvidence(report.id, query);
   }
 
   updateScope(report: ReportDetail, scope: ReportScope): Observable<ReportDetail> {
-    return this.service.updateScope(report.id, report.version, scope);
+    return this.periodClose.updateScope(report.id, report.version, scope);
   }
 
   replaceSections(report: ReportDetail, sections: ReportSection[]): Observable<ReportDetail> {
-    return this.service.replaceSections(report.id, report.version, sections);
+    return this.periodClose.replaceSections(report.id, report.version, sections);
   }
 
   replaceActionSources(report: ReportDetail, actionIds: string[]): Observable<ReportDetail> {
-    return this.service.replaceActionSources(report.id, report.version, actionIds);
+    return this.periodClose.replaceActionSources(report.id, report.version, actionIds);
   }
 
   replaceEvidenceSources(
     report: ReportDetail,
     evidence: ReportEvidenceSourceInput[],
   ): Observable<ReportDetail> {
-    return this.service.replaceEvidenceSources(report.id, report.version, evidence);
+    return this.periodClose.replaceEvidenceSources(report.id, report.version, evidence);
   }
 }

@@ -1,7 +1,7 @@
 import { of } from 'rxjs';
 import { vi } from 'vitest';
 import { ReportPeriodCloseCoordinator } from './report-period-close.coordinator';
-import { ReportsService } from './reports.service';
+import { ReportPeriodCloseService } from './report-period-close.service';
 
 describe('ReportPeriodCloseCoordinator', () => {
   const report = { id: 'report-1', factory_id: 'factory-1', version: 4 } as never;
@@ -15,7 +15,7 @@ describe('ReportPeriodCloseCoordinator', () => {
       replaceEvidenceSources: vi.fn().mockReturnValue(of(result)),
       eligibleActions: vi.fn(),
       eligibleEvidence: vi.fn(),
-    } as unknown as ReportsService;
+    } as unknown as ReportPeriodCloseService;
     const coordinator = new ReportPeriodCloseCoordinator(service);
     const scope = {} as never;
     const sections = [] as never;
@@ -40,7 +40,7 @@ describe('ReportPeriodCloseCoordinator', () => {
       replaceEvidenceSources: vi.fn(),
       eligibleActions: vi.fn().mockReturnValue(of({ items: [] })),
       eligibleEvidence: vi.fn().mockReturnValue(of({ items: [] })),
-    } as unknown as ReportsService;
+    } as unknown as ReportPeriodCloseService;
     const coordinator = new ReportPeriodCloseCoordinator(service);
     const query = { page: 1, pageSize: 25 };
 

@@ -2,11 +2,13 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { ReportCatalogService } from './report-catalog.service';
+import { ReportPeriodCloseService } from './report-period-close.service';
 import { ReportsService } from './reports.service';
 
 describe('ReportsService', () => {
   let service: ReportsService;
   let catalog: ReportCatalogService;
+  let periodClose: ReportPeriodCloseService;
   let http: HttpTestingController;
 
   beforeEach(() => {
@@ -14,12 +16,14 @@ describe('ReportsService', () => {
       providers: [
         ReportsService,
         ReportCatalogService,
+        ReportPeriodCloseService,
         provideHttpClient(),
         provideHttpClientTesting(),
       ],
     });
     service = TestBed.inject(ReportsService);
     catalog = TestBed.inject(ReportCatalogService);
+    periodClose = TestBed.inject(ReportPeriodCloseService);
     http = TestBed.inject(HttpTestingController);
   });
 
@@ -44,7 +48,9 @@ describe('ReportsService', () => {
   });
 
   it('requests paginated action candidates', () => {
-    service.eligibleActions('factory-1', { page: 3, pageSize: 25, search: 'setup' }).subscribe();
+    periodClose
+      .eligibleActions('factory-1', { page: 3, pageSize: 25, search: 'setup' })
+      .subscribe();
     const request = http.expectOne(
       (candidate) => candidate.url === '/api/v1/reports/eligible-actions',
     );

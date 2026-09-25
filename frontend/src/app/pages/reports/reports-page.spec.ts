@@ -9,6 +9,7 @@ import { ReportsService } from './reports.service';
 import { ReportSourceService } from './report-source.service';
 import { ReportPublicationService } from './report-publication.service';
 import { ReportCatalogService } from './report-catalog.service';
+import { ReportPeriodCloseService } from './report-period-close.service';
 
 describe('ReportsPage', () => {
   let fixture: ComponentFixture<ReportsPage>;
@@ -117,6 +118,7 @@ describe('ReportsPage', () => {
         { provide: ReportCatalogService, useValue: catalogService },
         { provide: ReportSourceService, useValue: sourceService },
         { provide: ReportPublicationService, useValue: publicationService },
+        { provide: ReportPeriodCloseService, useValue: {} },
       ],
     }).compileComponents();
     TestBed.inject(LanguageService).setLanguage('pt');
