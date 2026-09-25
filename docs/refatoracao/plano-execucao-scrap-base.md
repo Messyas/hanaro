@@ -7,7 +7,7 @@ Status: em execução. A entrega 0 foi corrigida e validada por build em `36d0d1
 | Entrega | Estado | Evidência |
 | --- | --- | --- |
 | 0. Baseline | Código corrigido; build, build Cloudflare, formatação e checker passaram. Testes não executados nesta sessão. | `36d0d1c` |
-| 1. Revisão em lote | Coordenador implementado e builds/formatação/checker passaram. Cobertura de regressão ainda precisa ser executada e ajustada se necessário. | Alterações locais desta etapa |
+| 1. Revisão em lote | Coordenador implementado e builds/formatação/checker passaram. Cobertura de regressão ainda precisa ser executada e ajustada se necessário. | `fb003e3` |
 | 2–5 | Planejadas; ainda não iniciadas. | — |
 
 ## Objetivo e limites
