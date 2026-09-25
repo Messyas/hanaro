@@ -367,10 +367,12 @@ class ImprovementAction(GovernanceEntity):
     status: Mapped[str] = mapped_column(String(30), default="PLANNED")
     owner_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT"), default=None)
     due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    is_blocked: Mapped[bool] = mapped_column(Boolean, default=False, server_default=text("false"))
     blocked_reason: Mapped[str | None] = mapped_column(Text, default=None)
     plan_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("gov_action_plans.id", ondelete="RESTRICT"), default=None)
     description: Mapped[str] = mapped_column(Text, default="")
     priority: Mapped[str] = mapped_column(String(10), default="MEDIUM")
+    tags: Mapped[list[str]] = mapped_column(JSON_TYPE, default_factory=list, server_default=text("'[]'"))
     position: Mapped[int] = mapped_column(Integer, default=0)
     author_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT"), default=None)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default_factory=now)
@@ -756,6 +758,20 @@ class ActionOccurrence(GovernanceEntity):
     __table_args__ = (UniqueConstraint("action_id", "occurrence_id", name="uq_gov_action_occurrence"),)
     action_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gov_actions.id", ondelete="RESTRICT"))
     occurrence_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scrap_occurrences.id", ondelete="RESTRICT"))
+
+
+class ActionEvidence(GovernanceEntity):
+    __tablename__ = "gov_action_evidence"
+    __table_args__ = (Index("ix_gov_action_evidence_action", "action_id", "created_at", "id"),)
+    action_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("gov_actions.id", ondelete="RESTRICT"))
+    storage_key: Mapped[str] = mapped_column(String(500), unique=True)
+    sha256: Mapped[str] = mapped_column(String(64))
+    size_bytes: Mapped[int] = mapped_column(Integer)
+    filename: Mapped[str] = mapped_column(String(255))
+    content_type: Mapped[str] = mapped_column(String(100))
+    uploaded_by_user_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT"))
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    deleted_by_user_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT"), default=None)
 
 
 class NotificationRule(GovernanceEntity):

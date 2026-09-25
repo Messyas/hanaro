@@ -1,11 +1,13 @@
 import uuid
 from datetime import datetime
 from typing import Annotated, Literal
+from urllib.parse import quote
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, File, Form, HTTPException, Query, Response, UploadFile
 from sqlalchemy import func, select
 
 from ..user.models import User
+from .action_evidence import MAX_EVIDENCE_BYTES, add_evidence, read_evidence, remove_evidence
 from .actions import (
     PlanInput,
     TaskCommand,
@@ -29,16 +31,29 @@ Size = Annotated[int, Query(ge=1, le=100)]
 
 
 @router.get("/action-plans")
-async def plans(db: DbDep, user: CurrentUserDep, page: Page = 1, page_size: Size = 25):
-    total = await db.scalar(select(func.count()).select_from(ActionPlan))
+async def plans(
+    db: DbDep,
+    user: CurrentUserDep,
+    page: Page = 1,
+    page_size: Size = 25,
+    search: Annotated[str, Query(max_length=240)] = "",
+    status: Literal["OPEN", "COMPLETED"] | None = None,
+    sort: Literal["newest", "oldest", "title"] = "newest",
+):
+    filters = []
+    if search.strip():
+        filters.append(ActionPlan.title.ilike(f"%{search.strip()}%"))
+    if status:
+        filters.append(ActionPlan.status == status)
+    order = {
+        "newest": (ActionPlan.created_at.desc(), ActionPlan.id),
+        "oldest": (ActionPlan.created_at, ActionPlan.id),
+        "title": (ActionPlan.title, ActionPlan.id),
+    }[sort]
+    total = await db.scalar(select(func.count()).select_from(ActionPlan).where(*filters))
     total = int(total or 0)
     rows = list(
-        await db.scalars(
-            select(ActionPlan)
-            .order_by(ActionPlan.created_at.desc(), ActionPlan.id)
-            .offset((page - 1) * page_size)
-            .limit(page_size)
-        )
+        await db.scalars(select(ActionPlan).where(*filters).order_by(*order).offset((page - 1) * page_size).limit(page_size))
     )
     return {"items": await plan_list_items(db, rows), "total": total, "page": page, "has_next": page * page_size < total}
 
@@ -87,6 +102,51 @@ async def read_task(task_id: uuid.UUID, db: DbDep, user: CurrentUserDep):
     return await task_detail(db, task_id)
 
 
+@router.post("/actions/{task_id}/evidence", status_code=201)
+async def upload_task_evidence(
+    task_id: uuid.UUID,
+    file: Annotated[UploadFile, File(description="PDF, JPEG, PNG or WebP evidence")],
+    expected_version: Annotated[int, Form(ge=1)],
+    db: DbDep,
+    user: CurrentUserDep,
+):
+    content = await file.read(MAX_EVIDENCE_BYTES + 1)
+    return await add_evidence(
+        db,
+        task_id,
+        content=content,
+        filename=file.filename or "evidence",
+        content_type=file.content_type or "",
+        expected_version=expected_version,
+        actor_id=int(user["id"]),
+    )
+
+
+@router.get("/actions/{task_id}/evidence/{evidence_id}/download")
+async def download_task_evidence(task_id: uuid.UUID, evidence_id: uuid.UUID, db: DbDep, user: CurrentUserDep):
+    evidence, content = await read_evidence(db, task_id, evidence_id)
+    return Response(
+        content,
+        media_type="application/octet-stream",
+        headers={
+            "Content-Disposition": f"attachment; filename*=UTF-8''{quote(evidence.filename)}",
+            "X-Content-Type-Options": "nosniff",
+            "X-Content-SHA256": evidence.sha256,
+        },
+    )
+
+
+@router.delete("/actions/{task_id}/evidence/{evidence_id}")
+async def delete_task_evidence(
+    task_id: uuid.UUID,
+    evidence_id: uuid.UUID,
+    db: DbDep,
+    user: CurrentUserDep,
+    expected_version: Annotated[int, Query(ge=1)],
+):
+    return await remove_evidence(db, task_id, evidence_id, expected_version, int(user["id"]))
+
+
 @router.post("/actions/{task_id}/commands")
 async def task_command(task_id: uuid.UUID, data: TaskCommand, db: DbDep, user: CurrentUserDep):
     return await command_task(db, task_id, data, int(user["id"]))
@@ -98,14 +158,19 @@ async def history(task_id: uuid.UUID, db: DbDep, user: CurrentUserDep, page: Pag
     condition = [AuditEvent.entity_id == task_id, AuditEvent.entity_type == "ACTION"]
     total = await db.scalar(select(func.count()).select_from(AuditEvent).where(*condition))
     total = int(total or 0)
-    rows = await db.scalars(
-        select(AuditEvent)
+    rows = await db.execute(
+        select(AuditEvent, User.name)
+        .outerjoin(User, User.id == AuditEvent.actor_id)
         .where(*condition)
         .order_by(AuditEvent.created_at.desc(), AuditEvent.id)
         .offset((page - 1) * page_size)
         .limit(page_size)
     )
-    return {"items": [view(row) for row in rows], "total": total, "has_next": page * page_size < total}
+    return {
+        "items": [{**view(event), "actor_name": actor_name} for event, actor_name in rows],
+        "total": total,
+        "has_next": page * page_size < total,
+    }
 
 
 @router.get("/governance/participants")

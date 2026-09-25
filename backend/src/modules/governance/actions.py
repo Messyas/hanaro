@@ -2,16 +2,17 @@
 
 import uuid
 from datetime import datetime
-from typing import Any, Literal
+from typing import Any, Literal, Self
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..material_scrap.models import ScrapOccurrence
+from ..material_scrap.models import ScrapOccurrence, ScrapTransaction
 from ..user.models import User
 from .exceptions import ReportConflictError, ReportNotFoundError, ReportValidationError
 from .models import (
+    ActionEvidence,
     ActionOccurrence,
     ActionParticipant,
     ActionPlan,
@@ -32,7 +33,7 @@ class PlanInput(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     title: str = Field(min_length=1, max_length=240)
     description: str = Field(default="", max_length=10000)
-    report_version_ids: list[uuid.UUID] = Field(default_factory=list, max_length=100)
+    report_version_ids: list[uuid.UUID] = Field(min_length=1, max_length=100)
     expected_version: int | None = Field(default=None, ge=1)
     status: Literal["OPEN", "COMPLETED"] = "OPEN"
 
@@ -42,11 +43,41 @@ class TaskInput(BaseModel):
     title: str = Field(min_length=1, max_length=240)
     description: str = Field(default="", max_length=20000)
     priority: Literal["LOW", "MEDIUM", "HIGH", "URGENT"] = "MEDIUM"
+    tags: list[str] = Field(default_factory=list, max_length=20)
     due_at: datetime | None = None
     participant_ids: list[int] = Field(default_factory=list, max_length=100)
     occurrence_ids: list[uuid.UUID] = Field(default_factory=list, max_length=100)
+    is_blocked: bool = False
     blocked_reason: str | None = Field(default=None, max_length=2000)
     expected_version: int | None = Field(default=None, ge=1)
+
+    @field_validator("tags")
+    @classmethod
+    def normalize_tags(cls, value: list[str]) -> list[str]:
+        tags: list[str] = []
+        seen: set[str] = set()
+        for raw in value:
+            tag = raw.strip()
+            if not 1 <= len(tag) <= 40:
+                raise ValueError("Tags must contain 1-40 characters")
+            if tag.casefold() not in seen:
+                tags.append(tag)
+                seen.add(tag.casefold())
+        return tags
+
+    @model_validator(mode="before")
+    @classmethod
+    def infer_legacy_block(cls, value: Any) -> Any:
+        if isinstance(value, dict) and "is_blocked" not in value and str(value.get("blocked_reason") or "").strip():
+            return {**value, "is_blocked": True}
+        return value
+
+    @model_validator(mode="after")
+    def validate_block(self) -> Self:
+        self.blocked_reason = self.blocked_reason or None
+        if self.blocked_reason and not self.is_blocked:
+            raise ValueError("A block reason requires a blocked task")
+        return self
 
 
 class TaskCommand(BaseModel):
@@ -96,7 +127,7 @@ async def plan_list_items(db: AsyncSession, plans: list[ActionPlan]) -> list[dic
         select(PlanReport.plan_id, ReportVersion)
         .join(ReportVersion, ReportVersion.id == PlanReport.report_version_id)
         .where(PlanReport.plan_id.in_(items))
-        .order_by(PlanReport.plan_id, ReportVersion.revision, ReportVersion.id)
+        .order_by(PlanReport.plan_id, ReportVersion.report_id, ReportVersion.revision, ReportVersion.id)
     )
     for plan_id, version in report_rows:
         items[plan_id]["reports"].append(report_link_view(version))
@@ -115,7 +146,6 @@ async def save_plan(db: AsyncSession, data: PlanInput, actor_id: int, plan_id=No
         plan = await get_plan(db, plan_id, True)
         if data.expected_version != plan.version:
             raise ReportConflictError("Plan changed; local edits have been preserved")
-        plan.version += 1
     else:
         factory = await _factory(db, None)
         plan = ActionPlan(factory_id=factory.id, title=data.title, author_id=actor_id)
@@ -134,6 +164,10 @@ async def save_plan(db: AsyncSession, data: PlanInput, actor_id: int, plan_id=No
     )
     if {v.id for v in versions} != set(data.report_version_ids):
         raise ReportValidationError("Plan sources must be published report versions from the same factory")
+    if len({v.report_id for v in versions}) != len(versions):
+        raise ReportValidationError("A plan can link only one version of each report")
+    if plan_id:
+        plan.version += 1
     plan.title, plan.description, plan.status = data.title, data.description, data.status
     await db.execute(delete(PlanReport).where(PlanReport.plan_id == plan.id))
     db.add_all([PlanReport(plan_id=plan.id, report_version_id=v.id) for v in versions])
@@ -150,6 +184,7 @@ async def plan_detail(db, plan_id):
             select(ReportVersion)
             .join(PlanReport, PlanReport.report_version_id == ReportVersion.id)
             .where(PlanReport.plan_id == plan_id)
+            .order_by(ReportVersion.report_id, ReportVersion.revision, ReportVersion.id)
         )
     ]
     return result
@@ -169,9 +204,42 @@ async def task_detail(db, task_id):
             .order_by(User.id)
         )
     ]
-    result["occurrence_ids"] = list(
-        await db.scalars(select(ActionOccurrence.occurrence_id).where(ActionOccurrence.action_id == task.id))
-    )
+    occurrences = (
+        await db.execute(
+            select(ScrapOccurrence, ScrapTransaction)
+            .join(ActionOccurrence, ActionOccurrence.occurrence_id == ScrapOccurrence.id)
+            .outerjoin(ScrapTransaction, ScrapTransaction.id == ScrapOccurrence.current_transaction_id)
+            .where(ActionOccurrence.action_id == task.id)
+            .order_by(ScrapOccurrence.transaction_date.desc(), ScrapOccurrence.id)
+        )
+    ).all()
+    result["occurrences"] = [
+        {
+            "id": occurrence.id,
+            "organization_code": occurrence.organization_code,
+            "transaction_date": occurrence.transaction_date,
+            "item_code": transaction.item_code if transaction else None,
+            "item_description": transaction.item_description if transaction else None,
+        }
+        for occurrence, transaction in occurrences
+    ]
+    result["occurrence_ids"] = [item["id"] for item in result["occurrences"]]
+    result["evidence"] = [
+        {
+            "id": evidence.id,
+            "filename": evidence.filename,
+            "content_type": evidence.content_type,
+            "size_bytes": evidence.size_bytes,
+            "sha256": evidence.sha256,
+            "uploaded_by_user_id": evidence.uploaded_by_user_id,
+            "created_at": evidence.created_at,
+        }
+        for evidence in await db.scalars(
+            select(ActionEvidence)
+            .where(ActionEvidence.action_id == task.id, ActionEvidence.deleted_at.is_(None))
+            .order_by(ActionEvidence.created_at, ActionEvidence.id)
+        )
+    ]
     return result
 
 
@@ -187,7 +255,6 @@ async def save_task(db, plan_id, data: TaskInput, actor_id, task_id=None):
             raise ReportConflictError("Task changed; local edits have been preserved")
         if task.status == "COMPLETED":
             raise ReportConflictError("Reopen the task before editing")
-        task.version += 1
     else:
         task = ImprovementAction(
             factory_id=plan.factory_id,
@@ -198,6 +265,7 @@ async def save_task(db, plan_id, data: TaskInput, actor_id, task_id=None):
         )
         db.add(task)
         await db.flush()
+    was_blocked = task.is_blocked
     users = set(await db.scalars(select(User.id).where(User.id.in_(data.participant_ids), User.is_deleted.is_(False))))
     if users != set(data.participant_ids):
         raise ReportValidationError("Unknown or inactive participant")
@@ -205,8 +273,12 @@ async def save_task(db, plan_id, data: TaskInput, actor_id, task_id=None):
     if occurrences != set(data.occurrence_ids):
         raise ReportValidationError("Unknown occurrence")
     old_users = set(await db.scalars(select(ActionParticipant.user_id).where(ActionParticipant.action_id == task.id)))
-    for field in ("title", "description", "priority", "due_at", "blocked_reason"):
+    if task_id:
+        task.version += 1
+    for field in ("title", "description", "priority", "due_at", "tags"):
         setattr(task, field, getattr(data, field))
+    task.is_blocked = data.is_blocked
+    task.blocked_reason = data.blocked_reason if data.is_blocked else None
     task.updated_at = now()
     await db.execute(delete(ActionParticipant).where(ActionParticipant.action_id == task.id))
     await db.execute(delete(ActionOccurrence).where(ActionOccurrence.action_id == task.id))
@@ -221,6 +293,19 @@ async def save_task(db, plan_id, data: TaskInput, actor_id, task_id=None):
             {
                 "title": task.title,
                 "recipient_ids": sorted(users - old_users),
+                "link": f"/planos-de-acao/{plan.id}?task={task.id}",
+            },
+        )
+    if task.is_blocked and not was_blocked:
+        emit(
+            db,
+            "TASK_BLOCKED",
+            task.id,
+            {
+                "title": task.title,
+                "description": task.blocked_reason or "Bloqueada sem motivo informado.",
+                "recipient_ids": sorted(users),
+                "severity": "WARNING",
                 "link": f"/planos-de-acao/{plan.id}?task={task.id}",
             },
         )
@@ -242,7 +327,7 @@ async def command_task(db, task_id, data: TaskCommand, actor_id):
     previous = task.status
     event_type = "TASK_CHANGED"
     if data.command == "validate":
-        if task.status != "UNDER_VERIFICATION" or task.blocked_reason:
+        if task.status != "UNDER_VERIFICATION" or task.is_blocked:
             raise ReportConflictError("Only an unblocked task awaiting verification can be validated")
         task.status, task.validated_at, task.validated_by_id = "COMPLETED", now(), actor_id
         event_type = "TASK_VALIDATED"

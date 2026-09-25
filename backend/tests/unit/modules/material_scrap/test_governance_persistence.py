@@ -1,5 +1,6 @@
 """Real FK/idempotency tests; optional isolated PostgreSQL schema for guards."""
 
+import asyncio
 import importlib.util
 import os
 import uuid
@@ -17,11 +18,16 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from scripts.seed_demo_governance import seed_governance
 from src.infrastructure.database.session import Base
+from src.modules.governance.actions import PlanInput, TaskInput, save_plan, save_task
+from src.modules.governance.exceptions import ReportConflictError
 from src.modules.governance.models import (
+    ActionPlan,
     Alert,
     AlertRecipient,
+    ConsumerReceipt,
     DatasetSnapshot,
     Factory,
+    ImprovementAction,
     ProductionLine,
     ProductionVersion,
     ReportVersion,
@@ -44,6 +50,8 @@ def migration(connection, direction="upgrade"):
             Path(__file__).resolve().parents[4] / "migrations/versions/20260911_17_report_action_sources.py",
             Path(__file__).resolve().parents[4] / "migrations/versions/20260911_18_report_snapshot_v2.py",
             Path(__file__).resolve().parents[4] / "migrations/versions/20260911_19_report_publish_receipts.py",
+            Path(__file__).resolve().parents[4] / "migrations/versions/20260924_25_action_blocking.py",
+            Path(__file__).resolve().parents[4] / "migrations/versions/20260924_26_action_tags_evidence.py",
         ]
         for index, file in enumerate(files if direction == "upgrade" else reversed(files)):
             if file.name == "20260909_13_reports_module.py":
@@ -103,8 +111,10 @@ async def test_seed_replay_constraints_and_immutable_snapshots(governance_engine
         assert first["gov_production_versions"] >= 7
         assert first["gov_alerts"] == 5
         assert first["gov_alert_recipients"] == 5
+        assert first["gov_consumer_receipts"] == 5
         assert await db.scalar(select(func.count()).select_from(Alert)) == 5
         assert await db.scalar(select(func.count()).select_from(AlertRecipient)) == 5
+        assert await db.scalar(select(func.count()).select_from(ConsumerReceipt)) == 5
         assert await seed_governance(db) == {}
         await db.commit()
         line = await db.scalar(select(ProductionLine).limit(1))
@@ -147,3 +157,57 @@ async def test_seed_replay_constraints_and_immutable_snapshots(governance_engine
             # rejects destructive downgrades rather than dropping published work.
             with pytest.raises(RuntimeError, match="restoration plan"):
                 await conn.run_sync(lambda sync: migration(sync, "downgrade"))
+
+
+@pytest.mark.asyncio
+async def test_concurrent_plan_and_task_edits_reject_stale_versions(governance_engine):
+    if governance_engine.dialect.name != "postgresql":
+        pytest.skip("Concurrent row locks require PostgreSQL")
+
+    sessions = async_sessionmaker(governance_engine, expire_on_commit=False)
+    async with sessions() as db:
+        await ingest_material_scrap(canonical_fixture(), db)
+        db.add(User(name="Demo administrator", username="admin", email="admin@example.com", hashed_password="hash"))
+        await db.commit()
+        await seed_governance(db)
+        await db.commit()
+        plan = await db.scalar(select(ActionPlan))
+        task = await db.scalar(select(ImprovementAction).where(ImprovementAction.plan_id == plan.id))
+        report = await db.scalar(select(ReportVersion).where(ReportVersion.published_at.is_not(None)))
+        plan_id, plan_version = plan.id, plan.version
+        task_id, task_version = task.id, task.version
+
+    async def edit_task(title):
+        async with sessions() as db:
+            return await save_task(
+                db,
+                plan_id,
+                TaskInput(title=title, expected_version=task_version),
+                1,
+                task_id,
+            )
+
+    task_results = await asyncio.gather(edit_task("First edit"), edit_task("Second edit"), return_exceptions=True)
+    assert sum(isinstance(result, dict) for result in task_results) == 1
+    assert sum(isinstance(result, ReportConflictError) for result in task_results) == 1
+
+    async def edit_plan(title):
+        async with sessions() as db:
+            return await save_plan(
+                db,
+                PlanInput(title=title, report_version_ids=[report.id], expected_version=plan_version),
+                1,
+                plan_id,
+            )
+
+    plan_results = await asyncio.gather(edit_plan("First plan edit"), edit_plan("Second plan edit"), return_exceptions=True)
+    assert sum(isinstance(result, dict) for result in plan_results) == 1
+    assert sum(isinstance(result, ReportConflictError) for result in plan_results) == 1
+
+    async with sessions() as db:
+        saved_task = await db.get(ImprovementAction, task_id)
+        saved_plan = await db.get(ActionPlan, plan_id)
+        assert saved_task.version == task_version + 1
+        assert saved_task.title in {"First edit", "Second edit"}
+        assert saved_plan.version == plan_version + 1
+        assert saved_plan.title in {"First plan edit", "Second plan edit"}

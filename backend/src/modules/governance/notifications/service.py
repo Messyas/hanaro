@@ -32,6 +32,7 @@ CHANNELS: dict[str, list[NotificationChannel]] = {
         "UPDATE_LATE",
         "REPORT_EXPORT_FAILED",
         "TASK_OVERDUE",
+        "TASK_BLOCKED",
     )
 }
 CHANNELS.update(

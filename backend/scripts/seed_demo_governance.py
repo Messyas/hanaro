@@ -26,6 +26,7 @@ from src.modules.governance.models import (
     AuditEvent,
     AuditFinding,
     CaseOccurrence,
+    ConsumerReceipt,
     DatasetSnapshot,
     EffectivenessCheck,
     ExportJob,
@@ -361,6 +362,12 @@ async def seed_governance(db: AsyncSession) -> dict[str, int]:
                 f"demo-alert-{index}-recipient-{recipient.id}",
                 alert_id=alert.id,
                 user_id=recipient.id,
+            )
+            await add(
+                ConsumerReceipt,
+                f"demo-alert-{index}-receipt",
+                consumer="notifications-v1",
+                event_id=event.id,
             )
     return counts
 

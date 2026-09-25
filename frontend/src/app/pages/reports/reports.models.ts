@@ -269,6 +269,7 @@ export interface ReportDocumentAction {
   priority: string;
   owner_id: number | null;
   due_at: string | null;
+  is_blocked: boolean;
   blocked_reason: string | null;
   validated_at: string | null;
   version: number;

@@ -39,6 +39,7 @@ async def _actions(db: AsyncSession, report_id) -> list[dict[str, Any]]:
             "priority": action.priority,
             "owner_id": action.owner_id,
             "due_at": action.due_at.isoformat() if action.due_at else None,
+            "is_blocked": action.is_blocked,
             "blocked_reason": action.blocked_reason,
             "validated_at": action.validated_at.isoformat() if action.validated_at else None,
             "version": action.version,

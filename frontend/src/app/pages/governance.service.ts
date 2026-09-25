@@ -15,9 +15,23 @@ import {
 export class GovernanceService {
   private readonly http = inject(HttpClient);
   private readonly base = '/api/v1';
-  plans(page = 1, pageSize = 25) {
+  plans(
+    page = 1,
+    pageSize = 25,
+    filters: {
+      search?: string;
+      status?: 'OPEN' | 'COMPLETED';
+      sort?: 'newest' | 'oldest' | 'title';
+    } = {},
+  ) {
     return this.http.get<WorkflowPage<Plan>>(`${this.base}/action-plans`, {
-      params: { page, page_size: pageSize },
+      params: {
+        page,
+        page_size: pageSize,
+        ...(filters.search?.trim() ? { search: filters.search.trim() } : {}),
+        ...(filters.status ? { status: filters.status } : {}),
+        ...(filters.sort ? { sort: filters.sort } : {}),
+      },
     });
   }
   plan(id: string) {
@@ -40,6 +54,22 @@ export class GovernanceService {
     return taskId
       ? this.http.put<ActionTask>(`${this.base}/action-plans/${planId}/tasks/${taskId}`, data)
       : this.http.post<ActionTask>(`${this.base}/action-plans/${planId}/tasks`, data);
+  }
+  uploadEvidence(taskId: string, version: number, file: File) {
+    const data = new FormData();
+    data.append('file', file, file.name);
+    data.append('expected_version', String(version));
+    return this.http.post<ActionTask>(`${this.base}/actions/${taskId}/evidence`, data);
+  }
+  removeEvidence(taskId: string, evidenceId: string, version: number) {
+    return this.http.delete<ActionTask>(`${this.base}/actions/${taskId}/evidence/${evidenceId}`, {
+      params: { expected_version: version },
+    });
+  }
+  downloadEvidence(taskId: string, evidenceId: string) {
+    return this.http.get(`${this.base}/actions/${taskId}/evidence/${evidenceId}/download`, {
+      responseType: 'blob',
+    });
   }
   command(task: ActionTask, command: string, extra: object = {}) {
     return this.http.post<ActionTask>(`${this.base}/actions/${task.id}/commands`, {

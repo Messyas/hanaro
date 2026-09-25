@@ -1,4 +1,4 @@
-import { isPlatformBrowser } from '@angular/common';
+import { DatePipe, isPlatformBrowser } from '@angular/common';
 import { Component, DestroyRef, PLATFORM_ID, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
@@ -20,16 +20,19 @@ import { ListPanel } from '../../shared/list-view/list-panel/list-panel';
 import { UiIcon } from '../../ui-icon';
 import { GovernanceService } from '../governance.service';
 import {
+  ActionEvidenceItem,
   ActionTask,
   HistoryEntry,
   Person,
   Plan,
+  TaskOccurrence,
   TaskState,
   WorkflowPage,
 } from '../governance.models';
 import { workflowCopy } from '../governance-copy';
+import { BrowserDownloadAdapter } from '../reports/browser-download.adapter';
 import { ReportsService } from '../reports/reports.service';
-import { ReportListItem, ReportVersion } from '../reports/reports.models';
+import { EligibleOccurrence, Page, ReportListItem, ReportVersion } from '../reports/reports.models';
 
 const ALLOWED_PAGE_SIZES = [10, 25, 50, 100] as const;
 const PAGE_SIZE_STORAGE_KEY = 'hanaro-action-plans-page-size';
@@ -39,6 +42,7 @@ const DEFAULT_PAGE_SIZE = 25;
   selector: 'app-action-plans',
   imports: [
     FormsModule,
+    DatePipe,
     DragDropModule,
     RouterLink,
     UiIcon,
@@ -60,6 +64,7 @@ const DEFAULT_PAGE_SIZE = 25;
 export class ActionPlans {
   private readonly api = inject(GovernanceService);
   private readonly reportsApi = inject(ReportsService);
+  private readonly browserDownload = inject(BrowserDownloadAdapter);
   private readonly destroy = inject(DestroyRef);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -82,6 +87,17 @@ export class ActionPlans {
   readonly people = signal<Person[]>([]);
   readonly reports = signal<ReportListItem[]>([]);
   readonly boardFilterOpen = signal(false);
+  readonly planFilterOpen = signal(false);
+  readonly planStatusOptions = computed(() => [
+    { value: '', label: this.c().all },
+    { value: 'OPEN', label: this.c().openPlans },
+    { value: 'COMPLETED', label: this.c().completedPlans },
+  ]);
+  readonly planSortOptions = computed(() => [
+    { value: 'newest', label: this.c().newest },
+    { value: 'oldest', label: this.c().oldest },
+    { value: 'title', label: this.c().titleSort },
+  ]);
   readonly priorityOptions = computed(() => [
     { value: '', label: this.c().all },
     { value: 'LOW', label: this.c().low },
@@ -93,6 +109,7 @@ export class ActionPlans {
     this.priorityOptions().filter((option) => option.value),
   );
   readonly versions = signal<ReportVersion[]>([]);
+  readonly occurrenceCandidates = signal<Page<EligibleOccurrence> | null>(null);
   readonly allowedPageSizes = ALLOWED_PAGE_SIZES;
   readonly page = signal(1);
   readonly pageSize = signal(this.readInitialPageSize());
@@ -110,6 +127,9 @@ export class ActionPlans {
   columnPages: Record<string, number> = {};
   search = '';
   priority = '';
+  planSearch = '';
+  planStatus = '';
+  planSort: 'newest' | 'oldest' | 'title' = 'newest';
   peopleSearch = '';
   reportSearch = '';
   reportPage = 1;
@@ -119,9 +139,15 @@ export class ActionPlans {
   taskTitle = '';
   taskDescription = '';
   taskPriority = 'MEDIUM';
+  taskTags: string[] = [];
+  tagInput = '';
   due = '';
+  taskBlocked = false;
   blocked = '';
   selectedPeople: number[] = [];
+  selectedOccurrences: TaskOccurrence[] = [];
+  occurrenceSearch = '';
+  occurrencePage = 1;
   comment = '';
 
   constructor() {
@@ -144,7 +170,11 @@ export class ActionPlans {
   load() {
     this.loading.set(true);
     this.api
-      .plans(this.page(), this.pageSize())
+      .plans(this.page(), this.pageSize(), {
+        search: this.planSearch,
+        status: this.planStatus as 'OPEN' | 'COMPLETED' | undefined,
+        sort: this.planSort,
+      })
       .pipe(takeUntilDestroyed(this.destroy))
       .subscribe({
         next: (page) => {
@@ -184,6 +214,29 @@ export class ActionPlans {
     this.savePageSize(validPageSize);
     this.page.set(1);
     this.load();
+  }
+
+  applyPlanFilters(): void {
+    this.page.set(1);
+    this.load();
+  }
+
+  selectPlanSort(value: string): void {
+    if (value === 'newest' || value === 'oldest' || value === 'title') {
+      this.planSort = value;
+    }
+  }
+
+  clearPlanFilters(): void {
+    this.planSearch = '';
+    this.planStatus = '';
+    this.planSort = 'newest';
+    this.planFilterOpen.set(false);
+    this.applyPlanFilters();
+  }
+
+  planActiveFiltersCount(): number {
+    return [this.planSearch.trim(), this.planStatus].filter(Boolean).length;
   }
 
   private readInitialPageSize(): number {
@@ -306,17 +359,35 @@ export class ActionPlans {
     this.reportsApi
       .versions(reportId)
       .pipe(takeUntilDestroyed(this.destroy))
-      .subscribe({ next: (p) => this.versions.set(p.items), error: (e) => this.fail(e) });
+      .subscribe({
+        next: (p) => this.versions.set(p.items.filter((version) => !!version.published_at)),
+        error: (e) => this.fail(e),
+      });
   }
 
   toggleVersion(id: string, checked: boolean) {
-    this.linkedVersions = checked
-      ? [...new Set([...this.linkedVersions, id])]
-      : this.linkedVersions.filter((v) => v !== id);
+    if (!checked) {
+      this.linkedVersions = this.linkedVersions.filter((versionId) => versionId !== id);
+      return;
+    }
+    const selected = this.versions().find((version) => version.id === id);
+    if (!selected) return;
+    const sameReportIds = new Set([
+      ...this.versions()
+        .filter((version) => version.report_id === selected.report_id)
+        .map((version) => version.id),
+      ...(this.plan()?.reports ?? [])
+        .filter((report) => report.report_id === selected.report_id)
+        .map((report) => report.id),
+    ]);
+    this.linkedVersions = [
+      ...this.linkedVersions.filter((versionId) => !sameReportIds.has(versionId)),
+      id,
+    ];
   }
 
   savePlan(status?: 'OPEN' | 'COMPLETED') {
-    if (this.busy() || !this.planTitle.trim()) return;
+    if (this.busy() || !this.planTitle.trim() || !this.linkedVersions.length) return;
     this.busy.set(true);
     const current = this.plan();
     this.api
@@ -361,16 +432,87 @@ export class ActionPlans {
       : this.selectedPeople.filter((v) => v !== id);
   }
 
+  loadOccurrences() {
+    this.reportsApi
+      .eligibleOccurrences({
+        page: this.occurrencePage,
+        pageSize: 25,
+        search: this.occurrenceSearch,
+      })
+      .pipe(takeUntilDestroyed(this.destroy))
+      .subscribe({
+        next: (page) => this.occurrenceCandidates.set(page),
+        error: (e) => this.fail(e),
+      });
+  }
+
+  searchOccurrences() {
+    this.occurrencePage = 1;
+    this.loadOccurrences();
+  }
+
+  occurrencePageBy(delta: number) {
+    const next = this.occurrencePage + delta;
+    if (next < 1 || (delta > 0 && !this.occurrenceCandidates()?.has_next)) return;
+    this.occurrencePage = next;
+    this.loadOccurrences();
+  }
+
+  toggleOccurrence(occurrence: TaskOccurrence, checked: boolean) {
+    this.selectedOccurrences = checked
+      ? [...this.selectedOccurrences.filter((item) => item.id !== occurrence.id), occurrence]
+      : this.selectedOccurrences.filter((item) => item.id !== occurrence.id);
+  }
+
+  occurrenceSelected(id: string) {
+    return this.selectedOccurrences.some((occurrence) => occurrence.id === id);
+  }
+
+  occurrenceLabel(occurrence: TaskOccurrence) {
+    return occurrence.item_code || occurrence.item_description || occurrence.id;
+  }
+
+  activityLabel(entry: HistoryEntry) {
+    if (entry.event_type === 'TASK_EVIDENCE_ADDED') return this.c().evidenceAdded;
+    if (entry.event_type === 'TASK_EVIDENCE_REMOVED') return this.c().evidenceRemoved;
+    if (entry.payload.comment?.trim()) return this.c().comment;
+    if (entry.event_type === 'TASK_VALIDATED') return this.c().completed;
+    if (entry.event_type === 'TASK_VERIFICATION') return this.c().verification;
+    return this.c().taskUpdated;
+  }
+
+  addTag() {
+    const tag = this.tagInput.trim();
+    if (!tag || tag.length > 40 || this.taskTags.length >= 20) return;
+    if (!this.taskTags.some((value) => value.toLocaleLowerCase() === tag.toLocaleLowerCase())) {
+      this.taskTags = [...this.taskTags, tag];
+    }
+    this.tagInput = '';
+  }
+
+  removeTag(tag: string) {
+    this.taskTags = this.taskTags.filter((value) => value !== tag);
+  }
+
   newTask() {
     this.task.set(null);
     this.taskTitle = '';
     this.taskDescription = '';
     this.taskPriority = 'MEDIUM';
+    this.taskTags = [];
+    this.tagInput = '';
     this.due = '';
+    this.taskBlocked = false;
     this.blocked = '';
     this.selectedPeople = [];
+    this.selectedOccurrences = [];
+    this.occurrenceSearch = '';
+    this.occurrencePage = 1;
+    this.occurrenceCandidates.set(null);
+    this.comment = '';
     this.history.set(null);
     this.editingTask.set(true);
+    this.loadOccurrences();
   }
 
   openTask(id: string) {
@@ -383,12 +525,29 @@ export class ActionPlans {
           this.taskTitle = t.title;
           this.taskDescription = t.description;
           this.taskPriority = t.priority;
+          this.taskTags = t.tags ?? [];
+          this.tagInput = '';
           this.due = t.due_at?.slice(0, 10) || '';
+          this.taskBlocked = t.is_blocked;
           this.blocked = t.blocked_reason || '';
           this.selectedPeople = t.participants.map((p) => p.id);
+          this.selectedOccurrences =
+            t.occurrences ??
+            (t.occurrence_ids ?? []).map((occurrenceId) => ({
+              id: occurrenceId,
+              organization_code: '',
+              transaction_date: '',
+              item_code: null,
+              item_description: null,
+            }));
+          this.occurrenceSearch = '';
+          this.occurrencePage = 1;
+          this.occurrenceCandidates.set(null);
+          this.comment = '';
           this.editingTask.set(true);
           this.historyPage = 1;
           this.loadHistory();
+          this.loadOccurrences();
         },
         error: (e) => this.fail(e),
       });
@@ -403,9 +562,17 @@ export class ActionPlans {
       .subscribe({ next: (p) => this.history.set(p), error: (e) => this.fail(e) });
   }
 
+  historyPageBy(delta: number) {
+    const next = this.historyPage + delta;
+    if (next < 1 || (delta > 0 && !this.history()?.has_next)) return;
+    this.historyPage = next;
+    this.loadHistory();
+  }
+
   saveTask() {
     const plan = this.plan();
     if (!plan || this.busy() || !this.taskTitle.trim()) return;
+    this.addTag();
     this.busy.set(true);
     this.api
       .saveTask(
@@ -414,10 +581,12 @@ export class ActionPlans {
           title: this.taskTitle,
           description: this.taskDescription,
           priority: this.taskPriority,
+          tags: this.taskTags,
           due_at: this.due ? `${this.due}T23:59:59Z` : null,
-          blocked_reason: this.blocked.trim() || null,
+          is_blocked: this.taskBlocked,
+          blocked_reason: this.taskBlocked ? this.blocked.trim() || null : null,
           participant_ids: this.selectedPeople,
-          occurrence_ids: this.task()?.occurrence_ids || [],
+          occurrence_ids: this.selectedOccurrences.map((occurrence) => occurrence.id),
           expected_version: this.task()?.version,
         },
         this.task()?.id,
@@ -452,6 +621,61 @@ export class ActionPlans {
           this.fail(e);
           this.loadBoard();
         },
+      });
+  }
+
+  addComment() {
+    const task = this.task();
+    const comment = this.comment.trim();
+    if (task && comment) this.command(task, 'comment', { comment });
+  }
+
+  uploadEvidence(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    const task = this.task();
+    if (!file || !task || this.busy()) return;
+    this.busy.set(true);
+    this.api
+      .uploadEvidence(task.id, task.version, file)
+      .pipe(takeUntilDestroyed(this.destroy))
+      .subscribe({
+        next: (updated) => {
+          this.task.set(updated);
+          this.busy.set(false);
+          this.loadHistory();
+        },
+        error: (error) => this.fail(error),
+      });
+  }
+
+  removeEvidence(evidence: ActionEvidenceItem) {
+    const task = this.task();
+    if (!task || this.busy()) return;
+    this.busy.set(true);
+    this.api
+      .removeEvidence(task.id, evidence.id, task.version)
+      .pipe(takeUntilDestroyed(this.destroy))
+      .subscribe({
+        next: (updated) => {
+          this.task.set(updated);
+          this.busy.set(false);
+          this.loadHistory();
+        },
+        error: (error) => this.fail(error),
+      });
+  }
+
+  downloadEvidence(evidence: ActionEvidenceItem) {
+    const task = this.task();
+    if (!task) return;
+    this.api
+      .downloadEvidence(task.id, evidence.id)
+      .pipe(takeUntilDestroyed(this.destroy))
+      .subscribe({
+        next: (blob) => this.browserDownload.download(blob, evidence.filename),
+        error: (error) => this.fail(error),
       });
   }
 

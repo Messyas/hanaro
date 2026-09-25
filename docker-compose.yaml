@@ -384,7 +384,7 @@ services:
     init: true
     environment: *backend-environment
     working_dir: /app/backend
-    command: ["taskiq", "worker", "src.infrastructure.taskiq.worker:default_broker", "--reload"]
+    command: ["taskiq", "worker", "src.infrastructure.taskiq.worker:default_broker", "--workers", "1"]
     volumes:
       - type: bind
         source: ./backend/src

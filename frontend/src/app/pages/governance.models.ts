@@ -23,18 +23,39 @@ export interface ActionTask {
   title: string;
   description: string;
   priority: string;
+  tags?: string[];
   due_at: string | null;
+  is_blocked: boolean;
   blocked_reason: string | null;
   version: number;
   status: TaskState;
   position: number;
   participants: Person[];
   occurrence_ids?: string[];
+  occurrences?: TaskOccurrence[];
+  evidence?: ActionEvidenceItem[];
+}
+export interface ActionEvidenceItem {
+  id: string;
+  filename: string;
+  content_type: string;
+  size_bytes: number;
+  sha256: string;
+  uploaded_by_user_id: number;
+  created_at: string;
+}
+export interface TaskOccurrence {
+  id: string;
+  organization_code: string;
+  transaction_date: string;
+  item_code: string | null;
+  item_description: string | null;
 }
 export interface HistoryEntry {
   id: string;
   event_type: string;
   actor_id: number;
+  actor_name?: string | null;
   created_at: string;
   payload: { comment?: string; status?: string; previous?: string };
 }

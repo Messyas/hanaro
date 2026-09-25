@@ -112,6 +112,38 @@
     >
       <div list-actions class="execution-list-actions">
         <app-delayed-progress-spinner [active]="loading()" [ariaLabel]="c().loading" />
+        <app-list-filter-popover
+          [(open)]="planFilterOpen"
+          [activeCount]="planActiveFiltersCount()"
+          [triggerLabel]="c().filters"
+          [title]="c().filterPlans"
+          [clearLabel]="c().clearFilters"
+          [applyLabel]="c().applyFilters"
+          (cleared)="clearPlanFilters()"
+          (applied)="applyPlanFilters()"
+        >
+          <app-list-filter-input
+            [value]="planSearch"
+            [label]="c().search"
+            [placeholder]="c().searchPlans"
+            type="search"
+            (changed)="planSearch = $event"
+          />
+          <app-list-filter-select
+            [value]="planStatus"
+            [options]="planStatusOptions()"
+            [label]="c().status"
+            [ariaLabel]="c().status"
+            (changed)="planStatus = $event"
+          />
+          <app-list-filter-select
+            [value]="planSort"
+            [options]="planSortOptions()"
+            [label]="c().sort"
+            [ariaLabel]="c().sort"
+            (changed)="selectPlanSort($event)"
+          />
+        </app-list-filter-popover>
       </div>
 
       @if (loading() && (!list() || list()!.items.length === 0)) {
@@ -133,7 +165,11 @@
         <app-list-feedback
           kind="empty"
           [title]="c().empty"
-          message="Nenhum plano de ação cadastrado no momento. Crie um novo plano para iniciar o acompanhamento."
+          [message]="
+            planActiveFiltersCount()
+              ? c().noPlansMatch
+              : 'Nenhum plano de ação cadastrado no momento. Crie um novo plano para iniciar o acompanhamento.'
+          "
         />
       } @else {
         @if (error()) {
@@ -241,10 +277,18 @@
 
                   <strong class="task-card-title">{{ taskItem.title }}</strong>
 
-                  @if (taskItem.blocked_reason) {
+                  @if (taskItem.tags?.length) {
+                    <div class="task-tag-list">
+                      @for (tag of taskItem.tags; track tag) {
+                        <span class="task-tag">{{ tag }}</span>
+                      }
+                    </div>
+                  }
+
+                  @if (taskItem.is_blocked) {
                     <div class="blocked-callout">
                       <ui-icon name="x" />
-                      <span>{{ taskItem.blocked_reason }}</span>
+                      <span>{{ taskItem.blocked_reason || c().blockedState }}</span>
                     </div>
                   }
 
@@ -269,7 +313,7 @@
                       type="button"
                       class="btn btn-primary btn-xs validate-btn"
                       (click)="$event.stopPropagation(); command(taskItem, 'validate')"
-                      [disabled]="busy() || !!taskItem.blocked_reason"
+                      [disabled]="busy() || taskItem.is_blocked"
                     >
                       <ui-icon name="check" />
                       {{ c().validate }}
@@ -349,6 +393,7 @@
           <div class="form-section-title">
             <span>{{ c().reports }}</span>
           </div>
+          <p class="form-hint">{{ c().selectReport }}</p>
 
           <label class="form-field">
             <input
@@ -394,7 +439,11 @@
             <button type="button" class="btn btn-secondary" (click)="editingPlan.set(false)">
               {{ c().close }}
             </button>
-            <button type="submit" class="btn btn-primary" [disabled]="busy() || !planTitle.trim()">
+            <button
+              type="submit"
+              class="btn btn-primary"
+              [disabled]="busy() || !planTitle.trim() || !linkedVersions.length"
+            >
               {{ c().save }}
             </button>
           </div>
@@ -406,7 +455,12 @@
   <!-- Drawer: Detalhes / Edição de Tarefa -->
   @if (editingTask()) {
     <div class="modal-backdrop" (click)="editingTask.set(false)">
-      <div class="detail-drawer" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+      <div
+        class="detail-drawer task-detail-drawer"
+        role="dialog"
+        aria-modal="true"
+        (click)="$event.stopPropagation()"
+      >
         <header class="drawer-header">
           <div class="drawer-title-group">
             <span class="meta-label">Tarefa Operacional</span>
@@ -466,15 +520,54 @@
             </label>
           </div>
 
-          <label class="form-field">
-            <span class="field-label">{{ c().blocked }}</span>
-            <input
-              class="form-input"
-              [(ngModel)]="blocked"
-              name="blocked"
-              placeholder="Informe se houver impedimento..."
-            />
+          <div class="form-field">
+            <span class="field-label">{{ c().tags }}</span>
+            <div class="task-tag-list">
+              @for (tag of taskTags; track tag) {
+                <span class="task-tag task-tag-editable">
+                  {{ tag }}
+                  <button
+                    type="button"
+                    class="task-tag-remove"
+                    (click)="removeTag(tag)"
+                    [attr.aria-label]="c().close + ': ' + tag"
+                  >
+                    <ui-icon name="x" />
+                  </button>
+                </span>
+              }
+            </div>
+            <div class="task-tag-input">
+              <input
+                class="form-input"
+                [(ngModel)]="tagInput"
+                name="tagInput"
+                maxlength="40"
+                [attr.aria-label]="c().tags"
+                (keydown.enter)="$event.preventDefault(); addTag()"
+              />
+              <button
+                type="button"
+                class="btn btn-secondary"
+                [disabled]="!tagInput.trim() || taskTags.length >= 20"
+                (click)="addTag()"
+              >
+                <ui-icon name="plus" />
+                {{ c().addTag }}
+              </button>
+            </div>
+          </div>
+
+          <label class="form-checkbox">
+            <input type="checkbox" [(ngModel)]="taskBlocked" name="taskBlocked" />
+            <span>{{ c().blockedState }}</span>
           </label>
+          @if (taskBlocked) {
+            <label class="form-field">
+              <span class="field-label">{{ c().blockReasonOptional }}</span>
+              <input class="form-input" [(ngModel)]="blocked" name="blocked" />
+            </label>
+          }
 
           <div class="form-field">
             <span class="field-label">{{ c().participants }}</span>
@@ -492,6 +585,85 @@
             </div>
           </div>
 
+          <div class="form-field">
+            <span class="field-label">{{ c().occurrences }}</span>
+            @if (selectedOccurrences.length) {
+              <span class="form-hint">{{ c().selectedOccurrences }}</span>
+              <div class="task-occurrence-list">
+                @for (occurrence of selectedOccurrences; track occurrence.id) {
+                  <div class="task-occurrence-row">
+                    <span>{{ occurrenceLabel(occurrence) }}</span>
+                    <button
+                      type="button"
+                      class="btn btn-ghost btn-xs"
+                      (click)="toggleOccurrence(occurrence, false)"
+                      [attr.aria-label]="c().close"
+                    >
+                      <ui-icon name="x" />
+                    </button>
+                  </div>
+                }
+              </div>
+            }
+            <div class="task-occurrence-search">
+              <input
+                class="form-input"
+                [(ngModel)]="occurrenceSearch"
+                name="occurrenceSearch"
+                [placeholder]="c().searchOccurrences"
+                [attr.aria-label]="c().searchOccurrences"
+                (keydown.enter)="$event.preventDefault(); searchOccurrences()"
+              />
+              <button type="button" class="btn btn-secondary" (click)="searchOccurrences()">
+                {{ c().search }}
+              </button>
+            </div>
+            @if (occurrenceCandidates(); as candidates) {
+              <div class="task-occurrence-list">
+                @for (occurrence of candidates.items; track occurrence.id) {
+                  <label class="form-checkbox task-occurrence-option">
+                    <input
+                      type="checkbox"
+                      [checked]="occurrenceSelected(occurrence.id)"
+                      (change)="toggleOccurrence(occurrence, $any($event.target).checked)"
+                    />
+                    <span>
+                      <strong>{{ occurrenceLabel(occurrence) }}</strong>
+                      @if (occurrence.item_description) {
+                        <small>{{ occurrence.item_description }}</small>
+                      }
+                    </span>
+                  </label>
+                } @empty {
+                  <p class="form-hint">{{ c().noOccurrences }}</p>
+                }
+              </div>
+              @if (candidates.total_pages > 1) {
+                <div class="task-section-pagination">
+                  <button
+                    type="button"
+                    class="btn btn-ghost btn-xs"
+                    [disabled]="!candidates.has_previous"
+                    [attr.aria-label]="c().previous"
+                    (click)="occurrencePageBy(-1)"
+                  >
+                    <ui-icon name="chevron-left" />
+                  </button>
+                  <span>{{ candidates.page }} / {{ candidates.total_pages }}</span>
+                  <button
+                    type="button"
+                    class="btn btn-ghost btn-xs"
+                    [disabled]="!candidates.has_next"
+                    [attr.aria-label]="c().next"
+                    (click)="occurrencePageBy(1)"
+                  >
+                    <ui-icon name="chevron-right" />
+                  </button>
+                </div>
+              }
+            }
+          </div>
+
           <div class="drawer-footer">
             <button type="button" class="btn btn-secondary" (click)="editingTask.set(false)">
               {{ c().close }}
@@ -501,6 +673,141 @@
             </button>
           </div>
         </form>
+
+        @if (task()) {
+          <div class="task-evidence">
+            <div class="task-evidence-heading">
+              <div class="form-section-title">{{ c().evidence }}</div>
+              @if (plan()?.status === 'OPEN' && task()!.status !== 'COMPLETED') {
+                <input
+                  #evidenceFileInput
+                  type="file"
+                  class="task-file-input"
+                  accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"
+                  [attr.aria-label]="c().attachEvidence"
+                  (change)="uploadEvidence($event)"
+                />
+                <button
+                  type="button"
+                  class="btn btn-secondary btn-xs"
+                  [disabled]="busy() || (task()!.evidence?.length ?? 0) >= 20"
+                  (click)="evidenceFileInput.click()"
+                >
+                  <ui-icon name="plus" />
+                  {{ c().attachEvidence }}
+                </button>
+              }
+            </div>
+            <div class="task-evidence-list">
+              @for (evidence of task()!.evidence ?? []; track evidence.id) {
+                <div class="task-evidence-row">
+                  <span class="task-evidence-name" [title]="evidence.filename">
+                    {{ evidence.filename }}
+                  </span>
+                  <button
+                    type="button"
+                    class="btn btn-ghost btn-xs"
+                    (click)="downloadEvidence(evidence)"
+                    [attr.aria-label]="c().downloadEvidence + ': ' + evidence.filename"
+                    [title]="c().downloadEvidence"
+                  >
+                    <ui-icon name="arrow-down" />
+                  </button>
+                  @if (plan()?.status === 'OPEN' && task()!.status !== 'COMPLETED') {
+                    <button
+                      type="button"
+                      class="btn btn-ghost btn-xs"
+                      [disabled]="busy()"
+                      (click)="removeEvidence(evidence)"
+                      [attr.aria-label]="c().removeEvidence + ': ' + evidence.filename"
+                      [title]="c().removeEvidence"
+                    >
+                      <ui-icon name="trash" />
+                    </button>
+                  }
+                </div>
+              } @empty {
+                <p class="form-hint">{{ c().noEvidence }}</p>
+              }
+            </div>
+          </div>
+          <div class="task-activity">
+            <div class="form-section-title">{{ c().activity }}</div>
+            @if (plan()?.status === 'OPEN') {
+              <label class="form-field">
+                <span class="field-label">{{ c().comment }}</span>
+                <textarea
+                  class="form-textarea"
+                  [(ngModel)]="comment"
+                  maxlength="10000"
+                  [attr.aria-label]="c().comment"
+                ></textarea>
+              </label>
+              <div class="task-activity-actions">
+                <button
+                  type="button"
+                  class="btn btn-secondary"
+                  [disabled]="busy() || !comment.trim()"
+                  (click)="addComment()"
+                >
+                  {{ c().addComment }}
+                </button>
+                @if (task()!.status === 'UNDER_VERIFICATION') {
+                  <button
+                    type="button"
+                    class="btn btn-primary"
+                    [disabled]="busy() || task()!.is_blocked"
+                    (click)="command(task()!, 'validate', { comment: comment.trim() })"
+                  >
+                    <ui-icon name="check" />
+                    {{ c().validate }}
+                  </button>
+                }
+              </div>
+            }
+            <div class="task-history">
+              @for (entry of history()?.items ?? []; track entry.id) {
+                <div class="task-history-entry">
+                  <div class="task-history-meta">
+                    <strong>{{ entry.actor_name || '#' + entry.actor_id }}</strong>
+                    <span>{{ activityLabel(entry) }}</span>
+                    <time>{{ entry.created_at | date: 'short' }}</time>
+                  </div>
+                  @if (entry.payload.comment) {
+                    <p>{{ entry.payload.comment }}</p>
+                  }
+                </div>
+              } @empty {
+                <p class="form-hint">{{ c().noActivity }}</p>
+              }
+            </div>
+            @if (history(); as page) {
+              @if (page.total > 25) {
+                <div class="task-section-pagination">
+                  <button
+                    type="button"
+                    class="btn btn-ghost btn-xs"
+                    [disabled]="historyPage === 1"
+                    [attr.aria-label]="c().previous"
+                    (click)="historyPageBy(-1)"
+                  >
+                    <ui-icon name="chevron-left" />
+                  </button>
+                  <span>{{ historyPage }}</span>
+                  <button
+                    type="button"
+                    class="btn btn-ghost btn-xs"
+                    [disabled]="!page.has_next"
+                    [attr.aria-label]="c().next"
+                    (click)="historyPageBy(1)"
+                  >
+                    <ui-icon name="chevron-right" />
+                  </button>
+                </div>
+              }
+            }
+          </div>
+        }
       </div>
     </div>
   }
