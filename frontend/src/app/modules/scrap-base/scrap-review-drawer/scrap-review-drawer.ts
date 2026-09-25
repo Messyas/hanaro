@@ -25,6 +25,7 @@ import {
   switchMap,
   tap,
   toArray,
+  Subscription,
 } from 'rxjs';
 import { LanguageService } from '../../../core/i18n/language.service';
 import { AuthService } from '../../../core/auth/auth.service';
@@ -44,6 +45,7 @@ import { ScrapReviewPreview } from '../scrap-review-preview/scrap-review-preview
 import { ScrapReviewService } from '../scrap-review.service';
 import { DefectTypesService } from '../defect-types.service';
 import { ScrapTemplateService } from '../scrap-template.service';
+import { ScrapReviewQueueStore } from '../scrap-review-queue.store';
 import {
   ScrapAttachmentPreview,
   ScrapAttachmentPreviewService,
@@ -52,7 +54,7 @@ import {
 @Component({
   selector: 'app-scrap-review-drawer',
   imports: [InlineAlert, ScrapReviewForm, ScrapReviewPreview, StatusBadge, UiIcon],
-  providers: [ScrapAttachmentPreviewService, ObjectUrlRegistry],
+  providers: [ScrapAttachmentPreviewService, ObjectUrlRegistry, ScrapReviewQueueStore],
   templateUrl: './scrap-review-drawer.html',
   styleUrl: './scrap-review-drawer.css',
 })
@@ -64,6 +66,8 @@ export class ScrapReviewDrawer implements OnInit, OnDestroy {
   private readonly authService = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly attachmentPreviewService = inject(ScrapAttachmentPreviewService);
+  private readonly queue = inject(ScrapReviewQueueStore);
+  private reviewRequest?: Subscription;
 
   readonly t = computed(() => this.language.translations());
 
@@ -79,7 +83,7 @@ export class ScrapReviewDrawer implements OnInit, OnDestroy {
   readonly drawerDialog = viewChild<ElementRef<HTMLElement>>('drawerDialog');
   readonly reviewFormCmp = viewChild<ScrapReviewForm>('reviewFormCmp');
 
-  readonly queueIndex = signal<number>(0);
+  readonly queueIndex = this.queue.index;
   readonly review = signal<ScrapReview | null>(null);
   readonly defectTypes = signal<ScrapDefectType[]>([]);
   readonly loading = signal(false);
@@ -96,17 +100,15 @@ export class ScrapReviewDrawer implements OnInit, OnDestroy {
   readonly customTemplateName = signal('');
   readonly lastSavedAt = signal<Date | null>(null);
 
-  readonly isQueueMode = computed(() => this.queueOccurrenceIds().length > 1);
-  readonly queueTotal = computed(() => this.queueOccurrenceIds().length);
+  readonly isQueueMode = computed(() => this.queue.total() > 0);
+  readonly queueTotal = this.queue.total;
   readonly queueCurrentDisplay = computed(() => this.queueIndex() + 1);
-  readonly isQueueLast = computed(() => this.queueIndex() >= this.queueTotal() - 1);
-  readonly isQueueFirst = computed(() => this.queueIndex() <= 0);
+  readonly isQueueLast = this.queue.isLast;
+  readonly isQueueFirst = this.queue.isFirst;
 
   readonly currentOccurrence = computed<ScrapListItem | null>(() => {
     if (this.isQueueMode()) {
-      const q = this.queueOccurrences();
-      const idx = this.queueIndex();
-      if (q && q[idx]) return q[idx];
+      return this.queue.currentOccurrence();
     }
     return this.occurrence();
   });
@@ -137,8 +139,7 @@ export class ScrapReviewDrawer implements OnInit, OnDestroy {
 
   readonly activeOccurrenceId = computed(() => {
     if (this.isQueueMode()) {
-      const q = this.queueOccurrenceIds();
-      return q[this.queueIndex()] || null;
+      return this.queue.currentOccurrenceId();
     }
     return this.occurrenceId() || this.occurrence()?.occurrence_id || null;
   });
@@ -206,6 +207,7 @@ export class ScrapReviewDrawer implements OnInit, OnDestroy {
 
   constructor() {
     effect(() => {
+      this.queue.setOccurrences(this.queueOccurrenceIds(), this.queueOccurrences());
       const occId = this.activeOccurrenceId();
       if (occId) {
         this.loadReview(occId);
@@ -219,6 +221,7 @@ export class ScrapReviewDrawer implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.reviewRequest?.unsubscribe();
     this.attachmentPreviewService.revokeAll();
   }
 
@@ -238,6 +241,7 @@ export class ScrapReviewDrawer implements OnInit, OnDestroy {
   }
 
   loadReview(occurrenceId: string): void {
+    this.reviewRequest?.unsubscribe();
     this.loading.set(true);
     this.error.set(null);
     this.isConflict.set(false);
@@ -246,7 +250,7 @@ export class ScrapReviewDrawer implements OnInit, OnDestroy {
     this.clearDraftAttachmentPreviews();
     this.lastSavedAt.set(null);
 
-    this.reviewService
+    this.reviewRequest = this.reviewService
       .getReview(occurrenceId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
@@ -422,17 +426,20 @@ export class ScrapReviewDrawer implements OnInit, OnDestroy {
   }
 
   nextInQueue(): void {
-    if (!this.isQueueLast()) {
-      this.queueIndex.update((i) => i + 1);
+    if (this.canLeaveCurrentQueueItem() && this.queue.next()) {
       this.resetDrawerForNextOccurrence();
     }
   }
 
   previousInQueue(): void {
-    if (!this.isQueueFirst()) {
-      this.queueIndex.update((i) => i - 1);
+    if (this.canLeaveCurrentQueueItem() && this.queue.previous()) {
       this.resetDrawerForNextOccurrence();
     }
+  }
+
+  private canLeaveCurrentQueueItem(): boolean {
+    if (this.saving() || this.finalizing() || this.uploading()) return false;
+    return !this.isDirty() || confirm(this.t().scrapDiscardChangesConfirm);
   }
 
   private resetDrawerForNextOccurrence(): void {
@@ -646,6 +653,7 @@ export class ScrapReviewDrawer implements OnInit, OnDestroy {
   }
 
   attemptClose(): void {
+    if (this.saving() || this.finalizing() || this.uploading()) return;
     if (this.isDirty()) {
       if (!confirm(this.t().scrapDiscardChangesConfirm)) {
         return;
