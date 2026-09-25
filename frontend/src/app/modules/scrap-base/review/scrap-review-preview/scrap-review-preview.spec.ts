@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { LanguageService } from '../../../core/i18n/language.service';
+import { LanguageService } from '../../../../core/i18n/language.service';
 import { ScrapReview } from '../scrap-review.models';
 import { ScrapReviewPreview } from './scrap-review-preview';
 

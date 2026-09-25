@@ -1,4 +1,4 @@
-import { ScrapDefectType } from './scrap-review.models';
+import { ScrapDefectType } from '../review/scrap-review.models';
 
 export interface ScrapReviewTemplate {
   id: string;

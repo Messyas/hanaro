@@ -1,2 +1,2 @@
-export type { ScrapDefectType } from './scrap-review.models';
-export { DefectTypesService } from './defect-types.service';
+export type { ScrapDefectType } from './review/scrap-review.models';
+export { DefectTypesService } from './review/defect-types.service';

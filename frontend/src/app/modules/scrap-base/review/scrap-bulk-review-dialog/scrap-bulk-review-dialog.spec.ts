@@ -1,10 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { vi } from 'vitest';
-import { LanguageService } from '../../../core/i18n/language.service';
+import { LanguageService } from '../../../../core/i18n/language.service';
 import { ScrapReview } from '../scrap-review.models';
 import { ScrapReviewService } from '../scrap-review.service';
-import { ScrapReviewTemplate } from '../scrap-template.models';
+import { ScrapReviewTemplate } from '../../templates/scrap-template.models';
 import { ScrapBulkReviewDialog } from './scrap-bulk-review-dialog';
 
 describe('ScrapBulkReviewDialog', () => {

@@ -10,9 +10,9 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { LanguageService } from '../../../core/i18n/language.service';
-import { UiIcon } from '../../../shared/components/ui-icon/ui-icon';
-import { ObjectUrlRegistry } from '../../../core/browser/object-url-registry';
+import { LanguageService } from '../../../../core/i18n/language.service';
+import { UiIcon } from '../../../../shared/components/ui-icon/ui-icon';
+import { ObjectUrlRegistry } from '../../../../core/browser/object-url-registry';
 import { ScrapReviewAttachment } from '../scrap-review.models';
 
 const MAX_ATTACHMENTS = 8;

@@ -15,13 +15,13 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subscription } from 'rxjs';
-import { LanguageService } from '../../../core/i18n/language.service';
-import { AuthService } from '../../../core/auth/auth.service';
-import { ObjectUrlRegistry } from '../../../core/browser/object-url-registry';
-import { InlineAlert } from '../../../shared/components/list-view/inline-alert/inline-alert';
-import { StatusBadge } from '../../../shared/components/list-view/status-badge/status-badge';
-import { UiIcon } from '../../../shared/components/ui-icon/ui-icon';
-import { ScrapListItem } from '../scrap-base.models';
+import { LanguageService } from '../../../../core/i18n/language.service';
+import { AuthService } from '../../../../core/auth/auth.service';
+import { ObjectUrlRegistry } from '../../../../core/browser/object-url-registry';
+import { InlineAlert } from '../../../../shared/components/list-view/inline-alert/inline-alert';
+import { StatusBadge } from '../../../../shared/components/list-view/status-badge/status-badge';
+import { UiIcon } from '../../../../shared/components/ui-icon/ui-icon';
+import { ScrapListItem } from '../../list/scrap-base.models';
 import { ScrapReviewForm } from '../scrap-review-form/scrap-review-form';
 import {
   ScrapDefectType,
@@ -32,7 +32,7 @@ import {
 import { ScrapReviewPreview } from '../scrap-review-preview/scrap-review-preview';
 import { ScrapReviewService } from '../scrap-review.service';
 import { DefectTypesService } from '../defect-types.service';
-import { ScrapTemplateStore } from '../scrap-template.store';
+import { ScrapTemplateStore } from '../../templates/scrap-template.store';
 import { ScrapReviewQueueStore } from '../scrap-review-queue.store';
 import {
   ScrapReviewWorkflowCoordinator,

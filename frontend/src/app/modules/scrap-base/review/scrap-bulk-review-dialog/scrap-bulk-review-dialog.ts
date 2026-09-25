@@ -12,12 +12,12 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { LanguageService } from '../../../core/i18n/language.service';
-import { InlineAlert } from '../../../shared/components/list-view/inline-alert/inline-alert';
-import { UiIcon } from '../../../shared/components/ui-icon/ui-icon';
+import { LanguageService } from '../../../../core/i18n/language.service';
+import { InlineAlert } from '../../../../shared/components/list-view/inline-alert/inline-alert';
+import { UiIcon } from '../../../../shared/components/ui-icon/ui-icon';
 import { ScrapReview, ScrapReviewBulkResult } from '../scrap-review.models';
 import { ScrapBulkReviewCoordinator } from '../scrap-bulk-review.coordinator';
-import { ScrapReviewTemplate } from '../scrap-template.models';
+import { ScrapReviewTemplate } from '../../templates/scrap-template.models';
 
 @Component({
   selector: 'app-scrap-bulk-review-dialog',

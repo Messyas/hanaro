@@ -17,20 +17,20 @@ import { ListPanel } from '../../shared/components/list-view/list-panel/list-pan
 import { ListTableSkeleton } from '../../shared/components/list-view/list-table-skeleton/list-table-skeleton';
 import { StatusBadge } from '../../shared/components/list-view/status-badge/status-badge';
 import { UiIcon } from '../../shared/components/ui-icon/ui-icon';
-import { ScrapListItem, ScrapReviewFilterStatus, ScrapSortField } from './scrap-base.models';
-import { ScrapBulkReviewCoordinator } from './scrap-bulk-review.coordinator';
-import { ScrapBulkReviewDialog } from './scrap-bulk-review-dialog/scrap-bulk-review-dialog';
-import { ScrapReviewDrawer } from './scrap-review-drawer/scrap-review-drawer';
-import { ScrapDefectType, ScrapReview, ScrapReviewBulkResult } from './scrap-review.models';
-import { ScrapReviewService } from './scrap-review.service';
-import { DefectTypesService } from './defect-types.service';
-import { ScrapReviewTemplate } from './scrap-template.models';
+import { ScrapListItem, ScrapReviewFilterStatus, ScrapSortField } from './list/scrap-base.models';
+import { ScrapListStore } from './list/scrap-list.store';
+import { ScrapBulkReviewCoordinator } from './review/scrap-bulk-review.coordinator';
+import { ScrapBulkReviewDialog } from './review/scrap-bulk-review-dialog/scrap-bulk-review-dialog';
+import { ScrapReviewDrawer } from './review/scrap-review-drawer/scrap-review-drawer';
+import { ScrapDefectType, ScrapReview, ScrapReviewBulkResult } from './review/scrap-review.models';
+import { ScrapReviewService } from './review/scrap-review.service';
+import { DefectTypesService } from './review/defect-types.service';
+import { ScrapReviewTemplate } from './templates/scrap-template.models';
 import {
   ScrapTemplatePopover,
   TemplateUpdateRequest,
-} from './scrap-template-popover/scrap-template-popover';
-import { ScrapTemplateStore } from './scrap-template.store';
-import { ScrapListStore } from './scrap-list.store';
+} from './templates/scrap-template-popover/scrap-template-popover';
+import { ScrapTemplateStore } from './templates/scrap-template.store';
 
 @Component({
   selector: 'app-scrap-base-page',

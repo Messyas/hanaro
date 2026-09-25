@@ -2,12 +2,12 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { of } from 'rxjs';
 import { vi } from 'vitest';
-import { AuthService } from '../../../core/auth/auth.service';
-import { LanguageService } from '../../../core/i18n/language.service';
+import { AuthService } from '../../../../core/auth/auth.service';
+import { LanguageService } from '../../../../core/i18n/language.service';
 import { ScrapReview } from '../scrap-review.models';
 import { ScrapReviewService } from '../scrap-review.service';
 import { DefectTypesService } from '../defect-types.service';
-import { ScrapTemplateStore } from '../scrap-template.store';
+import { ScrapTemplateStore } from '../../templates/scrap-template.store';
 import { ScrapReviewDrawer } from './scrap-review-drawer';
 
 describe('ScrapReviewDrawer', () => {

@@ -1,12 +1,12 @@
 import { Component, computed, effect, inject, input, output, signal } from '@angular/core';
 import { disabled, form, FormField, maxLength, required } from '@angular/forms/signals';
-import { AuthService } from '../../../core/auth/auth.service';
-import { LanguageService } from '../../../core/i18n/language.service';
+import { AuthService } from '../../../../core/auth/auth.service';
+import { LanguageService } from '../../../../core/i18n/language.service';
 import {
   ListFilterSelect,
   ListFilterSelectOption,
-} from '../../../shared/components/list-filters/list-filter-select';
-import { UiIcon } from '../../../shared/components/ui-icon/ui-icon';
+} from '../../../../shared/components/list-filters/list-filter-select';
+import { UiIcon } from '../../../../shared/components/ui-icon/ui-icon';
 import { ScrapReviewAttachments } from '../scrap-review-attachments/scrap-review-attachments';
 import { ScrapDefectType, ScrapReview, ScrapReviewFormModel } from '../scrap-review.models';
 

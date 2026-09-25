@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
-import { ScrapListStore } from './scrap-list.store';
-import { ScrapTemplateStore } from './scrap-template.store';
+import { ScrapListStore } from './list/scrap-list.store';
+import { ScrapTemplateStore } from './templates/scrap-template.store';
 
 export const SCRAP_BASE_ROUTES: Routes = [
   {

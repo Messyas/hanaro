@@ -1,5 +1,5 @@
 import { Injectable, computed, signal } from '@angular/core';
-import { ScrapListItem } from './scrap-base.models';
+import { ScrapListItem } from '../list/scrap-base.models';
 
 @Injectable()
 export class ScrapReviewQueueStore {

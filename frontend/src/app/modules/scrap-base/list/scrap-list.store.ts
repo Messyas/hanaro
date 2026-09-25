@@ -1,8 +1,8 @@
 import { DestroyRef, Injectable, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subject, Subscription, debounceTime, distinctUntilChanged } from 'rxjs';
-import { AuthService } from '../../core/auth/auth.service';
-import { LanguageService } from '../../core/i18n/language.service';
+import { AuthService } from '../../../core/auth/auth.service';
+import { LanguageService } from '../../../core/i18n/language.service';
 import {
   ScrapFilterParams,
   ScrapPage,

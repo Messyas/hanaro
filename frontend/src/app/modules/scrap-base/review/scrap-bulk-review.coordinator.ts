@@ -2,10 +2,10 @@ import { Injectable, inject, signal, computed } from '@angular/core';
 import { DestroyRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { EMPTY, Observable, catchError, finalize, tap } from 'rxjs';
-import { ScrapListItem } from './scrap-base.models';
+import { ScrapListItem } from '../list/scrap-base.models';
 import { ScrapReviewBulkCreate, ScrapReview, ScrapReviewBulkResult } from './scrap-review.models';
 import { ScrapReviewService } from './scrap-review.service';
-import { ScrapReviewTemplate } from './scrap-template.models';
+import { ScrapReviewTemplate } from '../templates/scrap-template.models';
 
 const MAX_BULK_SELECTION = 500;
 

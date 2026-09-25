@@ -4,12 +4,12 @@ import { of } from 'rxjs';
 import { vi } from 'vitest';
 import { AuthService } from '../../core/auth/auth.service';
 import { LanguageService } from '../../core/i18n/language.service';
-import { ScrapPage } from './scrap-base.models';
+import { ScrapPage } from './list/scrap-base.models';
 import { ScrapBasePage } from './scrap-base-page';
-import { ScrapBaseService } from './scrap-base.service';
-import { ScrapReviewService } from './scrap-review.service';
-import { DefectTypesService } from './defect-types.service';
-import { ScrapTemplateStore } from './scrap-template.store';
+import { ScrapBaseService } from './list/scrap-base.service';
+import { ScrapReviewService } from './review/scrap-review.service';
+import { DefectTypesService } from './review/defect-types.service';
+import { ScrapTemplateStore } from './templates/scrap-template.store';
 
 describe('ScrapBasePage', () => {
   let component: ScrapBasePage;

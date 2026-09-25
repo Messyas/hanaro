@@ -1,7 +1,7 @@
 import { Component, HostListener, computed, inject, input, signal } from '@angular/core';
-import { LanguageService } from '../../../core/i18n/language.service';
-import { UiIcon } from '../../../shared/components/ui-icon/ui-icon';
-import { ScrapListItem } from '../scrap-base.models';
+import { LanguageService } from '../../../../core/i18n/language.service';
+import { UiIcon } from '../../../../shared/components/ui-icon/ui-icon';
+import { ScrapListItem } from '../../list/scrap-base.models';
 import { ScrapReview, ScrapReviewFormModel } from '../scrap-review.models';
 
 function parseMarkdown(md: string): string {
