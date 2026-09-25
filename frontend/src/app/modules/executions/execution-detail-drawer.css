@@ -1,0 +1,231 @@
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  justify-content: flex-end;
+  background: var(--app-overlay);
+  animation: detail-backdrop-enter 180ms ease forwards;
+}
+
+.detail-drawer {
+  display: flex;
+  width: 100%;
+  max-width: 620px;
+  height: 100%;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--app-surface);
+  border-left: 1px solid var(--app-card-border);
+  box-shadow: var(--app-shadow-action);
+  animation: drawer-slide-in 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.drawer-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--app-divider);
+}
+
+.drawer-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.drawer-title-group h3 {
+  margin: 0;
+  color: var(--app-page-title);
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.drawer-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1.5rem;
+  overflow-y: auto;
+  padding: 1.5rem;
+}
+
+.drawer-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.drawer-section h4 {
+  margin: 0;
+  color: var(--app-text-muted-detail);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.85rem;
+}
+
+.meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.65rem 0.85rem;
+  background: var(--app-surface-muted);
+  border: 1px solid var(--app-border-soft);
+  border-radius: 0.5rem;
+}
+
+.meta-label {
+  color: var(--app-text-muted-detail);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.meta-value {
+  color: var(--app-text-strong);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  word-break: break-all;
+}
+
+.source-hash {
+  font-size: 0.7rem;
+}
+
+.failure-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 1rem;
+  background: var(--app-danger-soft);
+  border: 1px solid color-mix(in srgb, var(--app-danger) 24%, transparent);
+  border-radius: 0.6rem;
+}
+
+.failure-box strong {
+  color: var(--app-danger);
+  font-size: 0.875rem;
+}
+
+.failure-box p {
+  margin: 0;
+  color: var(--app-text);
+  font-size: 0.8125rem;
+  line-height: 1.35;
+}
+
+.retry-execution-button {
+  align-self: flex-start;
+  margin-top: 0.4rem;
+}
+
+.loading-container,
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 3rem 1.5rem;
+  text-align: center;
+}
+
+.error-icon {
+  display: flex;
+  width: 3rem;
+  height: 3rem;
+  align-items: center;
+  justify-content: center;
+  color: var(--app-danger);
+  background: var(--app-danger-soft);
+  border-radius: 50%;
+}
+
+.timeline-list {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding-left: 1.5rem;
+}
+
+.timeline-list::before {
+  position: absolute;
+  top: 0.65rem;
+  bottom: 1rem;
+  left: 0.5rem;
+  width: 2px;
+  background: var(--app-border-strong);
+  content: '';
+}
+
+.timeline-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.timeline-header {
+  position: relative;
+  display: flex;
+  min-height: 1.3rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.timeline-branch {
+  position: absolute;
+  top: 50%;
+  left: -1rem;
+  width: 0.75rem;
+  height: 2px;
+  background: var(--app-border-strong);
+  transform: translateY(-50%);
+}
+
+.timeline-step-name {
+  color: var(--app-text-strong);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.timeline-step-time {
+  color: var(--app-text-muted-detail);
+  font-size: 0.75rem;
+}
+
+.timeline-message {
+  padding: 0.35rem 0.55rem;
+  color: var(--app-text-secondary);
+  background: var(--app-surface-muted);
+  border-radius: 0.35rem;
+  font-size: 0.75rem;
+}
+
+@keyframes drawer-slide-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes detail-backdrop-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

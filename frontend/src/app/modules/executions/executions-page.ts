@@ -41,6 +41,7 @@ import {
 } from './executions.models';
 import { ExecutionsService } from './executions.service';
 import { ExecutionManualUploadDialog } from './execution-manual-upload-dialog';
+import { ExecutionDetailDrawer, ExecutionDetailFormatters } from './execution-detail-drawer';
 
 const ALLOWED_PAGE_SIZES = [10, 25, 50, 100] as const;
 const PAGE_SIZE_STORAGE_KEY = 'hanaro-executions-page-size';
@@ -54,6 +55,7 @@ const EXECUTION_POLL_INTERVAL_MS = 5_000;
     InlineAlert,
     DelayedProgressSpinner,
     ExecutionManualUploadDialog,
+    ExecutionDetailDrawer,
     ListFeedback,
     ListFilterDateRange,
     ListFilterInput,
@@ -152,6 +154,19 @@ export class ExecutionsPage implements OnInit {
   readonly detailError = signal<string | null>(null);
   readonly retrying = signal<boolean>(false);
   readonly manualUploadOpen = signal(false);
+  readonly detailFormatters: ExecutionDetailFormatters = {
+    formatDateTime: (value) => this.formatDateTime(value),
+    formatDateSlash: (value) => this.formatDateSlash(value),
+    formatDuration: (value) => this.formatDuration(value),
+    formatTrigger: (value) => this.formatTrigger(value),
+    formatStatus: (value) => this.formatStatus(value),
+    getStatusBadgeClass: (value) => this.getStatusBadgeClass(value),
+    formatSnapshotStatus: (value) => this.formatSnapshotStatus(value),
+    getSnapshotBadgeClass: (value) => this.getSnapshotBadgeClass(value),
+    formatStepName: (value) => this.formatStepName(value),
+    formatStepStatus: (value) => this.formatStepStatus(value),
+    getStepStatusBadgeClass: (value) => this.getStepStatusBadgeClass(value),
+  };
 
   ngOnInit(): void {
     this.searchSubject

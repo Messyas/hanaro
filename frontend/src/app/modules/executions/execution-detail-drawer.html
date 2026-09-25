@@ -1,0 +1,160 @@
+<div class="modal-backdrop" (click)="closed.emit()">
+  <div
+    class="detail-drawer"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="drawer-execution-title"
+    (click)="$event.stopPropagation()"
+  >
+    <header class="drawer-header">
+      <div class="drawer-title-group">
+        <span class="meta-label">{{ translations().executionsDetailTitle }}</span>
+        <h3 id="drawer-execution-title">{{ executionId() }}</h3>
+      </div>
+      <button
+        class="btn btn-ghost"
+        type="button"
+        [attr.aria-label]="translations().executionsCloseDetail"
+        (click)="closed.emit()"
+      >
+        <ui-icon name="x" />
+      </button>
+    </header>
+
+    <div class="drawer-body">
+      @if (loading()) {
+        <div class="loading-container">
+          <ui-icon name="clock" />
+          <p>{{ translations().executionsLoading }}</p>
+        </div>
+      } @else if (error()) {
+        <div class="error-container">
+          <span class="error-icon"><ui-icon name="x" /></span>
+          <strong>{{ translations().executionsErrorTitle }}</strong>
+          <p>{{ error() }}</p>
+        </div>
+      } @else if (detail(); as execution) {
+        @if (execution.status === 'FAILED') {
+          <div class="failure-box">
+            <strong
+              >{{ translations().executionsFailureTitle }}:
+              {{ execution.failure_code || execution.status }}</strong
+            >
+            @if (execution.failure_category) {
+              <span class="meta-label">{{ execution.failure_category }}</span>
+            }
+            <p>{{ execution.failure_message || '—' }}</p>
+            <button
+              class="btn btn-primary retry-execution-button"
+              type="button"
+              [disabled]="retrying()"
+              (click)="retryRequested.emit()"
+            >
+              {{ retrying() ? translations().executionsLoading : translations().executionsRetry }}
+            </button>
+          </div>
+        }
+
+        <section class="drawer-section">
+          <h4>{{ translations().executionsMetaGeneral }}</h4>
+          <div class="meta-grid">
+            <div class="meta-item">
+              <span class="meta-label">{{ translations().executionsColStatus }}</span>
+              <span [class]="formatters().getStatusBadgeClass(execution.status)">
+                {{ formatters().formatStatus(execution.status) }}
+              </span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">{{ translations().executionsColSnapshot }}</span>
+              <span [class]="formatters().getSnapshotBadgeClass(execution.snapshot_status)">
+                {{ formatters().formatSnapshotStatus(execution.snapshot_status) }}
+              </span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">{{ translations().executionsMetaReport }}</span>
+              <span class="meta-value">{{ execution.report_name }}</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">{{ translations().executionsColTrigger }}</span>
+              <span class="meta-value">{{ formatters().formatTrigger(execution.trigger) }}</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label"
+                >{{ translations().executionsColStart }} /
+                {{ translations().executionsColEnd }}</span
+              >
+              <span class="meta-value"
+                >{{ formatters().formatDateSlash(execution.query_date_from) }} —
+                {{ formatters().formatDateSlash(execution.query_date_to) }}</span
+              >
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">{{ translations().executionsColDuration }}</span>
+              <span class="meta-value">{{
+                formatters().formatDuration(execution.duration_ms)
+              }}</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="drawer-section">
+          <h4>{{ translations().executionsMetaTechnical }}</h4>
+          <div class="meta-grid">
+            <div class="meta-item">
+              <span class="meta-label">{{ translations().executionsMetaGerpRequestId }}</span>
+              <span class="meta-value">{{ execution.gerp_request_id || '—' }}</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">{{ translations().executionsMetaCorrelationId }}</span>
+              <span class="meta-value">{{ execution.correlation_id }}</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">{{ translations().executionsMetaSourceFile }}</span>
+              <span class="meta-value">{{ execution.source_file_name || '—' }}</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">{{ translations().executionsMetaSha256 }}</span>
+              <span class="meta-value source-hash">{{ execution.source_file_sha256 || '—' }}</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">{{ translations().executionsColReceived }}</span>
+              <span class="meta-value">{{ execution.records_received | number }}</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">{{ translations().executionsColValid }}</span>
+              <span class="meta-value">{{ execution.records_accepted | number }}</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="drawer-section">
+          <h4>{{ translations().executionsTimelineTitle }}</h4>
+          <div class="timeline-list">
+            @for (step of execution.steps; track step.sequence + '-' + step.attempt) {
+              <div class="timeline-item">
+                <div class="timeline-header">
+                  <div class="timeline-branch"></div>
+                  <span class="timeline-step-name">
+                    {{ step.sequence }}. {{ formatters().formatStepName(step.step_code) }}
+                  </span>
+                  <span [class]="formatters().getStepStatusBadgeClass(step.status)">
+                    {{ formatters().formatStepStatus(step.status) }}
+                  </span>
+                </div>
+                <div class="timeline-step-time">
+                  <span>{{ formatters().formatDateTime(step.started_at) }}</span>
+                  @if (step.duration_ms !== null) {
+                    <span> • {{ formatters().formatDuration(step.duration_ms) }}</span>
+                  }
+                </div>
+                @if (step.message) {
+                  <div class="timeline-message">{{ step.message }}</div>
+                }
+              </div>
+            }
+          </div>
+        </section>
+      }
+    </div>
+  </div>
+</div>
