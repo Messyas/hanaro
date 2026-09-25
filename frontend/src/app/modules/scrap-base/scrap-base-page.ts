@@ -1,8 +1,6 @@
 import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subject, Subscription, debounceTime, distinctUntilChanged } from 'rxjs';
-import { AuthService } from '../../core/auth/auth.service';
 import { LanguageService } from '../../core/i18n/language.service';
 import { ListFilterDateRange } from '../../shared/components/list-filters/list-filter-date-range';
 import { ListFilterInput } from '../../shared/components/list-filters/list-filter-input';
@@ -19,15 +17,7 @@ import { ListPanel } from '../../shared/components/list-view/list-panel/list-pan
 import { ListTableSkeleton } from '../../shared/components/list-view/list-table-skeleton/list-table-skeleton';
 import { StatusBadge } from '../../shared/components/list-view/status-badge/status-badge';
 import { UiIcon } from '../../shared/components/ui-icon/ui-icon';
-import {
-  ScrapFilterParams,
-  ScrapListItem,
-  ScrapPage,
-  ScrapReviewFilterStatus,
-  ScrapSortField,
-  SortOrder,
-} from './scrap-base.models';
-import { ScrapBaseService } from './scrap-base.service';
+import { ScrapListItem, ScrapReviewFilterStatus, ScrapSortField } from './scrap-base.models';
 import { ScrapBulkReviewCoordinator } from './scrap-bulk-review.coordinator';
 import { ScrapBulkReviewDialog } from './scrap-bulk-review-dialog/scrap-bulk-review-dialog';
 import { ScrapReviewDrawer } from './scrap-review-drawer/scrap-review-drawer';
@@ -40,8 +30,7 @@ import {
   TemplateUpdateRequest,
 } from './scrap-template-popover/scrap-template-popover';
 import { ScrapTemplateStore } from './scrap-template.store';
-
-const PAGE_SIZES = [25, 50, 100, 200] as const;
+import { ScrapListStore } from './scrap-list.store';
 
 @Component({
   selector: 'app-scrap-base-page',
@@ -67,45 +56,41 @@ const PAGE_SIZES = [25, 50, 100, 200] as const;
   providers: [ScrapBulkReviewCoordinator],
 })
 export class ScrapBasePage implements OnInit {
-  private readonly scrapBaseService = inject(ScrapBaseService);
   private readonly reviewService = inject(ScrapReviewService);
   private readonly defectTypesService = inject(DefectTypesService);
   private readonly templateStore = inject(ScrapTemplateStore);
+  private readonly listStore = inject(ScrapListStore);
   private readonly bulkReview = inject(ScrapBulkReviewCoordinator);
-  private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
 
-  private readonly searchSubject = new Subject<string>();
-  private listRequest: Subscription | null = null;
-
   readonly language = inject(LanguageService);
   readonly t = computed(() => this.language.translations());
-  readonly pageSizes = PAGE_SIZES;
+  readonly pageSizes = this.listStore.pageSizes;
 
   // Filtros existentes
-  readonly dateFrom = signal('');
-  readonly dateTo = signal('');
-  readonly organization = signal('');
-  readonly searchText = signal('');
-  readonly searchQuery = signal('');
-  readonly page = signal(1);
-  readonly pageSize = signal<(typeof PAGE_SIZES)[number]>(50);
-  readonly sortBy = signal<ScrapSortField>('transaction_date');
-  readonly sortOrder = signal<SortOrder>('desc');
+  readonly dateFrom = this.listStore.dateFrom;
+  readonly dateTo = this.listStore.dateTo;
+  readonly organization = this.listStore.organization;
+  readonly searchText = this.listStore.searchText;
+  readonly searchQuery = this.listStore.searchQuery;
+  readonly page = this.listStore.page;
+  readonly pageSize = this.listStore.pageSize;
+  readonly sortBy = this.listStore.sortBy;
+  readonly sortOrder = this.listStore.sortOrder;
   readonly filterOpen = signal(false);
 
   // Novos filtros de análise
-  readonly reviewStatusFilter = signal<ScrapReviewFilterStatus | ''>('');
-  readonly defectTypeFilter = signal('');
-  readonly responsibleFilter = signal<'mine' | ''>('');
+  readonly reviewStatusFilter = this.listStore.reviewStatusFilter;
+  readonly defectTypeFilter = this.listStore.defectTypeFilter;
+  readonly responsibleFilter = this.listStore.responsibleFilter;
   readonly defectTypes = signal<ScrapDefectType[]>([]);
 
   // Estado da listagem
-  readonly data = signal<ScrapPage | null>(null);
-  readonly loading = signal(false);
-  readonly error = signal<string | null>(null);
+  readonly data = this.listStore.data;
+  readonly loading = this.listStore.loading;
+  readonly error = this.listStore.error;
 
   // Modo de seleção e IDs selecionados
   readonly selectionMode = this.bulkReview.selectionMode;
@@ -242,47 +227,17 @@ export class ScrapBasePage implements OnInit {
       }
     });
 
-    this.searchSubject
-      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
-      .subscribe((search) => {
-        this.searchQuery.set(search.trim());
-        this.page.set(1);
-        this.loadScrap();
-      });
-
     this.loadScrap();
   }
 
   loadScrap(): void {
     if (this.dateRangeError()) return;
-
-    const filters = this.buildFilters();
-
-    this.listRequest?.unsubscribe();
-    this.loading.set(true);
-    this.error.set(null);
-    this.listRequest = this.scrapBaseService
-      .list(filters)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (page) => {
-          this.data.set(page);
-          this.loading.set(false);
-
-          // Se há um occurrenceId aberto, localiza o item na página para passar ao drawer
-          const currentOccId = this.openedOccurrenceId();
-          if (currentOccId) {
-            const found = page.items.find((i) => i.occurrence_id === currentOccId);
-            if (found) {
-              this.selectedOccurrenceForDrawer.set(found);
-            }
-          }
-        },
-        error: (err: { error?: { detail?: string }; message?: string }) => {
-          this.error.set(err.error?.detail || err.message || this.t().scrapErrorTitle);
-          this.loading.set(false);
-        },
-      });
+    this.listStore.load(this.selectionMode(), (page) => {
+      const currentOccurrenceId = this.openedOccurrenceId();
+      if (!currentOccurrenceId) return;
+      const found = page.items.find((item) => item.occurrence_id === currentOccurrenceId);
+      if (found) this.selectedOccurrenceForDrawer.set(found);
+    });
   }
 
   toggleSelectionMode(): void {
@@ -492,8 +447,7 @@ export class ScrapBasePage implements OnInit {
   }
 
   onSearchInput(value: string): void {
-    this.searchText.set(value);
-    this.searchSubject.next(value);
+    this.listStore.onSearchInput(value);
   }
 
   onDateChange(): void {
@@ -515,7 +469,7 @@ export class ScrapBasePage implements OnInit {
   }
 
   onPageSizeChange(value: number): void {
-    this.pageSize.set(value as (typeof PAGE_SIZES)[number]);
+    this.pageSize.set(value as (typeof this.pageSizes)[number]);
     this.page.set(1);
     this.loadScrap();
   }
@@ -604,31 +558,5 @@ export class ScrapBasePage implements OnInit {
   calendarLocale(): string {
     const language = this.language.currentLanguage();
     return language === 'pt' ? 'pt-BR' : language === 'ko' ? 'ko-KR' : 'en-US';
-  }
-
-  private buildFilters(): ScrapFilterParams {
-    const organizations = this.organization()
-      .split(',')
-      .map((value) => value.trim())
-      .filter(Boolean);
-
-    const currentUser = this.authService.user();
-    const responsibleIds =
-      this.responsibleFilter() === 'mine' && currentUser?.id ? [currentUser.id] : undefined;
-
-    return {
-      page: this.page(),
-      page_size: this.pageSize(),
-      sort_by: this.sortBy(),
-      sort_order: this.sortOrder(),
-      ...(this.dateFrom() ? { date_from: this.dateFrom() } : {}),
-      ...(this.dateTo() ? { date_to: this.dateTo() } : {}),
-      ...(organizations.length ? { organizations } : {}),
-      ...(this.searchQuery() ? { search: this.searchQuery() } : {}),
-      ...(this.reviewStatusFilter() ? { review_status: this.reviewStatusFilter() as any } : {}),
-      ...(this.defectTypeFilter() ? { defect_type_ids: [this.defectTypeFilter()] } : {}),
-      ...(responsibleIds ? { responsible_user_ids: responsibleIds } : {}),
-      ...(this.selectionMode() ? { exclude_reviewed: true } : {}),
-    };
   }
 }
