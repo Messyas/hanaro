@@ -1,4 +1,5 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import { ObjectUrlRegistry } from '../../../core/browser/object-url-registry';
 
 export interface ScrapAttachmentPreview {
   readonly url: string;
@@ -9,21 +10,18 @@ export interface ScrapAttachmentPreview {
 /** Owns browser blob URLs used only while a review draft is open. */
 @Injectable()
 export class ScrapAttachmentPreviewService {
-  private readonly activeUrls = new Set<string>();
+  private readonly objectUrls = inject(ObjectUrlRegistry);
 
   create(file: File): ScrapAttachmentPreview {
-    const url = URL.createObjectURL(file);
-    this.activeUrls.add(url);
+    const url = this.objectUrls.create(file);
     return { url, name: file.name, original_filename: file.name };
   }
 
   revoke(url: string): void {
-    if (!this.activeUrls.delete(url)) return;
-    URL.revokeObjectURL(url);
+    this.objectUrls.revoke(url);
   }
 
   revokeAll(): void {
-    for (const url of this.activeUrls) URL.revokeObjectURL(url);
-    this.activeUrls.clear();
+    this.objectUrls.revokeAll();
   }
 }

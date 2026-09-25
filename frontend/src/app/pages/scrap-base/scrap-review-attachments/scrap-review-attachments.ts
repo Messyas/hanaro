@@ -12,6 +12,7 @@ import {
 } from '@angular/core';
 import { LanguageService } from '../../../i18n/language.service';
 import { UiIcon } from '../../../ui-icon';
+import { ObjectUrlRegistry } from '../../../core/browser/object-url-registry';
 import { ScrapReviewAttachment } from '../scrap-review.models';
 
 const MAX_ATTACHMENTS = 8;
@@ -43,9 +44,11 @@ export interface DisplayAttachmentItem {
   imports: [UiIcon],
   templateUrl: './scrap-review-attachments.html',
   styleUrl: './scrap-review-attachments.css',
+  providers: [ObjectUrlRegistry],
 })
 export class ScrapReviewAttachments implements OnDestroy {
   private readonly language = inject(LanguageService);
+  private readonly objectUrls = inject(ObjectUrlRegistry);
   readonly t = computed(() => this.language.translations());
 
   readonly attachments = input<ScrapReviewAttachment[]>([]);
@@ -102,11 +105,7 @@ export class ScrapReviewAttachments implements OnDestroy {
   }
 
   ngOnDestroy(): void {
-    for (const item of this.localItems()) {
-      if (item.isLocalPreview && item.url.startsWith('blob:')) {
-        URL.revokeObjectURL(item.url);
-      }
-    }
+    this.objectUrls.revokeAll();
   }
 
   triggerFileInput(): void {
@@ -179,7 +178,7 @@ export class ScrapReviewAttachments implements OnDestroy {
         id: `local-${Math.random().toString(36).slice(2, 9)}`,
         name: file.name,
         sizeBytes: file.size,
-        url: URL.createObjectURL(file),
+        url: this.objectUrls.create(file),
         isLocalPreview: true,
         file,
       }));
@@ -202,9 +201,7 @@ export class ScrapReviewAttachments implements OnDestroy {
 
   removeLocalItem(item: LocalAttachmentItem): void {
     if (this.readOnly()) return;
-    if (item.isLocalPreview && item.url.startsWith('blob:')) {
-      URL.revokeObjectURL(item.url);
-    }
+    if (item.isLocalPreview) this.objectUrls.revoke(item.url);
     this.localItems.update((items) => items.filter((i) => i.id !== item.id));
   }
 

@@ -28,6 +28,7 @@ import {
 } from 'rxjs';
 import { LanguageService } from '../../../i18n/language.service';
 import { AuthService } from '../../../core/auth/auth.service';
+import { ObjectUrlRegistry } from '../../../core/browser/object-url-registry';
 import { InlineAlert } from '../../../shared/list-view/inline-alert/inline-alert';
 import { StatusBadge } from '../../../shared/list-view/status-badge/status-badge';
 import { UiIcon } from '../../../ui-icon';
@@ -50,7 +51,7 @@ import {
 @Component({
   selector: 'app-scrap-review-drawer',
   imports: [InlineAlert, ScrapReviewForm, ScrapReviewPreview, StatusBadge, UiIcon],
-  providers: [ScrapAttachmentPreviewService],
+  providers: [ScrapAttachmentPreviewService, ObjectUrlRegistry],
   templateUrl: './scrap-review-drawer.html',
   styleUrl: './scrap-review-drawer.css',
 })
