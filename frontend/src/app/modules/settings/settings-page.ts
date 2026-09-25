@@ -1,5 +1,5 @@
 import { CurrencyPipe, DecimalPipe } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSlideToggle } from '@angular/material/slide-toggle';
@@ -12,34 +12,33 @@ import {
   ListFilterSelect,
   ListFilterSelectOption,
 } from '../../shared/list-filters/list-filter-select';
-import { ScrapDefectType } from '../../modules/scrap-base/scrap-review.models';
-import { ScrapReviewService } from '../../modules/scrap-base/scrap-review.service';
+import { ScrapDefectType, ScrapReviewService } from '../scrap-base/scrap-base.public-api';
 import { ScrapTargetService } from './scrap-target.service';
+import { SettingsStore, SettingsTab } from './settings.store';
+import {
+  createClassificationRuleWrite,
+  createDefectTypeCode,
+  createPrefilledTargets,
+} from './settings.calculations';
+import { DefectTypesStore } from './defect-types.store';
+import { ClassificationsStore } from './classifications.store';
+import { TargetsStore } from './targets.store';
+import { ProductionField, ProductionStore } from './production.store';
 import { ProductionMeasurementService } from './production-measurement.service';
 import {
   ScrapClassificationKind,
   ScrapClassificationRule,
-  ScrapClassificationRuleWrite,
   ScrapClassificationService,
 } from './scrap-classification.service';
-
-type ProductionField = 'productionValue' | 'productionQuantity' | 'note';
-
-interface ProductionMonthRow {
-  month: number;
-  revision: number;
-  productionValue: number | null;
-  productionQuantity: number | null;
-  note: string;
-}
 
 @Component({
   selector: 'app-settings-page',
   imports: [FormsModule, MatSlideToggle, UiIcon, ListFilterSelect, CurrencyPipe, DecimalPipe],
   templateUrl: './settings-page.html',
   styleUrl: './settings-page.css',
+  providers: [SettingsStore, DefectTypesStore, ClassificationsStore, TargetsStore, ProductionStore],
 })
-export class SettingsPage implements OnInit {
+export class SettingsPage {
   readonly theme = inject(ThemeService);
   readonly language = inject(LanguageService);
   readonly authService = inject(AuthService);
@@ -48,127 +47,72 @@ export class SettingsPage implements OnInit {
   readonly productionMeasurementService = inject(ProductionMeasurementService);
   readonly scrapClassificationService = inject(ScrapClassificationService);
   private readonly dialog = inject(MatDialog);
+  private readonly settingsStore = inject(SettingsStore);
+  readonly activeTab = this.settingsStore.activeTab;
 
-  readonly activeTab = signal<
-    'preferences' | 'classifications' | 'system' | 'targets' | 'production'
-  >('preferences');
+  private readonly defectTypesStore = inject(DefectTypesStore);
+  private readonly classificationsStore = inject(ClassificationsStore);
+  private readonly targetsStore = inject(TargetsStore);
+  private readonly productionStore = inject(ProductionStore);
 
-  // Defect types state
-  readonly defectTypes = signal<ScrapDefectType[]>([]);
-  readonly loadingDefectTypes = signal(false);
-  readonly submitting = signal(false);
-  readonly feedbackMessage = signal<{ type: 'success' | 'error'; text: string } | null>(null);
+  readonly defectTypes = this.defectTypesStore.items;
+  readonly loadingDefectTypes = this.defectTypesStore.loading;
+  readonly submitting = this.defectTypesStore.submitting;
+  readonly feedbackMessage = this.defectTypesStore.feedback;
+  readonly newName = this.defectTypesStore.newName;
+  readonly newCode = this.defectTypesStore.newCode;
+  readonly newDesc = this.defectTypesStore.newDescription;
+  readonly codeManuallyEdited = this.defectTypesStore.codeManuallyEdited;
+  readonly editingId = this.defectTypesStore.editingId;
+  readonly editName = this.defectTypesStore.editName;
+  readonly editDesc = this.defectTypesStore.editDescription;
+  readonly confirmingDeleteItem = this.defectTypesStore.confirmingDeleteItem;
+  readonly activeCount = this.defectTypesStore.activeCount;
+  readonly totalCount = this.defectTypesStore.totalCount;
 
-  readonly classificationRules = signal<ScrapClassificationRule[]>([]);
-  readonly loadingClassifications = signal(false);
-  readonly savingClassification = signal(false);
-  readonly classificationFeedback = signal<{ type: 'success' | 'error'; text: string } | null>(
-    null,
-  );
-  readonly editingClassificationId = signal<string | null>(null);
-  readonly classificationKind = signal<ScrapClassificationKind>('PRODUCT_ALIAS');
-  readonly classificationSource = signal('');
-  readonly classificationContext = signal('');
-  readonly classificationTarget = signal('');
-  readonly classificationSecondary = signal('');
-  readonly classificationBoolean = signal<'true' | 'false'>('true');
-  readonly classificationMode = signal<'EXACT' | 'REGEX'>('EXACT');
-  readonly classificationPriority = signal(0);
+  readonly classificationRules = this.classificationsStore.rules;
+  readonly loadingClassifications = this.classificationsStore.loading;
+  readonly savingClassification = this.classificationsStore.saving;
+  readonly classificationFeedback = this.classificationsStore.feedback;
+  readonly editingClassificationId = this.classificationsStore.editingId;
+  readonly classificationKind = this.classificationsStore.kind;
+  readonly classificationSource = this.classificationsStore.source;
+  readonly classificationContext = this.classificationsStore.context;
+  readonly classificationTarget = this.classificationsStore.target;
+  readonly classificationSecondary = this.classificationsStore.secondaryTarget;
+  readonly classificationBoolean = this.classificationsStore.booleanValue;
+  readonly classificationMode = this.classificationsStore.matchMode;
+  readonly classificationPriority = this.classificationsStore.priority;
 
-  // New defect form
-  readonly newName = signal('');
-  readonly newCode = signal('');
-  readonly newDesc = signal('');
-  readonly codeManuallyEdited = signal(false);
+  readonly selectedTargetYear = this.targetsStore.selectedYear;
+  readonly availableTargetYears = this.targetsStore.availableYears;
+  readonly monthlyTargets = this.targetsStore.monthlyTargets;
+  readonly previousYearTargets = this.targetsStore.previousYearTargets;
+  readonly loadingTargets = this.targetsStore.loading;
+  readonly submittingTargets = this.targetsStore.submitting;
+  readonly targetFeedback = this.targetsStore.feedback;
+  readonly prefillMode = this.targetsStore.prefillMode;
+  readonly prefillAnnualTotal = this.targetsStore.prefillAnnualTotal;
+  readonly prefillJanValue = this.targetsStore.prefillJanuaryValue;
+  readonly prefillDecValue = this.targetsStore.prefillDecemberValue;
+  readonly currentYearTotal = this.targetsStore.currentYearTotal;
+  readonly currentYearAverage = this.targetsStore.currentYearAverage;
+  readonly previousYearTotal = this.targetsStore.previousYearTotal;
+  readonly previousYearVariationPercent = this.targetsStore.previousYearVariationPercent;
 
-  // Edit mode
-  readonly editingId = signal<string | null>(null);
-  readonly editName = signal('');
-  readonly editDesc = signal('');
-
-  readonly activeCount = computed(() => this.defectTypes().filter((d) => d.is_active).length);
-  readonly totalCount = computed(() => this.defectTypes().length);
-
-  // Targets state
-  readonly selectedTargetYear = signal<number>(2026);
-  readonly availableTargetYears = signal<number[]>([2025, 2026, 2027]);
-  readonly monthlyTargets = signal<{ month: number; name: string; amount: number }[]>([
-    { month: 1, name: 'Jan', amount: 0 },
-    { month: 2, name: 'Fev', amount: 0 },
-    { month: 3, name: 'Mar', amount: 0 },
-    { month: 4, name: 'Abr', amount: 0 },
-    { month: 5, name: 'Mai', amount: 0 },
-    { month: 6, name: 'Jun', amount: 0 },
-    { month: 7, name: 'Jul', amount: 0 },
-    { month: 8, name: 'Ago', amount: 0 },
-    { month: 9, name: 'Set', amount: 0 },
-    { month: 10, name: 'Out', amount: 0 },
-    { month: 11, name: 'Nov', amount: 0 },
-    { month: 12, name: 'Dez', amount: 0 },
-  ]);
-  readonly previousYearTargets = signal<Record<number, number>>({});
-  readonly loadingTargets = signal<boolean>(false);
-  readonly submittingTargets = signal<boolean>(false);
-  readonly targetFeedback = signal<{ type: 'success' | 'error'; text: string } | null>(null);
-
-  readonly selectedProductionYear = signal<number>(2026);
-  readonly availableProductionYears = signal<number[]>([2025, 2026, 2027]);
-  readonly productionMonths = signal<ProductionMonthRow[]>(this.createProductionMonths());
-  readonly productionSaving = signal(false);
-  readonly loadingProduction = signal(false);
-  readonly productionFeedback = signal<{ type: 'success' | 'error'; text: string } | null>(null);
-
-  // Prefill assistant state
-  readonly prefillMode = signal<'linear' | 'curve'>('curve');
-  readonly prefillAnnualTotal = signal<number>(120000);
-  readonly prefillJanValue = signal<number>(12000);
-  readonly prefillDecValue = signal<number>(6000);
-
-  // Computeds
-  readonly canEditTargets = computed(() => this.authService.isAuthenticated());
-
-  readonly productionFilledMonths = computed(
-    () =>
-      this.productionMonths().filter(
-        (row) => row.productionValue !== null || row.productionQuantity !== null,
-      ).length,
-  );
-
+  readonly selectedProductionYear = this.productionStore.selectedYear;
+  readonly availableProductionYears = this.productionStore.availableYears;
+  readonly productionMonths = this.productionStore.months;
+  readonly productionSaving = this.productionStore.saving;
+  readonly loadingProduction = this.productionStore.loading;
+  readonly productionFeedback = this.productionStore.feedback;
+  readonly productionFilledMonths = this.productionStore.filledMonths;
+  readonly productionHasErrors = this.productionStore.hasErrors;
   readonly productionYearOptions = computed<readonly ListFilterSelectOption[]>(() =>
     this.availableProductionYears().map((year) => ({ value: String(year), label: String(year) })),
   );
 
-  readonly productionHasErrors = computed(() =>
-    this.productionMonths().some(
-      (row) =>
-        (row.productionValue !== null &&
-          (!Number.isFinite(row.productionValue) || row.productionValue < 0)) ||
-        (row.productionQuantity !== null &&
-          (!Number.isFinite(row.productionQuantity) || row.productionQuantity < 0)),
-    ),
-  );
-
-  readonly currentYearTotal = computed(() =>
-    this.monthlyTargets().reduce((acc, m) => acc + (Number(m.amount) || 0), 0),
-  );
-
-  readonly currentYearAverage = computed(() => {
-    const total = this.currentYearTotal();
-    return total > 0 ? total / 12 : 0;
-  });
-
-  readonly previousYearTotal = computed(() => {
-    const prev = this.previousYearTargets();
-    const sum = Object.values(prev).reduce((acc, val) => acc + (Number(val) || 0), 0);
-    return sum > 0 ? sum : null;
-  });
-
-  readonly previousYearVariationPercent = computed(() => {
-    const prev = this.previousYearTotal();
-    const curr = this.currentYearTotal();
-    if (prev === null || prev === 0 || curr === 0) return null;
-    return ((curr - prev) / prev) * 100;
-  });
+  readonly canEditTargets = computed(() => this.authService.isAuthenticated());
 
   readonly monthLabels = computed(() => {
     const lang = this.language.currentLanguage();
@@ -177,18 +121,18 @@ export class SettingsPage implements OnInit {
     }
     if (lang === 'ko') {
       return [
-        '1월',
-        '2월',
-        '3월',
-        '4월',
-        '5월',
-        '6월',
-        '7월',
-        '8월',
-        '9월',
-        '10월',
-        '11월',
-        '12월',
+        '1ì›”',
+        '2ì›”',
+        '3ì›”',
+        '4ì›”',
+        '5ì›”',
+        '6ì›”',
+        '7ì›”',
+        '8ì›”',
+        '9ì›”',
+        '10ì›”',
+        '11ì›”',
+        '12ì›”',
       ];
     }
     return ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -215,10 +159,6 @@ export class SettingsPage implements OnInit {
 
   private feedbackTimeout: ReturnType<typeof setTimeout> | null = null;
 
-  ngOnInit(): void {
-    // Preferências são locais; cada aba protegida carrega somente quando aberta.
-  }
-
   selectProductionYear(year: number): void {
     this.selectedProductionYear.set(year);
     if (this.authService.isAuthenticated()) this.loadProduction(year);
@@ -232,7 +172,7 @@ export class SettingsPage implements OnInit {
           measurements.map((measurement) => [measurement.month, measurement]),
         );
         this.productionMonths.set(
-          this.createProductionMonths().map((row) => {
+          this.productionStore.createEmptyMonths().map((row) => {
             const measurement = byMonth.get(row.month);
             return measurement
               ? {
@@ -257,9 +197,8 @@ export class SettingsPage implements OnInit {
     });
   }
 
-  selectTab(tab: 'preferences' | 'classifications' | 'system' | 'targets' | 'production'): void {
-    if (tab !== 'preferences' && !this.authService.isAuthenticated()) return;
-    this.activeTab.set(tab);
+  selectTab(tab: SettingsTab): void {
+    if (!this.settingsStore.selectTab(tab, this.authService.isAuthenticated())) return;
     if (tab === 'system') {
       this.loadDefectTypes();
     } else if (tab === 'classifications') {
@@ -269,16 +208,6 @@ export class SettingsPage implements OnInit {
     } else if (tab === 'production') {
       this.loadProduction(this.selectedProductionYear());
     }
-  }
-
-  private createProductionMonths(): ProductionMonthRow[] {
-    return Array.from({ length: 12 }, (_, index) => ({
-      month: index + 1,
-      revision: 0,
-      productionValue: null,
-      productionQuantity: null,
-      note: '',
-    }));
   }
 
   updateProductionRow(index: number, field: ProductionField, value: string | number | null): void {
@@ -332,7 +261,7 @@ export class SettingsPage implements OnInit {
             text: this.language.translations().productionSettingsSaved,
           });
           this.productionMonths.set(
-            this.createProductionMonths().map((row) => {
+            this.productionStore.createEmptyMonths().map((row) => {
               const measurement = saved.find((item) => item.month === row.month);
               return measurement
                 ? {
@@ -366,7 +295,7 @@ export class SettingsPage implements OnInit {
       {},
     );
     if (Object.keys(expectedVersions).length === 0) {
-      this.productionMonths.set(this.createProductionMonths());
+      this.productionMonths.set(this.productionStore.createEmptyMonths());
       this.productionFeedback.set({
         type: 'success',
         text: this.language.translations().productionSettingsDraftCleared,
@@ -378,7 +307,7 @@ export class SettingsPage implements OnInit {
       .clearYear(this.selectedProductionYear(), expectedVersions)
       .subscribe({
         next: () => {
-          this.productionMonths.set(this.createProductionMonths());
+          this.productionMonths.set(this.productionStore.createEmptyMonths());
           this.productionSaving.set(false);
           this.productionFeedback.set({
             type: 'success',
@@ -410,7 +339,7 @@ export class SettingsPage implements OnInit {
         this.loadingClassifications.set(false);
         this.classificationFeedback.set({
           type: 'error',
-          text: 'Não foi possível carregar as classificações compartilhadas.',
+          text: 'NÃ£o foi possÃ­vel carregar as classificaÃ§Ãµes compartilhadas.',
         });
       },
     });
@@ -419,10 +348,10 @@ export class SettingsPage implements OnInit {
   classificationKindLabel(kind: ScrapClassificationKind): string {
     return {
       PRODUCT_ALIAS: 'Apelido de produto',
-      ORGANIZATION: 'Organização → produto/divisão',
-      DEPARTMENT: 'Setor de recebimento → departamento',
-      COUNTING: 'Conta → entra no IF Cost',
-      ITEM_TYPE: 'Descrição → tipo de item',
+      ORGANIZATION: 'OrganizaÃ§Ã£o â†’ produto/divisÃ£o',
+      DEPARTMENT: 'Setor de recebimento â†’ departamento',
+      COUNTING: 'Conta â†’ entra no IF Cost',
+      ITEM_TYPE: 'DescriÃ§Ã£o â†’ tipo de item',
     }[kind];
   }
 
@@ -454,17 +383,16 @@ export class SettingsPage implements OnInit {
     const kind = this.classificationKind();
     const source = this.classificationSource().trim();
     if (!source || this.savingClassification()) return;
-    const payload: ScrapClassificationRuleWrite = {
+    const payload = createClassificationRuleWrite({
       kind,
-      source_value: source,
-      source_context: this.classificationContext().trim() || null,
-      target_value: this.classificationTarget().trim() || null,
-      target_secondary: this.classificationSecondary().trim() || null,
-      boolean_value: kind === 'COUNTING' ? this.classificationBoolean() === 'true' : null,
-      match_mode: kind === 'ITEM_TYPE' ? this.classificationMode() : 'EXACT',
-      priority: Number(this.classificationPriority()) || 0,
-      is_active: true,
-    };
+      source,
+      context: this.classificationContext(),
+      target: this.classificationTarget(),
+      secondaryTarget: this.classificationSecondary(),
+      booleanValue: this.classificationBoolean(),
+      matchMode: this.classificationMode(),
+      priority: this.classificationPriority(),
+    });
     this.savingClassification.set(true);
     const id = this.editingClassificationId();
     const request = id
@@ -478,7 +406,7 @@ export class SettingsPage implements OnInit {
         );
         this.classificationFeedback.set({
           type: 'success',
-          text: 'Regra salva. Reaplique para refletir dados já ingeridos.',
+          text: 'Regra salva. Reaplique para refletir dados jÃ¡ ingeridos.',
         });
         this.resetClassificationForm();
       },
@@ -486,7 +414,7 @@ export class SettingsPage implements OnInit {
         this.savingClassification.set(false);
         this.classificationFeedback.set({
           type: 'error',
-          text: error.error?.detail || 'Não foi possível salvar a regra.',
+          text: error.error?.detail || 'NÃ£o foi possÃ­vel salvar a regra.',
         });
       },
     });
@@ -501,14 +429,14 @@ export class SettingsPage implements OnInit {
         this.classificationRules.update((rules) => rules.filter((item) => item.id !== rule.id));
         this.classificationFeedback.set({
           type: 'success',
-          text: 'Regra removida. Reaplique para atualizar o histórico.',
+          text: 'Regra removida. Reaplique para atualizar o histÃ³rico.',
         });
       },
       error: () => {
         this.savingClassification.set(false);
         this.classificationFeedback.set({
           type: 'error',
-          text: 'Não foi possível remover a regra.',
+          text: 'NÃ£o foi possÃ­vel remover a regra.',
         });
       },
     });
@@ -529,27 +457,16 @@ export class SettingsPage implements OnInit {
         this.savingClassification.set(false);
         this.classificationFeedback.set({
           type: 'error',
-          text: 'Não foi possível reaplicar as classificações.',
+          text: 'NÃ£o foi possÃ­vel reaplicar as classificaÃ§Ãµes.',
         });
       },
     });
   }
 
-  private slugify(text: string): string {
-    return text
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .trim()
-      .toUpperCase()
-      .replace(/[^A-Z0-9]+/g, '_')
-      .replace(/^_+|_+$/g, '')
-      .slice(0, 50);
-  }
-
   onNewNameInput(value: string): void {
     this.newName.set(value);
     if (!this.codeManuallyEdited()) {
-      this.newCode.set(this.slugify(value));
+      this.newCode.set(createDefectTypeCode(value));
     }
   }
 
@@ -574,7 +491,7 @@ export class SettingsPage implements OnInit {
 
   createDefectType(): void {
     const name = this.newName().trim();
-    let code = this.newCode().trim() || this.slugify(name);
+    let code = this.newCode().trim() || createDefectTypeCode(name);
     if (!name || !code || this.submitting()) return;
 
     this.submitting.set(true);
@@ -651,8 +568,6 @@ export class SettingsPage implements OnInit {
         },
       });
   }
-
-  readonly confirmingDeleteItem = signal<ScrapDefectType | null>(null);
 
   promptDelete(type: ScrapDefectType): void {
     this.confirmingDeleteItem.set(type);
@@ -744,31 +659,15 @@ export class SettingsPage implements OnInit {
     const mode = this.prefillMode();
     const labels = this.monthLabels();
 
-    if (mode === 'linear') {
-      const total = Math.max(0, Number(this.prefillAnnualTotal()) || 0);
-      const perMonth = Math.round((total / 12) * 100) / 100;
-      this.monthlyTargets.set(
-        Array.from({ length: 12 }, (_, i) => ({
-          month: i + 1,
-          name: labels[i],
-          amount: perMonth,
-        })),
-      );
-    } else {
-      const start = Math.max(0, Number(this.prefillJanValue()) || 0);
-      const end = Math.max(0, Number(this.prefillDecValue()) || 0);
-      this.monthlyTargets.set(
-        Array.from({ length: 12 }, (_, i) => {
-          const fraction = i / 11;
-          const val = start + (end - start) * fraction;
-          return {
-            month: i + 1,
-            name: labels[i],
-            amount: Math.round(val * 100) / 100,
-          };
-        }),
-      );
-    }
+    this.monthlyTargets.set(
+      createPrefilledTargets(
+        labels,
+        mode,
+        this.prefillAnnualTotal(),
+        this.prefillJanValue(),
+        this.prefillDecValue(),
+      ),
+    );
   }
 
   saveTargetsPlan(): void {

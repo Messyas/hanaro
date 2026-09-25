@@ -508,8 +508,8 @@ Acceptance: the old broad `GovernanceService` is deleted; each feature depends o
 
 - [x] Move Scrap Base/Review into `modules/scrap-base` with feature routes and separate list, review, attachment, and template capabilities.
 - [x] Move object URL creation/revocation behind an attachment-scoped registry shared by review preview and local attachments; cleanup runs on removal and destroy.
-- [ ] Move Settings into its module and split tab/capability state.
-- [ ] Extract target-plan and classification calculations into pure domain functions.
+- [x] Move Settings into `modules/settings` with feature routes and separate stores for tab, defect types, classifications, targets, and production state.
+- [x] Extract target-plan, classification-payload, and defect-code calculations into pure domain functions.
 
 Acceptance: object URLs cannot leak, Settings calculations run without Angular TestBed, and no feature-private review type resides in `shared`.
 
@@ -609,7 +609,7 @@ No lint/architecture command is defined in `frontend/package.json`. Add incremen
 | FE-SOLID-05 | P1 | In progress — Reports request matcher completed | Restore tests and formatting gates. `npm test -- --watch=false`, `npm run build`, and `npm run format:check` all pass before structural migration. |
 | FE-SOLID-06 | P2 | Not started | Separate Dashboard transport mapping, KPI calculations, localization, and state; remove the unused `analysis` parameter. |
 | FE-SOLID-07 | P2 | Not started | Move Scrap review workflow to a store/coordinator and fix object URL lifecycle. |
-| FE-SOLID-08 | P2 | Not started | Split Settings by tab/capability and extract pure target-plan calculations. |
+| FE-SOLID-08 | P2 | Complete | Settings now has a feature route and capability stores; target-plan and classification calculations are framework-independent. |
 | FE-SOLID-09 | P2 | Not started | Consolidate locale, formatting, page-size persistence, selection toggles, and identical list-state behavior through composition. |
 | FE-SOLID-10 | P2 | Not started | Move all user copy to translation sources and convert code comments/names to English while preserving URLs and transport contracts. |
 | FE-SOLID-11 | P2 | Not started | Add browser/time/download/storage ports at real environment seams; remove direct globals from feature policy code. |

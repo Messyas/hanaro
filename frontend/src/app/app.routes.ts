@@ -64,8 +64,8 @@ export const routes: Routes = [
         path: 'configuracoes',
         title: 'Configurações',
         canActivate: [adminScopeGuard],
-        loadComponent: () =>
-          import('./pages/settings/settings-page').then((module) => module.SettingsPage),
+        loadChildren: () =>
+          import('./modules/settings/settings.routes').then((module) => module.SETTINGS_ROUTES),
       },
       {
         path: 'alertas',
