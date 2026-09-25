@@ -1,6 +1,6 @@
 # Plano de transição para a arquitetura DXi
 
-Data: 25/09/2026. Status: estrutura de pastas e organização interna principal concluídas; permanecem apenas decisões opcionais como renomear a raiz `frontend/` para `client/`.
+Data: 25/09/2026. Status: estrutura principal de pastas concluída; a extração de responsabilidades de `scrap-base` permanece planejada na etapa 4. A renomeação da raiz `frontend/` para `client/` é opcional.
 
 ### Implementação realizada em 25/09/2026
 
@@ -256,7 +256,7 @@ Cada entrega deve poder ser revisada e revertida independentemente. Não mistura
 | **1. Consolidar funcionalidades** | Concluída: login, users e dashboard estão em `modules/`, com rotas por feature e URLs/guards preservados. | Concluída; não há páginas em `app/pages`. |
 | **2. Consolidar core/shared/layouts** | Concluída: idioma, tema, ícones, componentes, status do shell e gráficos estão nos diretórios definidos. | Concluída; layout não importa dashboard e o checker protege as fronteiras. |
 | **3. Piloto de responsabilidades** | Concluída para dashboard: API service, DTO, mapper e store separados, incluindo proteção contra respostas antigas. | Concluída; builds e suíte previamente executados passaram. |
-| **4. Scrap e settings** | Parcial: settings consome o contrato pequeno de tipos de defeito; extração da coordenação de scrap por casos de uso permanece fora desta entrega. | A fronteira de settings foi corrigida; revisar a coordenação de scrap em trabalho futuro. |
+| **4. Scrap e settings** | Parcial: settings consome o contrato pequeno de tipos de defeito. A sequência detalhada para lote, fila, revisão, anexos, modelos, listagem e pastas está em [plano de execução de scrap-base](plano-execucao-scrap-base.md). | A fronteira de settings foi corrigida; concluir e validar as entregas do plano de execução antes de marcar esta etapa como concluída. |
 | **5. Reports e governance** | Concluída: reports organizado por subfuncionalidade; porta de download conectada; governance agrupado e API pública limitada. | Concluída; rotas de reports preservam guards e caminhos. |
 | **6. Assets e ambientes** | Concluída: recursos visuais em `src/assets/`, configuração em `src/environments/` e fonte mantida via pacote. | Concluída; builds de produção e Cloudflare validados. |
 | **7. Proteção da arquitetura** | Concluída: checker de imports, APIs públicas e READMEs atualizados; checker adicionado aos workflows de CI. | Concluída; violações cobertas pelo checker falham localmente e no CI. |
