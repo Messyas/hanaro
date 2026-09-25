@@ -1,9 +1,9 @@
 import { of } from 'rxjs';
 import { vi } from 'vitest';
 import { ReportPreviewCoordinator } from './report-preview.coordinator';
-import { PeriodClosePreview, ReportPreview } from './reports.models';
+import { PeriodClosePreview, ReportPreview } from '../reports.models';
 import { ReportDossierPreviewService } from './report-dossier-preview.service';
-import { ReportPeriodCloseService } from './report-period-close.service';
+import { ReportPeriodCloseService } from '../period-close/report-period-close.service';
 
 describe('ReportPreviewCoordinator', () => {
   it('loads the period-close preview', () => {

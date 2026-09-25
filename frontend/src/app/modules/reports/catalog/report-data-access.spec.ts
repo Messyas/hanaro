@@ -2,7 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { ReportCatalogService } from './report-catalog.service';
-import { ReportPeriodCloseService } from './report-period-close.service';
+import { ReportPeriodCloseService } from '../period-close/report-period-close.service';
 
 describe('Report data access services', () => {
   let catalog: ReportCatalogService;

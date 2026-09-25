@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { adminScopeGuard, authenticatedGuard, superuserGuard } from './core/auth/auth.guard';
 import { MainLayout } from './layouts/main-layout/main-layout';
+import { REPORTS_ROUTES } from './modules/reports/reports.routes';
 
 export const routes: Routes = [
   {
@@ -48,17 +49,9 @@ export const routes: Routes = [
       },
       {
         path: 'relatorios',
-        title: 'Relatórios',
         canActivate: [authenticatedGuard, adminScopeGuard],
-        loadComponent: () =>
-          import('./modules/reports/reports-page').then((module) => module.ReportsPage),
-      },
-      {
-        path: 'relatorios/:reportId',
-        title: 'Relatório de Scrap',
-        canActivate: [authenticatedGuard, adminScopeGuard],
-        loadComponent: () =>
-          import('./modules/reports/reports-page').then((module) => module.ReportsPage),
+        canActivateChild: [authenticatedGuard, adminScopeGuard],
+        children: REPORTS_ROUTES,
       },
       {
         path: 'configuracoes',

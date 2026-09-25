@@ -4,7 +4,7 @@ import {
   ReportEvidenceSource,
   ReportScope,
   ReportSection,
-} from './reports.models';
+} from '../reports.models';
 
 export type PeriodCloseScopeField =
   | 'period_from'

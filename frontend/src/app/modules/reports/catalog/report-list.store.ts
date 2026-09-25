@@ -1,5 +1,5 @@
 import { Injectable, signal } from '@angular/core';
-import { Page, ReportListItem } from './reports.models';
+import { Page, ReportListItem } from '../reports.models';
 
 const PAGE_SIZES = [25, 50, 100] as const;
 

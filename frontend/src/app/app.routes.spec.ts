@@ -9,6 +9,9 @@ describe('application route access policy', () => {
       const route = children.find((candidate) => candidate.path === path);
       expect(route?.canActivate).toContain(authenticatedGuard);
     }
+    const reports = children.find((candidate) => candidate.path === 'relatorios');
+    expect(reports?.canActivateChild).toContain(authenticatedGuard);
+    expect(reports?.children?.find((candidate) => candidate.path === ':reportId')).toBeDefined();
   });
 
   it('keeps only the dashboard and Preferences intentionally public', () => {
@@ -31,8 +34,6 @@ describe('application route access policy', () => {
       'dashboard',
       'base-de-scrap',
       'base-de-scrap/revisao/:occurrenceId',
-      'relatorios',
-      'relatorios/:reportId',
       'configuracoes',
       'alertas',
       'planos-de-acao',
@@ -42,6 +43,11 @@ describe('application route access policy', () => {
         adminScopeGuard,
       );
     }
+    expect(
+      children
+        .find((candidate) => candidate.path === 'relatorios')
+        ?.children?.find((candidate) => candidate.path === ':reportId')?.path,
+    ).toBe(':reportId');
   });
 
   it('redirects unknown client routes to the public dashboard shell', () => {

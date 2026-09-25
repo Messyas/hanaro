@@ -23,14 +23,14 @@ import { ListPanel } from '../../shared/components/list-view/list-panel/list-pan
 import { StatusBadge } from '../../shared/components/list-view/status-badge/status-badge';
 import { UiIcon } from '../../shared/components/ui-icon/ui-icon';
 import { GovernanceCapabilitiesService, workflowCopy } from '../governance/governance.public-api';
-import { ReportPreview as ReportPreviewComponent } from './report-preview/report-preview';
-import { ReportEditorStore } from './report-editor.store';
-import { ReportExportCoordinator } from './report-export.coordinator';
-import { ReportListStore } from './report-list.store';
-import { ReportHistoryDrawer } from './report-history-drawer';
-import { ReportPublicationCoordinator } from './report-publication.coordinator';
-import { ReportPeriodCloseCoordinator } from './report-period-close.coordinator';
-import { ReportPreviewCoordinator } from './report-preview.coordinator';
+import { ReportPreview as ReportPreviewComponent } from './preview/report-preview/report-preview';
+import { ReportEditorStore } from './editor/report-editor.store';
+import { ReportExportCoordinator } from './export/report-export.coordinator';
+import { ReportListStore } from './catalog/report-list.store';
+import { ReportHistoryDrawer } from './catalog/report-history-drawer';
+import { ReportPublicationCoordinator } from './publication/report-publication.coordinator';
+import { ReportPeriodCloseCoordinator } from './period-close/report-period-close.coordinator';
+import { ReportPreviewCoordinator } from './preview/report-preview.coordinator';
 import {
   movePeriodCloseSection,
   PeriodCloseScopeField,
@@ -41,8 +41,8 @@ import {
   updatePeriodCloseEvidenceMetadata,
   updatePeriodCloseScopeField,
   updatePeriodCloseScopeFilter,
-} from './report-period-close.workspace';
-import { ReportSourceSelectionCoordinator } from './report-source-selection.coordinator';
+} from './period-close/report-period-close.workspace';
+import { ReportSourceSelectionCoordinator } from './sources/report-source-selection.coordinator';
 import {
   EligibleAction,
   EligibleEvidence,
@@ -59,8 +59,8 @@ import {
   ReportScope,
   ReportVersion,
 } from './reports.models';
-import { ReportEditorService } from './report-editor.service';
-import { ReportCatalogService } from './report-catalog.service';
+import { ReportEditorService } from './editor/report-editor.service';
+import { ReportCatalogService } from './catalog/report-catalog.service';
 
 const PAGE_SIZES = [25, 50, 100] as const;
 const COPY = {

@@ -14,7 +14,7 @@ import {
   ReportListItem,
   ReportScope,
   ReportVersion,
-} from './reports.models';
+} from '../reports.models';
 
 const DEFAULT_EXPORT_OPTIONS: Omit<ExportOptions, 'language'> = {
   include_money: true,

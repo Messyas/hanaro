@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { PeriodClosePreview, ReportPreview } from './reports.models';
+import { PeriodClosePreview, ReportPreview } from '../reports.models';
 import { ReportDossierPreviewService } from './report-dossier-preview.service';
-import { ReportPeriodCloseService } from './report-period-close.service';
+import { ReportPeriodCloseService } from '../period-close/report-period-close.service';
 
 @Injectable({ providedIn: 'root' })
 export class ReportPreviewCoordinator {

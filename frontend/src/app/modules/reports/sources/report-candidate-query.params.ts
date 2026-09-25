@@ -1,5 +1,5 @@
 import { HttpParams } from '@angular/common/http';
-import { ReportCandidateQuery } from './reports.models';
+import { ReportCandidateQuery } from '../reports.models';
 
 export function serializeReportCandidateQuery(query: ReportCandidateQuery): HttpParams {
   let params = new HttpParams().set('page', query.page).set('page_size', query.pageSize);

@@ -30,7 +30,7 @@ import { ActionPlansStore } from './action-plans.store';
 import { GovernanceDirectoryService } from '../governance-directory.service';
 import { ActionTask, ActionTaskCommand, TaskState } from './action-plans.models';
 import { workflowCopy } from '../governance-copy';
-import { ActionPlanReportLookup } from '../../reports/reports.public-api';
+import { ActionPlanReportLookup } from './action-plan-report-lookup.service';
 
 const ALLOWED_PAGE_SIZES = PAGE_SIZE_OPTIONS;
 const DEFAULT_PAGE_SIZE: PageSize = 25;

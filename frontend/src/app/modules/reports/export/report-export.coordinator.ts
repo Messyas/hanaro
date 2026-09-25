@@ -8,7 +8,7 @@ import {
   Page,
   ReportExportRequestBuilder,
   ReportVersion,
-} from './reports.models';
+} from '../reports.models';
 import { ReportExportService } from './report-export.service';
 
 @Injectable({ providedIn: 'root' })

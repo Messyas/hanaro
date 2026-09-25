@@ -38,4 +38,5 @@ jobs:
         working-directory: frontend
         run: |
           npm ci
+          npm run check:architecture
           npm run format:check

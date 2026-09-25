@@ -7,7 +7,7 @@ import {
   ReportDetail,
   ReportListItem,
   ReportSourceMutationCommand,
-} from './reports.models';
+} from '../reports.models';
 import { ReportSourceService } from './report-source.service';
 
 export interface ReportSourceCandidates {

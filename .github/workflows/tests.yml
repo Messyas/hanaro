@@ -65,6 +65,7 @@ jobs:
       - name: Check frontend formatting and production build
         working-directory: frontend
         run: |
+          npm run check:architecture
           npm run format:check
           npm run build
 

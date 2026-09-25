@@ -4,7 +4,7 @@ import {
   ReportDocumentEvidence,
   ReportDocumentSection,
   ReportDocumentV2,
-} from '../reports.models';
+} from '../../reports.models';
 
 @Component({
   selector: 'app-report-preview',

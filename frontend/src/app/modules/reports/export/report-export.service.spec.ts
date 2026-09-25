@@ -1,7 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { ReportExportRequestBuilder } from './reports.models';
+import { ReportExportRequestBuilder } from '../reports.models';
 import { ReportExportService } from './report-export.service';
 
 describe('ReportExportService', () => {

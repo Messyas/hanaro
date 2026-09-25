@@ -6,13 +6,13 @@ import { LanguageService } from '../../core/i18n/language.service';
 import { GovernanceCapabilitiesService } from '../governance/governance.public-api';
 import { ReportDetail, ReportPreview, ReportVersion } from './reports.models';
 import { ReportsPage } from './reports-page';
-import { ReportEditorService } from './report-editor.service';
-import { ReportDossierPreviewService } from './report-dossier-preview.service';
-import { ReportSourceService } from './report-source.service';
-import { ReportPublicationService } from './report-publication.service';
-import { ReportCatalogService } from './report-catalog.service';
-import { ReportPeriodCloseService } from './report-period-close.service';
-import { BROWSER_DOWNLOAD } from './browser-download.port';
+import { ReportEditorService } from './editor/report-editor.service';
+import { ReportDossierPreviewService } from './preview/report-dossier-preview.service';
+import { ReportSourceService } from './sources/report-source.service';
+import { ReportPublicationService } from './publication/report-publication.service';
+import { ReportCatalogService } from './catalog/report-catalog.service';
+import { ReportPeriodCloseService } from './period-close/report-period-close.service';
+import { BROWSER_DOWNLOAD } from './export/browser-download.port';
 
 describe('ReportsPage', () => {
   let fixture: ComponentFixture<ReportsPage>;

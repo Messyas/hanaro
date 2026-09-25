@@ -7,7 +7,7 @@ import { ActionPlansService } from './action-plans.service';
 import { GovernanceDirectoryService } from '../governance-directory.service';
 import { WorkflowPage } from '../governance.models';
 import { Plan } from './action-plans.models';
-import { ActionPlanReportLookup } from '../../reports/reports.public-api';
+import { ActionPlanReportLookup } from './action-plan-report-lookup.service';
 import { ActionPlans } from './action-plans';
 
 describe('ActionPlans pagination', () => {

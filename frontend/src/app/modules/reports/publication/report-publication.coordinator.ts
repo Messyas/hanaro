@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { Page, ReportCandidateQuery, ReportDetail, ReportVersion } from './reports.models';
+import { Page, ReportCandidateQuery, ReportDetail, ReportVersion } from '../reports.models';
 import { ReportPublicationService } from './report-publication.service';
 
 @Injectable({ providedIn: 'root' })

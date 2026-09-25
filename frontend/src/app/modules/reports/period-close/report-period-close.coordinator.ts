@@ -8,7 +8,7 @@ import {
   ReportDetail,
   ReportScope,
   ReportSection,
-} from './reports.models';
+} from '../reports.models';
 import { ReportEvidenceSourceInput } from './report-period-close.workspace';
 import { ReportPeriodCloseService } from './report-period-close.service';
 

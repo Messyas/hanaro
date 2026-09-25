@@ -1,8 +1,8 @@
-import { environment } from '../../../environments/environment';
+import { environment } from '../../../../environments/environment';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { CreateReportInput, Page, ReportDetail, ReportListItem } from './reports.models';
+import { CreateReportInput, Page, ReportDetail, ReportListItem } from '../reports.models';
 
 export interface ReportCatalogQuery {
   page: number;

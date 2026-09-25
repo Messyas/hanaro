@@ -1,7 +1,7 @@
 import { of } from 'rxjs';
 import { vi } from 'vitest';
 import { ReportPublicationCoordinator } from './report-publication.coordinator';
-import { ReportDetail, ReportVersion } from './reports.models';
+import { ReportDetail, ReportVersion } from '../reports.models';
 import { ReportPublicationService } from './report-publication.service';
 
 describe('ReportPublicationCoordinator', () => {

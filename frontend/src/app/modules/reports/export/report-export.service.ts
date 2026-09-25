@@ -1,8 +1,8 @@
-import { environment } from '../../../environments/environment';
+import { environment } from '../../../../environments/environment';
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { ExportJob, Page, ReportExportRequest } from './reports.models';
+import { ExportJob, Page, ReportExportRequest } from '../reports.models';
 
 @Injectable({ providedIn: 'root' })
 export class ReportExportService {

@@ -1,6 +1,6 @@
 import { Component, input, output } from '@angular/core';
-import { ReportPreview as ReportPreviewComponent } from './report-preview/report-preview';
-import { ReportVersion } from './reports.models';
+import { ReportPreview as ReportPreviewComponent } from '../preview/report-preview/report-preview';
+import { ReportVersion } from '../reports.models';
 
 interface HistoryCopy {
   revision: string;

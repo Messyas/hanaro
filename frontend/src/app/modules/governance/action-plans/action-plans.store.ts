@@ -1,9 +1,9 @@
 import { Injectable, signal } from '@angular/core';
 import { Person, WorkflowPage } from '../governance.models';
-import {
+import type {
   ActionPlanReportOption,
   ActionPlanReportVersionOption,
-} from '../../reports/reports.public-api';
+} from './action-plan-report-lookup.service';
 import { ActionTask, HistoryEntry, Plan } from './action-plans.models';
 
 @Injectable()

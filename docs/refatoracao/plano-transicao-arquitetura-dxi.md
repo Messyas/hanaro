@@ -1,6 +1,6 @@
 # Plano de transição para a arquitetura DXi
 
-Data: 25/09/2026. Status: estrutura de pastas migrada e fronteiras principais verificadas; a reorganização interna de relatórios e outras extrações de responsabilidade seguem planejadas.
+Data: 25/09/2026. Status: estrutura de pastas e organização interna principal concluídas; permanecem apenas decisões opcionais como renomear a raiz `frontend/` para `client/`.
 
 ### Implementação realizada em 25/09/2026
 
@@ -22,8 +22,10 @@ Validação da primeira entrega: `npm run build`, `npm run build:cloudflare` e `
 - Logos foram movidos para `src/assets/` e copiados pelo build nas URLs antigas; favicon e inicialização do tema permanecem em `public/`.
 - `src/environments/` contém a URL pública da API por build. Os serviços Angular usam essa configuração; os builds de produção e Cloudflare selecionam `environment.prod.ts`.
 - `npm run check:architecture` valida imports entre `core`, `modules`, `layouts` e `shared`. O layout acessa o formulário de auth por sua API pública.
+- `modules/reports/` foi organizado por catálogo, edição, fontes, prévia, publicação, exportação e fechamento de período; as rotas da feature estão em `reports.routes.ts`.
+- O lookup de versões usado por planos de ação pertence a governance. A API pública de reports expõe catálogo e publicação, sem exportar detalhes de implementação.
 
-Validação desta continuação: `npm run build`, `npm run build:cloudflare`, `npm test -- --watch=false` (46 arquivos, 166 testes), `npm run format:check` e `npm run check:architecture`. Os SVGs movidos foram conferidos no diretório de saída do build, nas mesmas URLs públicas.
+Validação anterior da migração: `npm run build`, `npm run build:cloudflare`, `npm test -- --watch=false` (46 arquivos, 166 testes), `npm run format:check` e `npm run check:architecture`. Nesta continuação, foram executados novamente `npm run build`, `npm run format:check` e `npm run check:architecture`; a suíte de testes não foi repetida.
 
 `fonts/` não foi criado: a fonte usada vem de `@fontsource-variable/fustat`, sem arquivo local a duplicar. O nome `frontend/` foi mantido porque a arquitetura interna já corresponde à seção 6 e renomear a raiz exigiria alterar deploy e CI.
 
@@ -153,7 +155,7 @@ Não criar obrigatoriamente `components/services/models/utils` dentro de cada fe
 
 ## 4. Mapa de movimentação a partir da estrutura inicial
 
-As movimentações desta tabela foram concluídas nesta continuação, com duas adaptações: os componentes compartilhados foram agrupados em `shared/components/`, e os arquivos de governança foram agrupados em `modules/governance/`. Os diretórios `environments/` e `assets/` também foram configurados. A subdivisão interna de reports permanece como trabalho futuro.
+As movimentações desta tabela foram concluídas, com duas adaptações: os componentes compartilhados foram agrupados em `shared/components/`, e os arquivos de governança foram agrupados em `modules/governance/`. Os diretórios `environments/` e `assets/` também foram configurados.
 
 | Origem atual | Destino proposto | Observação |
 | --- | --- | --- |
@@ -250,20 +252,20 @@ Cada entrega deve poder ser revisada e revertida independentemente. Não mistura
 
 | Etapa | Entrega | Critério de conclusão |
 | --- | --- | --- |
-| **0. Baseline e convenções** | Registrar esta decisão; inventariar imports inclusive arquivos ignorados; corrigir exceção de reports no `.gitignore`; registrar estado de build/testes. | Todo código relevante aparece no inventário; falhas preexistentes ficam documentadas. |
-| **1. Consolidar funcionalidades** | Mover login, users e dashboard para modules; criar entradas de rotas por feature; manter URLs, guards e renderização server atuais. | Não há componentes de página em `app/pages`; testes de rota continuam verificando permissões e caminhos. |
-| **2. Consolidar core/shared/layouts** | Mover idioma, tema, ícones e componentes compartilhados; extrair status do shell; decidir destino dos gráficos. | Layout não importa dashboard; shared não importa core ou features; imports CSS e recursos resolvidos. |
-| **3. Piloto de responsabilidades** | Refatorar dashboard: API service, DTO, mapper e store focado no estado; usar executions como referência de estado separado do serviço. | Filtros, métricas, dados vazios, falhas, concorrência e kiosk preservados. |
-| **4. Scrap e settings** | Extrair coordenação de scrap por casos de uso; expor contrato pequeno de catálogo para settings. | Revisão individual/em lote, anexos, filtros e configurações preservados; settings não depende das operações de revisão. |
-| **5. Reports e governance** | Organizar reports por subfuncionalidade; conectar porta de download; agrupar alerts/action-plans e mover diretório/textos de domínio. | Exportação, publicação, fechamento, polling e vínculos entre funcionalidades funcionam sem imports internos ou ciclos. |
-| **6. Assets e ambientes** | Configurar src/assets e environments se adotados; revisar fontes e compatibilidade das URLs. | Logos, favicon, inicialização do tema, builds server/static e proxy funcionam nos ambientes existentes. |
-| **7. Proteção da arquitetura** | Automatizar restrições de import, revisar APIs públicas e atualizar READMEs. | Novas violações falham em CI; exceções têm motivo e destino de remoção. |
+| **0. Baseline e convenções** | Concluída: decisão registrada, inventário realizado, exceção de reports no `.gitignore` corrigida e validação inicial documentada. | Concluída. |
+| **1. Consolidar funcionalidades** | Concluída: login, users e dashboard estão em `modules/`, com rotas por feature e URLs/guards preservados. | Concluída; não há páginas em `app/pages`. |
+| **2. Consolidar core/shared/layouts** | Concluída: idioma, tema, ícones, componentes, status do shell e gráficos estão nos diretórios definidos. | Concluída; layout não importa dashboard e o checker protege as fronteiras. |
+| **3. Piloto de responsabilidades** | Concluída para dashboard: API service, DTO, mapper e store separados, incluindo proteção contra respostas antigas. | Concluída; builds e suíte previamente executados passaram. |
+| **4. Scrap e settings** | Parcial: settings consome o contrato pequeno de tipos de defeito; extração da coordenação de scrap por casos de uso permanece fora desta entrega. | A fronteira de settings foi corrigida; revisar a coordenação de scrap em trabalho futuro. |
+| **5. Reports e governance** | Concluída: reports organizado por subfuncionalidade; porta de download conectada; governance agrupado e API pública limitada. | Concluída; rotas de reports preservam guards e caminhos. |
+| **6. Assets e ambientes** | Concluída: recursos visuais em `src/assets/`, configuração em `src/environments/` e fonte mantida via pacote. | Concluída; builds de produção e Cloudflare validados. |
+| **7. Proteção da arquitetura** | Concluída: checker de imports, APIs públicas e READMEs atualizados; checker adicionado aos workflows de CI. | Concluída; violações cobertas pelo checker falham localmente e no CI. |
 
 O agrupamento de governança pode ser adiado se o inventário revelar custo elevado sem benefício suficiente. A consolidação em `modules/` e a correção das dependências indevidas têm prioridade maior.
 
 ## 9. Validação, riscos e reversão
 
-Na implementação, executar a partir de `frontend/` os scripts existentes: `npm run build`, `npm run build:cloudflare` e `npm test -- --watch=false`, conforme as áreas afetadas. Os dois builds e a suíte de testes passaram nesta entrega; a migração de assets e ambientes continua pendente.
+Na implementação, executar a partir de `frontend/` os scripts existentes: `npm run build`, `npm run build:cloudflare`, `npm run format:check` e `npm run check:architecture`. Os dois builds, o formatador e o checker passaram nesta continuação. A suíte de testes passou na etapa anterior (46 arquivos, 166 testes), mas não foi repetida nesta continuação. A extração completa da coordenação de scrap permanece como trabalho futuro; a migração de assets e ambientes foi concluída.
 
 Testes de comportamento prioritários:
 

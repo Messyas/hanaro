@@ -1,4 +1,4 @@
-import { environment } from '../../../environments/environment';
+import { environment } from '../../../../environments/environment';
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
@@ -11,9 +11,9 @@ import {
   ReportDetail,
   ReportScope,
   ReportSection,
-} from './reports.models';
+} from '../reports.models';
 import { ReportEvidenceSourceInput } from './report-period-close.workspace';
-import { serializeReportCandidateQuery } from './report-candidate-query.params';
+import { serializeReportCandidateQuery } from '../sources/report-candidate-query.params';
 
 @Injectable({ providedIn: 'root' })
 export class ReportPeriodCloseService {

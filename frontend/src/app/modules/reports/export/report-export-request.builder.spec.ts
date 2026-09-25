@@ -1,4 +1,4 @@
-import { ExportJob, ReportExportRequestBuilder, ReportVersion } from './reports.models';
+import { ExportJob, ReportExportRequestBuilder, ReportVersion } from '../reports.models';
 
 describe('ReportExportRequestBuilder', () => {
   const version = { id: 'version-1', content_schema_version: 2 } as ReportVersion;
