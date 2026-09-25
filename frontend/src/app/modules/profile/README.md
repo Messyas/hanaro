@@ -1,14 +1,16 @@
-# Perfil
+﻿# Profile module
 
-Esta pasta receberá a área autenticada de dados e preferências pessoais. A
-feature deve conter seus componentes, rota, serviço HTTP, tipos e testes.
+This module owns the authenticated user's profile screen, profile data access, and profile-specific presentation files.
 
-- Obtém a identidade pela sessão; não envia um ID de usuário escolhido pela UI.
-- Permite alterar somente campos presentes na allowlist do contrato da API.
-- Valida telefone para feedback local e depende da validação definitiva do backend.
-- Não registra telefone completo, cookie, token ou payload pessoal no console.
-- Trata sessão expirada, acesso negado, conflito de atualização e erro de rede.
-- Oferece encerramento explícito da sessão em dispositivos compartilhados.
+## Ownership and dependencies
 
-O guard melhora o fluxo de navegação; a autorização obrigatória permanece no
-backend.
+- `profile-page.ts` owns the profile form and user interactions.
+- `profile.service.ts` owns requests to `/api/v1/users/me` and profile image endpoints.
+- `profile.routes.ts` owns the feature route and lazy loading.
+- The page may use the shared authentication session to refresh the current user after a profile or image update.
+- The API remains responsible for authorization and field allowlists; the route guard only controls navigation.
+- Keep profile-only types and behavior here. Promote code to `shared` or `core` only when another feature has a real use for it.
+
+## Public route
+
+The application route table mounts this feature at `/perfil`. Keep this URL stable when changing the module's internal structure.

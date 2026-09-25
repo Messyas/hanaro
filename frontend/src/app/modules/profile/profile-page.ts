@@ -3,7 +3,7 @@ import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize, map, switchMap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { AuthService } from '../../core/auth/auth.service';
+import { AuthenticatedUserSession } from '../../core/auth/authenticated-user-session';
 import { LanguageService } from '../../i18n/language.service';
 import { ProfileService } from './profile.service';
 
@@ -29,7 +29,7 @@ const PROFILE_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 export class ProfilePage implements OnInit {
   private readonly profiles = inject(ProfileService);
   private readonly destroyRef = inject(DestroyRef);
-  readonly auth = inject(AuthService);
+  private readonly userSession = inject(AuthenticatedUserSession);
   readonly language = inject(LanguageService);
 
   readonly loading = signal(true);
@@ -139,7 +139,7 @@ export class ProfilePage implements OnInit {
         job_title: this.emptyToNull(this.form.jobTitle.value),
       })
       .pipe(
-        switchMap(() => this.auth.refreshSession()),
+        switchMap(() => this.userSession.refresh()),
         finalize(() => this.saving.set(false)),
         takeUntilDestroyed(this.destroyRef),
       )
@@ -220,7 +220,7 @@ export class ProfilePage implements OnInit {
     this.profiles
       .uploadImage(body)
       .pipe(
-        switchMap((response) => this.auth.refreshSession().pipe(map(() => response))),
+        switchMap((response) => this.userSession.refresh().pipe(map(() => response))),
         finalize(() => this.imageOperation.set(null)),
         takeUntilDestroyed(this.destroyRef),
       )
@@ -255,7 +255,7 @@ export class ProfilePage implements OnInit {
     this.profiles
       .removeImage()
       .pipe(
-        switchMap((response) => this.auth.refreshSession().pipe(map(() => response))),
+        switchMap((response) => this.userSession.refresh().pipe(map(() => response))),
         finalize(() => this.imageOperation.set(null)),
         takeUntilDestroyed(this.destroyRef),
       )

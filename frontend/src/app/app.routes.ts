@@ -89,8 +89,8 @@ export const routes: Routes = [
         path: 'perfil',
         title: 'Perfil',
         canActivate: [authenticatedGuard],
-        loadComponent: () =>
-          import('./pages/profile/profile-page').then((module) => module.ProfilePage),
+        loadChildren: () =>
+          import('./modules/profile/profile.routes').then((module) => module.PROFILE_ROUTES),
       },
       {
         path: 'usuarios',

@@ -1,9 +1,15 @@
 import { HttpClient } from '@angular/common/http';
 import { Service, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { AuthUser } from '../../core/auth/auth.service';
-
-export type UserProfile = AuthUser;
+export interface UserProfile {
+  name: string;
+  username: string;
+  email: string;
+  notification_email: string | null;
+  phone: string | null;
+  job_title: string | null;
+  profile_image_url: string | null;
+}
 
 export interface ProfileUpdate {
   name: string;

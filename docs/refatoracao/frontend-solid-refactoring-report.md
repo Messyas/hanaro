@@ -465,10 +465,10 @@ Acceptance: `core`, `shared`, and `layouts` contain only code matching their own
 
 #### WP2 — Profile pilot
 
-- [ ] Move `pages/profile` into `modules/profile` and replace the placeholder README with real ownership documentation.
-- [ ] Add `profile.routes.ts` and lazy-load it from the application route table.
-- [ ] Keep profile data access local and consume only the narrow authenticated-user capability from `core/auth`.
-- [ ] Align filenames/classes within Profile without a repository-wide rename.
+- [x] Move `pages/profile` into `modules/profile` and replace the placeholder README with real ownership documentation.
+- [x] Add `profile.routes.ts` and lazy-load it from the application route table.
+- [x] Keep profile data access local and consume only the narrow authenticated-user capability from `core/auth`.
+- [x] Align filenames/classes within Profile without a repository-wide rename.
 
 Acceptance: `/perfil` behavior is unchanged; the feature passes targeted tests, full tests, SSR build, and architecture checks. Use this migration to validate the process before larger features.
 
