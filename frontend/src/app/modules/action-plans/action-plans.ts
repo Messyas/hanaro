@@ -23,8 +23,8 @@ import {
 } from '../../shared/list-view/page-size-preference';
 import { UiIcon } from '../../ui-icon';
 import { ActionPlansService } from './action-plans.service';
-import { GovernanceDirectoryService } from '../governance-directory.service';
-import { Person, WorkflowPage } from '../governance.models';
+import { GovernanceDirectoryService } from '../../core/governance/governance-directory.service';
+import { Person, WorkflowPage } from '../../core/governance/governance.models';
 import {
   ActionTask,
   ActionTaskCommand,
@@ -32,12 +32,12 @@ import {
   Plan,
   TaskState,
 } from './action-plans.models';
-import { workflowCopy } from '../governance-copy';
+import { workflowCopy } from '../../pages/governance-copy';
 import {
   ActionPlanReportLookup,
   ActionPlanReportOption,
   ActionPlanReportVersionOption,
-} from '../../modules/reports/reports.public-api';
+} from '../reports/reports.public-api';
 
 const ALLOWED_PAGE_SIZES = PAGE_SIZE_OPTIONS;
 const DEFAULT_PAGE_SIZE: PageSize = 25;

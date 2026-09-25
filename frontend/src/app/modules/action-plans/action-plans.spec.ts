@@ -4,10 +4,10 @@ import { of } from 'rxjs';
 import { vi } from 'vitest';
 import { LanguageService } from '../../i18n/language.service';
 import { ActionPlansService } from './action-plans.service';
-import { GovernanceDirectoryService } from '../governance-directory.service';
-import { WorkflowPage } from '../governance.models';
+import { GovernanceDirectoryService } from '../../core/governance/governance-directory.service';
+import { WorkflowPage } from '../../core/governance/governance.models';
 import { Plan } from './action-plans.models';
-import { ActionPlanReportLookup } from '../../modules/reports/reports.public-api';
+import { ActionPlanReportLookup } from '../reports/reports.public-api';
 import { ActionPlans } from './action-plans';
 
 describe('ActionPlans pagination', () => {

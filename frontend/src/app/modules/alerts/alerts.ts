@@ -14,11 +14,11 @@ import { ListPagination } from '../../shared/list-view/list-pagination/list-pagi
 import { StatusBadge, StatusBadgeTone } from '../../shared/list-view/status-badge/status-badge';
 import { ListPanel } from '../../shared/list-view/list-panel/list-panel';
 import { UiIcon } from '../../ui-icon';
-import { workflowCopy } from '../governance-copy';
-import { Person, WorkflowPage } from '../governance.models';
+import { workflowCopy } from '../../pages/governance-copy';
+import { Person, WorkflowPage } from '../../core/governance/governance.models';
 import { AlertItem, NotificationEmail, Rule } from './alerts.models';
 import { AlertsService } from './alerts.service';
-import { GovernanceDirectoryService } from '../governance-directory.service';
+import { GovernanceDirectoryService } from '../../core/governance/governance-directory.service';
 
 @Component({
   selector: 'app-alerts',

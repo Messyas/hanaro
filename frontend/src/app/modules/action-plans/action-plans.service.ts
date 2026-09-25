@@ -9,7 +9,7 @@ import {
   SaveActionTaskCommand,
   SavePlanCommand,
 } from './action-plans.models';
-import { WorkflowPage } from '../governance.models';
+import { WorkflowPage } from '../../core/governance/governance.models';
 
 @Injectable({ providedIn: 'root' })
 export class ActionPlansService {

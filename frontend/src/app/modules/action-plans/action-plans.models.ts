@@ -1,4 +1,4 @@
-import { Person } from '../governance.models';
+import { Person } from '../../core/governance/governance.models';
 
 export type TaskState = 'PLANNED' | 'IN_PROGRESS' | 'UNDER_VERIFICATION' | 'COMPLETED';
 export type MovableTaskState = Exclude<TaskState, 'COMPLETED'>;

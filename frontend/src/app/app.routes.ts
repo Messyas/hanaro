@@ -75,17 +75,16 @@ export const routes: Routes = [
       {
         path: 'alertas',
         canActivate: [authenticatedGuard, adminScopeGuard],
-        loadComponent: () => import('./pages/alerts/alerts').then((m) => m.Alerts),
+        loadChildren: () =>
+          import('./modules/alerts/alerts.routes').then((module) => module.ALERTS_ROUTES),
       },
       {
         path: 'planos-de-acao',
         canActivate: [authenticatedGuard, adminScopeGuard],
-        loadComponent: () => import('./pages/action-plans/action-plans').then((m) => m.ActionPlans),
-      },
-      {
-        path: 'planos-de-acao/:planId',
-        canActivate: [authenticatedGuard, adminScopeGuard],
-        loadComponent: () => import('./pages/action-plans/action-plans').then((m) => m.ActionPlans),
+        loadChildren: () =>
+          import('./modules/action-plans/action-plans.routes').then(
+            (module) => module.ACTION_PLANS_ROUTES,
+          ),
       },
       {
         path: 'perfil',

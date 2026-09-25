@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { AlertItem, AlertListQuery, NotificationEmail, Rule } from './alerts.models';
-import { WorkflowPage } from '../governance.models';
+import { WorkflowPage } from '../../core/governance/governance.models';
 
 @Injectable({ providedIn: 'root' })
 export class AlertsService {
