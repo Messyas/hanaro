@@ -720,7 +720,7 @@ export class ReportsPage implements OnInit {
     if (!report) return;
     this.saving.set(true);
     this.workspaceError.set(null);
-    this.service
+    this.sourceSelection
       .mutateSources({
         reportId: report.id,
         kind,

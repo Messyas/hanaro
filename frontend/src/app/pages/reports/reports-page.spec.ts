@@ -6,11 +6,13 @@ import { LanguageService } from '../../i18n/language.service';
 import { ReportDetail, ReportPreview, ReportVersion } from './reports.models';
 import { ReportsPage } from './reports-page';
 import { ReportsService } from './reports.service';
+import { ReportSourceService } from './report-source.service';
 
 describe('ReportsPage', () => {
   let fixture: ComponentFixture<ReportsPage>;
   let component: ReportsPage;
   let service: Record<string, ReturnType<typeof vi.fn>>;
+  let sourceService: Record<string, ReturnType<typeof vi.fn>>;
 
   const report: ReportDetail = {
     id: '77d1ad54-1b7e-4986-809b-a81cc503430c',
@@ -58,6 +60,21 @@ describe('ReportsPage', () => {
       create: vi.fn().mockReturnValue(of(report)),
       get: vi.fn().mockReturnValue(of(report)),
       update: vi.fn().mockReturnValue(of({ ...report, version: 3 })),
+      preview: vi.fn().mockReturnValue(of(preview)),
+      publish: vi.fn().mockReturnValue(of({} as ReportVersion)),
+      versions: vi.fn().mockReturnValue(
+        of({
+          items: [],
+          page: 1,
+          page_size: 100,
+          total: 0,
+          total_pages: 0,
+          has_next: false,
+          has_previous: false,
+        }),
+      ),
+    };
+    sourceService = {
       mutateSources: vi.fn().mockReturnValue(of({ ...report, version: 3 })),
       eligibleOccurrences: vi.fn().mockReturnValue(
         of({
@@ -81,19 +98,6 @@ describe('ReportsPage', () => {
           has_previous: false,
         }),
       ),
-      preview: vi.fn().mockReturnValue(of(preview)),
-      publish: vi.fn().mockReturnValue(of({} as ReportVersion)),
-      versions: vi.fn().mockReturnValue(
-        of({
-          items: [],
-          page: 1,
-          page_size: 100,
-          total: 0,
-          total_pages: 0,
-          has_next: false,
-          has_previous: false,
-        }),
-      ),
     };
     await TestBed.configureTestingModule({
       imports: [ReportsPage],
@@ -101,6 +105,7 @@ describe('ReportsPage', () => {
         provideRouter([]),
         LanguageService,
         { provide: ReportsService, useValue: service },
+        { provide: ReportSourceService, useValue: sourceService },
       ],
     }).compileComponents();
     TestBed.inject(LanguageService).setLanguage('pt');
@@ -121,8 +126,8 @@ describe('ReportsPage', () => {
     component.openReport(report.id, false);
     await fixture.whenStable();
     expect(service['get']).toHaveBeenCalledWith(report.id);
-    expect(service['eligibleOccurrences']).toHaveBeenCalled();
-    expect(service['sourceReports']).toHaveBeenCalledWith(report.id, {
+    expect(sourceService['eligibleOccurrences']).toHaveBeenCalled();
+    expect(sourceService['sourceReports']).toHaveBeenCalledWith(report.id, {
       page: 1,
       pageSize: 25,
       search: undefined,
@@ -139,7 +144,7 @@ describe('ReportsPage', () => {
     await fixture.whenStable();
     component.toggleSelection('occurrence', '842361c6-33dc-4f9a-9125-12e14885f360', true);
     component.addSelected('occurrence');
-    expect(service['mutateSources']).toHaveBeenCalledWith({
+    expect(sourceService['mutateSources']).toHaveBeenCalledWith({
       reportId: report.id,
       kind: 'occurrence',
       operation: 'add',

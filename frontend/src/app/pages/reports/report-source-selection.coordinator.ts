@@ -1,7 +1,14 @@
 import { Injectable } from '@angular/core';
 import { Observable, forkJoin } from 'rxjs';
-import { EligibleOccurrence, Page, ReportCandidateQuery, ReportListItem } from './reports.models';
-import { ReportsService } from './reports.service';
+import {
+  EligibleOccurrence,
+  Page,
+  ReportCandidateQuery,
+  ReportDetail,
+  ReportListItem,
+  ReportSourceMutationCommand,
+} from './reports.models';
+import { ReportSourceService } from './report-source.service';
 
 export interface ReportSourceCandidates {
   occurrences: Page<EligibleOccurrence>;
@@ -10,7 +17,11 @@ export interface ReportSourceCandidates {
 
 @Injectable({ providedIn: 'root' })
 export class ReportSourceSelectionCoordinator {
-  constructor(private readonly service: ReportsService) {}
+  constructor(private readonly sources: ReportSourceService) {}
+
+  mutateSources(command: ReportSourceMutationCommand): Observable<ReportDetail> {
+    return this.sources.mutateSources(command);
+  }
 
   loadCandidates(
     reportId: string,
@@ -18,8 +29,8 @@ export class ReportSourceSelectionCoordinator {
     reportQuery: ReportCandidateQuery,
   ): Observable<ReportSourceCandidates> {
     return forkJoin({
-      occurrences: this.service.eligibleOccurrences(occurrenceQuery),
-      reports: this.service.sourceReports(reportId, reportQuery),
+      occurrences: this.sources.eligibleOccurrences(occurrenceQuery),
+      reports: this.sources.sourceReports(reportId, reportQuery),
     });
   }
 }

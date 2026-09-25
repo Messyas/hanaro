@@ -1,17 +1,17 @@
 import { of } from 'rxjs';
 import { vi } from 'vitest';
 import { ReportSourceSelectionCoordinator } from './report-source-selection.coordinator';
-import { ReportsService } from './reports.service';
+import { ReportSourceService } from './report-source.service';
 
 describe('ReportSourceSelectionCoordinator', () => {
   it('loads occurrence and report candidates together', () => {
     const occurrences = { items: [{ id: 'occurrence-1' }] } as never;
     const reports = { items: [{ id: 'report-1' }] } as never;
-    const service = {
+    const sources = {
       eligibleOccurrences: vi.fn().mockReturnValue(of(occurrences)),
       sourceReports: vi.fn().mockReturnValue(of(reports)),
-    } as unknown as ReportsService;
-    const coordinator = new ReportSourceSelectionCoordinator(service);
+    } as unknown as ReportSourceService;
+    const coordinator = new ReportSourceSelectionCoordinator(sources);
 
     coordinator
       .loadCandidates(
@@ -23,12 +23,12 @@ describe('ReportSourceSelectionCoordinator', () => {
         expect(result).toEqual({ occurrences, reports });
       });
 
-    expect(service.eligibleOccurrences).toHaveBeenCalledWith({
+    expect(sources.eligibleOccurrences).toHaveBeenCalledWith({
       page: 1,
       pageSize: 100,
       search: 'occurrence',
     });
-    expect(service.sourceReports).toHaveBeenCalledWith('report-1', {
+    expect(sources.sourceReports).toHaveBeenCalledWith('report-1', {
       page: 2,
       pageSize: 100,
       search: 'report',
