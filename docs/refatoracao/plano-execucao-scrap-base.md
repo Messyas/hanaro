@@ -1,14 +1,15 @@
 # Plano de execução da refatoração de scrap-base
 
-Status: em execução. A entrega 0 foi corrigida e validada por build em `36d0d1c`. A implementação da entrega 1 está pronta para revisão; a suíte de testes ainda aguarda execução. Este documento detalha a etapa 4 do [plano de transição DXi](plano-transicao-arquitetura-dxi.md).
+Status: em execução. As entregas 0 a 2 estão implementadas; as entregas 0 e 2 passaram por build, checker arquitetural e formatação nesta continuação. Testes não foram executados.
 
 ### Progresso
 
 | Entrega | Estado | Evidência |
 | --- | --- | --- |
 | 0. Baseline | Código corrigido; build, build Cloudflare, formatação e checker passaram. Testes não executados nesta sessão. | `36d0d1c` |
-| 1. Revisão em lote | Coordenador implementado e builds/formatação/checker passaram. Cobertura de regressão ainda precisa ser executada e ajustada se necessário. | `fb003e3` |
-| 2–5 | Planejadas; ainda não iniciadas. | — |
+| 1. Revisão em lote | Coordenador implementado e builds/formatação/checker passaram. Testes de regressão pendentes. | `fb003e3` |
+| 2. Fila de revisão | Store local ao drawer para IDs, índice e metadados; cancelamento de consulta antiga; proteção contra troca/fechamento durante operações; build, checker e formatação passaram. Testes pendentes. | Em implementação nesta sessão |
+| 3–5 | Planejadas; ainda não iniciadas. | — |
 
 ## Objetivo e limites
 
