@@ -46,15 +46,6 @@ const PAGE_SIZE_STORAGE_KEY = 'hanaro-executions-page-size';
 const DEFAULT_PAGE_SIZE = 25;
 const EXECUTION_POLL_INTERVAL_MS = 5_000;
 
-export interface CalendarDay {
-  dateStr: string;
-  dayNumber: number;
-  isCurrentMonth: boolean;
-  isToday: boolean;
-  isSelected: boolean;
-  isDisabled: boolean;
-}
-
 @Component({
   selector: 'app-executions-page',
   imports: [
@@ -103,10 +94,6 @@ export class ExecutionsPage implements OnInit {
 
   // Popovers e Dropdowns customizados
   readonly filterOpen = signal<boolean>(false);
-  readonly dateFromPickerOpen = signal<boolean>(false);
-  readonly dateToPickerOpen = signal<boolean>(false);
-  readonly viewDateFrom = signal<Date>(new Date());
-  readonly viewDateTo = signal<Date>(new Date());
 
   // Verificação de consistência temporal das datas
   readonly dateRangeError = computed<boolean>(() => {
@@ -194,19 +181,10 @@ export class ExecutionsPage implements OnInit {
     if (this.filterOpen() && target && !target.closest('.filter-popover-anchor')) {
       this.closeFilterPopover();
     }
-    if (this.dateFromPickerOpen() && target && !target.closest('.date-from-anchor')) {
-      this.dateFromPickerOpen.set(false);
-    }
-    if (this.dateToPickerOpen() && target && !target.closest('.date-to-anchor')) {
-      this.dateToPickerOpen.set(false);
-    }
   }
 
   handleEscapeKey(): void {
-    if (this.dateFromPickerOpen() || this.dateToPickerOpen()) {
-      this.dateFromPickerOpen.set(false);
-      this.dateToPickerOpen.set(false);
-    } else if (this.filterOpen()) {
+    if (this.filterOpen()) {
       this.closeFilterPopover();
     } else if (this.selectedExecutionId()) {
       this.closeDetail();
@@ -216,14 +194,10 @@ export class ExecutionsPage implements OnInit {
   toggleFilterPopover(event?: Event): void {
     if (event) event.stopPropagation();
     this.filterOpen.update((v) => !v);
-    this.dateFromPickerOpen.set(false);
-    this.dateToPickerOpen.set(false);
   }
 
   closeFilterPopover(): void {
     this.filterOpen.set(false);
-    this.dateFromPickerOpen.set(false);
-    this.dateToPickerOpen.set(false);
   }
 
   selectStatus(value: AutomationExecutionStatus | ''): void {
@@ -248,99 +222,9 @@ export class ExecutionsPage implements OnInit {
     this.loadExecutions();
   }
 
-  // Custom Datepicker Methods
-  getMonthYearLabel(viewDate: Date): string {
-    const lang = this.language.currentLanguage();
-    const locale = lang === 'pt' ? 'pt-BR' : lang === 'ko' ? 'ko-KR' : 'en-US';
-    return viewDate.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
-  }
-
-  getWeekdayLabels(): string[] {
-    const lang = this.language.currentLanguage();
-    if (lang === 'pt') return ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-    if (lang === 'ko') return ['일', '월', '화', '수', '목', '금', '토'];
-    return ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
-  }
-
-  calendarLocale(): string {
+  dateRangeLocale(): string {
     const language = this.language.currentLanguage();
     return language === 'pt' ? 'pt-BR' : language === 'ko' ? 'ko-KR' : 'en-US';
-  }
-
-  getCalendarDays(
-    viewDate: Date,
-    selectedIsoDate: string,
-    minDate?: string,
-    maxDate?: string,
-  ): CalendarDay[] {
-    const year = viewDate.getFullYear();
-    const month = viewDate.getMonth();
-
-    const firstDayIndex = new Date(year, month, 1).getDay();
-    const lastDayCurrentMonth = new Date(year, month + 1, 0).getDate();
-    const lastDayPrevMonth = new Date(year, month, 0).getDate();
-
-    const todayIso = this.formatIsoDate(new Date());
-    const days: CalendarDay[] = [];
-
-    const isDayDisabled = (dStr: string) => {
-      if (minDate && dStr < minDate) return true;
-      if (maxDate && dStr > maxDate) return true;
-      return false;
-    };
-
-    // Dias do mês anterior
-    for (let i = firstDayIndex - 1; i >= 0; i--) {
-      const dayNum = lastDayPrevMonth - i;
-      const d = new Date(year, month - 1, dayNum);
-      const dateStr = this.formatIsoDate(d);
-      days.push({
-        dateStr,
-        dayNumber: dayNum,
-        isCurrentMonth: false,
-        isToday: dateStr === todayIso,
-        isSelected: dateStr === selectedIsoDate,
-        isDisabled: isDayDisabled(dateStr),
-      });
-    }
-
-    // Dias do mês atual
-    for (let i = 1; i <= lastDayCurrentMonth; i++) {
-      const d = new Date(year, month, i);
-      const dateStr = this.formatIsoDate(d);
-      days.push({
-        dateStr,
-        dayNumber: i,
-        isCurrentMonth: true,
-        isToday: dateStr === todayIso,
-        isSelected: dateStr === selectedIsoDate,
-        isDisabled: isDayDisabled(dateStr),
-      });
-    }
-
-    // Preenchimento do próximo mês (completar grade de 35 ou 42)
-    const remaining = days.length <= 35 ? 35 - days.length : 42 - days.length;
-    for (let i = 1; i <= remaining; i++) {
-      const d = new Date(year, month + 1, i);
-      const dateStr = this.formatIsoDate(d);
-      days.push({
-        dateStr,
-        dayNumber: i,
-        isCurrentMonth: false,
-        isToday: dateStr === todayIso,
-        isSelected: dateStr === selectedIsoDate,
-        isDisabled: isDayDisabled(dateStr),
-      });
-    }
-
-    return days;
-  }
-
-  private formatIsoDate(d: Date): string {
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
   }
 
   private isValidIsoDateString(str: string): boolean {
@@ -352,94 +236,6 @@ export class ExecutionsPage implements OnInit {
       testDate.getFullYear() === y && testDate.getMonth() === m - 1 && testDate.getDate() === d
     );
   }
-
-  prevMonthFrom(event?: Event): void {
-    if (event) event.stopPropagation();
-    this.viewDateFrom.update((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1));
-  }
-
-  nextMonthFrom(event?: Event): void {
-    if (event) event.stopPropagation();
-    this.viewDateFrom.update((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1));
-  }
-
-  prevMonthTo(event?: Event): void {
-    if (event) event.stopPropagation();
-    this.viewDateTo.update((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1));
-  }
-
-  nextMonthTo(event?: Event): void {
-    if (event) event.stopPropagation();
-    this.viewDateTo.update((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1));
-  }
-
-  toggleDateFromPicker(event?: Event): void {
-    if (event) event.stopPropagation();
-    const next = !this.dateFromPickerOpen();
-    this.dateFromPickerOpen.set(next);
-    this.dateToPickerOpen.set(false);
-    if (next && this.dateFrom() && this.isValidIsoDateString(this.dateFrom())) {
-      const parsed = new Date(this.dateFrom() + 'T00:00:00');
-      if (!isNaN(parsed.getTime())) this.viewDateFrom.set(parsed);
-    }
-  }
-
-  toggleDateToPicker(event?: Event): void {
-    if (event) event.stopPropagation();
-    const next = !this.dateToPickerOpen();
-    this.dateToPickerOpen.set(next);
-    this.dateFromPickerOpen.set(false);
-    if (next && this.dateTo() && this.isValidIsoDateString(this.dateTo())) {
-      const parsed = new Date(this.dateTo() + 'T00:00:00');
-      if (!isNaN(parsed.getTime())) this.viewDateTo.set(parsed);
-    }
-  }
-
-  selectDayFrom(dayStr: string): void {
-    this.dateFrom.set(dayStr);
-    this.dateFromPickerOpen.set(false);
-    // Se a data final atual for anterior à nova data inicial, limpamos a data final para preservar a integridade temporal
-    if (this.dateTo() && this.dateTo() < dayStr) {
-      this.dateTo.set('');
-    }
-    this.page.set(1);
-    this.loadExecutions();
-  }
-
-  selectDayTo(dayStr: string): void {
-    if (this.dateFrom() && dayStr < this.dateFrom()) {
-      return; // Bloqueado contra datas inconsistentes
-    }
-    this.dateTo.set(dayStr);
-    this.dateToPickerOpen.set(false);
-    this.page.set(1);
-    this.loadExecutions();
-  }
-
-  setTodayFrom(): void {
-    const today = this.formatIsoDate(new Date());
-    this.selectDayFrom(today);
-  }
-
-  setTodayTo(): void {
-    const today = this.formatIsoDate(new Date());
-    this.selectDayTo(today);
-  }
-
-  clearDateFromInput(): void {
-    this.dateFrom.set('');
-    this.dateFromPickerOpen.set(false);
-    this.page.set(1);
-    this.loadExecutions();
-  }
-
-  clearDateToInput(): void {
-    this.dateTo.set('');
-    this.dateToPickerOpen.set(false);
-    this.page.set(1);
-    this.loadExecutions();
-  }
-
   loadExecutions(): void {
     if (this.dateRangeError()) {
       return; // Não envia consulta ao backend com intervalo de datas inválido

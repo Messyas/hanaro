@@ -265,23 +265,6 @@ describe('ExecutionsPage', () => {
     expect(component.manualUploadError()).toBeNull();
   });
 
-  it('should toggle custom datepicker, select date and set today', () => {
-    expect(component.dateFromPickerOpen()).toBe(false);
-    component.toggleDateFromPicker();
-    expect(component.dateFromPickerOpen()).toBe(true);
-
-    component.selectDayFrom('2026-08-15');
-    expect(component.dateFrom()).toBe('2026-08-15');
-    expect(component.dateFromPickerOpen()).toBe(false);
-
-    component.setTodayTo();
-    expect(component.dateTo()).toBeTruthy();
-    expect(component.dateToPickerOpen()).toBe(false);
-
-    component.clearDateFromInput();
-    expect(component.dateFrom()).toBe('');
-  });
-
   it('should validate date range consistency and block invalid queries', () => {
     component.dateFrom.set('2026-08-20');
     component.dateTo.set('2026-08-10');
@@ -292,19 +275,14 @@ describe('ExecutionsPage', () => {
     component.loadExecutions();
     expect(mockExecutionsService.list).not.toHaveBeenCalled();
 
-    // Selecting day from clears dateTo if dateTo is before new dateFrom
-    component.selectDayFrom('2026-08-25');
-    expect(component.dateTo()).toBe('');
+    component.dateTo.set('2026-08-25');
+    component.onDateRangeChanged();
+
     expect(component.dateRangeError()).toBe(false);
-
-    // Days before dateFrom should be marked as disabled in dateTo calendar
-    const days = component.getCalendarDays(new Date(2026, 7, 1), '', '2026-08-25');
-    const dayBefore = days.find((d) => d.dateStr === '2026-08-20');
-    const dayAfter = days.find((d) => d.dateStr === '2026-08-26');
-    expect(dayBefore?.isDisabled).toBe(true);
-    expect(dayAfter?.isDisabled).toBe(false);
+    expect(mockExecutionsService.list).toHaveBeenCalledWith(
+      expect.objectContaining({ date_from: '2026-08-20', date_to: '2026-08-25' }),
+    );
   });
-
   it('should format date strings with / and normalize typed slash inputs', () => {
     expect(component.formatDateSlash('2026-08-30')).toBe('2026/08/30');
     expect(component.formatDateSlash('')).toBe('');
