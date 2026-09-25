@@ -32,8 +32,10 @@ export const routes: Routes = [
         path: 'execucoes',
         title: 'Execuções GERP',
         canActivate: [authenticatedGuard],
-        loadComponent: () =>
-          import('./pages/executions/executions-page').then((module) => module.ExecutionsPage),
+        loadChildren: () =>
+          import('./modules/executions/executions.routes').then(
+            (module) => module.EXECUTIONS_ROUTES,
+          ),
       },
       {
         path: 'base-de-scrap',
