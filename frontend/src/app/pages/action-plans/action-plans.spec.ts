@@ -5,7 +5,8 @@ import { vi } from 'vitest';
 import { LanguageService } from '../../i18n/language.service';
 import { GovernanceService } from '../governance.service';
 import { Plan, WorkflowPage } from '../governance.models';
-import { ReportsService } from '../reports/reports.service';
+import { ReportCatalogService } from '../reports/report-catalog.service';
+import { ReportPublicationService } from '../reports/report-publication.service';
 import { ActionPlans } from './action-plans';
 
 describe('ActionPlans pagination', () => {
@@ -46,7 +47,14 @@ describe('ActionPlans pagination', () => {
         provideRouter([]),
         LanguageService,
         { provide: GovernanceService, useValue: governanceService },
-        { provide: ReportsService, useValue: {} },
+        {
+          provide: ReportCatalogService,
+          useValue: { list: vi.fn().mockReturnValue(of({ items: [] })) },
+        },
+        {
+          provide: ReportPublicationService,
+          useValue: { versions: vi.fn().mockReturnValue(of({ items: [] })) },
+        },
         {
           provide: ActivatedRoute,
           useValue: { paramMap: of(convertToParamMap({})) },

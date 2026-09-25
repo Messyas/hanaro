@@ -28,7 +28,7 @@ import {
   WorkflowPage,
 } from '../governance.models';
 import { workflowCopy } from '../governance-copy';
-import { ReportsService } from '../reports/reports.service';
+import { ReportCatalogService } from '../reports/report-catalog.service';
 import { ReportPublicationService } from '../reports/report-publication.service';
 import { ReportListItem, ReportVersion } from '../reports/reports.models';
 
@@ -60,7 +60,7 @@ const DEFAULT_PAGE_SIZE = 25;
 })
 export class ActionPlans {
   private readonly api = inject(GovernanceService);
-  private readonly reportsApi = inject(ReportsService);
+  private readonly reportsApi = inject(ReportCatalogService);
   private readonly reportPublicationApi = inject(ReportPublicationService);
   private readonly destroy = inject(DestroyRef);
   private readonly route = inject(ActivatedRoute);

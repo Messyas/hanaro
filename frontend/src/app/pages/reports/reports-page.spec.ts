@@ -8,6 +8,7 @@ import { ReportsPage } from './reports-page';
 import { ReportsService } from './reports.service';
 import { ReportSourceService } from './report-source.service';
 import { ReportPublicationService } from './report-publication.service';
+import { ReportCatalogService } from './report-catalog.service';
 
 describe('ReportsPage', () => {
   let fixture: ComponentFixture<ReportsPage>;
@@ -15,6 +16,7 @@ describe('ReportsPage', () => {
   let service: Record<string, ReturnType<typeof vi.fn>>;
   let sourceService: Record<string, ReturnType<typeof vi.fn>>;
   let publicationService: Record<string, ReturnType<typeof vi.fn>>;
+  let catalogService: Record<string, ReturnType<typeof vi.fn>>;
 
   const report: ReportDetail = {
     id: '77d1ad54-1b7e-4986-809b-a81cc503430c',
@@ -48,6 +50,10 @@ describe('ReportsPage', () => {
 
   beforeEach(async () => {
     service = {
+      update: vi.fn().mockReturnValue(of({ ...report, version: 3 })),
+      preview: vi.fn().mockReturnValue(of(preview)),
+    };
+    catalogService = {
       list: vi.fn().mockReturnValue(
         of({
           items: [report],
@@ -61,8 +67,6 @@ describe('ReportsPage', () => {
       ),
       create: vi.fn().mockReturnValue(of(report)),
       get: vi.fn().mockReturnValue(of(report)),
-      update: vi.fn().mockReturnValue(of({ ...report, version: 3 })),
-      preview: vi.fn().mockReturnValue(of(preview)),
     };
     publicationService = {
       publish: vi.fn().mockReturnValue(of({} as ReportVersion)),
@@ -110,6 +114,7 @@ describe('ReportsPage', () => {
         provideRouter([]),
         LanguageService,
         { provide: ReportsService, useValue: service },
+        { provide: ReportCatalogService, useValue: catalogService },
         { provide: ReportSourceService, useValue: sourceService },
         { provide: ReportPublicationService, useValue: publicationService },
       ],
@@ -121,7 +126,7 @@ describe('ReportsPage', () => {
   });
 
   it('renders the server-paginated report list', () => {
-    expect(service['list']).toHaveBeenCalledWith(
+    expect(catalogService['list']).toHaveBeenCalledWith(
       expect.objectContaining({ page: 1, pageSize: 25 }),
     );
     expect(fixture.nativeElement.textContent).toContain('Weekly loss review');
@@ -131,7 +136,7 @@ describe('ReportsPage', () => {
   it('opens a report and loads candidates, preview, and history', async () => {
     component.openReport(report.id, false);
     await fixture.whenStable();
-    expect(service['get']).toHaveBeenCalledWith(report.id);
+    expect(catalogService['get']).toHaveBeenCalledWith(report.id);
     expect(sourceService['eligibleOccurrences']).toHaveBeenCalled();
     expect(sourceService['sourceReports']).toHaveBeenCalledWith(report.id, {
       page: 1,

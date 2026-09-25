@@ -1,24 +1,32 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
+import { ReportCatalogService } from './report-catalog.service';
 import { ReportsService } from './reports.service';
 
 describe('ReportsService', () => {
   let service: ReportsService;
+  let catalog: ReportCatalogService;
   let http: HttpTestingController;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [ReportsService, provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        ReportsService,
+        ReportCatalogService,
+        provideHttpClient(),
+        provideHttpClientTesting(),
+      ],
     });
     service = TestBed.inject(ReportsService);
+    catalog = TestBed.inject(ReportCatalogService);
     http = TestBed.inject(HttpTestingController);
   });
 
   afterEach(() => http.verify());
 
   it('uses server-side pagination and filters', () => {
-    service.list({ page: 2, pageSize: 50, search: 'weekly', status: 'PUBLISHED' }).subscribe();
+    catalog.list({ page: 2, pageSize: 50, search: 'weekly', status: 'PUBLISHED' }).subscribe();
     const request = http.expectOne((candidate) => candidate.url === '/api/v1/reports');
     expect(request.request.params.get('page')).toBe('2');
     expect(request.request.params.get('page_size')).toBe('50');

@@ -61,6 +61,7 @@ import {
   ReportVersion,
 } from './reports.models';
 import { ReportsService } from './reports.service';
+import { ReportCatalogService } from './report-catalog.service';
 
 const PAGE_SIZES = [25, 50, 100] as const;
 const COPY = {
@@ -335,6 +336,7 @@ export class ReportsPage implements OnInit {
         this.draftDescription().trim() !== this.active()!.description),
   );
   private readonly service = inject(ReportsService);
+  private readonly catalog = inject(ReportCatalogService);
   private readonly exportCoordinator = inject(ReportExportCoordinator);
   private readonly publication = inject(ReportPublicationCoordinator);
   private readonly periodClose = inject(ReportPeriodCloseCoordinator);
@@ -441,7 +443,7 @@ export class ReportsPage implements OnInit {
   loadReports(): void {
     this.loading.set(true);
     this.error.set(null);
-    this.service
+    this.catalog
       .list({
         page: this.page(),
         pageSize: this.pageSize(),
@@ -529,7 +531,7 @@ export class ReportsPage implements OnInit {
               filters: { organization_codes: [], product_codes: [], divisions: [], lines: [] },
             },
           };
-    this.service
+    this.catalog
       .create(input)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
@@ -553,7 +555,7 @@ export class ReportsPage implements OnInit {
     if (!preserveError) this.workspaceError.set(null);
     this.editorStore.beginPreviewLoad();
     if (navigate) this.router.navigate(['/relatorios', reportId]);
-    this.service
+    this.catalog
       .get(reportId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({

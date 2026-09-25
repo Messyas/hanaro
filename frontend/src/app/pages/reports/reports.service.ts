@@ -1,15 +1,13 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import {
   EligibleAction,
   EligibleEvidence,
-  CreateReportInput,
   Page,
   ReportDetail,
   ReportAnalytics,
   ReportCandidateQuery,
-  ReportListItem,
   ReportPreview,
   PeriodClosePreview,
   ReportSection,
@@ -22,30 +20,6 @@ import { serializeReportCandidateQuery } from './report-candidate-query.params';
 export class ReportsService {
   private readonly http = inject(HttpClient);
   private readonly base = '/api/v1/reports';
-
-  list(filters: {
-    page: number;
-    pageSize: number;
-    search?: string;
-    status?: string;
-  }): Observable<Page<ReportListItem>> {
-    let params = new HttpParams().set('page', filters.page).set('page_size', filters.pageSize);
-    if (filters.search) params = params.set('search', filters.search);
-    if (filters.status) params = params.set('status', filters.status);
-    return this.http.get<Page<ReportListItem>>(this.base, { params });
-  }
-
-  create(title: string, description: string): Observable<ReportDetail>;
-  create(input: CreateReportInput): Observable<ReportDetail>;
-  create(titleOrInput: string | CreateReportInput, description = ''): Observable<ReportDetail> {
-    const body =
-      typeof titleOrInput === 'string' ? { title: titleOrInput, description } : titleOrInput;
-    return this.http.post<ReportDetail>(this.base, body);
-  }
-
-  get(reportId: string): Observable<ReportDetail> {
-    return this.http.get<ReportDetail>(`${this.base}/${reportId}`);
-  }
 
   analytics(reportId: string): Observable<ReportAnalytics> {
     return this.http.get<ReportAnalytics>(`${this.base}/${reportId}/analytics`);
