@@ -36,7 +36,7 @@
           }
         </div>
         <div class="calendar-days-grid">
-          @for (day of days(fromView(), from(), undefined, to()); track day.iso) {
+          @for (day of fromDays(); track day.iso) {
             <button
               type="button"
               class="cal-day-btn"
@@ -98,7 +98,7 @@
           }
         </div>
         <div class="calendar-days-grid">
-          @for (day of days(toView(), to(), from()); track day.iso) {
+          @for (day of toDays(); track day.iso) {
             <button
               type="button"
               class="cal-day-btn"

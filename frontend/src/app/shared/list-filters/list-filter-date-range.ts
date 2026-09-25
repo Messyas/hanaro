@@ -9,15 +9,7 @@ import {
   signal,
 } from '@angular/core';
 import { UiIcon } from '../../ui-icon';
-
-interface CalendarDay {
-  readonly iso: string;
-  readonly day: number;
-  readonly currentMonth: boolean;
-  readonly today: boolean;
-  readonly selected: boolean;
-  readonly disabled: boolean;
-}
+import { CalendarDay, buildCalendarDay, buildCalendarGrid } from './calendar-grid';
 
 @Component({
   selector: 'app-list-filter-date-range',
@@ -45,6 +37,20 @@ export class ListFilterDateRange {
   readonly toOpen = signal(false);
   readonly fromView = signal(new Date());
   readonly toView = signal(new Date());
+  readonly fromDays = computed(() =>
+    buildCalendarGrid({
+      viewDate: this.fromView(),
+      selectedDate: this.from(),
+      maxDate: this.to(),
+    }),
+  );
+  readonly toDays = computed(() =>
+    buildCalendarGrid({
+      viewDate: this.toView(),
+      selectedDate: this.to(),
+      minDate: this.from(),
+    }),
+  );
   readonly rangeError = computed(() =>
     Boolean(this.from() && this.to() && this.to() < this.from()),
   );
@@ -115,10 +121,22 @@ export class ListFilterDateRange {
     this.emitChanged();
   }
   setTodayFrom(): void {
-    this.selectFrom(this.dayFor(new Date(), this.from(), undefined, this.to()));
+    this.selectFrom(
+      buildCalendarDay(new Date(), {
+        selectedDate: this.from(),
+        maxDate: this.to(),
+        currentMonth: this.fromView().getMonth(),
+      }),
+    );
   }
   setTodayTo(): void {
-    this.selectTo(this.dayFor(new Date(), this.to(), this.from(), undefined));
+    this.selectTo(
+      buildCalendarDay(new Date(), {
+        selectedDate: this.to(),
+        minDate: this.from(),
+        currentMonth: this.toView().getMonth(),
+      }),
+    );
   }
   previousFrom(): void {
     this.fromView.update((date) => new Date(date.getFullYear(), date.getMonth() - 1, 1));
@@ -146,36 +164,8 @@ export class ListFilterDateRange {
     });
   }
 
-  days(view: Date, selected: string, min?: string, max?: string): CalendarDay[] {
-    const first = new Date(view.getFullYear(), view.getMonth(), 1);
-    const start = new Date(view.getFullYear(), view.getMonth(), 1 - first.getDay());
-    return Array.from({ length: 42 }, (_, index) => {
-      const date = new Date(start);
-      date.setDate(start.getDate() + index);
-      return this.dayFor(date, selected, min, max, view.getMonth());
-    });
-  }
-
   format(value: string): string {
     return value ? value.replaceAll('-', '/') : '';
-  }
-
-  private dayFor(
-    date: Date,
-    selected: string,
-    min?: string,
-    max?: string,
-    currentMonth?: number,
-  ): CalendarDay {
-    const iso = this.iso(date);
-    return {
-      iso,
-      day: date.getDate(),
-      currentMonth: currentMonth === undefined || date.getMonth() === currentMonth,
-      today: iso === this.iso(new Date()),
-      selected: iso === selected,
-      disabled: Boolean((min && iso < min) || (max && iso > max)),
-    };
   }
 
   private syncView(value: string, target: WritableSignal<Date>): void {
@@ -186,9 +176,6 @@ export class ListFilterDateRange {
   }
   private normalize(value: string): string {
     return value.trim().replaceAll('/', '-');
-  }
-  private iso(date: Date): string {
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   }
   private valid(value: string): boolean {
     return (

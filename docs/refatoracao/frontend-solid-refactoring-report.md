@@ -160,7 +160,7 @@ The automated TypeScript AST scan used a threshold of four parameters. It found 
 | `reports.service.ts:150` | `mutateSources(reportId, kind, operation, expectedVersion, ids)` | Discriminated Command | `mutateSources(command: ReportSourceMutationCommand)`; encode valid kind/operation combinations |
 | `reports.service.ts:198` | `requestExport(versionId, format, options, retry, templateVersion)` | Builder + Command | `ReportExportRequestBuilder` creates an immutable `ReportExportRequest`; API accepts one request |
 | `list-filter-date-range.ts:149` | `days(view, selected, min, max)` | Parameter Object or computed input | `buildCalendarGrid(options: CalendarGridOptions)` as a pure function |
-| `list-filter-date-range.ts:163` | `dayFor(date, selected, min, max, currentMonth)` | Internal context object | Reuse `CalendarGridContext`; no Builder needed |
+| `list-filter-date-range.ts:163` | `dayFor(date, selected, min, max, currentMonth)` | Internal context object | `buildCalendarDay(date, context: CalendarGridContext)`; no Builder needed |
 
 Near-threshold signatures that still deserve attention:
 
@@ -475,7 +475,7 @@ Acceptance: `/perfil` behavior is unchanged; the feature passes targeted tests, 
 #### WP3 — Executions and list primitives
 
 - [x] Delete the obsolete custom datepicker implementation and obsolete test.
-- [ ] Introduce `CalendarGridOptions`/`CalendarGridContext` in the shared date-range implementation.
+- [x] Introduce `CalendarGridOptions`/`CalendarGridContext` in the shared date-range implementation.
 - [ ] Move Executions into `modules/executions` with feature routes, data access, list state, detail UI, and upload UI separated by responsibility.
 - [ ] Introduce a typed page-size preference and scheduler/clock seam only where tests require substitution.
 - [ ] Complete dialog focus management and keyboard behavior.
@@ -603,7 +603,7 @@ No lint/architecture command is defined in `frontend/package.json`. Add incremen
 | ID | Priority | Status | Finding and acceptance outcome |
 | --- | --- | --- | --- |
 | FE-SOLID-01 | P1 | In progress — Reports moved under `modules/reports`; export configuration, API client, editor, list, capability, preview API/state/transitions including derived analytics and error handling, and period-close workspace transformations/coordination extracted; legacy history markup removed; source selection/versioning and export-history restoration/polling/state delegated; source, publication, catalog, period-close, draft-edit, and dossier-preview HTTP capabilities have dedicated clients; Action Plans now consumes the catalog and publication capabilities it needs | Split Reports vertically. The route shell no longer owns export polling, DOM download, source mutation, and every editor section; current URLs and behavior remain unchanged. |
-| FE-SOLID-02 | P1 | In progress — obsolete Executions datepicker state, methods, styles, and test removed; the shared date-range control remains the calendar implementation | Split list/detail/manual upload. Shared date-range behavior owns calendar tests. |
+| FE-SOLID-02 | P1 | In progress — obsolete Executions datepicker state, methods, styles, and test removed; shared date-range grid is now a pure function with typed options/context | Split list/detail/manual upload. Shared date-range behavior owns calendar tests. |
 | FE-SOLID-03 | P1 | Not started | Replace `GovernanceService` with capability clients/ports and typed DTOs/discriminated commands. `object`, `string` command, and arbitrary record parameters disappear from public APIs. |
 | FE-SOLID-04 | P1 | In progress — execution row control completed | Fix keyboard access for Executions rows and standardize accessible dialog focus behavior across main screens. |
 | FE-SOLID-05 | P1 | In progress — Reports request matcher completed | Restore tests and formatting gates. `npm test -- --watch=false`, `npm run build`, and `npm run format:check` all pass before structural migration. |
