@@ -8,8 +8,9 @@ Status: em execução. As entregas 0 a 2 estão implementadas; as entregas 0 e 2
 | --- | --- | --- |
 | 0. Baseline | Código corrigido; build, build Cloudflare, formatação e checker passaram. Testes não executados nesta sessão. | `36d0d1c` |
 | 1. Revisão em lote | Coordenador implementado e builds/formatação/checker passaram. Testes de regressão pendentes. | `fb003e3` |
-| 2. Fila de revisão | Store local ao drawer para IDs, índice e metadados; cancelamento de consulta antiga; proteção contra troca/fechamento durante operações; build, checker e formatação passaram. Testes pendentes. | Em implementação nesta sessão |
-| 3–5 | Planejadas; ainda não iniciadas. | — |
+| 2. Fila de revisão | Store local ao drawer para IDs, índice e metadados; cancelamento de consulta antiga; proteção contra troca/fechamento durante operações; build, checker e formatação passaram. Testes pendentes. | `89f2643` |
+| 3. Workflow de revisão | Coordenador tipado para salvar, upload sequencial e finalização; falha de anexo bloqueia finalização, preserva o rascunho e devolve arquivos que falharam para retry. Build normal, Cloudflare, checker e formatação passaram. Testes pendentes. | `b784d79` |
+| 4–5 | Planejadas; ainda não iniciadas. | — |
 
 ## Objetivo e limites
 
@@ -67,7 +68,7 @@ Alterar `scrap-base-page.ts`, `scrap-review-drawer.ts` e seus specs; adicionar s
 
 Depois da fila, extrair de `ScrapReviewDrawer` a sequência de caso de uso para `scrap-review-workflow.coordinator.ts`, fornecido no drawer. A operação recebe ID, dados do formulário, versão esperada e arquivos pendentes; compõe `saveDraft`, uploads sequenciais e, quando solicitado, `finalize`. O formulário e as mensagens traduzidas ficam no componente. `ScrapReviewService` continua com endpoints separados.
 
-Definir resultados tipados para rascunho salvo, revisão finalizada, conflito de versão e falha de anexo. Preservar a versão retornada pelo servidor como fonte da próxima operação. Não finalizar se o upload obrigatório falhar sem deixar esse resultado explícito para o usuário; decidir e registrar a política de retry antes de mudar o tratamento atual, que captura falhas individuais de upload e continua. A limpeza de object URLs continua em `ScrapAttachmentPreviewService` e no ciclo de vida do drawer. Cobrir ordem `save → upload → finalize`, erro em cada etapa, `409`, cancelamento/destruição e edição de revisão finalizada pelo responsável.
+Definir resultados tipados para rascunho salvo, revisão finalizada, conflito de versão e falha de anexo. Preservar a versão retornada pelo servidor como fonte da próxima operação. Política adotada: qualquer falha de anexo bloqueia a finalização; anexos já enviados e a revisão salva são preservados, e somente os arquivos que falharam voltam para a fila de retry. Em falha da gravação, os arquivos selecionados retornam para retry. Conflito `409` conserva o conteúdo editável e a versão mais recente devolvida pelo servidor. A limpeza de object URLs continua em `ScrapAttachmentPreviewService` e no ciclo de vida do drawer. Cobrir ordem `save → upload → finalize`, erro em cada etapa, `409`, cancelamento/destruição e edição de revisão finalizada pelo responsável.
 
 Aceite: o drawer concentra apresentação e estado transitório do formulário; a sequência de gravação fica em um único coordenador com erros observáveis.
 
