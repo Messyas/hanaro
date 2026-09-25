@@ -1,10 +1,9 @@
-import { DecimalPipe, isPlatformBrowser } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import {
   Component,
   DestroyRef,
   HostListener,
   OnInit,
-  PLATFORM_ID,
   computed,
   inject,
   signal,
@@ -24,6 +23,11 @@ import { DelayedProgressSpinner } from '../../shared/list-view/delayed-progress-
 import { ListFeedback } from '../../shared/list-view/list-feedback/list-feedback';
 import { ListPagination } from '../../shared/list-view/list-pagination/list-pagination';
 import { ListPanel } from '../../shared/list-view/list-panel/list-panel';
+import {
+  PAGE_SIZE_OPTIONS,
+  PageSize,
+  PageSizePreference,
+} from '../../shared/list-view/page-size-preference';
 import { ListTableSkeleton } from '../../shared/list-view/list-table-skeleton/list-table-skeleton';
 import { StatusBadge } from '../../shared/list-view/status-badge/status-badge';
 import type { StatusBadgeTone } from '../../shared/list-view/status-badge/status-badge';
@@ -40,9 +44,9 @@ import { ExecutionManualUploadDialog } from './execution-manual-upload-dialog';
 import { ExecutionDetailDrawer, ExecutionDetailFormatters } from './execution-detail-drawer';
 import { ExecutionsListStore } from './executions-list.store';
 
-const ALLOWED_PAGE_SIZES = [10, 25, 50, 100] as const;
+const ALLOWED_PAGE_SIZES = PAGE_SIZE_OPTIONS;
+const DEFAULT_PAGE_SIZE: PageSize = 25;
 const PAGE_SIZE_STORAGE_KEY = 'hanaro-executions-page-size';
-const DEFAULT_PAGE_SIZE = 25;
 const EXECUTION_POLL_INTERVAL_MS = 5_000;
 
 @Component({
@@ -73,9 +77,8 @@ const EXECUTION_POLL_INTERVAL_MS = 5_000;
 })
 export class ExecutionsPage implements OnInit {
   private readonly executionsService = inject(ExecutionsService);
-  private readonly platformId = inject(PLATFORM_ID);
   private readonly destroyRef = inject(DestroyRef);
-  private readonly isBrowser = isPlatformBrowser(this.platformId);
+  private readonly pageSizePreference = inject(PageSizePreference);
   readonly listStore = inject(ExecutionsListStore);
 
   readonly language = inject(LanguageService);
@@ -166,7 +169,7 @@ export class ExecutionsPage implements OnInit {
   };
 
   ngOnInit(): void {
-    this.pageSize.set(this.readInitialPageSize());
+    this.pageSize.set(this.pageSizePreference.read(PAGE_SIZE_STORAGE_KEY, DEFAULT_PAGE_SIZE));
     this.loadExecutions();
 
     timer(EXECUTION_POLL_INTERVAL_MS, EXECUTION_POLL_INTERVAL_MS)
@@ -221,7 +224,7 @@ export class ExecutionsPage implements OnInit {
 
   selectPageSize(size: number): void {
     this.pageSize.set(size);
-    this.savePageSize(size);
+    this.pageSizePreference.save(PAGE_SIZE_STORAGE_KEY, size as PageSize);
     this.page.set(1);
     this.loadExecutions();
   }
@@ -333,7 +336,7 @@ export class ExecutionsPage implements OnInit {
       : DEFAULT_PAGE_SIZE;
 
     this.pageSize.set(validSize);
-    this.savePageSize(validSize);
+    this.pageSizePreference.save(PAGE_SIZE_STORAGE_KEY, validSize as PageSize);
     this.page.set(1);
     this.loadExecutions();
   }
@@ -416,31 +419,6 @@ export class ExecutionsPage implements OnInit {
       this.data()?.items.some((item) => isActive(item.status)) === true ||
       (this.selectedDetail() !== null && isActive(this.selectedDetail()!.status))
     );
-  }
-
-  private readInitialPageSize(): number {
-    if (!this.isBrowser) return DEFAULT_PAGE_SIZE;
-    try {
-      const stored = localStorage.getItem(PAGE_SIZE_STORAGE_KEY);
-      if (stored) {
-        const parsed = Number(stored);
-        if (ALLOWED_PAGE_SIZES.includes(parsed as (typeof ALLOWED_PAGE_SIZES)[number])) {
-          return parsed;
-        }
-      }
-    } catch {
-      // Storage inacessível em sandbox/privado
-    }
-    return DEFAULT_PAGE_SIZE;
-  }
-
-  private savePageSize(size: number): void {
-    if (!this.isBrowser) return;
-    try {
-      localStorage.setItem(PAGE_SIZE_STORAGE_KEY, String(size));
-    } catch {
-      // Storage indisponível
-    }
   }
 
   // Formatters

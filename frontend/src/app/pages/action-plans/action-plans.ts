@@ -1,5 +1,4 @@
-import { isPlatformBrowser } from '@angular/common';
-import { Component, DestroyRef, PLATFORM_ID, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
@@ -17,6 +16,11 @@ import { ListPagination } from '../../shared/list-view/list-pagination/list-pagi
 import { ListTableSkeleton } from '../../shared/list-view/list-table-skeleton/list-table-skeleton';
 import { StatusBadge, StatusBadgeTone } from '../../shared/list-view/status-badge/status-badge';
 import { ListPanel } from '../../shared/list-view/list-panel/list-panel';
+import {
+  PAGE_SIZE_OPTIONS,
+  PageSize,
+  PageSizePreference,
+} from '../../shared/list-view/page-size-preference';
 import { UiIcon } from '../../ui-icon';
 import { GovernanceService } from '../governance.service';
 import {
@@ -32,9 +36,9 @@ import { ReportCatalogService } from '../../modules/reports/report-catalog.servi
 import { ReportPublicationService } from '../../modules/reports/report-publication.service';
 import { ReportListItem, ReportVersion } from '../../modules/reports/reports.models';
 
-const ALLOWED_PAGE_SIZES = [10, 25, 50, 100] as const;
+const ALLOWED_PAGE_SIZES = PAGE_SIZE_OPTIONS;
+const DEFAULT_PAGE_SIZE: PageSize = 25;
 const PAGE_SIZE_STORAGE_KEY = 'hanaro-action-plans-page-size';
-const DEFAULT_PAGE_SIZE = 25;
 
 @Component({
   selector: 'app-action-plans',
@@ -65,8 +69,7 @@ export class ActionPlans {
   private readonly destroy = inject(DestroyRef);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly platformId = inject(PLATFORM_ID);
-  private readonly isBrowser = isPlatformBrowser(this.platformId);
+  private readonly pageSizePreference = inject(PageSizePreference);
   readonly language = inject(LanguageService);
   readonly t = computed(() => this.language.translations());
   readonly c = computed(() => workflowCopy[this.language.currentLanguage()]);
@@ -97,7 +100,9 @@ export class ActionPlans {
   readonly versions = signal<ReportVersion[]>([]);
   readonly allowedPageSizes = ALLOWED_PAGE_SIZES;
   readonly page = signal(1);
-  readonly pageSize = signal(this.readInitialPageSize());
+  readonly pageSize = signal<number>(
+    this.pageSizePreference.read(PAGE_SIZE_STORAGE_KEY, DEFAULT_PAGE_SIZE),
+  );
   readonly totalPages = computed(() =>
     Math.max(1, Math.ceil((this.list()?.total || 0) / this.pageSize())),
   );
@@ -183,31 +188,9 @@ export class ActionPlans {
       ? pageSize
       : DEFAULT_PAGE_SIZE;
     this.pageSize.set(validPageSize);
-    this.savePageSize(validPageSize);
+    this.pageSizePreference.save(PAGE_SIZE_STORAGE_KEY, validPageSize as PageSize);
     this.page.set(1);
     this.load();
-  }
-
-  private readInitialPageSize(): number {
-    if (!this.isBrowser) return DEFAULT_PAGE_SIZE;
-    try {
-      const stored = Number(localStorage.getItem(PAGE_SIZE_STORAGE_KEY));
-      if (ALLOWED_PAGE_SIZES.includes(stored as (typeof ALLOWED_PAGE_SIZES)[number])) {
-        return stored;
-      }
-    } catch {
-      // Storage pode estar indisponível em modo privado ou sandbox.
-    }
-    return DEFAULT_PAGE_SIZE;
-  }
-
-  private savePageSize(pageSize: number): void {
-    if (!this.isBrowser) return;
-    try {
-      localStorage.setItem(PAGE_SIZE_STORAGE_KEY, String(pageSize));
-    } catch {
-      // A paginação continua funcional mesmo sem persistência local.
-    }
   }
 
   getPriorityTone(priority: string): StatusBadgeTone {
