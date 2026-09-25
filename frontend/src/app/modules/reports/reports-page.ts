@@ -22,7 +22,7 @@ import { ListPagination } from '../../shared/list-view/list-pagination/list-pagi
 import { ListPanel } from '../../shared/list-view/list-panel/list-panel';
 import { StatusBadge } from '../../shared/list-view/status-badge/status-badge';
 import { UiIcon } from '../../ui-icon';
-import { GovernanceService } from '../../pages/governance.service';
+import { GovernanceCapabilitiesService } from '../../core/governance/governance-capabilities.service';
 import { workflowCopy } from '../../pages/governance-copy';
 import { ReportPreview as ReportPreviewComponent } from './report-preview/report-preview';
 import { ReportEditorStore } from './report-editor.store';
@@ -321,7 +321,7 @@ const COPY = {
 export class ReportsPage implements OnInit {
   private readonly editorStore = inject(ReportEditorStore);
   private readonly listStore = inject(ReportListStore);
-  private readonly governance = inject(GovernanceService);
+  private readonly governanceCapabilities = inject(GovernanceCapabilitiesService);
   readonly workflows = computed(() => workflowCopy[this.language.currentLanguage()]);
   readonly historical = this.editorStore.historical;
   readonly exportsAvailable = this.listStore.exportsAvailable;
@@ -415,8 +415,8 @@ export class ReportsPage implements OnInit {
   readonly previewOpen = this.editorStore.previewOpen;
 
   ngOnInit(): void {
-    this.governance
-      .capabilities()
+    this.governanceCapabilities
+      .get()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (c) => this.exportsAvailable.set(c.exports_available),

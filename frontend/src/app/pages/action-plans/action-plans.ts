@@ -22,16 +22,16 @@ import {
   PageSizePreference,
 } from '../../shared/list-view/page-size-preference';
 import { UiIcon } from '../../ui-icon';
-import { GovernanceService } from '../governance.service';
+import { ActionPlansService } from './action-plans.service';
+import { GovernanceDirectoryService } from '../governance-directory.service';
+import { Person, WorkflowPage } from '../governance.models';
 import {
   ActionTask,
   ActionTaskCommand,
   HistoryEntry,
-  Person,
   Plan,
   TaskState,
-  WorkflowPage,
-} from '../governance.models';
+} from './action-plans.models';
 import { workflowCopy } from '../governance-copy';
 import {
   ActionPlanReportLookup,
@@ -66,7 +66,8 @@ const PAGE_SIZE_STORAGE_KEY = 'hanaro-action-plans-page-size';
   styleUrls: ['./action-plans.css'],
 })
 export class ActionPlans {
-  private readonly api = inject(GovernanceService);
+  private readonly planApi = inject(ActionPlansService);
+  private readonly directoryApi = inject(GovernanceDirectoryService);
   private readonly reportLookup = inject(ActionPlanReportLookup);
   private readonly destroy = inject(DestroyRef);
   private readonly route = inject(ActivatedRoute);
@@ -152,7 +153,7 @@ export class ActionPlans {
 
   load() {
     this.loading.set(true);
-    this.api
+    this.planApi
       .plans(this.page(), this.pageSize())
       .pipe(takeUntilDestroyed(this.destroy))
       .subscribe({
@@ -216,7 +217,7 @@ export class ActionPlans {
 
   open(id: string) {
     this.loading.set(true);
-    this.api
+    this.planApi
       .plan(id)
       .pipe(takeUntilDestroyed(this.destroy))
       .subscribe({
@@ -236,7 +237,7 @@ export class ActionPlans {
     if (!plan) return;
     forkJoin(
       this.states.map((status) =>
-        this.api.getBoard({
+        this.planApi.getBoard({
           planId: plan.id,
           status,
           page: this.columnPages[status] || 1,
@@ -312,7 +313,7 @@ export class ActionPlans {
     if (this.busy() || !this.planTitle.trim()) return;
     this.busy.set(true);
     const current = this.plan();
-    this.api
+    this.planApi
       .savePlan(
         {
           title: this.planTitle,
@@ -342,7 +343,7 @@ export class ActionPlans {
   }
 
   loadPeople() {
-    this.api
+    this.directoryApi
       .people(this.peopleSearch)
       .pipe(takeUntilDestroyed(this.destroy))
       .subscribe({ next: (p) => this.people.set(p), error: (e) => this.fail(e) });
@@ -367,7 +368,7 @@ export class ActionPlans {
   }
 
   openTask(id: string) {
-    this.api
+    this.planApi
       .task(id)
       .pipe(takeUntilDestroyed(this.destroy))
       .subscribe({
@@ -390,7 +391,7 @@ export class ActionPlans {
   loadHistory() {
     const task = this.task();
     if (!task) return;
-    this.api
+    this.planApi
       .history(task.id, this.historyPage)
       .pipe(takeUntilDestroyed(this.destroy))
       .subscribe({ next: (p) => this.history.set(p), error: (e) => this.fail(e) });
@@ -400,7 +401,7 @@ export class ActionPlans {
     const plan = this.plan();
     if (!plan || this.busy() || !this.taskTitle.trim()) return;
     this.busy.set(true);
-    this.api
+    this.planApi
       .saveTask(
         plan.id,
         {
@@ -430,8 +431,8 @@ export class ActionPlans {
   sendTaskCommand(task: ActionTask, action: ActionTaskCommand) {
     if (this.busy()) return;
     this.busy.set(true);
-    this.api
-      .command(task, action)
+    this.planApi
+      .sendCommand(task, action)
       .pipe(takeUntilDestroyed(this.destroy))
       .subscribe({
         next: (updated) => {

@@ -3,6 +3,7 @@ import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { vi } from 'vitest';
 import { LanguageService } from '../../i18n/language.service';
+import { GovernanceCapabilitiesService } from '../../core/governance/governance-capabilities.service';
 import { ReportDetail, ReportPreview, ReportVersion } from './reports.models';
 import { ReportsPage } from './reports-page';
 import { ReportEditorService } from './report-editor.service';
@@ -116,6 +117,10 @@ describe('ReportsPage', () => {
       providers: [
         provideRouter([]),
         LanguageService,
+        {
+          provide: GovernanceCapabilitiesService,
+          useValue: { get: vi.fn().mockReturnValue(of({ exports_available: true })) },
+        },
         { provide: ReportEditorService, useValue: editorService },
         { provide: ReportDossierPreviewService, useValue: dossierPreviewService },
         { provide: ReportCatalogService, useValue: catalogService },

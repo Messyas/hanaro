@@ -3,6 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { LanguageService } from '../../i18n/language.service';
+import { GovernanceCapabilitiesService } from '../../core/governance/governance-capabilities.service';
 import { ListFilterDateRange } from '../../shared/list-filters/list-filter-date-range';
 import { ListFilterPopover } from '../../shared/list-filters/list-filter-popover';
 import { ListFilterSelect } from '../../shared/list-filters/list-filter-select';
@@ -14,8 +15,10 @@ import { StatusBadge, StatusBadgeTone } from '../../shared/list-view/status-badg
 import { ListPanel } from '../../shared/list-view/list-panel/list-panel';
 import { UiIcon } from '../../ui-icon';
 import { workflowCopy } from '../governance-copy';
-import { AlertItem, Person, Rule, WorkflowPage } from '../governance.models';
-import { GovernanceService } from '../governance.service';
+import { Person, WorkflowPage } from '../governance.models';
+import { AlertItem, NotificationEmail, Rule } from './alerts.models';
+import { AlertsService } from './alerts.service';
+import { GovernanceDirectoryService } from '../governance-directory.service';
 
 @Component({
   selector: 'app-alerts',
@@ -37,7 +40,9 @@ import { GovernanceService } from '../governance.service';
   styleUrls: ['./alerts.css'],
 })
 export class Alerts {
-  private readonly api = inject(GovernanceService);
+  private readonly alertsApi = inject(AlertsService);
+  private readonly directoryApi = inject(GovernanceDirectoryService);
+  private readonly capabilitiesApi = inject(GovernanceCapabilitiesService);
   private readonly destroy = inject(DestroyRef);
   readonly language = inject(LanguageService);
   readonly c = computed(() => workflowCopy[this.language.currentLanguage()]);
@@ -51,9 +56,7 @@ export class Alerts {
   readonly rules = signal<WorkflowPage<Rule> | null>(null);
   readonly people = signal<Person[]>([]);
   readonly tiers = signal<Person[]>([]);
-  readonly emails = signal<
-    { id: string; subject: string; body: string; recipient: string; status: string }[]
-  >([]);
+  readonly emails = signal<NotificationEmail[]>([]);
   readonly showEmails = signal(false);
   readonly filterOpen = signal(false);
   readonly types = [
@@ -106,8 +109,8 @@ export class Alerts {
 
   constructor() {
     this.load();
-    this.api
-      .capabilities()
+    this.capabilitiesApi
+      .get()
       .pipe(takeUntilDestroyed(this.destroy))
       .subscribe({
         next: (value) => this.available.set(value.notifications_available),
@@ -143,14 +146,15 @@ export class Alerts {
 
   load() {
     this.loading.set(true);
-    const params: Record<string, string | number | boolean> = { page: this.pageNumber };
-    if (this.severity) params['severity'] = this.severity;
-    if (this.type) params['event_type'] = this.type;
-    if (this.unread) params['unread'] = this.unread === 'true';
-    if (this.dateFrom) params['date_from'] = this.dateFrom + 'T00:00:00Z';
-    if (this.dateTo) params['date_to'] = this.dateTo + 'T23:59:59Z';
-    this.api
-      .alerts(params)
+    this.alertsApi
+      .list({
+        page: this.pageNumber,
+        ...(this.severity ? { severity: this.severity } : {}),
+        ...(this.type ? { eventType: this.type } : {}),
+        ...(this.unread ? { unread: this.unread === 'true' } : {}),
+        ...(this.dateFrom ? { dateFrom: `${this.dateFrom}T00:00:00Z` } : {}),
+        ...(this.dateTo ? { dateTo: `${this.dateTo}T23:59:59Z` } : {}),
+      })
       .pipe(takeUntilDestroyed(this.destroy))
       .subscribe({
         next: (page) => {
@@ -264,15 +268,15 @@ export class Alerts {
   }
 
   read(alert: AlertItem) {
-    this.api
-      .read(alert.id)
+    this.alertsApi
+      .markAsRead(alert.id)
       .pipe(takeUntilDestroyed(this.destroy))
       .subscribe({ next: () => this.load(), error: (e) => this.fail(e) });
   }
 
   loadRules() {
     this.settings.set(true);
-    this.api
+    this.alertsApi
       .rules(this.rulePage)
       .pipe(takeUntilDestroyed(this.destroy))
       .subscribe({ next: (r) => this.rules.set(r), error: (e) => this.fail(e) });
@@ -285,14 +289,14 @@ export class Alerts {
     this.filterValue = entry?.[1] || '';
     this.editing.set(true);
     this.loadPeople();
-    this.api
+    this.directoryApi
       .tiers()
       .pipe(takeUntilDestroyed(this.destroy))
       .subscribe({ next: (page) => this.tiers.set(page.data), error: (e) => this.fail(e) });
   }
 
   loadPeople() {
-    this.api
+    this.directoryApi
       .people(this.peopleSearch)
       .pipe(takeUntilDestroyed(this.destroy))
       .subscribe({ next: (p) => this.people.set(p), error: (e) => this.fail(e) });
@@ -337,7 +341,7 @@ export class Alerts {
     this.rule.date_from = this.rule.date_from || null;
     this.rule.date_to = this.rule.date_to || null;
     this.busy.set(true);
-    this.api
+    this.alertsApi
       .saveRule(this.rule)
       .pipe(takeUntilDestroyed(this.destroy))
       .subscribe({
@@ -352,7 +356,7 @@ export class Alerts {
 
   loadEmails() {
     this.showEmails.set(true);
-    this.api
+    this.alertsApi
       .emails(this.emailPage)
       .pipe(takeUntilDestroyed(this.destroy))
       .subscribe({ next: (e) => this.emails.set(e), error: (e) => this.fail(e) });

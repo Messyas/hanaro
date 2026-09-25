@@ -498,9 +498,9 @@ Acceptance: the Builder constructs only a valid request; HTTP serialization, pol
 
 - [x] Define discriminated `ActionTaskCommand` variants with required payloads per action.
 - [x] Replace `board(id, status, page, search, priority)` with `getBoard(query)`.
-- [ ] Split `GovernanceService` and shared models into Action Plans and Alerts capabilities plus explicitly shared contracts.
+- [x] Split `GovernanceService` and shared models into Action Plans and Alerts capabilities plus explicitly shared contracts; remove the broad service and retain only shared directory/pagination contracts.
 - [ ] Move Action Plans and Alerts into their respective module folders with feature routes and route-scoped state.
-- [ ] Remove direct Action Plans imports from Reports internals.
+- [x] Remove direct Action Plans imports from Reports internals; Action Plans consumes the Reports public lookup boundary.
 
 Acceptance: the old broad `GovernanceService` is deleted; each feature depends only on the operations and models it uses.
 

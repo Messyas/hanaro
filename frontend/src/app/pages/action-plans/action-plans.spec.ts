@@ -3,17 +3,18 @@ import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/route
 import { of } from 'rxjs';
 import { vi } from 'vitest';
 import { LanguageService } from '../../i18n/language.service';
-import { GovernanceService } from '../governance.service';
-import { Plan, WorkflowPage } from '../governance.models';
+import { ActionPlansService } from './action-plans.service';
+import { GovernanceDirectoryService } from '../governance-directory.service';
+import { WorkflowPage } from '../governance.models';
+import { Plan } from './action-plans.models';
 import { ActionPlanReportLookup } from '../../modules/reports/reports.public-api';
 import { ActionPlans } from './action-plans';
 
 describe('ActionPlans pagination', () => {
   let fixture: ComponentFixture<ActionPlans>;
   let component: ActionPlans;
-  let governanceService: {
+  let actionPlansService: {
     plans: ReturnType<typeof vi.fn>;
-    people: ReturnType<typeof vi.fn>;
   };
 
   const plan: Plan = {
@@ -29,7 +30,7 @@ describe('ActionPlans pagination', () => {
 
   beforeEach(async () => {
     localStorage.removeItem('hanaro-action-plans-page-size');
-    governanceService = {
+    actionPlansService = {
       plans: vi.fn((page: number, pageSize: number) =>
         of<WorkflowPage<Plan>>({
           items: [plan],
@@ -37,7 +38,6 @@ describe('ActionPlans pagination', () => {
           has_next: page * pageSize < 60,
         }),
       ),
-      people: vi.fn().mockReturnValue(of([])),
     };
 
     await TestBed.configureTestingModule({
@@ -45,7 +45,11 @@ describe('ActionPlans pagination', () => {
       providers: [
         provideRouter([]),
         LanguageService,
-        { provide: GovernanceService, useValue: governanceService },
+        { provide: ActionPlansService, useValue: actionPlansService },
+        {
+          provide: GovernanceDirectoryService,
+          useValue: { people: vi.fn().mockReturnValue(of([])) },
+        },
         {
           provide: ActionPlanReportLookup,
           useValue: {
@@ -85,24 +89,24 @@ describe('ActionPlans pagination', () => {
     expect(component.page()).toBe(1);
     expect(component.pageSize()).toBe(50);
     expect(localStorage.getItem('hanaro-action-plans-page-size')).toBe('50');
-    expect(governanceService.plans).toHaveBeenLastCalledWith(1, 50);
+    expect(actionPlansService.plans).toHaveBeenLastCalledWith(1, 50);
   });
 
   it('moves between pages and respects the first and last page limits', () => {
     component.previousPage();
-    expect(governanceService.plans).toHaveBeenCalledTimes(1);
+    expect(actionPlansService.plans).toHaveBeenCalledTimes(1);
 
     component.nextPage();
     expect(component.page()).toBe(2);
-    expect(governanceService.plans).toHaveBeenLastCalledWith(2, 25);
+    expect(actionPlansService.plans).toHaveBeenLastCalledWith(2, 25);
 
     component.page.set(3);
     component.nextPage();
     expect(component.page()).toBe(3);
-    expect(governanceService.plans).toHaveBeenCalledTimes(2);
+    expect(actionPlansService.plans).toHaveBeenCalledTimes(2);
 
     component.previousPage();
     expect(component.page()).toBe(2);
-    expect(governanceService.plans).toHaveBeenLastCalledWith(2, 25);
+    expect(actionPlansService.plans).toHaveBeenLastCalledWith(2, 25);
   });
 });
