@@ -1,9 +1,11 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { Subject, of, throwError } from 'rxjs';
 import { vi } from 'vitest';
 import { ExecutionDetail, ExecutionPage } from './executions.models';
 import { ExecutionsPage } from './executions-page';
 import { ExecutionsService } from './executions.service';
+import { ExecutionManualUploadDialog } from './execution-manual-upload-dialog';
 
 describe('ExecutionsPage', () => {
   let component: ExecutionsPage;
@@ -259,10 +261,12 @@ describe('ExecutionsPage', () => {
     } as File;
     const event = { target: { files: { item: () => file } } } as unknown as Event;
 
-    component.selectManualUploadFile(event);
+    const dialog = fixture.debugElement.query(By.directive(ExecutionManualUploadDialog))
+      .componentInstance as ExecutionManualUploadDialog;
+    dialog.selectFile(event);
 
-    expect(component.manualUploadFile()).toBe(file);
-    expect(component.manualUploadError()).toBeNull();
+    expect(dialog.file()).toBe(file);
+    expect(dialog.error()).toBeNull();
   });
 
   it('should validate date range consistency and block invalid queries', () => {

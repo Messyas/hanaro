@@ -1,0 +1,51 @@
+@if (open()) {
+  <div class="manual-upload-backdrop" (click)="close()">
+    <section
+      class="manual-upload-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="manual-upload-title"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="manual-upload-header">
+        <div>
+          <h2 id="manual-upload-title">Atualizar base por relatório</h2>
+          <p>Envie o arquivo Other Account Transaction Text exportado do GERP.</p>
+        </div>
+        <button class="btn btn-ghost" type="button" aria-label="Fechar upload" (click)="close()">
+          <ui-icon name="x" />
+        </button>
+      </header>
+      <div class="manual-upload-body">
+        <label class="manual-upload-dropzone" for="manual-report-file">
+          <ui-icon name="folder" />
+          <strong>{{ file()?.name || 'Selecionar relatório GERP' }}</strong>
+          <span>TSV em UTF-8 ou CP1252</span>
+          <input
+            id="manual-report-file"
+            type="file"
+            accept="text/plain,.txt,.tsv"
+            [disabled]="submitting()"
+            (change)="selectFile($event)"
+          />
+        </label>
+        @if (error()) {
+          <app-inline-alert [message]="error()!" />
+        }
+      </div>
+      <footer class="manual-upload-footer">
+        <button class="btn btn-secondary" type="button" [disabled]="submitting()" (click)="close()">
+          Cancelar
+        </button>
+        <button
+          class="btn btn-primary"
+          type="button"
+          [disabled]="!file() || submitting()"
+          (click)="submit()"
+        >
+          {{ submitting() ? 'Enviando…' : 'Processar relatório' }}
+        </button>
+      </footer>
+    </section>
+  </div>
+}

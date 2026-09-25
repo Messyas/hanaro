@@ -395,65 +395,9 @@
       </div>
     </div>
   }
-  @if (manualUploadOpen()) {
-    <div class="modal-backdrop" (click)="closeManualUpload()">
-      <section
-        class="manual-upload-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="manual-upload-title"
-        (click)="$event.stopPropagation()"
-      >
-        <header class="manual-upload-header">
-          <div>
-            <h2 id="manual-upload-title">Atualizar base por relatório</h2>
-            <p>Envie o arquivo Other Account Transaction Text exportado do GERP.</p>
-          </div>
-          <button
-            class="btn btn-ghost"
-            type="button"
-            aria-label="Fechar upload"
-            (click)="closeManualUpload()"
-          >
-            <ui-icon name="x" />
-          </button>
-        </header>
-        <div class="manual-upload-body">
-          <label class="manual-upload-dropzone" for="manual-report-file">
-            <ui-icon name="folder" />
-            <strong>{{ manualUploadFile()?.name || 'Selecionar relatório GERP' }}</strong>
-            <span>TSV em UTF-8 ou CP1252</span>
-            <input
-              id="manual-report-file"
-              type="file"
-              accept="text/plain,.txt,.tsv"
-              [disabled]="manualUploadSubmitting()"
-              (change)="selectManualUploadFile($event)"
-            />
-          </label>
-          @if (manualUploadError()) {
-            <app-inline-alert [message]="manualUploadError()!" />
-          }
-        </div>
-        <footer class="manual-upload-footer">
-          <button
-            class="btn btn-secondary"
-            type="button"
-            [disabled]="manualUploadSubmitting()"
-            (click)="closeManualUpload()"
-          >
-            Cancelar
-          </button>
-          <button
-            class="btn btn-primary"
-            type="button"
-            [disabled]="!manualUploadFile() || manualUploadSubmitting()"
-            (click)="submitManualUpload()"
-          >
-            {{ manualUploadSubmitting() ? 'Enviando…' : 'Processar relatório' }}
-          </button>
-        </footer>
-      </section>
-    </div>
-  }
+  <app-execution-manual-upload-dialog
+    [open]="manualUploadOpen()"
+    (closed)="handleManualUploadClosed()"
+    (uploaded)="handleManualUploadAccepted($event)"
+  />
 </section>

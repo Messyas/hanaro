@@ -40,6 +40,7 @@ import {
   SortOrder,
 } from './executions.models';
 import { ExecutionsService } from './executions.service';
+import { ExecutionManualUploadDialog } from './execution-manual-upload-dialog';
 
 const ALLOWED_PAGE_SIZES = [10, 25, 50, 100] as const;
 const PAGE_SIZE_STORAGE_KEY = 'hanaro-executions-page-size';
@@ -52,6 +53,7 @@ const EXECUTION_POLL_INTERVAL_MS = 5_000;
     DecimalPipe,
     InlineAlert,
     DelayedProgressSpinner,
+    ExecutionManualUploadDialog,
     ListFeedback,
     ListFilterDateRange,
     ListFilterInput,
@@ -149,10 +151,7 @@ export class ExecutionsPage implements OnInit {
   readonly loadingDetail = signal<boolean>(false);
   readonly detailError = signal<string | null>(null);
   readonly retrying = signal<boolean>(false);
-  readonly manualUploadOpen = signal<boolean>(false);
-  readonly manualUploadFile = signal<File | null>(null);
-  readonly manualUploadError = signal<string | null>(null);
-  readonly manualUploadSubmitting = signal<boolean>(false);
+  readonly manualUploadOpen = signal(false);
 
   ngOnInit(): void {
     this.searchSubject
@@ -282,62 +281,19 @@ export class ExecutionsPage implements OnInit {
   }
 
   openManualUpload(): void {
-    this.manualUploadFile.set(null);
-    this.manualUploadError.set(null);
     this.manualUploadOpen.set(true);
   }
 
-  closeManualUpload(): void {
-    if (this.manualUploadSubmitting()) return;
+  handleManualUploadClosed(): void {
     this.manualUploadOpen.set(false);
-    this.manualUploadFile.set(null);
-    this.manualUploadError.set(null);
   }
 
-  selectManualUploadFile(event: Event): void {
-    const file = (event.target as HTMLInputElement).files?.item(0) ?? null;
-    if (!file) return;
-    if (!file.name.startsWith('Other_Account_Transaction_Text')) {
-      this.manualUploadFile.set(null);
-      this.manualUploadError.set(
-        'Selecione o relatório Other Account Transaction Text exportado do GERP.',
-      );
-      return;
-    }
-    this.manualUploadFile.set(file);
-    this.manualUploadError.set(null);
+  handleManualUploadAccepted(executionId: string): void {
+    this.manualUploadOpen.set(false);
+    this.page.set(1);
+    this.loadExecutions();
+    this.openDetail(executionId);
   }
-
-  submitManualUpload(): void {
-    const file = this.manualUploadFile();
-    if (!file || this.manualUploadSubmitting()) return;
-    this.manualUploadSubmitting.set(true);
-    this.manualUploadError.set(null);
-    this.executionsService
-      .uploadManualReport(file)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (accepted) => {
-          this.manualUploadSubmitting.set(false);
-          this.manualUploadOpen.set(false);
-          this.page.set(1);
-          this.loadExecutions();
-          this.openDetail(accepted.execution_id);
-        },
-        error: (err: { status?: number; error?: { detail?: string }; message?: string }) => {
-          const serverDetail = err.error?.detail;
-          this.manualUploadError.set(
-            err.status && err.status >= 500
-              ? 'O servidor não conseguiu iniciar a ingestão. Tente novamente após verificar o serviço.'
-              : serverDetail ||
-                  err.message ||
-                  'Não foi possível enviar o relatório para processamento.',
-          );
-          this.manualUploadSubmitting.set(false);
-        },
-      });
-  }
-
   clearFilters(): void {
     this.dateFrom.set('');
     this.dateTo.set('');
