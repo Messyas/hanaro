@@ -42,9 +42,24 @@ export class GovernanceService {
       ? this.http.put<Plan>(`${this.base}/action-plans/${id}`, data)
       : this.http.post<Plan>(`${this.base}/action-plans`, data);
   }
-  board(id: string, status: TaskState, page = 1, search = '', priority = '') {
+  board(
+    id: string,
+    status: TaskState,
+    page = 1,
+    search = '',
+    priority = '',
+    participant = '',
+    tag = '',
+  ) {
     return this.http.get<WorkflowPage<ActionTask>>(`${this.base}/action-plans/${id}/tasks`, {
-      params: { status, page, search, ...(priority ? { priority } : {}) },
+      params: {
+        status,
+        page,
+        search: search.trim(),
+        ...(priority ? { priority } : {}),
+        ...(participant.trim() ? { participant: participant.trim() } : {}),
+        ...(tag.trim() ? { tag: tag.trim() } : {}),
+      },
     });
   }
   task(id: string) {

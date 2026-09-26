@@ -130,6 +130,25 @@ async def test_task_validation_participants_conflict_and_history(db):
     assert task["status"] == "IN_PROGRESS"
 
 
+async def test_board_filters_participants_and_tags_without_duplicate_tasks(db):
+    version = await published(db)
+    plan = await save_plan(db, PlanInput(title="Corrective actions", report_version_ids=[version.id]), 1)
+    matching = await save_task(
+        db,
+        plan["id"],
+        TaskInput(title="Repair", participant_ids=[1, 2], tags=["Supplier", "Urgent"]),
+        1,
+    )
+    await save_task(db, plan["id"], TaskInput(title="Inspect", participant_ids=[1], tags=["Other"]), 1)
+
+    page = await board(db, plan["id"], "PLANNED", 1, 1, participant="peer", tag="supp")
+    assert page["total"] == 1
+    assert page["items"][0]["id"] == matching["id"]
+    assert page["has_next"] is False
+    assert (await board(db, plan["id"], "PLANNED", 1, 25, participant="analyst"))["total"] == 2
+    assert (await board(db, plan["id"], "PLANNED", 1, 25, tag="suppliers"))["total"] == 0
+
+
 async def test_block_without_reason_keeps_kanban_column_and_emits_once(db):
     version = await published(db)
     plan = await save_plan(db, PlanInput(title="Corrective actions", report_version_ids=[version.id]), 1)

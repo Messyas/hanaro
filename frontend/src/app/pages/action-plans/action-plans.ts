@@ -127,6 +127,8 @@ export class ActionPlans {
   columnPages: Record<string, number> = {};
   search = '';
   priority = '';
+  participant = '';
+  tag = '';
   planSearch = '';
   planStatus = '';
   planSort: 'newest' | 'oldest' | 'title' = 'newest';
@@ -302,7 +304,15 @@ export class ActionPlans {
     if (!plan) return;
     forkJoin(
       this.states.map((status) =>
-        this.api.board(plan.id, status, this.columnPages[status] || 1, this.search, this.priority),
+        this.api.board(
+          plan.id,
+          status,
+          this.columnPages[status] || 1,
+          this.search,
+          this.priority,
+          this.participant,
+          this.tag,
+        ),
       ),
     )
       .pipe(takeUntilDestroyed(this.destroy))
@@ -316,12 +326,21 @@ export class ActionPlans {
   clearBoardFilters(): void {
     this.search = '';
     this.priority = '';
+    this.participant = '';
+    this.tag = '';
     this.boardFilterOpen.set(false);
-    this.loadBoard();
+    this.applyBoardFilters();
   }
 
   boardActiveFiltersCount(): number {
-    return [this.search.trim(), this.priority].filter(Boolean).length;
+    return [this.search.trim(), this.priority, this.participant.trim(), this.tag.trim()].filter(
+      Boolean,
+    ).length;
+  }
+
+  applyBoardFilters(): void {
+    this.columnPages = {};
+    this.loadBoard();
   }
 
   columnPage(status: TaskState, delta: number) {

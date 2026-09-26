@@ -390,13 +390,30 @@ async def command_task(db, task_id, data: TaskCommand, actor_id):
     return await task_detail(db, task.id)
 
 
-async def board(db, plan_id, status, page, page_size, search=None, priority=None):
+async def board(db, plan_id, status, page, page_size, search=None, priority=None, participant=None, tag=None):
     await get_plan(db, plan_id)
     filters = [ImprovementAction.plan_id == plan_id, ImprovementAction.status == status]
     if search:
         filters.append(ImprovementAction.title.ilike(f"%{search}%"))
     if priority:
         filters.append(ImprovementAction.priority == priority)
+    if participant:
+        filters.append(
+            select(ActionParticipant.id)
+            .join(User, User.id == ActionParticipant.user_id)
+            .where(
+                ActionParticipant.action_id == ImprovementAction.id,
+                User.name.ilike(f"%{participant}%"),
+            )
+            .exists()
+        )
+    if tag:
+        tag_entries = (
+            func.jsonb_array_elements_text(ImprovementAction.tags)
+            if db.bind.dialect.name == "postgresql"
+            else func.json_each(ImprovementAction.tags)
+        ).table_valued("value")
+        filters.append(select(1).select_from(tag_entries).where(tag_entries.c.value.ilike(f"%{tag}%")).exists())
     total = await db.scalar(select(func.count()).select_from(ImprovementAction).where(*filters))
     tasks = list(
         await db.scalars(

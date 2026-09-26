@@ -83,7 +83,7 @@
           clearLabel="Limpar filtros"
           applyLabel="Aplicar filtros"
           (cleared)="clearBoardFilters()"
-          (applied)="loadBoard()"
+          (applied)="applyBoardFilters()"
         >
           <app-list-filter-input
             [value]="search"
@@ -98,6 +98,20 @@
             [label]="c().priority"
             [ariaLabel]="c().priority"
             (changed)="priority = $event"
+          />
+          <app-list-filter-input
+            [value]="participant"
+            [label]="c().participants"
+            placeholder="Nome do participante..."
+            type="search"
+            (changed)="participant = $event"
+          />
+          <app-list-filter-input
+            [value]="tag"
+            [label]="c().tags"
+            placeholder="Buscar tag..."
+            type="search"
+            (changed)="tag = $event"
           />
         </app-list-filter-popover>
       </div>

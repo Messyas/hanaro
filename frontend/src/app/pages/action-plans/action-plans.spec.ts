@@ -189,6 +189,39 @@ describe('ActionPlans pagination', () => {
     });
   });
 
+  it('applies participant and tag filters to every board column from page one', () => {
+    component.plan.set({ ...plan, reports: [] });
+    component.columnPages['PLANNED'] = 3;
+    component.participant = ' Peer ';
+    component.tag = ' Supplier ';
+    component.applyBoardFilters();
+
+    expect(component.columnPages).toEqual({});
+    expect(component.boardActiveFiltersCount()).toBe(2);
+    expect(governanceService.board).toHaveBeenCalledTimes(4);
+    expect(governanceService.board).toHaveBeenCalledWith(
+      plan.id,
+      'PLANNED',
+      1,
+      '',
+      '',
+      ' Peer ',
+      ' Supplier ',
+    );
+
+    component.clearBoardFilters();
+    expect(component.boardActiveFiltersCount()).toBe(0);
+    expect(governanceService.board).toHaveBeenLastCalledWith(
+      plan.id,
+      'COMPLETED',
+      1,
+      '',
+      '',
+      '',
+      '',
+    );
+  });
+
   it('requires a report and replaces an older version of the same report', () => {
     component.editingPlan.set(true);
     component.planTitle = 'Corrective actions';

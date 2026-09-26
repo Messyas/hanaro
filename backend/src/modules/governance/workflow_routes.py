@@ -84,8 +84,10 @@ async def tasks(
     page_size: Size = 25,
     search: Annotated[str | None, Query(max_length=240)] = None,
     priority: Literal["LOW", "MEDIUM", "HIGH", "URGENT"] | None = None,
+    participant: Annotated[str | None, Query(max_length=100)] = None,
+    tag: Annotated[str | None, Query(max_length=40)] = None,
 ):
-    return await board(db, plan_id, status, page, page_size, search, priority)
+    return await board(db, plan_id, status, page, page_size, search, priority, participant, tag)
 
 
 @router.post("/action-plans/{plan_id}/tasks", status_code=201)
