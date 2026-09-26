@@ -4,14 +4,14 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from src.modules.common.exceptions import (
+from src.app.models.rate_limit.schemas import RateLimitCreate, RateLimitUpdate
+from src.app.services.rate_limit.service import RateLimitService
+from src.app.support.common.exceptions import (
     PermissionDeniedError,
     ResourceExistsError,
     ResourceNotFoundError,
     TierNotFoundError,
 )
-from src.modules.rate_limit.schemas import RateLimitCreate, RateLimitUpdate
-from src.modules.rate_limit.service import RateLimitService
 
 
 @pytest.fixture
@@ -28,7 +28,7 @@ def mock_db():
 async def test_create_rate_limit_tier_not_found(rate_limit_service, mock_db, monkeypatch):
     mock_tiers = AsyncMock()
     mock_tiers.exists.return_value = False
-    monkeypatch.setattr("src.modules.rate_limit.service.crud_tiers", mock_tiers)
+    monkeypatch.setattr("src.app.services.rate_limit.service.crud_tiers", mock_tiers)
 
     with pytest.raises(TierNotFoundError):
         await rate_limit_service.create(RateLimitCreate(path="/api/v1/test", limit=10, period=60), 1, mock_db)
@@ -38,11 +38,11 @@ async def test_create_rate_limit_tier_not_found(rate_limit_service, mock_db, mon
 async def test_create_rate_limit_name_exists(rate_limit_service, mock_db, monkeypatch):
     mock_tiers = AsyncMock()
     mock_tiers.exists.return_value = True
-    monkeypatch.setattr("src.modules.rate_limit.service.crud_tiers", mock_tiers)
+    monkeypatch.setattr("src.app.services.rate_limit.service.crud_tiers", mock_tiers)
 
     mock_crud = AsyncMock()
     mock_crud.exists.return_value = True
-    monkeypatch.setattr("src.modules.rate_limit.service.crud_rate_limits", mock_crud)
+    monkeypatch.setattr("src.app.services.rate_limit.service.crud_rate_limits", mock_crud)
 
     with pytest.raises(ResourceExistsError, match="already exists"):
         await rate_limit_service.create(
@@ -56,12 +56,12 @@ async def test_create_rate_limit_name_exists(rate_limit_service, mock_db, monkey
 async def test_create_rate_limit_auto_name_and_creation_failure(rate_limit_service, mock_db, monkeypatch):
     mock_tiers = AsyncMock()
     mock_tiers.exists.return_value = True
-    monkeypatch.setattr("src.modules.rate_limit.service.crud_tiers", mock_tiers)
+    monkeypatch.setattr("src.app.services.rate_limit.service.crud_tiers", mock_tiers)
 
     mock_crud = AsyncMock()
     mock_crud.exists.return_value = False
     mock_crud.create.return_value = None
-    monkeypatch.setattr("src.modules.rate_limit.service.crud_rate_limits", mock_crud)
+    monkeypatch.setattr("src.app.services.rate_limit.service.crud_rate_limits", mock_crud)
 
     with pytest.raises(ResourceExistsError, match="Failed to create"):
         await rate_limit_service.create(RateLimitCreate(path="/api/v1/test", limit=10, period=60), 1, mock_db)
@@ -71,12 +71,12 @@ async def test_create_rate_limit_auto_name_and_creation_failure(rate_limit_servi
 async def test_create_rate_limit_success(rate_limit_service, mock_db, monkeypatch):
     mock_tiers = AsyncMock()
     mock_tiers.exists.return_value = True
-    monkeypatch.setattr("src.modules.rate_limit.service.crud_tiers", mock_tiers)
+    monkeypatch.setattr("src.app.services.rate_limit.service.crud_tiers", mock_tiers)
 
     mock_crud = AsyncMock()
     mock_crud.exists.return_value = False
     mock_crud.create.return_value = {"id": 1, "name": "custom_name"}
-    monkeypatch.setattr("src.modules.rate_limit.service.crud_rate_limits", mock_crud)
+    monkeypatch.setattr("src.app.services.rate_limit.service.crud_rate_limits", mock_crud)
 
     res = await rate_limit_service.create(
         RateLimitCreate(name="custom_name", path="/api/v1/test", limit=10, period=60),
@@ -90,7 +90,7 @@ async def test_create_rate_limit_success(rate_limit_service, mock_db, monkeypatc
 async def test_get_all_rate_limits(rate_limit_service, mock_db, monkeypatch):
     mock_crud = AsyncMock()
     mock_crud.get_multi.return_value = {"data": [], "total": 0}
-    monkeypatch.setattr("src.modules.rate_limit.service.crud_rate_limits", mock_crud)
+    monkeypatch.setattr("src.app.services.rate_limit.service.crud_rate_limits", mock_crud)
 
     res = await rate_limit_service.get_all(mock_db, skip=0, limit=10)
     assert res["total"] == 0
@@ -100,7 +100,7 @@ async def test_get_all_rate_limits(rate_limit_service, mock_db, monkeypatch):
 async def test_get_by_id(rate_limit_service, mock_db, monkeypatch):
     mock_crud = AsyncMock()
     mock_crud.get.return_value = None
-    monkeypatch.setattr("src.modules.rate_limit.service.crud_rate_limits", mock_crud)
+    monkeypatch.setattr("src.app.services.rate_limit.service.crud_rate_limits", mock_crud)
 
     with pytest.raises(ResourceNotFoundError):
         await rate_limit_service.get_by_id(99, mock_db)
@@ -114,7 +114,7 @@ async def test_get_by_id(rate_limit_service, mock_db, monkeypatch):
 async def test_get_by_name(rate_limit_service, mock_db, monkeypatch):
     mock_crud = AsyncMock()
     mock_crud.get.return_value = None
-    monkeypatch.setattr("src.modules.rate_limit.service.crud_rate_limits", mock_crud)
+    monkeypatch.setattr("src.app.services.rate_limit.service.crud_rate_limits", mock_crud)
 
     with pytest.raises(ResourceNotFoundError):
         await rate_limit_service.get_by_name("rl1", mock_db)
@@ -128,7 +128,7 @@ async def test_get_by_name(rate_limit_service, mock_db, monkeypatch):
 async def test_get_active_and_inactive_by_name(rate_limit_service, mock_db, monkeypatch):
     mock_crud = AsyncMock()
     mock_crud.get.return_value = None
-    monkeypatch.setattr("src.modules.rate_limit.service.crud_rate_limits", mock_crud)
+    monkeypatch.setattr("src.app.services.rate_limit.service.crud_rate_limits", mock_crud)
 
     with pytest.raises(ResourceNotFoundError):
         await rate_limit_service.get_active_and_inactive_by_name("rl1", mock_db)
@@ -142,7 +142,7 @@ async def test_get_active_and_inactive_by_name(rate_limit_service, mock_db, monk
 async def test_update_rate_limit(rate_limit_service, mock_db, monkeypatch):
     mock_crud = AsyncMock()
     mock_crud.get.return_value = None
-    monkeypatch.setattr("src.modules.rate_limit.service.crud_rate_limits", mock_crud)
+    monkeypatch.setattr("src.app.services.rate_limit.service.crud_rate_limits", mock_crud)
 
     # 1. Not found
     with pytest.raises(ResourceNotFoundError):
@@ -164,7 +164,7 @@ async def test_update_rate_limit(rate_limit_service, mock_db, monkeypatch):
 async def test_delete_rate_limit(rate_limit_service, mock_db, monkeypatch):
     mock_crud = AsyncMock()
     mock_crud.get.return_value = None
-    monkeypatch.setattr("src.modules.rate_limit.service.crud_rate_limits", mock_crud)
+    monkeypatch.setattr("src.app.services.rate_limit.service.crud_rate_limits", mock_crud)
 
     with pytest.raises(ResourceNotFoundError):
         await rate_limit_service.delete("rl1", mock_db)

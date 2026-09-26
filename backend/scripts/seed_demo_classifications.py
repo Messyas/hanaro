@@ -7,9 +7,9 @@ from datetime import UTC, datetime
 
 from sqlalchemy import select
 
+from src.app.models.material_scrap.models import ScrapClassificationRule
+from src.app.models.user.models import User
 from src.infrastructure.database.session import local_session
-from src.modules.material_scrap.models import ScrapClassificationRule
-from src.modules.user.models import User
 
 # These are the observed GERP organization mappings used by the synthetic
 # history. They are demo data, not a replacement for a company's homologated
@@ -123,5 +123,5 @@ async def seed_demo_classifications() -> int:
 
 if __name__ == "__main__":
     import asyncio
-    print("Seeded classification rules:", asyncio.run(seed_demo_classifications()))
 
+    print("Seeded classification rules:", asyncio.run(seed_demo_classifications()))

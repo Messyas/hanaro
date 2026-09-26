@@ -14,7 +14,8 @@ from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
 from fastapi.openapi.utils import get_openapi
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from ..modules.common.utils.error_handler import register_exception_handlers
+from src.app.support.common.utils.error_handler import register_exception_handlers
+
 from .auth.dependencies import get_current_superuser
 from .auth.setup import auth
 from .cache.initialize import close_cache, initialize_cache

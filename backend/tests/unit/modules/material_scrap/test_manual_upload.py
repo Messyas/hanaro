@@ -3,8 +3,8 @@ from pathlib import Path
 
 import pytest
 
-from src.modules.material_scrap.manual_upload import ManualUploadValidationError, _decode, _records
-from src.modules.material_scrap.schemas import SourceFileMetadata
+from src.app.models.material_scrap.schemas import SourceFileMetadata
+from src.app.services.material_scrap.manual_upload import ManualUploadValidationError, _decode, _records
 
 PROJECT_ROOT = Path(__file__).parents[5]
 GERP_FIXTURE = PROJECT_ROOT / "automation" / "fixtures" / "Other_Account_Transaction_Text_anonymized"

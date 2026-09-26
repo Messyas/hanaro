@@ -1,8 +1,8 @@
 import pytest
 from httpx import AsyncClient
 
+from src.app.main import app
 from src.infrastructure.auth.dependencies import get_current_user
-from src.interfaces.main import app
 
 pytestmark = pytest.mark.asyncio
 

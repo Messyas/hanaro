@@ -1,0 +1,62 @@
+from typing import TYPE_CHECKING
+
+from sqlalchemy import ForeignKey, Integer, String
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from src.infrastructure.database.models import SoftDeleteMixin, TimestampMixin
+from src.infrastructure.database.session import Base
+
+if TYPE_CHECKING:
+    from src.app.models.tier.models import Tier
+
+
+class User(Base, TimestampMixin, SoftDeleteMixin):
+    """User model representing application users."""
+
+    __tablename__ = "user"
+
+    id: Mapped[int] = mapped_column(
+        "id",
+        autoincrement=True,
+        nullable=False,
+        unique=True,
+        primary_key=True,
+        init=False,
+    )
+
+    name: Mapped[str] = mapped_column(String(30))
+    username: Mapped[str] = mapped_column(String(20), unique=True, index=True)
+    email: Mapped[str] = mapped_column(String(50), unique=True, index=True)
+    hashed_password: Mapped[str] = mapped_column(String(100))
+
+    # Optional operational contact data maintained by the user on the Profile page.
+    notification_email: Mapped[str | None] = mapped_column(String(50), default=None)
+    phone: Mapped[str | None] = mapped_column(String(24), default=None)
+    job_title: Mapped[str | None] = mapped_column(String(80), default=None)
+    role: Mapped[str] = mapped_column(String(16), default="analista", server_default="analista")
+
+    profile_image_url: Mapped[str] = mapped_column(String, default="https://profileimageurl.com")
+
+    tier_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("tiers.id"),
+        index=True,
+        default=None,
+    )
+
+    is_superuser: Mapped[bool] = mapped_column(default=False)
+
+    tier: Mapped["Tier | None"] = relationship("Tier", back_populates="users", lazy="selectin", init=False)
+
+    @property
+    def is_active(self) -> bool:
+        """Derived active flag for crudauth: a soft-deleted user is inactive.
+
+        ``is_deleted`` stays the single source of truth; crudauth reads ``is_active``
+        to gate authentication, so this maps the contract onto the existing column
+        without adding a new one.
+        """
+        return not self.is_deleted
+
+    def __repr__(self) -> str:
+        return f"{self.name} ({self.email})"

@@ -8,15 +8,15 @@ import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
-from src.infrastructure.auth.dependencies import get_current_superuser, get_current_user
-from src.infrastructure.database.session import async_session
-from src.interfaces.main import app
-from src.modules.common.exceptions import PermissionDeniedError, UserExistsError, UserNotFoundError
-from src.modules.user.dependencies import (
+from src.app.main import app
+from src.app.support.common.exceptions import PermissionDeniedError, UserExistsError, UserNotFoundError
+from src.app.support.user.dependencies import (
     get_profile_image_storage,
     get_user_service,
 )
-from src.modules.user.profile_image import ProfileImageStorage
+from src.app.support.user.profile_image import ProfileImageStorage
+from src.infrastructure.auth.dependencies import get_current_superuser, get_current_user
+from src.infrastructure.database.session import async_session
 
 VALID_PNG = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=")
 

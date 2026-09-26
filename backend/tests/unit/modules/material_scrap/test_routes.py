@@ -7,11 +7,11 @@ from fastapi import APIRouter, FastAPI
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+from src.app.controller.material_scrap.routes import dashboard_router, scrap_router
+from src.app.services.material_scrap.service import ingest_material_scrap
+from src.app.support.material_scrap.dependencies import require_material_scrap_ingestion_key
 from src.infrastructure.auth.dependencies import get_current_user
 from src.infrastructure.database.session import Base, async_session
-from src.modules.material_scrap.dependencies import require_material_scrap_ingestion_key
-from src.modules.material_scrap.routes import dashboard_router, scrap_router
-from src.modules.material_scrap.service import ingest_material_scrap
 
 from .helpers import canonical_fixture
 
@@ -151,7 +151,7 @@ async def test_dynamic_filters_summary_trend_breakdown_and_ingestion(
     async def fake_enqueue(_payload: object) -> str:
         return "task-test-123"
 
-    monkeypatch.setattr("src.modules.material_scrap.routes.enqueue_material_scrap", fake_enqueue)
+    monkeypatch.setattr("src.app.controller.material_scrap.routes.enqueue_material_scrap", fake_enqueue)
     response = await scrap_client.post("/api/v1/scrap/ingestions", json=payload)
     assert response.status_code == 202
     assert response.json() == {

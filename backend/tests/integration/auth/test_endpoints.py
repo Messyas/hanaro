@@ -7,9 +7,9 @@ from crudauth import Principal, get_password_hash
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.app.main import app
+from src.app.models.user.models import User
 from src.infrastructure.auth.dependencies import get_optional_principal
-from src.interfaces.main import app
-from src.modules.user.models import User
 
 
 @pytest.mark.asyncio
@@ -80,7 +80,7 @@ async def test_check_auth_authenticated(client: AsyncClient):
     try:
         app.dependency_overrides[get_optional_principal] = lambda: Principal(user_id=1, metadata={"session_id": "test-session"})
 
-        with patch("src.modules.user.crud.crud_users.get", return_value=mock_user):
+        with patch("src.app.repository.user.crud.crud_users.get", return_value=mock_user):
             response = await client.get("/api/v1/auth/check-auth")
 
         assert response.status_code == 200
@@ -204,7 +204,7 @@ async def test_check_auth_user_not_found(client: AsyncClient):
     try:
         app.dependency_overrides[get_optional_principal] = lambda: Principal(user_id=999999, metadata={"session_id": "x"})
 
-        with patch("src.modules.user.crud.crud_users.get", return_value=None):
+        with patch("src.app.repository.user.crud.crud_users.get", return_value=None):
             response = await client.get("/api/v1/auth/check-auth")
 
         assert response.status_code == 200

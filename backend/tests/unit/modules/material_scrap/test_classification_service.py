@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 
-from src.modules.material_scrap.classification_service import ScrapClassificationService
-from src.modules.material_scrap.models import ScrapClassificationRule
+from src.app.models.material_scrap.models import ScrapClassificationRule
+from src.app.services.material_scrap.classification_service import ScrapClassificationService
 
 from .helpers import canonical_fixture
 

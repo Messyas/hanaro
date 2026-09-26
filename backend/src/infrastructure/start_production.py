@@ -16,10 +16,10 @@ from scripts.seed_demo_classifications import seed_demo_classifications
 from scripts.seed_demo_governance import seed_demo_governance
 from scripts.seed_relative_efficiency import run_seed as seed_relative_efficiency
 from scripts.setup_initial_data import setup_initial_data, validate_admin_configuration
+from src.app.models.material_scrap.schemas import MaterialScrapPayload
+from src.app.services.material_scrap.classification_service import ScrapClassificationService
+from src.app.services.material_scrap.service import ingest_material_scrap
 from src.infrastructure.database.session import engine, local_session
-from src.modules.material_scrap.classification_service import ScrapClassificationService
-from src.modules.material_scrap.schemas import MaterialScrapPayload
-from src.modules.material_scrap.service import ingest_material_scrap
 
 MIGRATION_ORDER = {
     "20260810_01": 1,
@@ -269,7 +269,7 @@ def _serve() -> None:
     port = os.getenv("PORT", "8000")
     os.execvp(
         "fastapi",
-        ["fastapi", "run", "src/interfaces/main.py", "--host", "0.0.0.0", "--port", port],
+        ["fastapi", "run", "src/app/main.py", "--host", "0.0.0.0", "--port", port],
     )
 
 

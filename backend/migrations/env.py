@@ -67,7 +67,7 @@ def import_models(package_name):
 
 
 # Import all models to ensure they're registered with SQLAlchemy
-import_models("src.modules")
+import_models("src.app.models")
 target_metadata = Base.metadata
 
 

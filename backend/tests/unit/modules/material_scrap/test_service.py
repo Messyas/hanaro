@@ -8,15 +8,8 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from src.infrastructure.database.session import Base
-from src.modules.material_scrap.enums import AutomationExecutionStatus, DashboardCurrency, ExecutionStepCode
-from src.modules.material_scrap.execution_service import (
-    ensure_execution_from_payload,
-    mark_execution_failed,
-    prepare_execution_retry,
-    recover_stale_executions,
-)
-from src.modules.material_scrap.models import (
+from src.app.models.material_scrap.enums import AutomationExecutionStatus, DashboardCurrency, ExecutionStepCode
+from src.app.models.material_scrap.models import (
     DailyExchangeRate,
     IngestionRun,
     ScrapDashboardAggregate,
@@ -25,10 +18,17 @@ from src.modules.material_scrap.models import (
     ScrapOccurrenceObservation,
     ScrapTransaction,
 )
-from src.modules.material_scrap.repository import OccurrenceIdentityCollisionError
-from src.modules.material_scrap.schemas import ExecutionFailure, MaterialScrapPayload, ScrapTargetUpsert
-from src.modules.material_scrap.service import CanonicalBatchValidationError, ingest_material_scrap
-from src.modules.material_scrap.target_service import ScrapTargetService
+from src.app.models.material_scrap.schemas import ExecutionFailure, MaterialScrapPayload, ScrapTargetUpsert
+from src.app.repository.material_scrap.repository import OccurrenceIdentityCollisionError
+from src.app.services.material_scrap.execution_service import (
+    ensure_execution_from_payload,
+    mark_execution_failed,
+    prepare_execution_retry,
+    recover_stale_executions,
+)
+from src.app.services.material_scrap.service import CanonicalBatchValidationError, ingest_material_scrap
+from src.app.services.material_scrap.target_service import ScrapTargetService
+from src.infrastructure.database.session import Base
 
 from .helpers import canonical_fixture, refresh_payload
 

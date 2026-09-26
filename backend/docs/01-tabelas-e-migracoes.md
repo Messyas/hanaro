@@ -20,8 +20,8 @@ Use as APIs já adotadas:
 from sqlalchemy import ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from ...infrastructure.database.models import TimestampMixin
-from ...infrastructure.database.session import Base
+from src.infrastructure.database.models import TimestampMixin
+from src.infrastructure.database.session import Base
 
 
 class Widget(Base, TimestampMixin):
@@ -36,7 +36,7 @@ class Widget(Base, TimestampMixin):
 - [ ] Usar `Mapped[...]`, `mapped_column(...)` e a base declarativa existente.
 - [ ] Adicionar relações com tipo e `back_populates` nos dois lados.
 - [ ] Em código assíncrono, configurar carregamento explícito ou `selectin` conforme o caso de uso.
-- [ ] Exportar o novo modelo em `src/modules/__init__.py`.
+- [ ] Registrar o novo modelo em `src/app/models/__init__.py` para descoberta do Alembic.
 - [ ] Criar schemas separados de criação, atualização e leitura.
 - [ ] O schema de leitura exclui hashes, segredos e colunas internas.
 

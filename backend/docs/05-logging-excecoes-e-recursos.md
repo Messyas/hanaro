@@ -46,13 +46,13 @@ logger.info(
 
 O fluxo preferido é:
 
-1. A camada de domínio ou serviço levanta uma exceção específica de `modules/common/exceptions.py`.
-2. O handler global de `modules/common/utils/error_handler.py` converte a exceção em resposta HTTP.
+1. A camada de domínio ou serviço levanta uma exceção específica de `app/support/common/exceptions.py`.
+2. O handler global de `app/support/common/utils/error_handler.py` converte a exceção em resposta HTTP.
 3. Falhas inesperadas recebem mensagem genérica e `support_id`; detalhes ficam apenas no log interno.
 
 ### Checklist
 
-- [ ] Use uma exceção de domínio existente ou adicione uma exceção específica e seu mapeamento em `modules/common/constants.py`.
+- [ ] Use uma exceção de domínio existente ou adicione uma exceção específica e seu mapeamento em `app/support/common/constants.py`.
 - [ ] Restrinja `HTTPException` à camada de interface; CRUD e serviços levantam exceções de domínio.
 - [ ] Adicione `try/except` quando houver recuperação, tradução de erro, retry controlado ou contexto útil.
 - [ ] Toda exceção capturada deve ser tratada ou propagada; blocos vazios são inválidos.

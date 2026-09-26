@@ -3,7 +3,7 @@ from decimal import Decimal
 import pytest
 from pydantic import ValidationError
 
-from src.modules.governance.production_schemas import (
+from src.app.models.governance.production_schemas import (
     ProductionMeasurementBatchWrite,
     ProductionMeasurementWrite,
 )

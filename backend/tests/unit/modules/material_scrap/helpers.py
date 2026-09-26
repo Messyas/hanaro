@@ -2,8 +2,8 @@ from collections import Counter
 from decimal import Decimal
 from pathlib import Path
 
-from src.modules.material_scrap.identity import content_hash
-from src.modules.material_scrap.schemas import MaterialScrapPayload
+from src.app.models.material_scrap.schemas import MaterialScrapPayload
+from src.app.utils.material_scrap.identity import content_hash
 
 
 def canonical_fixture() -> MaterialScrapPayload:

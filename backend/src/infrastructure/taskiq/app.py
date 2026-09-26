@@ -9,8 +9,9 @@ from taskiq import AsyncBroker
 from taskiq.events import TaskiqEvents
 from taskiq.state import TaskiqState
 
-from ...modules.governance.notifications.worker import loop as governance_loop
-from ...modules.material_scrap.execution_service import recover_stale_executions
+from src.app.services.material_scrap.execution_service import recover_stale_executions
+from src.app.support.governance.notifications.worker import loop as governance_loop
+
 from ..config import get_settings
 from ..database.session import local_session
 from .brokers import default_broker

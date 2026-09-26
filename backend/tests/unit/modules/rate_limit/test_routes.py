@@ -6,11 +6,11 @@ import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
+from src.app.main import app
+from src.app.support.common.exceptions import ResourceExistsError, ResourceNotFoundError
+from src.app.support.rate_limit.dependencies import get_rate_limit_service
 from src.infrastructure.auth.dependencies import get_current_superuser
 from src.infrastructure.database.session import async_session
-from src.interfaces.main import app
-from src.modules.common.exceptions import ResourceExistsError, ResourceNotFoundError
-from src.modules.rate_limit.dependencies import get_rate_limit_service
 
 
 @pytest.fixture

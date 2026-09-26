@@ -15,8 +15,7 @@ from decimal import Decimal
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.infrastructure.database.session import local_session
-from src.modules.governance.models import (
+from src.app.models.governance.models import (
     ActionCase,
     ActionPlan,
     Alert,
@@ -45,8 +44,9 @@ from src.modules.governance.models import (
     SnapshotItem,
     Workstation,
 )
-from src.modules.material_scrap.models import ScrapOccurrence, ScrapTransaction
-from src.modules.user.models import User
+from src.app.models.material_scrap.models import ScrapOccurrence, ScrapTransaction
+from src.app.models.user.models import User
+from src.infrastructure.database.session import local_session
 
 NAMESPACE = uuid.UUID("8c4c562c-ce68-4368-bdc7-2e9eb8f7c8cd")
 

@@ -5,12 +5,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastapi import Request, Response
 
+from src.app.models.tier.schemas import TierSelect
 from src.infrastructure.rate_limit.exceptions import RateLimitException
 from src.infrastructure.rate_limit.middleware import (
     RateLimiterMiddleware,
     _check_rate_limit,
 )
-from src.modules.tier.schemas import TierSelect
 
 
 @pytest.fixture

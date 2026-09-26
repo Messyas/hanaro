@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock
 import pytest
 from fastapi import Response, status
 
-from src.interfaces import main
+from src.app import main
 
 
 class ConnectionContext:

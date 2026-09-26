@@ -6,10 +6,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse, Response
 
-from ...modules.rate_limit.crud import crud_rate_limits
-from ...modules.rate_limit.schemas import RateLimitSelect
-from ...modules.tier.crud import crud_tiers
-from ...modules.tier.schemas import TierSelect
+from src.app.models.rate_limit.schemas import RateLimitSelect
+from src.app.models.tier.schemas import TierSelect
+from src.app.repository.rate_limit.crud import crud_rate_limits
+from src.app.repository.tier.crud import crud_tiers
+
 from ..config import get_settings
 from ..database import async_session
 from ..database.session import local_session

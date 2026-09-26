@@ -16,8 +16,7 @@ from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from scripts.seed_demo_governance import seed_governance
-from src.infrastructure.database.session import Base
-from src.modules.governance.models import (
+from src.app.models.governance.models import (
     Alert,
     AlertRecipient,
     DatasetSnapshot,
@@ -27,8 +26,9 @@ from src.modules.governance.models import (
     ReportVersion,
     SnapshotItem,
 )
-from src.modules.material_scrap.service import ingest_material_scrap
-from src.modules.user.models import User
+from src.app.models.user.models import User
+from src.app.services.material_scrap.service import ingest_material_scrap
+from src.infrastructure.database.session import Base
 
 from .helpers import canonical_fixture
 

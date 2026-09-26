@@ -24,21 +24,24 @@ pessoas e agentes de código.
 ## Estrutura padrão de uma funcionalidade
 
 ```text
-src/modules/<funcionalidade>/
-├── __init__.py
-├── models.py          # SQLAlchemy: persistência
-├── schemas.py         # Pydantic: contratos de entrada e saída
-├── crud.py            # FastCRUD e consultas simples
-├── service.py         # regras, autorização por objeto e transações
-├── dependencies.py    # aliases Annotated + Depends
-└── routes.py          # HTTP, status codes e response_model
+src/app/
+├── controller/<funcionalidade>/  # rotas HTTP e composição dos endpoints
+├── services/<funcionalidade>/   # regras de negócio e coordenação
+├── repository/<funcionalidade>/ # consultas e persistência
+├── models/<funcionalidade>/     # SQLAlchemy, schemas Pydantic e enums
+├── support/<funcionalidade>/    # dependências, tarefas, exceções e helpers da feature
+└── main.py                      # composição da aplicação FastAPI
+
+src/infrastructure/              # banco, autenticação, cache, logging e adapters
 
 tests/unit/modules/<funcionalidade>/
 tests/integration/api/v1/<funcionalidade>/
 ```
 
 Cada funcionalidade contém apenas as camadas que utiliza. `models.py`, `crud.py`
-e migrações são aplicáveis quando existe persistência própria.
+e migrações são aplicáveis quando existe persistência própria. Os testes mantêm
+seus agrupamentos por domínio em `tests/unit/modules/` e
+`tests/integration/api/v1/`.
 
 ## Checklist universal antes de codificar
 
@@ -58,12 +61,12 @@ e migrações são aplicáveis quando existe persistência própria.
 - [ ] Retornar um schema explícito cuja allowlist exclua campos secretos e internos.
 - [ ] Exigir `CurrentUserDep` ou `CurrentSuperUserDep` quando a rota não for pública.
 - [ ] Aplicar autorização por objeto no serviço, independentemente da visibilidade da ação no frontend.
-- [ ] Levantar exceções de domínio de `modules/common/exceptions.py`.
+- [ ] Levantar exceções de domínio de `app/support/common/exceptions.py`.
 - [ ] Registrar eventos com `infrastructure.logging.get_logger`; `print` fica fora do código da aplicação.
 - [ ] Excluir de logs senha, cookie, CSRF, API key, segredo e payload pessoal.
 - [ ] Encerrar recursos com `async with`; aplicar `finally` aos recursos sem context manager.
-- [ ] Atualizar `src/interfaces/api/v1/__init__.py` ao adicionar um router.
-- [ ] Atualizar `src/modules/__init__.py` ao adicionar um modelo SQLAlchemy.
+- [ ] Atualizar `src/app/controller/api/v1/__init__.py` ao adicionar um router.
+- [ ] Atualizar `src/app/models/__init__.py` ao adicionar um modelo SQLAlchemy.
 - [ ] Adicionar variáveis novas em `infrastructure/config/settings.py` e `.env.example`.
 
 ## Portão de qualidade

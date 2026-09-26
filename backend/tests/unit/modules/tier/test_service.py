@@ -4,13 +4,13 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from src.modules.common.exceptions import (
+from src.app.models.tier.schemas import TierCreate, TierUpdate
+from src.app.services.tier.service import TierService
+from src.app.support.common.exceptions import (
     PermissionDeniedError,
     ResourceExistsError,
     TierNotFoundError,
 )
-from src.modules.tier.schemas import TierCreate, TierUpdate
-from src.modules.tier.service import TierService
 
 
 @pytest.fixture
@@ -27,7 +27,7 @@ def mock_db():
 async def test_create_tier_exists(tier_service, mock_db, monkeypatch):
     mock_crud = AsyncMock()
     mock_crud.exists.return_value = True
-    monkeypatch.setattr("src.modules.tier.service.crud_tiers", mock_crud)
+    monkeypatch.setattr("src.app.services.tier.service.crud_tiers", mock_crud)
 
     with pytest.raises(ResourceExistsError, match="already exists"):
         await tier_service.create(TierCreate(name="pro"), mock_db)
@@ -38,7 +38,7 @@ async def test_create_tier_returns_none(tier_service, mock_db, monkeypatch):
     mock_crud = AsyncMock()
     mock_crud.exists.return_value = False
     mock_crud.create.return_value = None
-    monkeypatch.setattr("src.modules.tier.service.crud_tiers", mock_crud)
+    monkeypatch.setattr("src.app.services.tier.service.crud_tiers", mock_crud)
 
     with pytest.raises(ResourceExistsError, match="Failed to create tier"):
         await tier_service.create(TierCreate(name="pro"), mock_db)
@@ -49,7 +49,7 @@ async def test_create_tier_success(tier_service, mock_db, monkeypatch):
     mock_crud = AsyncMock()
     mock_crud.exists.return_value = False
     mock_crud.create.return_value = {"id": 1, "name": "pro"}
-    monkeypatch.setattr("src.modules.tier.service.crud_tiers", mock_crud)
+    monkeypatch.setattr("src.app.services.tier.service.crud_tiers", mock_crud)
 
     res = await tier_service.create(TierCreate(name="pro"), mock_db)
     assert res["id"] == 1
@@ -59,7 +59,7 @@ async def test_create_tier_success(tier_service, mock_db, monkeypatch):
 async def test_get_all(tier_service, mock_db, monkeypatch):
     mock_crud = AsyncMock()
     mock_crud.get_multi.return_value = {"data": [{"id": 1, "name": "free"}], "total": 1}
-    monkeypatch.setattr("src.modules.tier.service.crud_tiers", mock_crud)
+    monkeypatch.setattr("src.app.services.tier.service.crud_tiers", mock_crud)
 
     res = await tier_service.get_all(mock_db, skip=0, limit=10)
     assert res["total"] == 1
@@ -69,7 +69,7 @@ async def test_get_all(tier_service, mock_db, monkeypatch):
 async def test_get_by_id(tier_service, mock_db, monkeypatch):
     mock_crud = AsyncMock()
     mock_crud.get.return_value = None
-    monkeypatch.setattr("src.modules.tier.service.crud_tiers", mock_crud)
+    monkeypatch.setattr("src.app.services.tier.service.crud_tiers", mock_crud)
 
     with pytest.raises(TierNotFoundError):
         await tier_service.get_by_id(99, mock_db)
@@ -83,7 +83,7 @@ async def test_get_by_id(tier_service, mock_db, monkeypatch):
 async def test_get_by_name(tier_service, mock_db, monkeypatch):
     mock_crud = AsyncMock()
     mock_crud.get.return_value = None
-    monkeypatch.setattr("src.modules.tier.service.crud_tiers", mock_crud)
+    monkeypatch.setattr("src.app.services.tier.service.crud_tiers", mock_crud)
 
     with pytest.raises(TierNotFoundError):
         await tier_service.get_by_name("ghost", mock_db)
@@ -97,7 +97,7 @@ async def test_get_by_name(tier_service, mock_db, monkeypatch):
 async def test_update_tier(tier_service, mock_db, monkeypatch):
     mock_crud = AsyncMock()
     mock_crud.get.return_value = None
-    monkeypatch.setattr("src.modules.tier.service.crud_tiers", mock_crud)
+    monkeypatch.setattr("src.app.services.tier.service.crud_tiers", mock_crud)
 
     # 1. Not found
     with pytest.raises(TierNotFoundError):
@@ -120,7 +120,7 @@ async def test_update_tier(tier_service, mock_db, monkeypatch):
 async def test_delete_tier(tier_service, mock_db, monkeypatch):
     mock_crud = AsyncMock()
     mock_crud.get.return_value = None
-    monkeypatch.setattr("src.modules.tier.service.crud_tiers", mock_crud)
+    monkeypatch.setattr("src.app.services.tier.service.crud_tiers", mock_crud)
 
     with pytest.raises(TierNotFoundError):
         await tier_service.delete("ghost", mock_db)
@@ -134,7 +134,7 @@ async def test_delete_tier(tier_service, mock_db, monkeypatch):
 async def test_permanent_delete_tier(tier_service, mock_db, monkeypatch):
     mock_crud = AsyncMock()
     mock_crud.get.return_value = None
-    monkeypatch.setattr("src.modules.tier.service.crud_tiers", mock_crud)
+    monkeypatch.setattr("src.app.services.tier.service.crud_tiers", mock_crud)
 
     with pytest.raises(TierNotFoundError):
         await tier_service.permanent_delete("ghost", mock_db)

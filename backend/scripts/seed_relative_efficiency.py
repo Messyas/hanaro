@@ -25,8 +25,8 @@ from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.infrastructure.database.session import local_session
-from src.modules.governance.models import ProductionMeasurementVersion
-from src.modules.governance.production_service import bump_dashboard_revision
+from src.app.models.governance.models import ProductionMeasurementVersion
+from src.app.services.governance.production_service import bump_dashboard_revision
 
 MONTHLY_DEMONSTRATION_DATA: tuple[tuple[Decimal, Decimal], ...] = (
     (Decimal("1480000"), Decimal("96000")),

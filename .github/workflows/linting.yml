@@ -33,6 +33,7 @@ jobs:
         run: |
           uv run --no-sync ruff check backend/src backend/tests
           uv run --no-sync ruff format --check backend/src backend/tests
+          uv run --no-sync python backend/scripts/check_architecture.py
 
       - name: Validate TypeScript formatting
         working-directory: frontend

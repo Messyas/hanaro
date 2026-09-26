@@ -6,10 +6,10 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+from src.app.controller.governance.workflow_routes import router
+from src.app.models.user.models import User
 from src.infrastructure.auth.dependencies import get_current_user
 from src.infrastructure.database.session import Base, async_session
-from src.modules.governance.workflow_routes import router
-from src.modules.user.models import User
 
 
 @pytest_asyncio.fixture

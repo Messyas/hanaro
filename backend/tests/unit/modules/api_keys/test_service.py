@@ -6,17 +6,17 @@ import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.modules.api_keys.crud import crud_api_keys, crud_key_permissions
-from src.modules.api_keys.enums import KeyPermissionAction, KeyPermissionResource
-from src.modules.api_keys.schemas import (
+from src.app.models.api_keys.enums import KeyPermissionAction, KeyPermissionResource
+from src.app.models.api_keys.schemas import (
     APIKeyCreate,
     APIKeyCreateInternal,
     APIKeyUpdate,
     KeyPermissionCreate,
     KeyUsageCreate,
 )
-from src.modules.api_keys.service import APIKeyService
-from src.modules.common.exceptions import PermissionDeniedError, ResourceNotFoundError
+from src.app.repository.api_keys.crud import crud_api_keys, crud_key_permissions
+from src.app.services.api_keys.service import APIKeyService
+from src.app.support.common.exceptions import PermissionDeniedError, ResourceNotFoundError
 
 
 @pytest.fixture

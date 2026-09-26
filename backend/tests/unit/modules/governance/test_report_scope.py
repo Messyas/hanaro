@@ -1,6 +1,6 @@
 import uuid
 
-from src.modules.governance.reporting.scope import canonical_scope_key
+from src.app.support.governance.reporting.scope import canonical_scope_key
 
 
 def test_scope_key_is_stable_for_equivalent_filters_and_excludes_dates() -> None:

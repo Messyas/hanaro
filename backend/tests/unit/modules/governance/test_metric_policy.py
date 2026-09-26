@@ -2,7 +2,7 @@ from decimal import Decimal
 
 import pytest
 
-from src.modules.governance.reporting.metric_policy import (
+from src.app.support.governance.reporting.metric_policy import (
     MATERIAL_SCRAP_COST_CODE,
     SCRAP_COST_V1,
     material_scrap_cost_policy,

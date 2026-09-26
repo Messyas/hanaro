@@ -31,7 +31,7 @@ def main() -> None:
     asyncio.run(_prepare_development())
     os.execvp(
         "fastapi",
-        ["fastapi", "dev", "src/interfaces/main.py", "--host", "0.0.0.0", "--port", "8000"],
+        ["fastapi", "dev", "src/app/main.py", "--host", "0.0.0.0", "--port", "8000"],
     )
 
 

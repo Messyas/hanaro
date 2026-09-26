@@ -36,14 +36,18 @@ class WidgetRead(BaseModel):
 
 ## 3. Implementar serviço e dependência
 
-A regra de negócio e a autorização por objeto ficam em `service.py`. Consultas
-simples ficam em `crud.py`.
+A regra de negócio e a autorização por objeto ficam em
+`src/app/services/<funcionalidade>/service.py`. Consultas simples ficam em
+`src/app/repository/<funcionalidade>/`. Contratos HTTP e modelos ficam em
+`src/app/models/<funcionalidade>/`; rotas finas, em
+`src/app/controller/<funcionalidade>/`; dependências e adapters de feature, em
+`src/app/support/<funcionalidade>/`.
 
 ```python
 from typing import Annotated
 from fastapi import Depends
 
-from .service import WidgetService
+from src.app.services.widgets.service import WidgetService
 
 
 def get_widget_service() -> WidgetService:
@@ -66,8 +70,8 @@ WidgetServiceDep = Annotated[WidgetService, Depends(get_widget_service)]
 from fastapi import APIRouter, status
 
 from ...infrastructure.dependencies import AsyncSessionDep, CurrentUserDep
-from .dependencies import WidgetServiceDep
-from .schemas import WidgetCreate, WidgetRead
+from src.app.support.widgets.dependencies import WidgetServiceDep
+from src.app.models.widgets.schemas import WidgetCreate, WidgetRead
 
 router = APIRouter(tags=["Widgets"])
 
@@ -84,7 +88,7 @@ async def create_widget(
 
 - [ ] Usar aliases de `infrastructure/dependencies.py`.
 - [ ] Manter SQL, hashing, chamadas HTTP e regras de negócio nas respectivas camadas de serviço ou infraestrutura.
-- [ ] Registrar o router em `src/interfaces/api/v1/__init__.py`.
+- [ ] Registrar o router em `src/app/controller/api/v1/__init__.py`.
 - [ ] Manter documentação OpenAPI sem exemplos que contenham dados reais.
 - [ ] Delegar exceções internas ao handler global, que produz mensagem pública e `support_id`.
 

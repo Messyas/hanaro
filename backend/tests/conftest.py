@@ -35,12 +35,12 @@ from testcontainers.core.docker_client import DockerClient  # noqa: E402
 # mypy: disable-error-code="import-untyped"
 from testcontainers.postgres import PostgresContainer  # noqa: E402
 
+from src.app.main import app  # noqa: E402
+from src.app.models.tier.models import Tier  # noqa: E402
+from src.app.models.user.models import User  # noqa: E402
 from src.infrastructure.auth.dependencies import get_current_superuser, get_current_user  # noqa: E402
 from src.infrastructure.config.settings import Settings, get_settings  # noqa: E402
 from src.infrastructure.database.session import Base, async_session  # noqa: E402
-from src.interfaces.main import app  # noqa: E402
-from src.modules.tier.models import Tier  # noqa: E402
-from src.modules.user.models import User  # noqa: E402
 
 TEST_DATABASE_URL = get_settings().DATABASE_URL
 

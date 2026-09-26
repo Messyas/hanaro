@@ -14,7 +14,8 @@ the boilerplate has no email pipeline, and no route gates on sudo.
 from crudauth import CookieConfig, CRUDAuth, SessionTransport
 from crudauth.ratelimit import redis_rate_limiter
 
-from ...modules.user.models import User
+from src.app.models.user.models import User
+
 from ..config.settings import settings
 from ..database.session import async_session
 

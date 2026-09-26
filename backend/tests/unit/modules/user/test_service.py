@@ -5,15 +5,15 @@ from unittest.mock import AsyncMock
 import pytest
 from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 
-from src.modules.common.exceptions import (
+from src.app.models.user.schemas import UserCreate, UserRead, UserTierUpdate, UserUpdate
+from src.app.services.user.service import UserService
+from src.app.support.common.exceptions import (
     PermissionDeniedError,
     TierNotFoundError,
     UserExistsError,
     UserNotFoundError,
     ValidationError,
 )
-from src.modules.user.schemas import UserCreate, UserTierUpdate, UserUpdate
-from src.modules.user.service import UserService
 
 
 @pytest.fixture
@@ -27,10 +27,27 @@ def mock_db():
 
 
 @pytest.mark.asyncio
+async def test_get_active_by_id_excludes_soft_deleted_users(user_service, mock_db, monkeypatch):
+    mock_crud = AsyncMock()
+    mock_crud.get.return_value = {"id": 7, "username": "active"}
+    monkeypatch.setattr("src.app.services.user.service.crud_users", mock_crud)
+
+    result = await user_service.get_active_by_id(7, mock_db)
+
+    assert result == {"id": 7, "username": "active"}
+    mock_crud.get.assert_awaited_once_with(
+        db=mock_db,
+        id=7,
+        is_deleted=False,
+        schema_to_select=UserRead,
+    )
+
+
+@pytest.mark.asyncio
 async def test_create_email_exists(user_service, mock_db, monkeypatch):
     mock_crud = AsyncMock()
     mock_crud.exists.side_effect = lambda db, **kwargs: True if "email" in kwargs else False
-    monkeypatch.setattr("src.modules.user.service.crud_users", mock_crud)
+    monkeypatch.setattr("src.app.services.user.service.crud_users", mock_crud)
 
     user_data = UserCreate(
         name="Test User",
@@ -46,7 +63,7 @@ async def test_create_email_exists(user_service, mock_db, monkeypatch):
 async def test_create_username_exists(user_service, mock_db, monkeypatch):
     mock_crud = AsyncMock()
     mock_crud.exists.side_effect = lambda db, **kwargs: True if "username" in kwargs else False
-    monkeypatch.setattr("src.modules.user.service.crud_users", mock_crud)
+    monkeypatch.setattr("src.app.services.user.service.crud_users", mock_crud)
 
     user_data = UserCreate(
         name="Test User",
@@ -63,7 +80,7 @@ async def test_create_failure(user_service, mock_db, monkeypatch):
     mock_crud = AsyncMock()
     mock_crud.exists.return_value = False
     mock_crud.create.return_value = None
-    monkeypatch.setattr("src.modules.user.service.crud_users", mock_crud)
+    monkeypatch.setattr("src.app.services.user.service.crud_users", mock_crud)
 
     user_data = UserCreate(
         name="Test User",
@@ -80,7 +97,7 @@ async def test_create_success(user_service, mock_db, monkeypatch):
     mock_crud = AsyncMock()
     mock_crud.exists.return_value = False
     mock_crud.create.return_value = {"id": 1, "username": "newuser"}
-    monkeypatch.setattr("src.modules.user.service.crud_users", mock_crud)
+    monkeypatch.setattr("src.app.services.user.service.crud_users", mock_crud)
 
     user_data = UserCreate(
         name="Test User",
@@ -102,7 +119,7 @@ async def test_get_paginated_no_db(user_service):
 async def test_get_paginated_success(user_service, mock_db, monkeypatch):
     mock_crud = AsyncMock()
     mock_crud.get_multi.return_value = {"data": [{"id": 1}], "count": 1}
-    monkeypatch.setattr("src.modules.user.service.crud_users", mock_crud)
+    monkeypatch.setattr("src.app.services.user.service.crud_users", mock_crud)
 
     res = await user_service.get_paginated(db=mock_db, skip=0, limit=10)
     assert res["count"] == 1
@@ -112,7 +129,7 @@ async def test_get_paginated_success(user_service, mock_db, monkeypatch):
 async def test_get_by_username_not_found(user_service, mock_db, monkeypatch):
     mock_crud = AsyncMock()
     mock_crud.get.return_value = None
-    monkeypatch.setattr("src.modules.user.service.crud_users", mock_crud)
+    monkeypatch.setattr("src.app.services.user.service.crud_users", mock_crud)
 
     with pytest.raises(UserNotFoundError):
         await user_service.get_by_username("ghost", mock_db)
@@ -122,7 +139,7 @@ async def test_get_by_username_not_found(user_service, mock_db, monkeypatch):
 async def test_get_active_and_inactive_by_username_not_found(user_service, mock_db, monkeypatch):
     mock_crud = AsyncMock()
     mock_crud.get.return_value = None
-    monkeypatch.setattr("src.modules.user.service.crud_users", mock_crud)
+    monkeypatch.setattr("src.app.services.user.service.crud_users", mock_crud)
 
     with pytest.raises(UserNotFoundError):
         await user_service.get_active_and_inactive_by_username("ghost", mock_db)
@@ -132,7 +149,7 @@ async def test_get_active_and_inactive_by_username_not_found(user_service, mock_
 async def test_get_by_email_not_found(user_service, mock_db, monkeypatch):
     mock_crud = AsyncMock()
     mock_crud.get.return_value = None
-    monkeypatch.setattr("src.modules.user.service.crud_users", mock_crud)
+    monkeypatch.setattr("src.app.services.user.service.crud_users", mock_crud)
 
     with pytest.raises(UserNotFoundError):
         await user_service.get_by_email("ghost@example.com", mock_db)
@@ -142,7 +159,7 @@ async def test_get_by_email_not_found(user_service, mock_db, monkeypatch):
 async def test_update_user_not_found(user_service, mock_db, monkeypatch):
     mock_crud = AsyncMock()
     mock_crud.get.return_value = None
-    monkeypatch.setattr("src.modules.user.service.crud_users", mock_crud)
+    monkeypatch.setattr("src.app.services.user.service.crud_users", mock_crud)
 
     with pytest.raises(UserNotFoundError):
         await user_service.update(99, UserUpdate(name="New"), mock_db)
@@ -153,7 +170,7 @@ async def test_update_email_conflict(user_service, mock_db, monkeypatch):
     mock_crud = AsyncMock()
     mock_crud.get.return_value = {"id": 1, "email": "old@example.com", "username": "u1"}
     mock_crud.exists.side_effect = lambda db, **kwargs: True if "email" in kwargs else False
-    monkeypatch.setattr("src.modules.user.service.crud_users", mock_crud)
+    monkeypatch.setattr("src.app.services.user.service.crud_users", mock_crud)
 
     with pytest.raises(UserExistsError, match="Email already registered"):
         await user_service.update(1, UserUpdate(email="taken@example.com"), mock_db)
@@ -164,7 +181,7 @@ async def test_update_username_conflict(user_service, mock_db, monkeypatch):
     mock_crud = AsyncMock()
     mock_crud.get.return_value = {"id": 1, "email": "u@example.com", "username": "old"}
     mock_crud.exists.side_effect = lambda db, **kwargs: True if "username" in kwargs else False
-    monkeypatch.setattr("src.modules.user.service.crud_users", mock_crud)
+    monkeypatch.setattr("src.app.services.user.service.crud_users", mock_crud)
 
     with pytest.raises(UserExistsError, match="Username already taken"):
         await user_service.update(1, UserUpdate(username="taken"), mock_db)
@@ -175,7 +192,7 @@ async def test_update_returns_none(user_service, mock_db, monkeypatch):
     mock_crud = AsyncMock()
     mock_crud.get.return_value = {"id": 1, "email": "u@example.com", "username": "u1"}
     mock_crud.update.return_value = None
-    monkeypatch.setattr("src.modules.user.service.crud_users", mock_crud)
+    monkeypatch.setattr("src.app.services.user.service.crud_users", mock_crud)
 
     with pytest.raises(UserNotFoundError):
         await user_service.update(1, UserUpdate(name="New"), mock_db)
@@ -191,7 +208,7 @@ async def test_update_profile_contact_fields_and_reverify_changed_email(user_ser
     }
     mock_crud.exists.return_value = False
     mock_crud.update.return_value = {"id": 1}
-    monkeypatch.setattr("src.modules.user.service.crud_users", mock_crud)
+    monkeypatch.setattr("src.app.services.user.service.crud_users", mock_crud)
 
     await user_service.update(
         1,
@@ -230,7 +247,7 @@ async def test_permission_checks(user_service):
 async def test_delete_exceptions(user_service, mock_db, monkeypatch):
     mock_crud = AsyncMock()
     mock_crud.delete.side_effect = NoResultFound
-    monkeypatch.setattr("src.modules.user.service.crud_users", mock_crud)
+    monkeypatch.setattr("src.app.services.user.service.crud_users", mock_crud)
 
     with pytest.raises(UserNotFoundError):
         await user_service.delete(1, mock_db)
@@ -244,7 +261,7 @@ async def test_delete_exceptions(user_service, mock_db, monkeypatch):
 async def test_permanent_delete_exceptions(user_service, mock_db, monkeypatch):
     mock_crud = AsyncMock()
     mock_crud.db_delete.side_effect = NoResultFound
-    monkeypatch.setattr("src.modules.user.service.crud_users", mock_crud)
+    monkeypatch.setattr("src.app.services.user.service.crud_users", mock_crud)
 
     with pytest.raises(UserNotFoundError):
         await user_service.permanent_delete(1, mock_db)
@@ -258,7 +275,7 @@ async def test_permanent_delete_exceptions(user_service, mock_db, monkeypatch):
 async def test_anonymize_user_not_found(user_service, mock_db, monkeypatch):
     mock_crud = AsyncMock()
     mock_crud.get.return_value = None
-    monkeypatch.setattr("src.modules.user.service.crud_users", mock_crud)
+    monkeypatch.setattr("src.app.services.user.service.crud_users", mock_crud)
 
     with pytest.raises(UserNotFoundError):
         await user_service.anonymize_user(1, mock_db)
@@ -269,7 +286,7 @@ async def test_anonymize_user_no_result_found_exception(user_service, mock_db, m
     mock_crud = AsyncMock()
     mock_crud.get.return_value = {"id": 1, "email": "test@example.com"}
     mock_crud.update.side_effect = NoResultFound
-    monkeypatch.setattr("src.modules.user.service.crud_users", mock_crud)
+    monkeypatch.setattr("src.app.services.user.service.crud_users", mock_crud)
 
     with pytest.raises(UserNotFoundError):
         await user_service.anonymize_user(1, mock_db)
@@ -281,7 +298,7 @@ async def test_anonymize_user_success(user_service, mock_db, monkeypatch):
     mock_crud.get.return_value = {"id": 1, "email": "test@example.com"}
     mock_crud.update.return_value = True
     mock_crud.delete.return_value = True
-    monkeypatch.setattr("src.modules.user.service.crud_users", mock_crud)
+    monkeypatch.setattr("src.app.services.user.service.crud_users", mock_crud)
 
     await user_service.anonymize_user(1, mock_db)
     mock_crud.update.assert_called_once()
@@ -292,7 +309,7 @@ async def test_anonymize_user_success(user_service, mock_db, monkeypatch):
 async def test_update_tier_user_not_found(user_service, mock_db, monkeypatch):
     mock_crud_u = AsyncMock()
     mock_crud_u.get.return_value = None
-    monkeypatch.setattr("src.modules.user.service.crud_users", mock_crud_u)
+    monkeypatch.setattr("src.app.services.user.service.crud_users", mock_crud_u)
 
     with pytest.raises(UserNotFoundError):
         await user_service.update_tier(1, UserTierUpdate(tier_id=2), mock_db)
@@ -302,11 +319,11 @@ async def test_update_tier_user_not_found(user_service, mock_db, monkeypatch):
 async def test_update_tier_tier_not_found(user_service, mock_db, monkeypatch):
     mock_crud_u = AsyncMock()
     mock_crud_u.get.return_value = {"id": 1}
-    monkeypatch.setattr("src.modules.user.service.crud_users", mock_crud_u)
+    monkeypatch.setattr("src.app.services.user.service.crud_users", mock_crud_u)
 
     mock_crud_t = AsyncMock()
     mock_crud_t.exists.return_value = False
-    monkeypatch.setattr("src.modules.user.service.crud_tiers", mock_crud_t)
+    monkeypatch.setattr("src.app.services.user.service.crud_tiers", mock_crud_t)
 
     with pytest.raises(TierNotFoundError):
         await user_service.update_tier(1, UserTierUpdate(tier_id=99), mock_db)
@@ -317,11 +334,11 @@ async def test_update_tier_returns_none(user_service, mock_db, monkeypatch):
     mock_crud_u = AsyncMock()
     mock_crud_u.get.return_value = {"id": 1}
     mock_crud_u.update.return_value = None
-    monkeypatch.setattr("src.modules.user.service.crud_users", mock_crud_u)
+    monkeypatch.setattr("src.app.services.user.service.crud_users", mock_crud_u)
 
     mock_crud_t = AsyncMock()
     mock_crud_t.exists.return_value = True
-    monkeypatch.setattr("src.modules.user.service.crud_tiers", mock_crud_t)
+    monkeypatch.setattr("src.app.services.user.service.crud_tiers", mock_crud_t)
 
     with pytest.raises(UserNotFoundError):
         await user_service.update_tier(1, UserTierUpdate(tier_id=2), mock_db)
@@ -331,7 +348,7 @@ async def test_update_tier_returns_none(user_service, mock_db, monkeypatch):
 async def test_get_rate_limits_no_user(user_service, mock_db, monkeypatch):
     mock_crud = AsyncMock()
     mock_crud.get.return_value = None
-    monkeypatch.setattr("src.modules.user.service.crud_users", mock_crud)
+    monkeypatch.setattr("src.app.services.user.service.crud_users", mock_crud)
 
     with pytest.raises(UserNotFoundError):
         await user_service.get_rate_limits(1, mock_db)
@@ -341,7 +358,7 @@ async def test_get_rate_limits_no_user(user_service, mock_db, monkeypatch):
 async def test_get_rate_limits_no_tier(user_service, mock_db, monkeypatch):
     mock_crud = AsyncMock()
     mock_crud.get.return_value = {"id": 1, "tier_id": None}
-    monkeypatch.setattr("src.modules.user.service.crud_users", mock_crud)
+    monkeypatch.setattr("src.app.services.user.service.crud_users", mock_crud)
 
     res = await user_service.get_rate_limits(1, mock_db)
     assert res["rate_limits"] == []
@@ -352,7 +369,7 @@ async def test_get_rate_limits_joined_none(user_service, mock_db, monkeypatch):
     mock_crud = AsyncMock()
     mock_crud.get.return_value = {"id": 1, "tier_id": 2}
     mock_crud.get_joined.return_value = None
-    monkeypatch.setattr("src.modules.user.service.crud_users", mock_crud)
+    monkeypatch.setattr("src.app.services.user.service.crud_users", mock_crud)
 
     with pytest.raises(UserNotFoundError):
         await user_service.get_rate_limits(1, mock_db)
@@ -362,7 +379,7 @@ async def test_get_rate_limits_joined_none(user_service, mock_db, monkeypatch):
 async def test_get_user_with_tier_variations(user_service, mock_db, monkeypatch):
     mock_crud_u = AsyncMock()
     mock_crud_u.get.return_value = None
-    monkeypatch.setattr("src.modules.user.service.crud_users", mock_crud_u)
+    monkeypatch.setattr("src.app.services.user.service.crud_users", mock_crud_u)
 
     # 1. User not found
     with pytest.raises(UserNotFoundError):
@@ -377,7 +394,7 @@ async def test_get_user_with_tier_variations(user_service, mock_db, monkeypatch)
     mock_crud_u.get.return_value = {"id": 1, "tier_id": 99}
     mock_crud_t = AsyncMock()
     mock_crud_t.exists.return_value = False
-    monkeypatch.setattr("src.modules.user.service.crud_tiers", mock_crud_t)
+    monkeypatch.setattr("src.app.services.user.service.crud_tiers", mock_crud_t)
 
     res3 = await user_service.get_user_with_tier(1, mock_db)
     assert res3["tier"] is None

@@ -15,13 +15,8 @@ from pydantic import ValidationError
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-from src.infrastructure.database.session import Base
-from src.modules.governance.actions import PlanInput, TaskCommand, TaskInput, board, command_task, save_plan, save_task
-from src.modules.governance.exceptions import ReportConflictError
-from src.modules.governance.exports import request_export, run_export
-from src.modules.governance.exports.document import Document
-from src.modules.governance.exports.renderers import RENDERERS
-from src.modules.governance.models import (
+from src.app.controller.governance.workflow_routes import plans as list_plans
+from src.app.models.governance.models import (
     Alert,
     AlertRecipient,
     Artifact,
@@ -31,15 +26,20 @@ from src.modules.governance.models import (
     OutboxEvent,
     ReportVersion,
 )
-from src.modules.governance.notifications.rules import RuleInput, evaluate, save_rule
-from src.modules.governance.notifications.service import consume, dispatch, emit, recover_exports
-from src.modules.governance.schemas import ExportOptions
-from src.modules.governance.service import create_report, mutate_sources, publish_report
-from src.modules.governance.storage import ReportArtifactStorage
-from src.modules.governance.workflow_routes import plans as list_plans
-from src.modules.material_scrap.models import ScrapOccurrence, ScrapReview
-from src.modules.material_scrap.service import ingest_material_scrap
-from src.modules.user.models import User
+from src.app.models.governance.schemas import ExportOptions
+from src.app.models.material_scrap.models import ScrapOccurrence, ScrapReview
+from src.app.models.user.models import User
+from src.app.services.governance.actions import PlanInput, TaskCommand, TaskInput, board, command_task, save_plan, save_task
+from src.app.services.governance.notifications.service import consume, dispatch, emit, recover_exports
+from src.app.services.governance.service import create_report, mutate_sources, publish_report
+from src.app.services.governance.storage import ReportArtifactStorage
+from src.app.services.material_scrap.service import ingest_material_scrap
+from src.app.support.governance.exceptions import ReportConflictError
+from src.app.support.governance.exports import request_export, run_export
+from src.app.support.governance.exports.document import Document
+from src.app.support.governance.exports.renderers import RENDERERS
+from src.app.support.governance.notifications.rules import RuleInput, evaluate, save_rule
+from src.infrastructure.database.session import Base
 
 from ..material_scrap.helpers import canonical_fixture
 

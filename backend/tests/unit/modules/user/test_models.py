@@ -1,6 +1,6 @@
 """Unit tests for the User model."""
 
-from src.modules.user.models import User
+from src.app.models.user.models import User
 
 
 def _make_user() -> User:

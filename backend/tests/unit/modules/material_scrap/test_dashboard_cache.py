@@ -4,14 +4,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from src.modules.material_scrap.dashboard_cache import DashboardResponseCache
-from src.modules.material_scrap.enums import DashboardCurrency, ImpactMode
-from src.modules.material_scrap.schemas import (
+from src.app.models.material_scrap.enums import DashboardCurrency, ImpactMode
+from src.app.models.material_scrap.schemas import (
     DashboardKpis,
     DashboardMetadata,
     DashboardRankings,
     DashboardResponse,
 )
+from src.app.services.material_scrap.dashboard_cache import DashboardResponseCache
 
 
 def dashboard_response(revision: uuid.UUID) -> DashboardResponse:
@@ -48,7 +48,7 @@ async def test_dashboard_cache_round_trip_and_revision_isolation() -> None:
     cache._enabled = True
 
     with patch(
-        "src.modules.material_scrap.dashboard_cache.cache_provider.get_backend",
+        "src.app.services.material_scrap.dashboard_cache.cache_provider.get_backend",
         return_value=backend,
     ):
         await cache.set(revision, {"year": 2026}, response)
@@ -69,7 +69,7 @@ async def test_dashboard_cache_failure_bypasses_without_breaking_response() -> N
     revision = uuid.uuid4()
 
     with patch(
-        "src.modules.material_scrap.dashboard_cache.cache_provider.get_backend",
+        "src.app.services.material_scrap.dashboard_cache.cache_provider.get_backend",
         return_value=backend,
     ):
         assert await cache.get(revision, {}) is None

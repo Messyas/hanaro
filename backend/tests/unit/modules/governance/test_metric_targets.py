@@ -4,9 +4,9 @@ from decimal import Decimal
 import pytest
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
+from src.app.models.governance.models import Factory, MetricTargetVersion
+from src.app.services.governance.metric_targets import resolve_approved_target
 from src.infrastructure.database.session import Base
-from src.modules.governance.metric_targets import resolve_approved_target
-from src.modules.governance.models import Factory, MetricTargetVersion
 
 
 @pytest.mark.asyncio

@@ -3,9 +3,9 @@ from datetime import date
 import pytest
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
+from src.app.models.governance.models import Factory, SourceCoverage
+from src.app.services.governance.coverage import coverage_summary, latest_coverage_for_day
 from src.infrastructure.database.session import Base
-from src.modules.governance.coverage import coverage_summary, latest_coverage_for_day
-from src.modules.governance.models import Factory, SourceCoverage
 
 
 @pytest.mark.asyncio

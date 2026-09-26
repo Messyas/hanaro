@@ -5,14 +5,14 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
+from src.app.models.governance.models import ProductionMeasurementVersion
+from src.app.models.material_scrap.enums import DashboardCurrency, DashboardMetric, ImpactMode
+from src.app.models.material_scrap.models import ScrapDashboardAggregate
+from src.app.services.governance.production_service import product_production_denominators
+from src.app.services.material_scrap.dashboard_service import ScrapDashboardService
+from src.app.services.material_scrap.query_service import ScrapFilters
+from src.app.services.material_scrap.service import ingest_material_scrap
 from src.infrastructure.database.session import Base
-from src.modules.governance.models import ProductionMeasurementVersion
-from src.modules.governance.production_service import product_production_denominators
-from src.modules.material_scrap.dashboard_service import ScrapDashboardService
-from src.modules.material_scrap.enums import DashboardCurrency, DashboardMetric, ImpactMode
-from src.modules.material_scrap.models import ScrapDashboardAggregate
-from src.modules.material_scrap.query_service import ScrapFilters
-from src.modules.material_scrap.service import ingest_material_scrap
 
 from .helpers import canonical_fixture
 

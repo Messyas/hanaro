@@ -6,7 +6,7 @@ from faker import Faker
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.modules.user.models import User
+from src.app.models.user.models import User
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

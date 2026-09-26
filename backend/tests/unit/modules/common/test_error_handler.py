@@ -4,13 +4,13 @@ import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
-from src.modules.common.constants import GENERIC_ERROR_MESSAGE
-from src.modules.common.exceptions import (
+from src.app.support.common.constants import GENERIC_ERROR_MESSAGE
+from src.app.support.common.exceptions import (
     InsufficientCreditsError,
     ResourceNotFoundError,
     ValidationError,
 )
-from src.modules.common.utils.error_handler import (
+from src.app.support.common.utils.error_handler import (
     _generate_support_id,
     handle_exception,
     map_exception,

@@ -14,7 +14,8 @@ from crudauth.exceptions import ForbiddenException, UnauthorizedException
 from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...modules.user.crud import crud_users
+from src.app.repository.user.crud import crud_users
+
 from ..database.session import async_session
 from .setup import auth
 

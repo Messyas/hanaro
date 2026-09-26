@@ -54,7 +54,6 @@ describe('App', () => {
       'execucoes',
       'base-de-scrap',
       'relatorios',
-      'relatorios/:reportId',
       'configuracoes',
       'alertas',
       'planos-de-acao',

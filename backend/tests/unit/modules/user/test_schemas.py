@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from src.modules.user.schemas import UserCreate, UserUpdate
+from src.app.models.user.schemas import UserCreate, UserUpdate
 
 
 def test_user_create_accepts_a_strong_passphrase() -> None:

@@ -18,7 +18,7 @@ from src.infrastructure.logging import get_logger  # noqa: E402
 logger = get_logger()
 
 
-def import_models(package_name: str = "src.modules") -> None:
+def import_models(package_name: str = "src.app.models") -> None:
     """Automatically import all models from a package and its subpackages."""
     package = importlib.import_module(package_name)
     for _, module_name, _ in pkgutil.walk_packages(package.__path__, package.__name__ + "."):
@@ -50,7 +50,7 @@ def map_sql_type_to_mermaid(column_type: str) -> str:
 
 def generate_mermaid_erd() -> str:
     """Generate Mermaid.js ER Diagram from registered SQLAlchemy Base metadata."""
-    import_models("src.modules")
+    import_models("src.app.models")
 
     metadata = Base.metadata
     tables = metadata.tables

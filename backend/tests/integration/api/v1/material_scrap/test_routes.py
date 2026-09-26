@@ -2,7 +2,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.modules.material_scrap.service import ingest_material_scrap
+from src.app.services.material_scrap.service import ingest_material_scrap
 from tests.unit.modules.material_scrap.helpers import canonical_fixture
 
 

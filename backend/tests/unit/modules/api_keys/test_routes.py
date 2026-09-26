@@ -7,11 +7,11 @@ import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
+from src.app.main import app
+from src.app.support.api_keys.dependencies import get_api_key_service
+from src.app.support.common.exceptions import PermissionDeniedError, ResourceNotFoundError
 from src.infrastructure.auth.dependencies import get_current_user
 from src.infrastructure.database.session import async_session
-from src.interfaces.main import app
-from src.modules.api_keys.dependencies import get_api_key_service
-from src.modules.common.exceptions import PermissionDeniedError, ResourceNotFoundError
 
 
 class DummyUserObj:

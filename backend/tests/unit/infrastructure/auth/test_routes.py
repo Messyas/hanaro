@@ -7,9 +7,9 @@ import pytest_asyncio
 from crudauth import Principal
 from httpx import ASGITransport, AsyncClient
 
+from src.app.main import app
 from src.infrastructure.auth.dependencies import get_current_principal, get_optional_principal
 from src.infrastructure.database.session import async_session
-from src.interfaces.main import app
 
 
 @pytest.fixture
@@ -40,7 +40,7 @@ async def test_login_route(async_client, monkeypatch):
     mock_auth.sessions.create_session = AsyncMock(return_value=("sess_123", "csrf_abc"))
     mock_auth.sessions.set_session_cookies = MagicMock()
 
-    monkeypatch.setattr("src.infrastructure.auth.routes.crud_auth", mock_auth)
+    monkeypatch.setattr("src.app.controller.auth.routes.crud_auth", mock_auth)
 
     resp = await async_client.post(
         "/api/v1/auth/login",
@@ -55,7 +55,7 @@ async def test_logout_route(async_client, mock_principal, monkeypatch):
     mock_auth = MagicMock()
     mock_auth.sessions.revoke = AsyncMock()
     mock_auth.sessions.clear_session_cookies = MagicMock()
-    monkeypatch.setattr("src.infrastructure.auth.routes.crud_auth", mock_auth)
+    monkeypatch.setattr("src.app.controller.auth.routes.crud_auth", mock_auth)
 
     app.dependency_overrides[get_current_principal] = lambda: mock_principal
 
@@ -87,7 +87,7 @@ async def test_refresh_csrf_success(async_client, monkeypatch):
     mock_sessions.set_csrf_cookie = MagicMock()
 
     mock_auth.sessions = mock_sessions
-    monkeypatch.setattr("src.infrastructure.auth.routes.crud_auth", mock_auth)
+    monkeypatch.setattr("src.app.controller.auth.routes.crud_auth", mock_auth)
 
     resp = await async_client.post(
         "/api/v1/auth/refresh-csrf",
@@ -124,7 +124,7 @@ async def test_check_auth_route_user_not_found(async_client, mock_principal, mon
 
     mock_crud = AsyncMock()
     mock_crud.get.return_value = None
-    monkeypatch.setattr("src.infrastructure.auth.routes.crud_users", mock_crud)
+    monkeypatch.setattr("src.app.services.user.service.crud_users", mock_crud)
 
     resp = await async_client.get("/api/v1/auth/check-auth")
     assert resp.status_code == 200
@@ -148,14 +148,14 @@ async def test_check_auth_route_authenticated(async_client, mock_principal, monk
         "profile_image_url": None,
         "is_superuser": False,
     }
-    monkeypatch.setattr("src.infrastructure.auth.routes.crud_users", mock_crud)
+    monkeypatch.setattr("src.app.services.user.service.crud_users", mock_crud)
 
     mock_auth = MagicMock()
     session_obj = MagicMock()
     session_obj.created_at.isoformat.return_value = "2026-08-10T12:00:00Z"
     session_obj.last_activity.isoformat.return_value = "2026-08-10T12:05:00Z"
     mock_auth.sessions.validate_session = AsyncMock(return_value=session_obj)
-    monkeypatch.setattr("src.infrastructure.auth.routes.crud_auth", mock_auth)
+    monkeypatch.setattr("src.app.controller.auth.routes.crud_auth", mock_auth)
 
     resp = await async_client.get("/api/v1/auth/check-auth")
     assert resp.status_code == 200
@@ -175,7 +175,7 @@ async def test_check_auth_route_exception(async_client, mock_principal, monkeypa
 
     mock_crud = AsyncMock()
     mock_crud.get.side_effect = RuntimeError("DB crash")
-    monkeypatch.setattr("src.infrastructure.auth.routes.crud_users", mock_crud)
+    monkeypatch.setattr("src.app.services.user.service.crud_users", mock_crud)
 
     resp = await async_client.get("/api/v1/auth/check-auth")
     assert resp.status_code == 200

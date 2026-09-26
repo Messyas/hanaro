@@ -7,10 +7,10 @@ import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
+from src.app.main import app
+from src.app.support.common.exceptions import TierNotFoundError
+from src.app.support.tier.dependencies import get_tier_service
 from src.infrastructure.database.session import async_session
-from src.interfaces.main import app
-from src.modules.common.exceptions import TierNotFoundError
-from src.modules.tier.dependencies import get_tier_service
 
 
 @pytest.fixture

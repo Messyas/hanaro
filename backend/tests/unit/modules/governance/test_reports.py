@@ -6,11 +6,10 @@ import pytest
 from sqlalchemy import event, select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-from src.infrastructure.database.session import Base
-from src.modules.governance.exceptions import ReportConflictError, ReportValidationError
-from src.modules.governance.exports import render_csv, render_pdf, render_pptx
-from src.modules.governance.models import Factory, SnapshotFinancialRow, SnapshotItem
-from src.modules.governance.service import (
+from src.app.models.governance.models import Factory, SnapshotFinancialRow, SnapshotItem
+from src.app.models.material_scrap.models import ScrapOccurrence, ScrapReview
+from src.app.models.user.models import User
+from src.app.services.governance.service import (
     create_report,
     get_report_detail,
     get_report_scope,
@@ -24,10 +23,11 @@ from src.modules.governance.service import (
     update_report,
     update_report_scope,
 )
-from src.modules.governance.storage import ReportArtifactStorage
-from src.modules.material_scrap.models import ScrapOccurrence, ScrapReview
-from src.modules.material_scrap.service import ingest_material_scrap
-from src.modules.user.models import User
+from src.app.services.governance.storage import ReportArtifactStorage
+from src.app.services.material_scrap.service import ingest_material_scrap
+from src.app.support.governance.exceptions import ReportConflictError, ReportValidationError
+from src.app.support.governance.exports import render_csv, render_pdf, render_pptx
+from src.infrastructure.database.session import Base
 
 from ..material_scrap.helpers import canonical_fixture
 

@@ -10,13 +10,13 @@ from httpx import ASGITransport, AsyncClient
 from PIL import Image
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+from src.app.controller.material_scrap.routes import scrap_router
+from src.app.models.material_scrap.models import ScrapOccurrence
+from src.app.models.user.models import User
+from src.app.services.material_scrap.review_image import ScrapReviewImageStorage
+from src.app.support.material_scrap.dependencies import get_scrap_review_image_storage
 from src.infrastructure.auth.dependencies import get_current_user
 from src.infrastructure.database.session import Base, async_session
-from src.modules.material_scrap.dependencies import get_scrap_review_image_storage
-from src.modules.material_scrap.models import ScrapOccurrence
-from src.modules.material_scrap.review_image import ScrapReviewImageStorage
-from src.modules.material_scrap.routes import scrap_router
-from src.modules.user.models import User
 
 
 @pytest_asyncio.fixture
