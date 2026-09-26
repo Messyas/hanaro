@@ -2,6 +2,10 @@
   display: block;
 }
 
+.kpi-summary-panel.loading .kpi-summary-metric small {
+  visibility: hidden;
+}
+
 .dashboard-page-status {
   display: none;
 }
@@ -288,6 +292,7 @@
   display: inline-grid;
   width: 2.25rem;
   height: 2.25rem;
+  flex: 0 0 2.25rem;
   box-sizing: border-box;
   place-items: center;
   align-items: center;
@@ -299,14 +304,15 @@
   padding: 0;
   text-decoration: none;
   transition:
-    border-color 160ms ease,
-    color 160ms ease,
-    background-color 160ms ease;
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
 }
 .mask-values-button:hover:not(:disabled),
 .kiosk-mode-button:hover {
-  border-color: var(--app-text-muted);
-  color: var(--app-text-strong);
+  border-color: var(--app-card-border);
+  background: var(--app-surface-muted);
+  color: var(--app-text);
 }
 .mask-values-button:focus-visible,
 .kiosk-mode-button:focus-visible {

@@ -2,6 +2,10 @@
   display: block;
 }
 
+:host(:empty) {
+  display: none;
+}
+
 .template-library {
   display: grid;
   gap: 1rem;

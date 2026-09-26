@@ -71,6 +71,11 @@
 .select-trigger:hover {
   border-color: var(--brand-primary-border);
 }
+:host(.comparison-select) .select-trigger:hover {
+  border-color: var(--app-card-border);
+  background: var(--app-surface-muted);
+  color: var(--app-text);
+}
 .select-trigger.open,
 .select-trigger:focus-visible {
   outline: none;

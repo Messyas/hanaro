@@ -2,14 +2,18 @@
   display: block;
 }
 .reports-page {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding-bottom: 2.5rem;
   color: var(--app-text);
 }
 .reports-page.workspace-mode {
   width: 100%;
   margin-inline: 0;
-  gap: 1rem;
+  gap: 1.5rem;
 }
-.reports-header,
 .workspace-header {
   display: flex;
   align-items: center;
