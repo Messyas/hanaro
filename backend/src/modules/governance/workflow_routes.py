@@ -5,6 +5,7 @@ from urllib.parse import quote
 
 from fastapi import APIRouter, File, Form, HTTPException, Query, Response, UploadFile
 from sqlalchemy import func, select
+from sqlalchemy.sql import ColumnElement
 
 from ..user.models import User
 from .action_evidence import MAX_EVIDENCE_BYTES, add_evidence, read_evidence, remove_evidence
@@ -40,7 +41,7 @@ async def plans(
     status: Literal["OPEN", "COMPLETED"] | None = None,
     sort: Literal["newest", "oldest", "title"] = "newest",
 ):
-    filters = []
+    filters: list[ColumnElement[bool]] = []
     if search.strip():
         filters.append(ActionPlan.title.ilike(f"%{search.strip()}%"))
     if status:

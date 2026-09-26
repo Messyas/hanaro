@@ -195,11 +195,11 @@ async def plan_detail(db, plan_id):
     return result
 
 
-async def task_detail(db, task_id):
+async def task_detail(db: AsyncSession, task_id: uuid.UUID) -> dict[str, Any]:
     task = await db.get(ImprovementAction, task_id)
     if task is None:
         raise ReportNotFoundError("Task not found")
-    result = view(task)
+    result: dict[str, Any] = view(task)
     result["participants"] = [
         dict(id=u.id, name=u.name, profile_image_url=u.profile_image_url)
         for u in await db.scalars(

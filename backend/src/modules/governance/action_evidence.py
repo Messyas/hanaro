@@ -94,7 +94,7 @@ async def add_evidence(
         .select_from(ActionEvidence)
         .where(ActionEvidence.action_id == task.id, ActionEvidence.deleted_at.is_(None))
     )
-    if count >= MAX_EVIDENCE_PER_TASK:
+    if (count or 0) >= MAX_EVIDENCE_PER_TASK:
         raise ReportValidationError("Task evidence limit reached")
     evidence_id = uuid.uuid4()
     digest = hashlib.sha256(content).hexdigest()
