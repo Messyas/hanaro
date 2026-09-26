@@ -5,7 +5,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSlideToggle } from '@angular/material/slide-toggle';
 import { AuthService } from '../../core/auth/auth.service';
 import { LanguageService } from '../../core/i18n/language.service';
-import { LoginDialog } from '../auth/auth.public-api';
+import { LoginDialog } from '../auth/login-dialog';
 import { ThemeService } from '../../core/theme/theme.service';
 import { UiIcon } from '../../shared/components/ui-icon/ui-icon';
 import {

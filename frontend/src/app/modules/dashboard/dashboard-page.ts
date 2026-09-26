@@ -4,12 +4,14 @@ import { LanguageService } from '../../core/i18n/language.service';
 import { UiIcon } from '../../shared/components/ui-icon/ui-icon';
 import { DashboardPerformanceChart } from './charts/dashboard-performance-chart';
 import { DashboardDistributionChart } from './components/dashboard-distribution-chart';
+import { DashboardChartSkeleton } from './components/dashboard-chart-skeleton';
 import { DashboardMultiSelect } from './components/dashboard-multi-select';
 import {
   ListFilterSelect,
   ListFilterSelectOption,
 } from '../../shared/components/list-filters/list-filter-select';
 import { ListFilterPopover } from '../../shared/components/list-filters/list-filter-popover';
+import { PrefetchOnIntent } from '../../shared/directives/prefetch-on-intent';
 
 import {
   DashboardAnalysis,
@@ -96,9 +98,11 @@ const COMPARISON_OPTIONS: readonly DashboardComparison[] = ['ytd', 'yoy', 'mom']
     UiIcon,
     DashboardPerformanceChart,
     DashboardDistributionChart,
+    DashboardChartSkeleton,
     DashboardMultiSelect,
     ListFilterSelect,
     ListFilterPopover,
+    PrefetchOnIntent,
   ],
   providers: [DashboardStore],
   templateUrl: './dashboard-page.html',

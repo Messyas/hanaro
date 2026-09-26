@@ -1,8 +1,7 @@
 @if (open()) {
   <div class="manual-upload-backdrop" (click)="close()">
-    <section
+    <dialog
       class="manual-upload-dialog"
-      role="dialog"
       aria-modal="true"
       aria-labelledby="manual-upload-title"
       cdkTrapFocus
@@ -49,6 +48,6 @@
           {{ submitting() ? 'Enviando…' : 'Processar relatório' }}
         </button>
       </footer>
-    </section>
+    </dialog>
   </div>
 }

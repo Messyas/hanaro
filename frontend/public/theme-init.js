@@ -1,6 +1,6 @@
 (() => {
   const root = document.documentElement;
-  const storageKey = root.getAttribute('data-theme-storage-key');
+  const storageKey = root.dataset.themeStorageKey;
   let saved = null;
 
   try {
@@ -21,7 +21,7 @@
 
   const theme = preference === 'dark' || (preference === 'system' && systemDark) ? 'dark' : 'light';
 
-  root.setAttribute('data-theme-preference', preference);
-  root.setAttribute('data-theme', theme);
+  root.dataset.themePreference = preference;
+  root.dataset.theme = theme;
   root.style.colorScheme = theme;
 })();

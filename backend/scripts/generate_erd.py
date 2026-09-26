@@ -8,6 +8,7 @@ import importlib
 import pkgutil
 import sys
 from pathlib import Path
+from typing import Any
 
 # Add backend root directory to python path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -28,7 +29,7 @@ def import_models(package_name: str = "src.app.models") -> None:
             pass
 
 
-def map_sql_type_to_mermaid(column_type: str) -> str:
+def map_sql_type_to_mermaid(column_type: Any) -> str:
     """Map SQL column types to clean readable names for Mermaid."""
     type_str = str(column_type).upper()
     if "VARCHAR" in type_str or "STRING" in type_str or "TEXT" in type_str:

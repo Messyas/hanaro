@@ -1,9 +1,10 @@
 <div class="filter-dates-grid">
   <div class="filter-field date-anchor">
-    <label>{{ fromLabel() }}</label>
+    <label [for]="fromInputId()">{{ fromLabel() }}</label>
     <div class="datepicker-input-wrapper">
       <input
         class="input-control datepicker-input"
+        [id]="fromInputId()"
         [class.input-invalid]="rangeError()"
         type="text"
         placeholder="YYYY/MM/DD"
@@ -21,7 +22,7 @@
       </button>
     </div>
     @if (fromOpen()) {
-      <div class="custom-calendar-popup" role="dialog" (click)="$event.stopPropagation()">
+      <dialog class="custom-calendar-popup" open [attr.aria-label]="fromLabel()">
         <div class="calendar-header">
           <button type="button" class="cal-nav-btn" (click)="previousFrom()">
             <ui-icon name="chevron-left" /></button
@@ -58,14 +59,15 @@
             {{ todayLabel() }}
           </button>
         </div>
-      </div>
+      </dialog>
     }
   </div>
   <div class="filter-field date-anchor">
-    <label>{{ toLabel() }}</label>
+    <label [for]="toInputId()">{{ toLabel() }}</label>
     <div class="datepicker-input-wrapper">
       <input
         class="input-control datepicker-input"
+        [id]="toInputId()"
         [class.input-invalid]="rangeError()"
         type="text"
         placeholder="YYYY/MM/DD"
@@ -83,7 +85,7 @@
       </button>
     </div>
     @if (toOpen()) {
-      <div class="custom-calendar-popup to-popup" role="dialog" (click)="$event.stopPropagation()">
+      <dialog class="custom-calendar-popup to-popup" open [attr.aria-label]="toLabel()">
         <div class="calendar-header">
           <button type="button" class="cal-nav-btn" (click)="previousTo()">
             <ui-icon name="chevron-left" /></button
@@ -120,7 +122,7 @@
             {{ todayLabel() }}
           </button>
         </div>
-      </div>
+      </dialog>
     }
   </div>
 </div>

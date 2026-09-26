@@ -165,7 +165,8 @@
       <section class="kiosk-slide slide-factory" aria-label="Modo Fábrica">
         <!-- Sub-header with Period Toggle -->
         <div class="factory-toolbar">
-          <div class="period-pill-toggle" role="group" [attr.aria-label]="text().period">
+          <fieldset class="period-pill-toggle" [attr.aria-label]="text().period">
+            <legend class="sr-only">{{ text().period }}</legend>
             <button
               type="button"
               class="period-pill"
@@ -182,7 +183,7 @@
             >
               {{ text().year }}
             </button>
-          </div>
+          </fieldset>
           <span class="factory-period-hint">{{ text().currentVsPrior }}</span>
         </div>
 

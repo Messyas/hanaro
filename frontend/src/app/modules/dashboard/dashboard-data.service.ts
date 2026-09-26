@@ -150,30 +150,47 @@ export class DashboardDataService {
     );
     const monthly: DashboardMonthlyPoint[] = Array.from({ length: 12 }, (_, index) => {
       const apiPoint = monthlyByIndex.get(index);
+      const previousYearValue = apiPoint ? this.toNullableNumber(apiPoint.previous_year) : null;
+
+      let actualUsd: number | null;
+      if (quantityMetric) {
+        actualUsd = null;
+      } else if (apiPoint) {
+        actualUsd = this.toNullableNumber(apiPoint.actual);
+      } else {
+        actualUsd = null;
+      }
+
+      let actualQty: number | null;
+      if (quantityMetric) {
+        actualQty = apiPoint ? this.toNullableNumber(apiPoint.actual) : null;
+      } else {
+        actualQty = null;
+      }
+
+      let targetUsd: number;
+      if (quantityMetric) {
+        targetUsd = 0;
+      } else if (apiPoint) {
+        targetUsd = this.toNullableNumber(apiPoint.target) ?? 0;
+      } else {
+        targetUsd = 0;
+      }
+
+      let previousQty: number | null;
+      if (quantityMetric) {
+        previousQty = apiPoint ? this.toNullableNumber(apiPoint.previous_year) : null;
+      } else {
+        previousQty = null;
+      }
 
       return {
         month: MONTH_NAMES[index],
-        actualUsd: quantityMetric ? null : apiPoint ? this.toNullableNumber(apiPoint.actual) : null,
-        previousUsd: quantityMetric
-          ? null
-          : apiPoint
-            ? this.toNullableNumber(apiPoint.previous_year)
-            : null,
-        targetUsd: quantityMetric
-          ? 0
-          : apiPoint
-            ? (this.toNullableNumber(apiPoint.target) ?? 0)
-            : 0,
-        actualQty: quantityMetric
-          ? apiPoint
-            ? this.toNullableNumber(apiPoint.actual)
-            : null
-          : null,
-        previousQty: quantityMetric
-          ? apiPoint
-            ? this.toNullableNumber(apiPoint.previous_year)
-            : null
-          : null,
+        actualUsd,
+        previousUsd: quantityMetric ? null : previousYearValue,
+        targetUsd,
+        actualQty,
+        previousQty,
         targetQty: 0,
         materialAmountUsd: apiPoint ? this.toNullableNumber(apiPoint.denominator) : null,
         previousMaterialAmountUsd: apiPoint
@@ -193,35 +210,35 @@ export class DashboardDataService {
       weekly: (response.weekly ?? []).map((point) => this.mapApiWeeklyPoint(point, metric)),
       distribution: response.rankings.products.map((item) => ({
         label: item.key ?? 'Não classificado',
-        usd: this.toNumber(item.amount),
-        qty: quantityMetric ? this.toNumber(item.amount) : item.record_count,
+        usd: Number(item.amount),
+        qty: quantityMetric ? Number(item.amount) : item.record_count,
       })),
       components: (response.rankings.components ?? []).map((item) => ({
         label: item.key ?? 'Não classificado',
-        usd: this.toNumber(item.amount),
-        qty: quantityMetric ? this.toNumber(item.amount) : item.record_count,
+        usd: Number(item.amount),
+        qty: quantityMetric ? Number(item.amount) : item.record_count,
       })),
       lines: (response.rankings.lines ?? []).map((item) => ({
         label: item.key ?? 'Não classificado',
-        usd: this.toNumber(item.amount),
-        qty: quantityMetric ? this.toNumber(item.amount) : item.record_count,
+        usd: Number(item.amount),
+        qty: quantityMetric ? Number(item.amount) : item.record_count,
       })),
       models: (response.rankings.models ?? []).map((item) => ({
         label: item.key ?? 'Não classificado',
-        usd: this.toNumber(item.amount),
-        qty: quantityMetric ? this.toNumber(item.amount) : item.record_count,
+        usd: Number(item.amount),
+        qty: quantityMetric ? Number(item.amount) : item.record_count,
       })),
       offenders: (response.rankings.offenders ?? []).map((item) => ({
         label: item.key ?? 'Não classificado',
-        usd: this.toNumber(item.amount),
-        qty: quantityMetric ? this.toNumber(item.amount) : item.record_count,
+        usd: Number(item.amount),
+        qty: quantityMetric ? Number(item.amount) : item.record_count,
       })),
       relativeProducts: (response.relative_product_ranking ?? []).map((item) => ({
         label: item.key ?? 'Não classificado',
-        usd: this.toNumber(item.numerator),
+        usd: Number(item.numerator),
         qty: item.record_count,
         rate: this.toNullableNumber(item.rate),
-        numerator: this.toNumber(item.numerator),
+        numerator: Number(item.numerator),
         denominator: this.toNullableNumber(item.denominator),
         recordCount: item.record_count,
         denominatorStatus: item.denominator_status,
@@ -255,7 +272,7 @@ export class DashboardDataService {
   }
 
   private weekLabel(period: string): string {
-    const match = period.match(/W(\d{1,2})$/);
+    const match = /W(\d{1,2})$/.exec(period);
     return match ? `W${match[1]}` : period;
   }
 
@@ -264,9 +281,7 @@ export class DashboardDataService {
     return `${year}-${String(month).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   }
 
-  private toNumber(value: string): number {
-    return Number(value);
-  }
+  // toNumber removed; use Number(...) directly
 
   private toNullableNumber(value: string | null): number | null {
     return value === null ? null : Number(value);

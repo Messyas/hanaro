@@ -28,6 +28,10 @@ function checkImport(source, specifier) {
   const [fromArea, fromFeature] = sourceParts;
   const [toArea, toFeature] = targetParts;
   const publicApi = specifier.endsWith('.public-api');
+  const authEntryPoint =
+    toArea === 'modules' &&
+    toFeature === 'auth' &&
+    ['login-dialog', 'login-page'].includes(path.basename(specifier));
   let allowed = true;
 
   if (fromArea === 'shared') allowed = toArea === 'shared';
@@ -37,10 +41,10 @@ function checkImport(source, specifier) {
       toArea === 'layouts' ||
       toArea === 'core' ||
       toArea === 'shared' ||
-      (toArea === 'modules' && toFeature === 'auth' && publicApi);
+      (toArea === 'modules' && toFeature === 'auth' && (publicApi || authEntryPoint));
   }
   if (fromArea === 'modules' && toArea === 'modules' && fromFeature !== toFeature) {
-    allowed = publicApi;
+    allowed = publicApi || authEntryPoint;
   }
 
   if (!allowed) {

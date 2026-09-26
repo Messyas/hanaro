@@ -1,9 +1,7 @@
 import { DOCUMENT, isPlatformBrowser } from '@angular/common';
 import {
   Component,
-  DestroyRef,
   HostListener,
-  Inject,
   OnDestroy,
   PLATFORM_ID,
   computed,
@@ -207,6 +205,12 @@ export class DashboardKioskPage implements OnDestroy {
       minimumFractionDigits: 1,
       maximumFractionDigits: 1,
     }).format(Math.abs(value));
-    return `${value > 0 ? '+' : value < 0 ? '-' : ''}${formatted}%`;
+    let sign = '';
+    if (value > 0) {
+      sign = '+';
+    } else if (value < 0) {
+      sign = '-';
+    }
+    return `${sign}${formatted}%`;
   }
 }

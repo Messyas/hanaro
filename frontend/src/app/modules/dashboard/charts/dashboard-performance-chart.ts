@@ -12,7 +12,7 @@ import { SVGRenderer } from 'echarts/renderers';
 import { NgxEchartsDirective, provideEchartsCore } from 'ngx-echarts';
 import { ThemeService } from '../../../core/theme/theme.service';
 import { LanguageCode } from '../../../core/i18n/language.service';
-import { CHART_DESIGN, getChartTheme } from './chart-design.tokens';
+import { getChartTheme } from './chart-design.tokens';
 import {
   DashboardAnalysis,
   DashboardEvolutionView,
@@ -270,23 +270,13 @@ export class DashboardPerformanceChart {
           fontSize: 11,
           formatter: hidden
             ? () => '•••'
-            : (value: number) =>
-                analysis === 'relative'
-                  ? `${value.toLocaleString(DASHBOARD_LOCALES[this.language()], { maximumFractionDigits: 3 })}%`
-                  : metric === 'usd'
-                    ? this.compactCurrency(value)
-                    : `${value}`,
+            : (value: number) => this.formatAxisLabel(value, analysis, metric),
         },
         splitLine: { lineStyle: { color: chartTheme.grid } },
       },
       series: [
         {
-          name:
-            analysis === 'relative'
-              ? `${metric === 'usd' ? copy.ifCostRate : copy.qtyRate} ${currentYear}`
-              : metric === 'usd'
-                ? `${copy.actual} ${currentYear}`
-                : `QTY ${currentYear}`,
+          name: this.getSeriesName(analysis, metric, currentYear, copy),
           type: 'line',
           data: data.map((item) => this.actualValue(item)),
           smooth: true,
@@ -462,5 +452,29 @@ export class DashboardPerformanceChart {
     return new Intl.NumberFormat(DASHBOARD_LOCALES[this.language()], {
       maximumFractionDigits: 0,
     }).format(value);
+  }
+
+  private formatAxisLabel(
+    value: number,
+    analysis: DashboardAnalysis,
+    metric: DashboardMetric,
+  ): string {
+    if (analysis === 'relative') {
+      return `${value.toFixed(1)}%`;
+    }
+    if (metric === 'usd') {
+      return this.compactCurrency(value);
+    }
+    return this.number(value);
+  }
+
+  private getSeriesName(
+    analysis: DashboardAnalysis,
+    metric: DashboardMetric,
+    currentYear: string,
+    copy: (typeof DASHBOARD_TRANSLATIONS)[keyof typeof DASHBOARD_TRANSLATIONS],
+  ): string {
+    // Primary series label (e.g. "Actual 2024")
+    return `${copy.actual} ${currentYear}`;
   }
 }

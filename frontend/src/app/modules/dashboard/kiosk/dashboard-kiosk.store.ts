@@ -1,7 +1,7 @@
 import { environment } from '../../../../environments/environment';
 import { isPlatformBrowser } from '@angular/common';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Injectable, PLATFORM_ID, computed, effect, inject, signal } from '@angular/core';
+import { Injectable, PLATFORM_ID, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import {
   DEFAULT_KIOSK_SETTINGS,
@@ -34,45 +34,49 @@ const MONTH_NAMES = [
   'Dez',
 ] as const;
 
+type StringOrNumber = string | number;
+type StringOrNumberOrNull = string | number | null;
+type StringOrNull = string | null;
+
 interface DashboardApiResponse {
   metadata?: { generated_at?: string };
   kpis?: {
-    actual: string | number;
-    target?: string | number | null;
-    target_attainment_percent?: string | number | null;
-    previous_year_actual?: string | number;
-    previous_year_variation_percent?: string | number | null;
+    actual: StringOrNumber;
+    target?: StringOrNumberOrNull;
+    target_attainment_percent?: StringOrNumberOrNull;
+    previous_year_actual: StringOrNumber;
+    previous_year_variation_percent?: StringOrNumberOrNull;
   };
   monthly?: Array<{
     period: string;
-    actual: string | number | null;
-    previous_year: string | number | null;
-    target: string | number | null;
+    actual: StringOrNumberOrNull;
+    previous_year: StringOrNumberOrNull;
+    target: StringOrNumberOrNull;
   }>;
   rankings?: {
-    components?: Array<{ key: string | null; amount: string | number; record_count: number }>;
-    lines?: Array<{ key: string | null; amount: string | number; record_count: number }>;
-    models?: Array<{ key: string | null; amount: string | number; record_count: number }>;
-    offenders?: Array<{ key: string | null; amount: string | number; record_count: number }>;
+    components?: Array<{ key: StringOrNull; amount: StringOrNumber; record_count: number }>;
+    lines?: Array<{ key: StringOrNull; amount: StringOrNumber; record_count: number }>;
+    models?: Array<{ key: StringOrNull; amount: StringOrNumber; record_count: number }>;
+    offenders?: Array<{ key: StringOrNull; amount: StringOrNumber; record_count: number }>;
   };
   priority_occurrences?: Array<{
-    key: string | null;
-    amount: string | number;
+    key: StringOrNull;
+    amount: StringOrNumber;
     record_count: number;
   }>;
 }
 
 interface ScrapSummaryResponse {
   total_records: number;
-  total_issue_quantity: string | number;
-  total_amount_usd: string | number;
+  total_issue_quantity: StringOrNumber;
+  total_amount_usd: StringOrNumber;
   counted_records: number;
   last_successful_ingestion_at?: string;
 }
 
 interface ScrapBreakdownItemResponse {
-  key: string | null;
-  metric: string | number;
+  key: StringOrNull;
+  metric: StringOrNumber;
   record_count: number;
 }
 
@@ -219,8 +223,15 @@ export class DashboardKioskStore {
   constructor() {
     if (this.isBrowser) {
       this.initTimers();
-      this.loadAllData();
     }
+  }
+
+  initialize(): Promise<void> {
+    if (!this.isBrowser) {
+      return Promise.resolve();
+    }
+
+    return this.loadAllData();
   }
 
   destroy(): void {
@@ -395,147 +406,181 @@ export class DashboardKioskStore {
         ),
       ]);
 
-      let hasApiData = false;
-
-      if (dashRes.status === 'fulfilled' && dashRes.value) {
-        const d = dashRes.value;
-        if (d.kpis && Number(d.kpis.actual) > 0) {
-          hasApiData = true;
-          this.ifCostActual.set(Number(d.kpis.actual));
-          this.ifCostPreviousYear.set(Number(d.kpis.previous_year_actual ?? 0));
-          this.ifCostVariation.set(Number(d.kpis.previous_year_variation_percent ?? 0));
-          this.ifCostTarget.set(Number(d.kpis.target ?? 0));
-          this.targetAttainment.set(Number(d.kpis.target_attainment_percent ?? 0));
-
-          if (d.monthly && d.monthly.length > 0) {
-            const monthlyByIndex = new Map(
-              d.monthly.map((point) => [Number(point.period.slice(5, 7)) - 1, point]),
-            );
-            const mappedMonthly: DashboardMonthlyPoint[] = Array.from({ length: 12 }, (_, idx) => {
-              const apiPoint = monthlyByIndex.get(idx);
-              return {
-                month: MONTH_NAMES[idx],
-                actualUsd: apiPoint?.actual != null ? Number(apiPoint.actual) : null,
-                previousUsd:
-                  apiPoint?.previous_year != null ? Number(apiPoint.previous_year) : null,
-                targetUsd: apiPoint?.target != null ? Number(apiPoint.target) : 0,
-                actualQty: null,
-                previousQty: null,
-                targetQty: 0,
-                materialAmountUsd: 0,
-                previousMaterialAmountUsd: 0,
-                productionQty: 0,
-                previousProductionQty: 0,
-                relativeStatus: 'MISSING_DENOMINATOR',
-                previousRelativeStatus: 'MISSING_DENOMINATOR',
-              };
-            });
-            this.monthlyPoints.set(mappedMonthly);
-          }
-
-          if (d.rankings?.components && d.rankings.components.length > 0) {
-            const max = Math.max(...d.rankings.components.map((c) => Number(c.amount)));
-            this.topComponents.set(
-              d.rankings.components.slice(0, 3).map((c) => ({
-                name: c.key ?? 'Outros',
-                amountUsd: Number(c.amount),
-                percentage: max > 0 ? Math.round((Number(c.amount) / max) * 100) : 0,
-              })),
-            );
-          }
-
-          if (d.rankings?.lines && d.rankings.lines.length > 0) {
-            const maxCost = Math.max(...d.rankings.lines.map((l) => Number(l.amount)));
-            this.topLinesByCost.set(
-              d.rankings.lines.slice(0, 8).map((l) => ({
-                line: l.key ?? 'Linha',
-                amountUsd: Number(l.amount),
-                percentage: maxCost > 0 ? Math.round((Number(l.amount) / maxCost) * 100) : 0,
-              })),
-            );
-          }
-
-          if (d.rankings?.offenders && d.rankings.offenders.length > 0) {
-            const maxOffender = Math.max(...d.rankings.offenders.map((o) => Number(o.amount)));
-            this.topDefectsByCost.set(
-              d.rankings.offenders.slice(0, 5).map((o) => ({
-                name: o.key ?? 'Defeito',
-                amountUsd: Number(o.amount),
-                percentage:
-                  maxOffender > 0 ? Math.round((Number(o.amount) / maxOffender) * 100) : 0,
-              })),
-            );
-            const totalActual = Number(d.kpis.actual);
-            const topDefect = d.rankings.offenders[0];
-            this.mostCriticalDefect.set({
-              name: topDefect.key ?? 'Trinca no ponto de fixação',
-              percentage:
-                totalActual > 0
-                  ? Number(((Number(topDefect.amount) / totalActual) * 100).toFixed(1))
-                  : 19.5,
-            });
-          }
-
-          if (d.rankings?.models && d.rankings.models.length > 0) {
-            const topModel = d.rankings.models[0];
-            this.mostCriticalPartNumber.set({
-              code: topModel.key ?? 'EAY65769201',
-              amountUsd: Number(topModel.amount),
-            });
-          }
-        }
-      }
-
-      if (summaryRes.status === 'fulfilled' && summaryRes.value) {
-        const s = summaryRes.value;
-        const unreviewedCount =
-          unreviewedRes.status === 'fulfilled' ? Number(unreviewedRes.value?.total_items ?? 0) : 0;
-        this.summaryStats.set({
-          scrapUnits: Math.round(Number(s.total_issue_quantity ?? 1247)),
-          transactions: Number(s.total_records ?? 96),
-          criticalAlerts: Math.max(unreviewedCount > 0 ? Math.min(unreviewedCount, 99) : 0, 3),
-        });
-        if (s.last_successful_ingestion_at) {
-          const dateObj = new Date(s.last_successful_ingestion_at);
-          this.lastUpdated.set(
-            `${String(dateObj.getDate()).padStart(2, '0')}/${String(dateObj.getMonth() + 1).padStart(2, '0')}/${dateObj.getFullYear()} ${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}`,
-          );
-        }
-      }
-
-      if (scrapRes.status === 'fulfilled' && scrapRes.value?.items?.length) {
-        this.priorityOccurrences.set(
-          scrapRes.value.items.slice(0, 3).map((item, idx) => ({
-            id: item.id || String(idx + 1),
-            partNumber: item.item_code || item.product_alias || 'N/A',
-            amountUsd: Number(item.amount_usd || item.issue_amount_brl || 0),
-            category: item.receipt_department || item.organization_code || 'General',
-            description:
-              item.item_description ||
-              item.reason ||
-              item.requisition_reason ||
-              'Ocorrência de refugo registrada no GERP',
-            critical: Number(item.amount_usd ?? item.issue_amount_brl ?? 0) > 1000,
-          })),
-        );
-      }
-
-      if (unreviewedRes.status === 'fulfilled' || reviewedRes.status === 'fulfilled') {
-        const pending =
-          unreviewedRes.status === 'fulfilled' ? Number(unreviewedRes.value?.total_items ?? 0) : 0;
-        const justified =
-          reviewedRes.status === 'fulfilled' ? Number(reviewedRes.value?.total_items ?? 0) : 0;
-        this.reviewStatusSummary.set({
-          pending,
-          inReview: 0,
-          justified,
-        });
-      }
+      const hasApiData = this.processDashboardResponse(dashRes);
+      this.processSummaryResponse(summaryRes, unreviewedRes);
+      this.processScrapResponse(scrapRes);
+      this.processReviewStatusResponse(unreviewedRes, reviewedRes);
 
       this.dataState.set(hasApiData ? 'api' : 'simulated');
     } catch {
       this.dataState.set('simulated');
     }
+  }
+
+  private processDashboardResponse(dashRes: PromiseSettledResult<DashboardApiResponse>): boolean {
+    if (dashRes.status !== 'fulfilled' || !dashRes.value?.kpis) {
+      return false;
+    }
+
+    const d = dashRes.value!;
+    const kpis = d.kpis!;
+    const actualValue = Number(kpis.actual);
+    if (actualValue <= 0) {
+      return false;
+    }
+
+    this.ifCostActual.set(actualValue);
+    this.ifCostPreviousYear.set(Number(kpis.previous_year_actual ?? 0));
+    this.ifCostVariation.set(Number(kpis.previous_year_variation_percent ?? 0));
+    this.ifCostTarget.set(Number(kpis.target ?? 0));
+    this.targetAttainment.set(Number(kpis.target_attainment_percent ?? 0));
+
+    this.processMonthlyData(d.monthly);
+    this.processRankings(d.rankings, actualValue);
+
+    return true;
+  }
+
+  private processMonthlyData(monthly?: any[]): void {
+    if (!monthly?.length) return;
+
+    const monthlyByIndex = new Map(
+      monthly.map((point) => [Number(point.period.slice(5, 7)) - 1, point]),
+    );
+    const mappedMonthly: DashboardMonthlyPoint[] = Array.from({ length: 12 }, (_, idx) => {
+      const apiPoint = monthlyByIndex.get(idx);
+      return {
+        month: MONTH_NAMES[idx],
+        actualUsd: apiPoint?.actual != null ? Number(apiPoint.actual) : null,
+        previousUsd: apiPoint?.previous_year != null ? Number(apiPoint.previous_year) : null,
+        targetUsd: apiPoint?.target != null ? Number(apiPoint.target) : 0,
+        actualQty: null,
+        previousQty: null,
+        targetQty: 0,
+        materialAmountUsd: 0,
+        previousMaterialAmountUsd: 0,
+        productionQty: 0,
+        previousProductionQty: 0,
+        relativeStatus: 'MISSING_DENOMINATOR',
+        previousRelativeStatus: 'MISSING_DENOMINATOR',
+      };
+    });
+    this.monthlyPoints.set(mappedMonthly);
+  }
+
+  private processRankings(rankings: any, totalActual: number): void {
+    if (!rankings) return;
+
+    if (rankings.components?.length) {
+      const max = Math.max(...rankings.components.map((c: any) => Number(c.amount)));
+      this.topComponents.set(
+        rankings.components.slice(0, 3).map((c: any) => ({
+          name: c.key ?? 'Outros',
+          amountUsd: Number(c.amount),
+          percentage: max > 0 ? Math.round((Number(c.amount) / max) * 100) : 0,
+        })),
+      );
+    }
+
+    if (rankings.lines?.length) {
+      const maxCost = Math.max(...rankings.lines.map((l: any) => Number(l.amount)));
+      this.topLinesByCost.set(
+        rankings.lines.slice(0, 8).map((l: any) => ({
+          line: l.key ?? 'Linha',
+          amountUsd: Number(l.amount),
+          percentage: maxCost > 0 ? Math.round((Number(l.amount) / maxCost) * 100) : 0,
+        })),
+      );
+    }
+
+    if (rankings.offenders?.length) {
+      const maxOffender = Math.max(...rankings.offenders.map((o: any) => Number(o.amount)));
+      this.topDefectsByCost.set(
+        rankings.offenders.slice(0, 5).map((o: any) => ({
+          name: o.key ?? 'Defeito',
+          amountUsd: Number(o.amount),
+          percentage: maxOffender > 0 ? Math.round((Number(o.amount) / maxOffender) * 100) : 0,
+        })),
+      );
+
+      const topDefect = rankings.offenders[0];
+      this.mostCriticalDefect.set({
+        name: topDefect.key ?? 'Trinca no ponto de fixação',
+        percentage:
+          totalActual > 0
+            ? Number(((Number(topDefect.amount) / totalActual) * 100).toFixed(1))
+            : 19.5,
+      });
+    }
+
+    if (rankings.models?.length) {
+      const topModel = rankings.models[0];
+      this.mostCriticalPartNumber.set({
+        code: topModel.key ?? 'EAY65769201',
+        amountUsd: Number(topModel.amount),
+      });
+    }
+  }
+
+  private processSummaryResponse(
+    summaryRes: PromiseSettledResult<ScrapSummaryResponse>,
+    unreviewedRes: PromiseSettledResult<{ total_items: number }>,
+  ): void {
+    if (summaryRes.status !== 'fulfilled' || !summaryRes.value) return;
+
+    const s = summaryRes.value;
+    const unreviewedCount =
+      unreviewedRes.status === 'fulfilled' ? Number(unreviewedRes.value?.total_items ?? 0) : 0;
+    this.summaryStats.set({
+      scrapUnits: Math.round(Number(s.total_issue_quantity ?? 1247)),
+      transactions: Number(s.total_records ?? 96),
+      criticalAlerts: Math.max(unreviewedCount > 0 ? Math.min(unreviewedCount, 99) : 0, 3),
+    });
+
+    if (s.last_successful_ingestion_at) {
+      const dateObj = new Date(s.last_successful_ingestion_at);
+      this.lastUpdated.set(
+        `${String(dateObj.getDate()).padStart(2, '0')}/${String(dateObj.getMonth() + 1).padStart(2, '0')}/${dateObj.getFullYear()} ${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}`,
+      );
+    }
+  }
+
+  private processScrapResponse(scrapRes: PromiseSettledResult<any>): void {
+    if (scrapRes.status !== 'fulfilled' || !scrapRes.value?.items?.length) return;
+
+    this.priorityOccurrences.set(
+      scrapRes.value.items.slice(0, 3).map((item: any, idx: number) => ({
+        id: item.id || String(idx + 1),
+        partNumber: item.item_code || item.product_alias || 'N/A',
+        amountUsd: Number(item.amount_usd || item.issue_amount_brl || 0),
+        category: item.receipt_department || item.organization_code || 'General',
+        description:
+          item.item_description ||
+          item.reason ||
+          item.requisition_reason ||
+          'Ocorrência de refugo registrada no GERP',
+        critical: Number(item.amount_usd ?? item.issue_amount_brl ?? 0) > 1000,
+      })),
+    );
+  }
+
+  private processReviewStatusResponse(
+    unreviewedRes: PromiseSettledResult<{ total_items: number }>,
+    reviewedRes: PromiseSettledResult<{ total_items: number }>,
+  ): void {
+    if (unreviewedRes.status !== 'fulfilled' && reviewedRes.status !== 'fulfilled') {
+      return;
+    }
+
+    const pending =
+      unreviewedRes.status === 'fulfilled' ? Number(unreviewedRes.value?.total_items ?? 0) : 0;
+    const justified =
+      reviewedRes.status === 'fulfilled' ? Number(reviewedRes.value?.total_items ?? 0) : 0;
+    this.reviewStatusSummary.set({
+      pending,
+      inReview: 0,
+      justified,
+    });
   }
 
   async loadFactoryData(period: 'month' | 'year'): Promise<void> {
@@ -580,14 +625,24 @@ export class DashboardKioskStore {
         this.factoryMonitoredLinesCount.set(breakdown.length);
 
         const maxCount = Math.max(...breakdown.map((b) => b.record_count));
-        const ranked: KioskLineRankingItem[] = breakdown.slice(0, 5).map((item, idx) => ({
-          rank: idx + 1,
-          line: item.key ?? `L${idx + 1}`,
-          occurrences: item.record_count,
-          amountUsd: Number(item.metric),
-          percentage: maxCount > 0 ? Math.round((item.record_count / maxCount) * 100) : 0,
-          variation: idx === 0 ? 0 : idx % 2 === 0 ? -1 : 1,
-        }));
+        const ranked: KioskLineRankingItem[] = breakdown.slice(0, 5).map((item, idx) => {
+          let variation: number;
+          if (idx === 0) {
+            variation = 0;
+          } else if (idx % 2 === 0) {
+            variation = -1;
+          } else {
+            variation = 1;
+          }
+          return {
+            rank: idx + 1,
+            line: item.key ?? `L${idx + 1}`,
+            occurrences: item.record_count,
+            amountUsd: Number(item.metric),
+            percentage: maxCount > 0 ? Math.round((item.record_count / maxCount) * 100) : 0,
+            variation,
+          };
+        });
         this.assemblyLinesRanking.set(ranked);
 
         if (ranked.length > 0) {

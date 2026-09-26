@@ -10,12 +10,18 @@ REDIS_INSTALLED = importlib.util.find_spec("redis") is not None
 
 if MEMCACHED_INSTALLED:
     from .backends import MemcachedBackend, MemcachedSettings
+else:
+    MemcachedBackend = None
+    MemcachedSettings = None
 
 if REDIS_INSTALLED:
     from .backends import RedisBackend, RedisSettings
+else:
+    RedisBackend = None
+    RedisSettings = None
 
 
-async def initialize_rate_limiter() -> None:
+def initialize_rate_limiter() -> None:
     """Initialize the rate limiter backends.
 
     This function initializes the rate limiter backends based on the application settings.
@@ -27,7 +33,7 @@ async def initialize_rate_limiter() -> None:
         return
 
     if settings.RATE_LIMITER_BACKEND == CacheBackend.MEMCACHED.value:
-        if not MEMCACHED_INSTALLED:
+        if not MEMCACHED_INSTALLED or MemcachedSettings is None or MemcachedBackend is None:
             raise ImportError("The aiomcache package is not installed. Please install it with 'pip install aiomcache'.")
 
         memcached_settings = MemcachedSettings(
@@ -39,7 +45,7 @@ async def initialize_rate_limiter() -> None:
         rate_limiter_provider.register_backend(CacheBackend.MEMCACHED.value, memcached_backend, default=True)
 
     elif settings.RATE_LIMITER_BACKEND == CacheBackend.REDIS.value:
-        if not REDIS_INSTALLED:
+        if not REDIS_INSTALLED or RedisSettings is None or RedisBackend is None:
             raise ImportError("The redis package is not installed. Please install it with 'pip install redis'.")
 
         redis_settings = RedisSettings(
@@ -67,10 +73,12 @@ async def close_rate_limiter() -> None:
 
     if settings.RATE_LIMITER_BACKEND == CacheBackend.MEMCACHED.value and MEMCACHED_INSTALLED:
         backend = rate_limiter_provider.get_backend(CacheBackend.MEMCACHED.value)
-        if hasattr(backend, "client") and hasattr(backend.client, "close"):
-            await backend.client.close()
+        client = getattr(backend, "client", None)
+        if client is not None and hasattr(client, "close"):
+            await client.close()
 
     elif settings.RATE_LIMITER_BACKEND == CacheBackend.REDIS.value and REDIS_INSTALLED:
         backend = rate_limiter_provider.get_backend(CacheBackend.REDIS.value)
-        if hasattr(backend, "client") and hasattr(backend.client, "close"):
-            await backend.client.close()
+        client = getattr(backend, "client", None)
+        if client is not None and hasattr(client, "close"):
+            await client.close()

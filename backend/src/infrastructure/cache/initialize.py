@@ -3,16 +3,11 @@
 from ..config import CacheBackend
 from ..config.settings import get_settings
 from . import MEMCACHED_INSTALLED, REDIS_INSTALLED
+from .backends import MemcachedBackend, MemcachedSettings, RedisBackend, RedisSettings
 from .provider import cache_provider
 
-if MEMCACHED_INSTALLED:
-    from .backends import MemcachedBackend, MemcachedSettings
 
-if REDIS_INSTALLED:
-    from .backends import RedisBackend, RedisSettings
-
-
-async def initialize_cache() -> None:
+def initialize_cache() -> None:
     """Initialize the cache backends.
 
     This function initializes the cache backends based on the application settings.
@@ -27,6 +22,9 @@ async def initialize_cache() -> None:
         if not MEMCACHED_INSTALLED:
             raise ImportError("The aiomcache package is not installed. Please install it with 'pip install aiomcache'.")
 
+        if MemcachedSettings is None or MemcachedBackend is None:
+            raise ImportError("MemcachedBackend or MemcachedSettings is not available from .backends")
+
         memcached_settings = MemcachedSettings(
             host=settings.CACHE_MEMCACHED_HOST,
             port=settings.CACHE_MEMCACHED_PORT,
@@ -39,6 +37,9 @@ async def initialize_cache() -> None:
     elif settings.CACHE_BACKEND == CacheBackend.REDIS.value:
         if not REDIS_INSTALLED:
             raise ImportError("The redis package is not installed. Please install it with 'pip install redis'.")
+
+        if RedisSettings is None or RedisBackend is None:
+            raise ImportError("RedisBackend or RedisSettings is not available from .backends")
 
         redis_settings = RedisSettings(
             url=settings.REDIS_URL or settings.CACHE_REDIS_URL or None,
@@ -65,10 +66,12 @@ async def close_cache() -> None:
 
     if settings.CACHE_BACKEND == CacheBackend.MEMCACHED.value and MEMCACHED_INSTALLED:
         backend = cache_provider.get_backend(CacheBackend.MEMCACHED.value)
-        if hasattr(backend, "client") and hasattr(backend.client, "close"):
-            await backend.client.close()
+        client = getattr(backend, "client", None)
+        if client is not None and hasattr(client, "close"):
+            await client.close()
 
     elif settings.CACHE_BACKEND == CacheBackend.REDIS.value and REDIS_INSTALLED:
         backend = cache_provider.get_backend(CacheBackend.REDIS.value)
-        if hasattr(backend, "client") and hasattr(backend.client, "close"):
-            await backend.client.close()
+        client = getattr(backend, "client", None)
+        if client is not None and hasattr(client, "close"):
+            await client.close()

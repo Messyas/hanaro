@@ -2,7 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, EventEmitter, Input, Output, computed, inject, signal } from '@angular/core';
 import { DialogRef } from '@angular/cdk/dialog';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { finalize } from 'rxjs';
+import { filter, finalize, throwIfEmpty } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { LanguageCode, LanguageService } from '../../core/i18n/language.service';
 import { UiIcon } from '../../shared/components/ui-icon/ui-icon';
@@ -146,29 +146,34 @@ export class LoginDialog {
     this.auth
       .login(credentials.username, credentials.password)
       .pipe(
+        filter(Boolean),
+        throwIfEmpty(() => new Error('Authentication was not confirmed')),
         finalize(() => {
           this.submitting.set(false);
           this.form.enable({ emitEvent: false });
         }),
       )
       .subscribe({
-        next: (authenticated) => {
-          if (authenticated) {
-            this.form.controls.password.reset('');
-            if (this.standalone) {
-              this.authenticated.emit();
-            } else {
-              this.dialogRef?.close(true);
-            }
-          } else {
-            this.errorMessage.set(this.copy().unavailable);
-          }
-        },
-        error: (error: HttpErrorResponse) => this.handleError(error),
+        next: () => this.completeAuthentication(),
+        error: (error: unknown) => this.handleError(error),
       });
   }
 
-  private handleError(error: HttpErrorResponse): void {
+  private completeAuthentication(): void {
+    this.form.controls.password.reset('');
+    if (this.standalone) {
+      this.authenticated.emit();
+    } else {
+      this.dialogRef?.close(true);
+    }
+  }
+
+  private handleError(error: unknown): void {
+    if (!(error instanceof HttpErrorResponse)) {
+      this.errorMessage.set(this.copy().unavailable);
+      return;
+    }
+
     if (error.status === 401 || error.status === 403) {
       this.errorMessage.set(this.copy().invalid);
       return;

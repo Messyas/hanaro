@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { ObjectUrlRegistry } from '../../../../core/browser/object-url-registry';
+import { ObjectUrlRegistry } from '../object-url-registry';
 
 export interface ScrapAttachmentPreview {
   readonly url: string;

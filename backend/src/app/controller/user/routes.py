@@ -37,6 +37,7 @@ router = APIRouter(tags=["Users"])
 logger = get_logger()
 
 UNEXPECTED_ERROR_DETAIL = "An unexpected error occurred"
+USER_NOT_FOUND_DETAIL = "User not found"
 
 
 @router.get("/admin/all", response_model=UserAdminPage)
@@ -73,9 +74,9 @@ async def set_managed_user_status(
 
     user = await db.get(User, user_id)
     if user is None:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail=USER_NOT_FOUND_DETAIL)
     if user.deleted_at is not None:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail=USER_NOT_FOUND_DETAIL)
     if user.id == admin["id"]:
         raise HTTPException(status_code=403, detail="You cannot deactivate your own account")
     user.is_deleted = not values.is_active
@@ -96,7 +97,7 @@ async def update_managed_user(
 
     user = await db.get(User, user_id)
     if user is None or user.deleted_at is not None:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail=USER_NOT_FOUND_DETAIL)
     if user.id == admin["id"] and values.role != "admin":
         raise HTTPException(status_code=403, detail="You cannot remove your own administrator access")
 
@@ -120,7 +121,7 @@ async def remove_managed_user(user_id: int, db: AsyncSessionDep, admin: CurrentS
 
     user = await db.get(User, user_id)
     if user is None or user.deleted_at is not None:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail=USER_NOT_FOUND_DETAIL)
     if user.id == admin["id"]:
         raise HTTPException(status_code=403, detail="You cannot delete your own account")
     # Preserve references from reports and audit records.

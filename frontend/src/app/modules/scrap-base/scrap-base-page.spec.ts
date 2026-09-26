@@ -10,6 +10,7 @@ import { ScrapBaseService } from './list/scrap-base.service';
 import { ScrapReviewService } from './review/scrap-review.service';
 import { DefectTypesService } from './review/defect-types.service';
 import { ScrapTemplateStore } from './templates/scrap-template.store';
+import { ScrapListStore } from './list/scrap-list.store';
 
 describe('ScrapBasePage', () => {
   let component: ScrapBasePage;
@@ -87,6 +88,7 @@ describe('ScrapBasePage', () => {
       providers: [
         provideRouter([]),
         LanguageService,
+        ScrapListStore,
         { provide: ScrapBaseService, useValue: scrapBaseServiceMock },
         { provide: ScrapReviewService, useValue: scrapReviewServiceMock },
         { provide: DefectTypesService, useValue: scrapReviewServiceMock },

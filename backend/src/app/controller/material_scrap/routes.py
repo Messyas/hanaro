@@ -361,43 +361,64 @@ async def fail_automation_execution(
     return await get_execution_detail(execution_id, db)
 
 
+class ExecutionListQuery:
+    def __init__(
+        self,
+        date_from: date | None = None,
+        date_to: date | None = None,
+        status: AutomationExecutionStatus | None = Query(default=None, alias="status"),
+        mode: AutomationMode | None = None,
+        trigger: AutomationTrigger | None = None,
+        snapshot_status: AutomationSnapshotStatus | None = None,
+        failure_category: str | None = Query(default=None, max_length=80),
+        execution_id: uuid.UUID | None = None,
+        gerp_request_id: str | None = Query(default=None, max_length=100),
+        search: str | None = Query(default=None, max_length=200),
+        page: int = Query(default=1, ge=1),
+        page_size: int = Query(default=25, ge=1, le=100),
+        sort_by: ExecutionSortField = ExecutionSortField.STARTED_AT,
+        sort_order: SortOrder = SortOrder.DESC,
+    ) -> None:
+        self.date_from = date_from
+        self.date_to = date_to
+        self.status = status
+        self.mode = mode
+        self.trigger = trigger
+        self.snapshot_status = snapshot_status
+        self.failure_category = failure_category
+        self.execution_id = execution_id
+        self.gerp_request_id = gerp_request_id
+        self.search = search
+        self.page = page
+        self.page_size = page_size
+        self.sort_by = sort_by
+        self.sort_order = sort_order
+
+
 @scrap_router.get("/executions", response_model=ExecutionPage)
 async def read_automation_executions(
     db: AsyncSessionDep,
     _: CurrentUserDep,
-    date_from: date | None = None,
-    date_to: date | None = None,
-    status_filter: AutomationExecutionStatus | None = Query(default=None, alias="status"),
-    mode: AutomationMode | None = None,
-    trigger: AutomationTrigger | None = None,
-    snapshot_status: AutomationSnapshotStatus | None = None,
-    failure_category: str | None = Query(default=None, max_length=80),
-    execution_id: uuid.UUID | None = None,
-    gerp_request_id: str | None = Query(default=None, max_length=100),
-    search: str | None = Query(default=None, max_length=200),
-    page: int = Query(default=1, ge=1),
-    page_size: int = Query(default=25, ge=1, le=100),
-    sort_by: ExecutionSortField = ExecutionSortField.STARTED_AT,
-    sort_order: SortOrder = SortOrder.DESC,
+    query: Annotated[ExecutionListQuery, Depends()],
 ) -> ExecutionPage:
-    if date_from and date_to and date_to < date_from:
+    if query.date_from and query.date_to and query.date_to < query.date_from:
         raise HTTPException(status_code=422, detail="date_to must not be before date_from")
     return await list_executions(
         db,
-        page=page,
-        page_size=page_size,
-        date_from=datetime.combine(date_from, time.min, tzinfo=UTC) if date_from else None,
-        date_to=datetime.combine(date_to, time.max, tzinfo=UTC) if date_to else None,
-        status_filter=status_filter,
-        mode=mode.value if mode else None,
-        trigger=trigger.value if trigger else None,
-        snapshot_status=snapshot_status,
-        failure_category=failure_category,
-        execution_id=execution_id,
-        gerp_request_id=gerp_request_id,
-        search=search,
-        sort_by=sort_by,
-        sort_order=sort_order,
+        page=query.page,
+        page_size=query.page_size,
+        date_from=datetime.combine(query.date_from, time.min, tzinfo=UTC) if query.date_from else None,
+        date_to=datetime.combine(query.date_to, time.max, tzinfo=UTC) if query.date_to else None,
+        status_filter=query.status,
+        mode=query.mode.value if query.mode else None,
+        trigger=query.trigger.value if query.trigger else None,
+        snapshot_status=query.snapshot_status,
+        failure_category=query.failure_category,
+        execution_id=query.execution_id,
+        gerp_request_id=query.gerp_request_id,
+        search=query.search,
+        sort_by=query.sort_by,
+        sort_order=query.sort_order,
     )
 
 

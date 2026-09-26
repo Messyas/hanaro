@@ -405,6 +405,7 @@ class TaskiqSettings(BaseSettings):
     TASKIQ_RABBITMQ_USER: str = config("TASKIQ_RABBITMQ_USER", default="guest")
     TASKIQ_RABBITMQ_PASSWORD: str = config("TASKIQ_RABBITMQ_PASSWORD", default="guest")
     TASKIQ_RABBITMQ_VHOST: str = config("TASKIQ_RABBITMQ_VHOST", default="/")
+    TASKIQ_RABBITMQ_PROTOCOL: str = config("TASKIQ_RABBITMQ_PROTOCOL", default="amqps")
 
     TASKIQ_WORKER_CONCURRENCY: int = config("TASKIQ_WORKER_CONCURRENCY", default=2, cast=int)
     TASKIQ_MAX_TASKS_PER_WORKER: int = config("TASKIQ_MAX_TASKS_PER_WORKER", default=1000, cast=int)
@@ -425,7 +426,10 @@ class TaskiqSettings(BaseSettings):
             vhost = self.TASKIQ_RABBITMQ_VHOST
             if vhost.startswith("/"):
                 vhost = vhost[1:]
-            return f"amqp://{self.TASKIQ_RABBITMQ_USER}:{self.TASKIQ_RABBITMQ_PASSWORD}@{self.TASKIQ_RABBITMQ_HOST}:{self.TASKIQ_RABBITMQ_PORT}/{vhost}"
+            protocol = self.TASKIQ_RABBITMQ_PROTOCOL.strip().lower()
+            if protocol not in {"amqp", "amqps"}:
+                protocol = "amqps"
+            return f"{protocol}://{self.TASKIQ_RABBITMQ_USER}:{self.TASKIQ_RABBITMQ_PASSWORD}@{self.TASKIQ_RABBITMQ_HOST}:{self.TASKIQ_RABBITMQ_PORT}/{vhost}"
         else:
             raise ValueError(f"Unsupported broker type: {self.TASKIQ_BROKER_TYPE}")
 

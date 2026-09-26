@@ -14,7 +14,7 @@ import { ScrapBaseService } from './scrap-base.service';
 
 const PAGE_SIZES = [25, 50, 100, 200] as const;
 
-@Injectable({ providedIn: 'root' })
+@Injectable()
 export class ScrapListStore {
   private readonly scrapBaseService = inject(ScrapBaseService);
   private readonly authService = inject(AuthService);

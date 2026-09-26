@@ -24,13 +24,14 @@ export const apiCacheInterceptor: HttpInterceptorFn = (request, next) => {
   const existing = cache.getInFlight(key);
   if (existing) return existing;
 
+  const generation = cache.currentGeneration();
   const events$ = defer(() => next(request)) as Observable<HttpEvent<unknown>>;
   const request$: Observable<HttpResponse<unknown>> = events$.pipe(
     filter((event): event is HttpResponse<unknown> => event instanceof HttpResponse),
     tap((response) => {
-      if (response.status >= 200 && response.status < 300) cache.set(request, response);
+      if (response.status >= 200 && response.status < 300) cache.set(request, response, generation);
     }),
-    finalize(() => cache.removeInFlight(key)),
+    finalize(() => cache.removeInFlight(key, request$)),
     shareReplay({ bufferSize: 1, refCount: false }),
   );
   cache.setInFlight(key, request$);

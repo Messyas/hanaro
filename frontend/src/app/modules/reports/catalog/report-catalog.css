@@ -1,0 +1,316 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+.reports-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.btn {
+  display: inline-flex;
+  min-height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  border: 1px solid transparent;
+  border-radius: 0.65rem;
+  padding: 0.5rem 0.9rem;
+  color: var(--app-text);
+  background: var(--app-surface);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms ease;
+}
+.btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+.btn:focus-visible {
+  outline: 2px solid var(--app-focus-ring);
+  outline-offset: 2px;
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-primary {
+  background: var(--brand-primary);
+  color: var(--brand-primary-contrast);
+  box-shadow: var(--app-shadow-brand);
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--brand-primary-hover);
+}
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-secondary {
+  background: var(--app-surface);
+  color: var(--app-text);
+  border-color: var(--app-card-border);
+}
+.btn-secondary:hover:not(:disabled) {
+  background: var(--app-surface-muted);
+}
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--app-text-secondary);
+}
+.btn-ghost:hover:not(:disabled) {
+  background: var(--app-surface-muted);
+  color: var(--app-text);
+}
+.btn-success {
+  background: var(--brand-primary);
+  color: var(--brand-primary-contrast);
+  box-shadow: var(--app-shadow-brand);
+}
+.btn-success:hover:not(:disabled) {
+  background: var(--brand-primary-hover);
+}
+.btn-sm {
+  min-height: 2rem;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.78rem;
+}
+.btn-icon {
+  width: 2.4rem;
+  padding: 0;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  color: var(--app-text-secondary);
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+.field input,
+.field select,
+.field textarea,
+.picker-search input {
+  width: 100%;
+  min-height: 2.55rem;
+  border: 1px solid var(--app-card-border);
+  border-radius: 0.6rem;
+  padding: 0.55rem 0.7rem;
+  color: var(--app-text);
+  background: var(--app-surface);
+  font: inherit;
+  font-weight: 450;
+  accent-color: var(--brand-primary);
+  caret-color: var(--brand-primary);
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    background-color 150ms ease;
+}
+.field input:hover:not(:focus),
+.field select:hover:not(:focus),
+.field textarea:hover:not(:focus),
+.picker-search input:hover:not(:focus) {
+  border-color: var(--brand-primary-border);
+}
+.field input:focus,
+.field select:focus,
+.field textarea:focus,
+.picker-search input:focus,
+.field input:focus-visible,
+.field select:focus-visible,
+.field textarea:focus-visible,
+.picker-search input:focus-visible {
+  outline: none;
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 2px var(--app-focus-ring);
+}
+.field textarea {
+  resize: vertical;
+  line-height: 1.45;
+}
+
+.search-field {
+  flex: 1;
+  max-width: 34rem;
+}
+.status-field {
+  width: 12rem;
+}
+.loading-block {
+  display: grid;
+  min-height: 8rem;
+  place-items: center;
+  color: var(--app-text-secondary);
+}
+
+.report-list-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.report-title-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.report-title-text {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--app-text-strong);
+}
+
+.report-desc-text {
+  font-size: 0.75rem;
+  color: var(--app-text-secondary);
+}
+
+.report-table-frame {
+  position: relative;
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--app-border-soft);
+  border-radius: 0.6rem;
+  background: var(--app-surface);
+}
+.report-table {
+  width: 100%;
+  min-width: 68rem;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+}
+.report-table th {
+  padding: 0.75rem 0.9rem;
+  border-bottom: 1px solid var(--app-divider);
+  color: var(--app-text-secondary);
+  text-align: left;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.report-table td {
+  padding: 0.85rem 0.9rem;
+  border-bottom: 1px solid var(--app-divider);
+  vertical-align: middle;
+}
+.report-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+.report-table tbody tr:hover {
+  background: var(--app-surface-muted);
+}
+.report-code {
+  font-variant-numeric: tabular-nums;
+  color: var(--app-text-secondary);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+.report-link {
+  display: flex;
+  width: 100%;
+  max-width: 32rem;
+  flex-direction: column;
+  gap: 0.15rem;
+  border: 0;
+  padding: 0;
+  color: var(--app-text);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+.report-link strong {
+  color: var(--app-text-strong);
+  font-size: 0.9rem;
+}
+.report-link span {
+  overflow: hidden;
+  color: var(--app-text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.numeric {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: var(--app-overlay, rgba(0, 0, 0, 0.54));
+  animation: fade-in 160ms ease-out;
+}
+.create-dialog {
+  width: min(32rem, 100%);
+  border-radius: 0.9rem;
+  padding: 1.1rem;
+  background: var(--app-surface);
+  box-shadow: 0 20px 55px rgba(0, 0, 0, 0.24);
+  animation: dialog-in 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.dialog-heading,
+.dialog-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.dialog-heading h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+.create-dialog .field {
+  margin-top: 0.9rem;
+}
+.dialog-actions {
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn,
+  .dialog-backdrop,
+  .create-dialog {
+    animation: none;
+    transition: none;
+  }
+}
+
+@media (max-width: 700px) {
+  .reports-header {
+    gap: 0.7rem;
+  }
+}

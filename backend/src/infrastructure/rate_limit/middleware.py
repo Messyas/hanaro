@@ -26,7 +26,7 @@ DEFAULT_LIMIT = settings.DEFAULT_RATE_LIMIT_LIMIT
 DEFAULT_PERIOD = settings.DEFAULT_RATE_LIMIT_PERIOD
 
 
-async def get_optional_user(request: Request) -> dict[str, Any] | None:
+def get_optional_user(request: Request) -> dict[str, Any] | None:
     """Get the current user from the request, or None if not authenticated.
 
     This is a simplified version that assumes the user is stored in request.state.user.

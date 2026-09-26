@@ -182,6 +182,8 @@
           [class.active]="store.metric() === 'qty'"
           [attr.aria-checked]="store.metric() === 'qty'"
           [attr.aria-label]="text().metricGroupAria"
+          appPrefetchOnIntent
+          (prefetchIntent)="store.prefetchMetric(store.metric() === 'usd' ? 'qty' : 'usd')"
           (click)="toggleMetric()"
         >
           <span></span>
@@ -193,19 +195,33 @@
   @if (store.analysis() === 'absolute') {
     <section
       class="kpi-summary-panel"
+      [class.loading]="store.dataState() === 'loading'"
+      [attr.aria-busy]="store.dataState() === 'loading'"
       [class.quantity-mode]="store.metric() === 'qty'"
       [attr.aria-label]="text().absoluteSummaryAria"
     >
       <div class="kpi-summary-lead">
         <span>{{ periodLabel() }}</span>
-        <strong>{{ formatPrimaryValue(store.kpis().actual) }}</strong>
+        <strong>
+          @if (store.dataState() === 'loading') {
+            <app-dashboard-chart-skeleton [compact]="true" />
+          } @else {
+            {{ formatPrimaryValue(store.kpis().actual) }}
+          }
+        </strong>
         <small>{{ store.metric() === 'usd' ? text().ifCostActual : text().qtyActual }}</small>
       </div>
       @if (store.metric() === 'usd') {
         <div class="kpi-summary-metrics">
           <div class="kpi-summary-metric">
             <span>{{ text().ifCostTarget }}</span>
-            <strong>{{ formatPrimaryValue(store.kpis().target) }}</strong>
+            <strong>
+              @if (store.dataState() === 'loading') {
+                <app-dashboard-chart-skeleton [compact]="true" />
+              } @else {
+                {{ formatPrimaryValue(store.kpis().target) }}
+              }
+            </strong>
             <small>
               {{
                 store.comparison() === 'ytd'
@@ -221,8 +237,12 @@
           >
             <span class="kpi-metric-label">{{ text().targetAchievement }}</span>
             <strong class="kpi-value-with-icon">
-              {{ formatPercentage(store.kpis().achievement, false) }}
-              <ui-icon [name]="targetGapReached() ? 'arrow-down' : 'arrow-up'" />
+              @if (store.dataState() === 'loading') {
+                <app-dashboard-chart-skeleton [compact]="true" />
+              } @else {
+                {{ formatPercentage(store.kpis().achievement, false) }}
+                <ui-icon [name]="targetGapReached() ? 'arrow-down' : 'arrow-up'" />
+              }
             </strong>
             <small>{{ targetAchievementDeltaLabel() }}</small>
           </div>
@@ -233,8 +253,12 @@
           >
             <span class="kpi-metric-label">{{ text().targetGapAmount }}</span>
             <strong class="kpi-value-with-icon">
-              {{ targetGapValueLabel() }}
-              <ui-icon [name]="targetGapReached() ? 'check' : 'arrow-up'" />
+              @if (store.dataState() === 'loading') {
+                <app-dashboard-chart-skeleton [compact]="true" />
+              } @else {
+                {{ targetGapValueLabel() }}
+                <ui-icon [name]="targetGapReached() ? 'check' : 'arrow-up'" />
+              }
             </strong>
             <small>{{ targetGapHintLabel() }}</small>
           </div>
@@ -245,8 +269,12 @@
           >
             <span class="kpi-metric-label">{{ text().ifCostVariation }}</span>
             <strong class="kpi-value-with-icon">
-              {{ formatPercentage(store.kpis().variation) }}
-              <ui-icon [name]="store.kpis().variation <= 0 ? 'arrow-down' : 'arrow-up'" />
+              @if (store.dataState() === 'loading') {
+                <app-dashboard-chart-skeleton [compact]="true" />
+              } @else {
+                {{ formatPercentage(store.kpis().variation) }}
+                <ui-icon [name]="store.kpis().variation <= 0 ? 'arrow-down' : 'arrow-up'" />
+              }
             </strong>
             <small>{{ comparisonLabel() }}</small>
           </div>
@@ -255,7 +283,13 @@
         <div class="kpi-summary-metrics compact">
           <div class="kpi-summary-metric">
             <span>{{ text().quantityReference }}</span>
-            <strong>{{ formatPrimaryValue(store.kpis().reference) }}</strong>
+            <strong>
+              @if (store.dataState() === 'loading') {
+                <app-dashboard-chart-skeleton [compact]="true" />
+              } @else {
+                {{ formatPrimaryValue(store.kpis().reference) }}
+              }
+            </strong>
             <small>{{ comparisonLabel() }}</small>
           </div>
           <div
@@ -265,8 +299,12 @@
           >
             <span class="kpi-metric-label">{{ text().qtyVariation }}</span>
             <strong class="kpi-value-with-icon">
-              {{ formatPercentage(store.kpis().variation) }}
-              <ui-icon [name]="store.kpis().variation <= 0 ? 'arrow-down' : 'arrow-up'" />
+              @if (store.dataState() === 'loading') {
+                <app-dashboard-chart-skeleton [compact]="true" />
+              } @else {
+                {{ formatPercentage(store.kpis().variation) }}
+                <ui-icon [name]="store.kpis().variation <= 0 ? 'arrow-down' : 'arrow-up'" />
+              }
             </strong>
             <small>{{ comparisonLabel() }}</small>
           </div>
@@ -274,27 +312,50 @@
       }
     </section>
   } @else {
-    <section class="kpi-summary-panel" [attr.aria-label]="text().relativeSummaryAria">
+    <section
+      class="kpi-summary-panel"
+      [class.loading]="store.dataState() === 'loading'"
+      [attr.aria-busy]="store.dataState() === 'loading'"
+      [attr.aria-label]="text().relativeSummaryAria"
+    >
       <div class="kpi-summary-lead">
         <span>{{ periodLabel() }}</span>
-        <strong>{{ formatRate(store.relativeKpis().rate) }}</strong>
+        <strong>
+          @if (store.dataState() === 'loading') {
+            <app-dashboard-chart-skeleton [compact]="true" />
+          } @else {
+            {{ formatRate(store.relativeKpis().rate) }}
+          }
+        </strong>
         <small>{{ store.metric() === 'usd' ? text().ifCostRate : text().qtyRate }}</small>
       </div>
       <div class="kpi-summary-metrics compact">
         <div class="kpi-summary-metric">
           <span>{{ store.metric() === 'usd' ? text().ifCostSlice : text().qtySlice }}</span>
-          <strong>{{ formatPrimaryValue(store.relativeKpis().numerator) }}</strong>
+          <strong>
+            @if (store.dataState() === 'loading') {
+              <app-dashboard-chart-skeleton [compact]="true" />
+            } @else {
+              {{ formatPrimaryValue(store.relativeKpis().numerator) }}
+            }
+          </strong>
           <small>{{ text().rateNumerator }}</small>
         </div>
         <div class="kpi-summary-metric">
           <span>{{
             store.metric() === 'usd' ? text().materialAmount : text().producedQuantity
           }}</span>
-          <strong>{{
-            formatDenominator(
-              store.relativeKpis().rate === null ? null : store.relativeKpis().denominator
-            )
-          }}</strong>
+          <strong>
+            @if (store.dataState() === 'loading') {
+              <app-dashboard-chart-skeleton [compact]="true" />
+            } @else {
+              {{
+                formatDenominator(
+                  store.relativeKpis().rate === null ? null : store.relativeKpis().denominator
+                )
+              }}
+            }
+          </strong>
           <small>{{ text().sameRateSlice }}</small>
         </div>
         <div
@@ -306,9 +367,13 @@
             {{ text().rateVariation }}
           </span>
           <strong class="kpi-value-with-icon">
-            {{ formatPercentage(store.relativeKpis().variation) }}
-            @if (store.relativeKpis().variation !== null) {
-              <ui-icon [name]="relativeVariationIsFavorable() ? 'arrow-down' : 'arrow-up'" />
+            @if (store.dataState() === 'loading') {
+              <app-dashboard-chart-skeleton [compact]="true" />
+            } @else {
+              {{ formatPercentage(store.relativeKpis().variation) }}
+              @if (store.relativeKpis().variation !== null) {
+                <ui-icon [name]="relativeVariationIsFavorable() ? 'arrow-down' : 'arrow-up'" />
+              }
             }
           </strong>
           <small>{{ comparisonLabel() }}</small>
@@ -399,7 +464,13 @@
         </div>
       </div>
       @defer (on viewport) {
-        @if (hasPerformanceData()) {
+        @if (store.dataState() === 'loading') {
+          <app-dashboard-chart-skeleton />
+        } @else if (store.dataState() === 'error') {
+          <div class="chart-empty-state chart-load-error">
+            <strong>{{ text().chartLoadFailed }}</strong>
+          </div>
+        } @else if (hasPerformanceData()) {
           <app-dashboard-performance-chart
             [data]="performanceData()"
             [metric]="store.metric()"
@@ -417,7 +488,7 @@
           </div>
         }
       } @placeholder {
-        <div class="chart-defer-placeholder" aria-hidden="true"></div>
+        <app-dashboard-chart-skeleton />
       }
     </article>
     @if (store.analysis() === 'relative') {
@@ -429,7 +500,13 @@
           </div>
         </div>
         @defer (on viewport) {
-          @if (hasRelativeProductData()) {
+          @if (store.dataState() === 'loading') {
+            <app-dashboard-chart-skeleton />
+          } @else if (store.dataState() === 'error') {
+            <div class="chart-empty-state chart-load-error">
+              <strong>{{ text().chartLoadFailed }}</strong>
+            </div>
+          } @else if (hasRelativeProductData()) {
             <app-dashboard-distribution-chart
               [data]="relativeProductData()"
               [metric]="store.metric()"
@@ -444,7 +521,7 @@
             </div>
           }
         } @placeholder {
-          <div class="chart-defer-placeholder" aria-hidden="true"></div>
+          <app-dashboard-chart-skeleton />
         }
       </article>
     }
@@ -510,7 +587,13 @@
           </div>
         </div>
         @defer (on viewport) {
-          @if (hasDistributionData()) {
+          @if (store.dataState() === 'loading') {
+            <app-dashboard-chart-skeleton />
+          } @else if (store.dataState() === 'error') {
+            <div class="chart-empty-state chart-load-error">
+              <strong>{{ text().chartLoadFailed }}</strong>
+            </div>
+          } @else if (hasDistributionData()) {
             <app-dashboard-distribution-chart
               [data]="distributionData()"
               [metric]="store.metric()"
@@ -524,7 +607,7 @@
             </div>
           }
         } @placeholder {
-          <div class="chart-defer-placeholder" aria-hidden="true"></div>
+          <app-dashboard-chart-skeleton />
         }
       </article>
     }
@@ -572,7 +655,13 @@
           </div>
         </div>
         @defer (on viewport) {
-          @if (hasLinesData()) {
+          @if (store.dataState() === 'loading') {
+            <app-dashboard-chart-skeleton />
+          } @else if (store.dataState() === 'error') {
+            <div class="chart-empty-state chart-load-error">
+              <strong>{{ text().chartLoadFailed }}</strong>
+            </div>
+          } @else if (hasLinesData()) {
             <app-dashboard-distribution-chart
               [data]="linesData()"
               [metric]="store.metric()"
@@ -586,7 +675,7 @@
             </div>
           }
         } @placeholder {
-          <div class="chart-defer-placeholder" aria-hidden="true"></div>
+          <app-dashboard-chart-skeleton />
         }
       </article>
 
@@ -630,7 +719,13 @@
           </div>
         </div>
         @defer (on viewport) {
-          @if (hasModelsData()) {
+          @if (store.dataState() === 'loading') {
+            <app-dashboard-chart-skeleton />
+          } @else if (store.dataState() === 'error') {
+            <div class="chart-empty-state chart-load-error">
+              <strong>{{ text().chartLoadFailed }}</strong>
+            </div>
+          } @else if (hasModelsData()) {
             <app-dashboard-distribution-chart
               [data]="modelsData()"
               [metric]="store.metric()"
@@ -644,7 +739,7 @@
             </div>
           }
         } @placeholder {
-          <div class="chart-defer-placeholder" aria-hidden="true"></div>
+          <app-dashboard-chart-skeleton />
         }
       </article>
 
@@ -688,7 +783,13 @@
           </div>
         </div>
         @defer (on viewport) {
-          @if (hasComponentsData()) {
+          @if (store.dataState() === 'loading') {
+            <app-dashboard-chart-skeleton />
+          } @else if (store.dataState() === 'error') {
+            <div class="chart-empty-state chart-load-error">
+              <strong>{{ text().chartLoadFailed }}</strong>
+            </div>
+          } @else if (hasComponentsData()) {
             <app-dashboard-distribution-chart
               [data]="componentsData()"
               [metric]="store.metric()"
@@ -702,7 +803,7 @@
             </div>
           }
         } @placeholder {
-          <div class="chart-defer-placeholder" aria-hidden="true"></div>
+          <app-dashboard-chart-skeleton />
         }
       </article>
 
@@ -746,7 +847,13 @@
           </div>
         </div>
         @defer (on viewport) {
-          @if (hasOffendersData()) {
+          @if (store.dataState() === 'loading') {
+            <app-dashboard-chart-skeleton />
+          } @else if (store.dataState() === 'error') {
+            <div class="chart-empty-state chart-load-error">
+              <strong>{{ text().chartLoadFailed }}</strong>
+            </div>
+          } @else if (hasOffendersData()) {
             <app-dashboard-distribution-chart
               [data]="offendersData()"
               [metric]="store.metric()"
@@ -760,7 +867,7 @@
             </div>
           }
         } @placeholder {
-          <div class="chart-defer-placeholder" aria-hidden="true"></div>
+          <app-dashboard-chart-skeleton />
         }
       </article>
     </section>

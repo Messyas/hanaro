@@ -3,6 +3,7 @@ import { ScrapListStore } from './list/scrap-list.store';
 import { ScrapTemplateStore } from './templates/scrap-template.store';
 
 export const SCRAP_BASE_ROUTES: Routes = [
+  // Stores belong to each route injector and are shared with its child components.
   {
     path: '',
     providers: [ScrapListStore, ScrapTemplateStore],

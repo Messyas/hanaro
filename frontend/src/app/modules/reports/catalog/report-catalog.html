@@ -1,0 +1,206 @@
+<header class="reports-header">
+  <h1 class="page-title" id="reports-title">{{ c().title }}</h1>
+  <button type="button" class="btn btn-primary" (click)="showCreate.set(true)">
+    <ui-icon name="plus" />{{ c().create }}
+  </button>
+</header>
+
+<app-list-panel
+  [title]="'Histórico de relatórios'"
+  [meta]="reports() ? 'TOTAL: ' + reports()!.total : ''"
+>
+  <div list-actions class="report-list-actions">
+    <app-delayed-progress-spinner [active]="loading()" [ariaLabel]="c().loading" />
+    <app-list-filter-popover
+      [(open)]="filterOpen"
+      [activeCount]="activeFiltersCount()"
+      [triggerLabel]="c().filters"
+      [title]="c().filterTitle"
+      [clearLabel]="c().clearFilters"
+      [applyLabel]="c().applyFilters"
+      (cleared)="clearFilters()"
+      (applied)="loadReports()"
+    >
+      <app-list-filter-input
+        [(value)]="search"
+        [label]="c().search"
+        [placeholder]="c().search"
+        type="search"
+        (changed)="onSearch($event)"
+      />
+      <app-list-filter-select
+        [(value)]="statusFilter"
+        [options]="statusOptions()"
+        [label]="c().status"
+        [ariaLabel]="c().status"
+        (changed)="onStatus($event)"
+      />
+    </app-list-filter-popover>
+  </div>
+
+  @if (error()) {
+    <app-inline-alert [message]="error()!" />
+  }
+  @if (loading() && !reports()) {
+    <div class="loading-block" aria-live="polite">{{ c().loading }}</div>
+  } @else if (!reports()?.items?.length) {
+    <app-list-feedback kind="empty" [title]="c().empty" [message]="c().subtitle" />
+  } @else {
+    <div class="list-table-frame">
+      <table class="list-table report-table">
+        <thead>
+          <tr>
+            <th>{{ c().report }}</th>
+            <th style="width: 140px">{{ c().code }}</th>
+            <th class="align-center" style="width: 130px">{{ c().status }}</th>
+            <th>{{ c().author }}</th>
+            <th class="align-right" style="width: 120px">{{ c().occurrences }}</th>
+            <th>{{ c().updated }}</th>
+            <th>{{ c().publication }}</th>
+            <th class="align-right" style="width: 110px">
+              <span class="sr-only">{{ c().actions }}</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (report of reports()!.items; track report.id) {
+            <tr class="clickable-row" (click)="openReport(report.id)">
+              <td>
+                <div class="report-title-cell">
+                  <strong class="report-title-text">{{ report.title }}</strong>
+                  @if (report.description) {
+                    <span class="report-desc-text">{{ report.description }}</span>
+                  }
+                </div>
+              </td>
+              <td class="report-code">{{ report.code }}</td>
+              <td class="align-center">
+                <app-status-badge
+                  [label]="report.status === 'PUBLISHED' ? c().published : c().draft"
+                  [tone]="report.status === 'PUBLISHED' ? 'success' : 'warning'"
+                />
+              </td>
+              <td>{{ report.author_name || '—' }}</td>
+              <td class="align-right">{{ report.occurrence_count || 0 }}</td>
+              <td>{{ formatDate(report.updated_at) }}</td>
+              <td>{{ formatDate(report.latest_publication) }}</td>
+              <td class="align-right">
+                <button
+                  type="button"
+                  class="btn btn-ghost btn-xs"
+                  (click)="$event.stopPropagation(); openReport(report.id)"
+                  [attr.aria-label]="c().edit + ' ' + report.title"
+                >
+                  <ui-icon name="pencil" />
+                  {{ c().edit }}
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <app-list-pagination
+      [page]="page()"
+      [totalPages]="reports()!.total_pages"
+      [pageSize]="pageSize()"
+      [pageSizes]="pageSizes"
+      pageLabel="Página"
+      ofLabel="de"
+      perPageLabel="Por página"
+      [previousLabel]="c().previous"
+      [nextLabel]="c().next"
+      (pageSizeChanged)="onPageSize($event)"
+      (previous)="previousPage()"
+      (next)="nextPage()"
+    />
+  }
+</app-list-panel>
+
+@if (showCreate()) {
+  <div class="dialog-backdrop" (click)="showCreate.set(false)">
+    <form
+      class="create-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="create-heading"
+      (submit)="createReport(); $event.preventDefault()"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="dialog-heading">
+        <h2 id="create-heading">{{ c().newTitle }}</h2>
+        <button
+          type="button"
+          class="btn btn-ghost btn-icon"
+          (click)="showCreate.set(false)"
+          [attr.aria-label]="c().close"
+        >
+          <ui-icon name="x" />
+        </button>
+      </div>
+      <label class="field"
+        ><span>{{ c().reportTitle }}</span
+        ><input
+          name="create-title"
+          [ngModel]="createTitle()"
+          (ngModelChange)="createTitle.set($event)"
+          maxlength="240"
+          required
+          autofocus
+      /></label>
+      <label class="field"
+        ><span>{{ c().description }}</span
+        ><textarea
+          name="create-description"
+          [ngModel]="createDescription()"
+          (ngModelChange)="createDescription.set($event)"
+          maxlength="10000"
+          rows="4"
+        ></textarea>
+      </label>
+      <label class="field"
+        ><span>Tipo</span
+        ><select
+          name="create-kind"
+          [ngModel]="createKind()"
+          (ngModelChange)="createKind.set($event)"
+        >
+          <option value="DOSSIER">Dossiê manual</option>
+          <option value="PERIOD_CLOSE">Fechamento por período</option>
+        </select></label
+      >
+      @if (createKind() === 'PERIOD_CLOSE') {
+        <label class="field"
+          ><span>Início do período</span
+          ><input
+            type="date"
+            name="create-period-from"
+            [ngModel]="createPeriodFrom()"
+            (ngModelChange)="createPeriodFrom.set($event)"
+            required
+        /></label>
+        <label class="field"
+          ><span>Fim do período</span
+          ><input
+            type="date"
+            name="create-period-to"
+            [ngModel]="createPeriodTo()"
+            (ngModelChange)="createPeriodTo.set($event)"
+            required
+        /></label>
+      }
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-ghost" (click)="showCreate.set(false)">
+          {{ c().cancel }}</button
+        ><button
+          type="submit"
+          class="btn btn-primary"
+          [disabled]="creating() || !createTitle().trim()"
+        >
+          {{ c().continue }}
+        </button>
+      </div>
+    </form>
+  </div>
+}

@@ -1,0 +1,182 @@
+@if (activeDrawer(); as drawerKind) {
+  <div class="drawer-backdrop" (click)="closeDrawer()">
+    <aside
+      class="source-drawer"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="drawer-title"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="drawer-header">
+        <div>
+          <h2 id="drawer-title">
+            {{ drawerKind === 'occurrence' ? c().drawerOccurrencesTitle : c().drawerReportsTitle }}
+          </h2>
+          <p class="drawer-subtitle">
+            {{ drawerKind === 'occurrence' ? c().occurrenceSource : c().reportSource }}
+          </p>
+        </div>
+        <button
+          type="button"
+          class="btn btn-ghost btn-icon"
+          (click)="closeDrawer()"
+          [attr.aria-label]="c().close"
+        >
+          <ui-icon name="x" />
+        </button>
+      </header>
+
+      <div class="drawer-search-bar">
+        <label class="field drawer-search-field">
+          <input
+            type="search"
+            [ngModel]="drawerKind === 'occurrence' ? occurrenceSearch() : sourceReportSearch()"
+            (ngModelChange)="onDrawerSearch(drawerKind, $event)"
+            [placeholder]="drawerKind === 'occurrence' ? c().findOccurrence : c().findReport"
+            autofocus
+          />
+        </label>
+        <div class="drawer-quick-actions">
+          <button type="button" class="btn btn-ghost btn-sm" (click)="selectAllDrawer(drawerKind)">
+            {{ c().selectAll }}
+          </button>
+          @if (
+            (drawerKind === 'occurrence' ? selectedOccurrences().size : selectedReports().size) > 0
+          ) {
+            <button
+              type="button"
+              class="btn btn-ghost btn-sm text-secondary"
+              (click)="clearDrawerSelection(drawerKind)"
+            >
+              {{ c().clearSelection }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="drawer-list" role="list">
+        @if (drawerKind === 'occurrence') {
+          @for (item of eligible(); track item.id) {
+            @let isAlreadyAdded = active()!.occurrence_source_ids.includes(item.id);
+            @let isSelected = selectedOccurrences().has(item.id);
+            <div
+              class="drawer-card"
+              [class.is-added]="isAlreadyAdded"
+              [class.is-selected]="isSelected"
+              (click)="!isAlreadyAdded && toggleSelection('occurrence', item.id, !isSelected)"
+            >
+              <input
+                type="checkbox"
+                [checked]="isSelected || isAlreadyAdded"
+                [disabled]="isAlreadyAdded"
+                (change)="toggleSelection('occurrence', item.id, $any($event.target).checked)"
+                (click)="$event.stopPropagation()"
+              />
+              <div class="drawer-card-body">
+                <div class="drawer-card-top">
+                  <strong class="item-code-tag">{{ item.item_code || '—' }}</strong>
+                  <span class="badge-org">{{ item.organization_code }}</span>
+                  <b class="numeric amount-tag">{{ formatCurrency(item.amount_usd, 'USD') }}</b>
+                </div>
+                <span class="drawer-card-title">{{ item.review_title }}</span>
+                @if (item.item_description) {
+                  <p class="drawer-card-desc">{{ item.item_description }}</p>
+                }
+              </div>
+              @if (isAlreadyAdded) {
+                <span class="drawer-badge-added"><ui-icon name="check" /> {{ c().added }}</span>
+              }
+            </div>
+          } @empty {
+            <div class="drawer-empty">
+              <ui-icon name="folder" />
+              <p>{{ c().empty }}</p>
+            </div>
+          }
+        } @else {
+          @for (item of sourceReports(); track item.id) {
+            @let isAlreadyAdded = active()!.report_source_ids.includes(item.id);
+            @let isSelected = selectedReports().has(item.id);
+            <div
+              class="drawer-card"
+              [class.is-added]="isAlreadyAdded"
+              [class.is-selected]="isSelected"
+              (click)="!isAlreadyAdded && toggleSelection('report', item.id, !isSelected)"
+            >
+              <input
+                type="checkbox"
+                [checked]="isSelected || isAlreadyAdded"
+                [disabled]="isAlreadyAdded"
+                (change)="toggleSelection('report', item.id, $any($event.target).checked)"
+                (click)="$event.stopPropagation()"
+              />
+              <div class="drawer-card-body">
+                <div class="drawer-card-top">
+                  <strong class="item-code-tag">{{ item.code }}</strong>
+                  <span class="badge-rev">Rev {{ item.latest_revision }}</span>
+                </div>
+                <span class="drawer-card-title">{{ item.title }}</span>
+              </div>
+              @if (isAlreadyAdded) {
+                <span class="drawer-badge-added"><ui-icon name="check" /> {{ c().added }}</span>
+              }
+            </div>
+          } @empty {
+            <div class="drawer-empty">
+              <ui-icon name="folder" />
+              <p>{{ c().empty }}</p>
+            </div>
+          }
+        }
+      </div>
+
+      @if (drawerKind === 'occurrence' && occurrenceCandidates(); as occurrencePageResult) {
+        <app-list-pagination
+          [page]="occurrencePageResult.page"
+          [totalPages]="occurrencePageResult.total_pages"
+          [pageSize]="candidatePageSize"
+          [pageSizes]="[candidatePageSize]"
+          (previous)="previousOccurrencePage()"
+          (next)="nextOccurrencePage()"
+        />
+      } @else if (drawerKind === 'report' && sourceReportCandidates(); as sourcePageResult) {
+        <app-list-pagination
+          [page]="sourcePageResult.page"
+          [totalPages]="sourcePageResult.total_pages"
+          [pageSize]="candidatePageSize"
+          [pageSizes]="[candidatePageSize]"
+          (previous)="previousSourceReportPage()"
+          (next)="nextSourceReportPage()"
+        />
+      }
+
+      <footer class="drawer-footer">
+        <div class="drawer-selection-count">
+          <strong>{{
+            drawerKind === 'occurrence' ? selectedOccurrences().size : selectedReports().size
+          }}</strong>
+          <span>{{ c().selected }}</span>
+        </div>
+        <div class="drawer-footer-actions">
+          <button type="button" class="btn btn-ghost" (click)="closeDrawer()">
+            {{ c().close }}
+          </button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            (click)="addSelectedFromDrawer(drawerKind)"
+            [disabled]="
+              saving() ||
+              (drawerKind === 'occurrence' ? !selectedOccurrences().size : !selectedReports().size)
+            "
+          >
+            <ui-icon name="plus" />
+            {{ c().addSelected }} ({{
+              drawerKind === 'occurrence' ? selectedOccurrences().size : selectedReports().size
+            }})
+          </button>
+        </div>
+      </footer>
+    </aside>
+  </div>
+}

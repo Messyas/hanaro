@@ -164,7 +164,11 @@
           </thead>
           <tbody>
             @for (item of data()!.items; track item.id) {
-              <tr class="clickable-row" (click)="openDetail(item.execution_id)">
+              <tr
+                class="clickable-row"
+                (click)="openDetail(item.execution_id)"
+                (keydown)="openDetail(item.execution_id)"
+              >
                 <td>
                   <button
                     class="execution-id-cell execution-details-trigger"

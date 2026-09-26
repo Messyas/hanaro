@@ -11,6 +11,8 @@ import {
 import { UiIcon } from '../ui-icon/ui-icon';
 import { CalendarDay, buildCalendarDay, buildCalendarGrid } from './calendar-grid';
 
+let nextDateRangeId = 0;
+
 @Component({
   selector: 'app-list-filter-date-range',
   imports: [UiIcon],
@@ -22,6 +24,7 @@ import { CalendarDay, buildCalendarDay, buildCalendarGrid } from './calendar-gri
   },
 })
 export class ListFilterDateRange {
+  private readonly instanceId = nextDateRangeId++;
   readonly from = model('');
   readonly to = model('');
   readonly fromLabel = input.required<string>();
@@ -32,6 +35,14 @@ export class ListFilterDateRange {
   readonly single = input(false);
   readonly popupPosition = input<'down' | 'up'>('down');
   readonly changed = output<void>();
+
+  fromInputId(): string {
+    return `list-filter-date-range-${this.instanceId}-from`;
+  }
+
+  toInputId(): string {
+    return `list-filter-date-range-${this.instanceId}-to`;
+  }
 
   readonly fromOpen = signal(false);
   readonly toOpen = signal(false);

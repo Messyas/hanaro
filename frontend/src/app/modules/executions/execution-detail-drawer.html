@@ -1,12 +1,11 @@
 <div class="modal-backdrop" (click)="closed.emit()">
-  <div
+  <dialog
     class="detail-drawer"
-    role="dialog"
-    aria-modal="true"
     aria-labelledby="drawer-execution-title"
     cdkTrapFocus
     [cdkTrapFocusAutoCapture]="true"
     (keydown.escape)="handleEscape($event)"
+    (keydown)="handleEscape($event)"
     (click)="$event.stopPropagation()"
   >
     <header class="drawer-header">
@@ -159,5 +158,5 @@
         </section>
       }
     </div>
-  </div>
+  </dialog>
 </div>

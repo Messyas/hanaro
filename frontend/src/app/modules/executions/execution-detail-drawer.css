@@ -9,6 +9,9 @@
 }
 
 .detail-drawer {
+  position: relative;
+  inset: auto;
+  margin: 0;
   display: flex;
   width: 100%;
   max-width: 620px;

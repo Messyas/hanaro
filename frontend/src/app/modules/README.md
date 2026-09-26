@@ -22,3 +22,5 @@ feature.
 
 DependÃªncias entre funcionalidades usam apenas seus arquivos `*.public-api.ts`.
 `npm run check:architecture` verifica essas fronteiras.
+
+A autenticação exporta LoginDialog e LoginPage diretamente de seus arquivos; a verificação de arquitetura permite esses dois pontos de entrada fora do módulo.

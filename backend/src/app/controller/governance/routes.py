@@ -424,7 +424,7 @@ async def create_export(
         # request before persisting a QUEUED job that could never be consumed.
         raise HTTPException(status_code=503, detail="Report export worker is disabled")
     try:
-        job, enqueue = await request_export(
+        job, _ = await request_export(
             db,
             report_version_id=version_id,
             format_=payload.format,

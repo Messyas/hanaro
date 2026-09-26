@@ -18,7 +18,7 @@ import { LanguageService } from '../../core/i18n/language.service';
 import { ThemeService } from '../../core/theme/theme.service';
 import { BRAND_CONFIG } from '../../core/config/brand.config';
 import { AuthService } from '../../core/auth/auth.service';
-import { LoginDialog } from '../../modules/auth/auth.public-api';
+import { LoginDialog } from '../../modules/auth/login-dialog';
 import { LogoutConfirmDialog } from './logout-confirm-dialog';
 import { ShellStatusService } from '../../core/shell/shell-status.service';
 

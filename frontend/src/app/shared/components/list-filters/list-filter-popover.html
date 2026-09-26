@@ -15,10 +15,11 @@
   </button>
 
   @if (open()) {
-    <div
+    <dialog
       class="filter-popover-panel"
-      role="dialog"
+      open
       aria-modal="false"
+      [attr.aria-label]="title()"
       (click)="$event.stopPropagation()"
     >
       <div class="popover-header">
@@ -36,6 +37,6 @@
         <button type="button" class="btn btn-ghost" (click)="clear()">{{ clearLabel() }}</button>
         <button type="button" class="btn btn-primary" (click)="apply()">{{ applyLabel() }}</button>
       </div>
-    </div>
+    </dialog>
   }
 </div>

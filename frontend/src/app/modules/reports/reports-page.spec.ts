@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { vi } from 'vitest';
 import { LanguageService } from '../../core/i18n/language.service';
@@ -13,6 +13,8 @@ import { ReportPublicationService } from './publication/report-publication.servi
 import { ReportCatalogService } from './catalog/report-catalog.service';
 import { ReportPeriodCloseService } from './period-close/report-period-close.service';
 import { BROWSER_DOWNLOAD } from './export/browser-download.port';
+import { ReportCatalog } from './catalog/report-catalog';
+import { By } from '@angular/platform-browser';
 
 describe('ReportsPage', () => {
   let fixture: ComponentFixture<ReportsPage>;
@@ -143,6 +145,22 @@ describe('ReportsPage', () => {
     );
     expect(fixture.nativeElement.textContent).toContain('Weekly loss review');
     expect(fixture.nativeElement.textContent).toContain('REP-001');
+  });
+
+  it('opens a report created from the catalog', async () => {
+    vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    const catalog = fixture.debugElement.query(By.directive(ReportCatalog))
+      .componentInstance as ReportCatalog;
+    catalog.createTitle.set('New report');
+    catalog.createReport();
+    await fixture.whenStable();
+
+    expect(catalogService['create']).toHaveBeenCalledWith({
+      title: 'New report',
+      description: '',
+    });
+    expect(catalogService['get']).toHaveBeenCalledWith(report.id);
+    expect(component.active()?.id).toBe(report.id);
   });
 
   it('opens a report and loads candidates, preview, and history', async () => {

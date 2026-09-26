@@ -106,6 +106,7 @@ export interface DashboardTranslations {
   noData: string;
   noChartData: string;
   noChartDataTitle: string;
+  chartLoadFailed: string;
   noChartDataHint: string;
   noRelativeDataHint: string;
   hiddenValue: string;
@@ -235,6 +236,7 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     noData: 'Sem dado',
     noChartData: 'Sem dados para os filtros selecionados',
     noChartDataTitle: 'Sem dados neste recorte',
+    chartLoadFailed: 'N\u00e3o foi poss\u00edvel carregar os gr\u00e1ficos.',
     noChartDataHint: 'Ajuste os filtros locais ou troque a visão para conferir outro agrupamento.',
     noRelativeDataHint:
       'A taxa depende de denominador compatível; quando ele faltar, o gráfico fica indisponível.',
@@ -363,6 +365,7 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     noData: 'No data',
     noChartData: 'No data for the selected filters',
     noChartDataTitle: 'No data in this selection',
+    chartLoadFailed: 'Could not load the charts.',
     noChartDataHint: 'Adjust the local filters or switch views to check another grouping.',
     noRelativeDataHint:
       'The rate depends on a compatible denominator; when it is missing, the chart is unavailable.',
@@ -491,6 +494,7 @@ export const DASHBOARD_TRANSLATIONS: Record<LanguageCode, DashboardTranslations>
     noData: '데이터 없음',
     noChartData: '선택한 필터에 대한 데이터 없음',
     noChartDataTitle: '선택 범위에 데이터 없음',
+    chartLoadFailed: '\uCC28\uD2B8\uB97C \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.',
     noChartDataHint: '로컬 필터를 조정하거나 다른 보기로 확인하세요.',
     noRelativeDataHint: '비율은 호환되는 분모가 필요하며, 없으면 차트를 사용할 수 없습니다.',
     hiddenValue: '숨겨진 값',

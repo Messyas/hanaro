@@ -46,7 +46,7 @@ def _assert_admin_scope(user: dict[str, Any], request: Request) -> None:
     raise ForbiddenException("Developer administrators can only access users, executions and their own profile")
 
 
-async def get_current_principal(
+def get_current_principal(
     principal: Annotated[Principal, Depends(auth.current_user())],
 ) -> Principal:
     """The authenticated crudauth ``Principal`` (session-validated, CSRF-enforced).
@@ -58,7 +58,7 @@ async def get_current_principal(
     return principal
 
 
-async def get_optional_principal(
+def get_optional_principal(
     principal: Annotated[Principal | None, Depends(auth.current_user(optional=True))],
 ) -> Principal | None:
     """The crudauth ``Principal`` if authenticated, else ``None`` (never raises on absence).
@@ -111,7 +111,7 @@ async def get_optional_user(
     return user
 
 
-async def get_current_superuser(
+def get_current_superuser(
     current_user: Annotated[dict[str, Any], Depends(get_current_user)],
 ) -> dict[str, Any]:
     """Get the current user as a dict, requiring superuser privileges (403 otherwise)."""

@@ -84,11 +84,15 @@
   z-index: 70;
   top: calc(100% + 0.35rem);
   left: 0;
+  max-width: none;
+  max-height: none;
+  margin: 0;
   width: 288px;
   padding: 0.9rem;
   border: 1px solid var(--app-card-border);
   border-radius: 0.65rem;
   background: var(--app-surface);
+  color: var(--app-text);
   box-shadow:
     0 14px 30px -4px rgb(0 0 0 / 40%),
     0 6px 14px -2px rgb(0 0 0 / 25%);

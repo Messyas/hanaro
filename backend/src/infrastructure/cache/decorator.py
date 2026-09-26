@@ -24,7 +24,7 @@ try:
         PatternMatchingNotSupportedError as MemcachedPatternMatchingNotSupportedError,
     )
 except (ImportError, AttributeError):
-    pass
+    MemcachedPatternMatchingNotSupportedError = PatternMatchingNotSupportedError
 
 logger = get_logger()
 
@@ -111,7 +111,7 @@ async def _invalidate_after_write(
 
 
 async def _execute_cached_endpoint(
-    func: T,
+    func: Callable[..., Any],
     request: Request,
     args: tuple[Any, ...],
     kwargs: dict[str, Any],

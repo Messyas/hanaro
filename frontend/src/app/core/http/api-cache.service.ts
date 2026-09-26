@@ -13,6 +13,7 @@ interface CacheEntry {
 export class ApiCacheService {
   private readonly entries = new Map<string, CacheEntry>();
   private readonly inFlight = new Map<string, Observable<HttpResponse<unknown>>>();
+  private generation = 0;
   readonly enabled: boolean;
 
   constructor(@Inject(PLATFORM_ID) platformId: object) {
@@ -44,7 +45,8 @@ export class ApiCacheService {
     return entry.response.clone();
   }
 
-  set(request: HttpRequest<unknown>, response: HttpResponse<unknown>): void {
+  set(request: HttpRequest<unknown>, response: HttpResponse<unknown>, generation: number): void {
+    if (generation !== this.generation) return;
     this.entries.set(this.key(request), {
       response: response.clone(),
       expiresAt: Date.now() + this.ttlFor(request.urlWithParams),
@@ -55,16 +57,22 @@ export class ApiCacheService {
     return this.inFlight.get(key);
   }
 
+  currentGeneration(): number {
+    return this.generation;
+  }
+
   setInFlight(key: string, request$: Observable<HttpResponse<unknown>>): void {
     this.inFlight.set(key, request$);
   }
 
-  removeInFlight(key: string): void {
-    this.inFlight.delete(key);
+  removeInFlight(key: string, request$: Observable<HttpResponse<unknown>>): void {
+    if (this.inFlight.get(key) === request$) this.inFlight.delete(key);
   }
 
   clear(): void {
+    this.generation++;
     this.entries.clear();
+    this.inFlight.clear();
   }
 
   private ttlFor(url: string): number {

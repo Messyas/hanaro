@@ -160,14 +160,15 @@ async def publish_snapshot(
     run.rejected_count = 0
     run.status = IngestionStatus.COMPLETED.value
     run.is_active = True
-    run.ingestion_finished_at = datetime.now(UTC)
+    now = datetime.now(UTC)
+    run.ingestion_finished_at = now
     state = await db.get(ScrapDashboardState, 1, with_for_update=True)
     if state is None:
-        state = ScrapDashboardState(updated_at=run.ingestion_finished_at)
+        state = ScrapDashboardState(updated_at=now)
         db.add(state)
     else:
         state.revision = uuid.uuid4()
-        state.updated_at = run.ingestion_finished_at
+        state.updated_at = now
     await db.commit()
 
 

@@ -1,0 +1,156 @@
+<section class="editor-section history-section" aria-labelledby="history-heading">
+  <div class="section-heading history-heading">
+    <div>
+      <h2 id="history-heading">{{ c().history }}</h2>
+    </div>
+  </div>
+  @if (!exportsAvailable()) {
+    <p role="status">{{ workflows().unavailable }}</p>
+  }
+  @if (!versions().length) {
+    <div class="history-empty">
+      <strong>Nenhuma revisão publicada</strong>
+      <span>Publique a primeira revisão para liberar os formatos de exportação.</span>
+    </div>
+  }
+  @for (version of versions(); track version.id) {
+    <article class="version-row">
+      <div class="version-info">
+        <strong class="version-title">{{ versionTitle(version) }}</strong>
+        <span class="version-pill">Revisão {{ version.revision }}</span>
+        <time class="version-date" [attr.datetime]="version.published_at">
+          {{ formatDate(version.published_at) }}
+        </time>
+      </div>
+      <div class="export-actions" [attr.aria-label]="c().export">
+        @let selectedFormat = exportFormatFor(version.id);
+        @let exportJob = job(version.id, selectedFormat);
+        <div class="export-emission">
+          <details class="export-specifications">
+            <summary>Conteúdo</summary>
+            <div class="export-specifications-list">
+              @let exportOptions = exportOptionsFor(version.id);
+              <label
+                ><input
+                  type="checkbox"
+                  [checked]="exportOptions.include_money"
+                  (change)="
+                    setVersionExportOption(version.id, 'include_money', $any($event.target).checked)
+                  "
+                />{{ c().totalBrl }} / {{ c().totalUsd }}</label
+              >
+              <label
+                ><input
+                  type="checkbox"
+                  [checked]="exportOptions.include_summary"
+                  (change)="
+                    setVersionExportOption(
+                      version.id,
+                      'include_summary',
+                      $any($event.target).checked
+                    )
+                  "
+                />{{ c().preview }}</label
+              >
+              <label
+                ><input
+                  type="checkbox"
+                  [checked]="exportOptions.include_occurrences"
+                  (change)="
+                    setVersionExportOption(
+                      version.id,
+                      'include_occurrences',
+                      $any($event.target).checked
+                    )
+                  "
+                />{{ c().occurrences }}</label
+              >
+              <label
+                ><input
+                  type="checkbox"
+                  [checked]="exportOptions.include_justifications"
+                  (change)="
+                    setVersionExportOption(
+                      version.id,
+                      'include_justifications',
+                      $any($event.target).checked
+                    )
+                  "
+                />{{ c().description }}</label
+              >
+              <label
+                ><input
+                  type="checkbox"
+                  [checked]="exportOptions.include_evidence"
+                  (change)="
+                    setVersionExportOption(
+                      version.id,
+                      'include_evidence',
+                      $any($event.target).checked
+                    )
+                  "
+                />{{ c().sources }}</label
+              >
+              <label
+                ><input
+                  type="checkbox"
+                  [checked]="exportOptions.notify_on_completion"
+                  (change)="
+                    setVersionExportOption(
+                      version.id,
+                      'notify_on_completion',
+                      $any($event.target).checked
+                    )
+                  "
+                />Email</label
+              >
+            </div>
+          </details>
+          <app-list-filter-select
+            [value]="selectedFormat"
+            [options]="exportFormatOptions"
+            label="Formato"
+            layout="inline"
+            menuWidth="content"
+            menuPosition="up"
+            ariaLabel="Selecionar formato de exportação"
+            (changed)="setVersionExportFormat(version.id, $any($event))"
+          />
+          <button
+            type="button"
+            class="btn btn-primary btn-sm"
+            (click)="emitVersionExport(version)"
+            [title]="exportJob?.error_message || ''"
+            [disabled]="
+              !exportsAvailable() ||
+              exportJob?.status === 'QUEUED' ||
+              exportJob?.status === 'RUNNING'
+            "
+          >
+            @if (exportJob?.status === 'COMPLETED') {
+              <ui-icon name="check" />{{ c().download }} {{ selectedFormat }}
+            } @else {
+              {{
+                exportJob?.status === 'QUEUED' || exportJob?.status === 'RUNNING'
+                  ? c().preparing
+                  : exportJob?.status === 'FAILED'
+                    ? 'Tentar novamente'
+                    : 'Emitir ' + selectedFormat
+              }}
+            }
+          </button>
+        </div>
+      </div>
+    </article>
+  }
+  @if (versionsPage(); as versionsResult) {
+    <app-list-pagination
+      [page]="versionsResult.page"
+      [totalPages]="versionsResult.total_pages"
+      [pageSize]="candidatePageSize"
+      [pageSizes]="[candidatePageSize]"
+      (previous)="previousVersionPage()"
+      (next)="nextVersionPage()"
+    />
+  }
+</section>

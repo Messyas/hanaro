@@ -1,0 +1,49 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.chart-loading {
+  display: grid;
+  min-height: 16.5rem;
+  place-items: center;
+  margin-top: 1rem;
+}
+
+.chart-loading-track {
+  position: relative;
+  width: 5rem;
+  height: 0.2rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--app-text) 10%, transparent);
+}
+
+.chart-loading.compact {
+  min-height: 2rem;
+  margin-top: 0;
+  justify-items: start;
+}
+
+.chart-loading-track::after {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--app-text) 85%, transparent);
+  content: '';
+  transform: translateX(-100%);
+  animation: chart-loading-slide 1.6s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+@keyframes chart-loading-slide {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chart-loading-track::after {
+    animation: none;
+    transform: scaleX(0.4);
+  }
+}

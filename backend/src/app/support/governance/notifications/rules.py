@@ -83,6 +83,118 @@ async def save_rule(db, data: RuleInput, rule_id=None):
     return {"id": rule.id, "version": rule.version, **rule.config}
 
 
+def _get_amount_column(config):
+    return ScrapTransaction.amount_usd if config.currency == "USD" else ScrapTransaction.issue_amount_brl
+
+
+def _get_dimension_column(config):
+    columns = {
+        "item": ScrapTransaction.item_code,
+        "line": ScrapTransaction.receipt_department,
+        "product": ScrapTransaction.product,
+        "organization": ScrapTransaction.organization_code,
+    }
+    return ScrapOccurrence.id if config.dimension == "occurrence" else columns[config.dimension]
+
+
+def _build_query(amount, dimension, config, start, end):
+    columns = {
+        "item": ScrapTransaction.item_code,
+        "line": ScrapTransaction.receipt_department,
+        "product": ScrapTransaction.product,
+        "organization": ScrapTransaction.organization_code,
+    }
+    query = (
+        select(dimension, func.sum(amount))
+        .select_from(ScrapOccurrence)
+        .join(ScrapTransaction, ScrapOccurrence.current_transaction_id == ScrapTransaction.id)
+        .where(
+            ScrapOccurrence.status == "ACTIVE",
+            ScrapTransaction.transaction_date >= start,
+            ScrapTransaction.transaction_date <= end,
+        )
+    )
+    for key, value in config.filters.items():
+        query = query.where(columns[key] == value)
+    return query.group_by(dimension)
+
+
+def _compute_window_key(config, start, end):
+    if config.dimension == "occurrence":
+        return "occurrence"
+    return f"{start}:{end}" if config.date_from else f"rolling:{config.window_days}"
+
+
+def _is_breached(rule, observed, threshold):
+    return observed <= threshold if rule.event_type == "GOAL_ACHIEVED" else observed > threshold
+
+
+def _is_cooled(evaluation, cooldown_minutes):
+    last = evaluation.last_fired_at
+    if last and last.tzinfo is None:
+        last = last.replace(tzinfo=UTC)
+    return last is None or now() - last >= timedelta(minutes=cooldown_minutes)
+
+
+def _is_worsened(rule, evaluation, observed):
+    return evaluation.sequence == 0 or (observed > evaluation.observed and rule.event_type != "GOAL_ACHIEVED")
+
+
+def _get_entity_id(config, subject, rule):
+    return uuid.UUID(str(subject)) if config.dimension == "occurrence" else rule.id
+
+
+def _get_severity(rule, config):
+    return "POSITIVE" if rule.event_type == "GOAL_ACHIEVED" else config.severity
+
+
+def _get_link(config, subject):
+    return f"/base-de-scrap/revisao/{subject}" if config.dimension == "occurrence" else "/alertas"
+
+
+def _get_rule_window(config, today):
+    start = config.date_from or today - timedelta(days=config.window_days - 1)
+    end = config.date_to or today
+    return start, end, end < today
+
+
+def _should_process_rule(rule, closed):
+    return not (rule.event_type == "GOAL_ACHIEVED" and not closed)
+
+
+async def _get_recipient_ids(db, config):
+    recipient_ids = set(config.user_ids)
+    if config.tier_ids:
+        recipient_ids.update(
+            await db.scalars(select(User.id).where(User.tier_id.in_(config.tier_ids), User.is_deleted.is_(False)))
+        )
+    return recipient_ids
+
+
+async def _get_or_create_evaluation(db, rule, window, subject):
+    evaluation = await db.scalar(
+        select(RuleEvaluation).where(
+            RuleEvaluation.rule_id == rule.id,
+            RuleEvaluation.window_key == window,
+            RuleEvaluation.subject == str(subject),
+        )
+    )
+    if evaluation is not None:
+        return evaluation
+
+    evaluation = RuleEvaluation(rule_id=rule.id, window_key=window, subject=str(subject), observed=Decimal(0))
+    db.add(evaluation)
+    return evaluation
+
+
+def _should_emit(rule, evaluation, observed, config):
+    return (
+        _is_breached(rule, observed, config.threshold)
+        and _is_cooled(evaluation, config.cooldown_minutes)
+        and _is_worsened(rule, evaluation, observed)
+    )
+
+
 async def evaluate(db, today: date | None = None):
     today = today or now().date()
     # Rule row serializes evaluators, including creation of first window records.
@@ -99,85 +211,45 @@ async def evaluate(db, today: date | None = None):
     )
     for rule in rules:
         config = RuleInput.model_validate(rule.config)
-        start = config.date_from or today - timedelta(days=config.window_days - 1)
-        end = config.date_to or today
-        closed = end < today
-        if rule.event_type == "GOAL_ACHIEVED" and not closed:
+        start, end, closed = _get_rule_window(config, today)
+        if not _should_process_rule(rule, closed):
             continue
-        amount = ScrapTransaction.amount_usd if config.currency == "USD" else ScrapTransaction.issue_amount_brl
-        columns = {
-            "item": ScrapTransaction.item_code,
-            "line": ScrapTransaction.receipt_department,
-            "product": ScrapTransaction.product,
-            "organization": ScrapTransaction.organization_code,
-        }
-        dimension = ScrapOccurrence.id if config.dimension == "occurrence" else columns[config.dimension]
-        query = (
-            select(dimension, func.sum(amount))
-            .select_from(ScrapOccurrence)
-            .join(ScrapTransaction, ScrapOccurrence.current_transaction_id == ScrapTransaction.id)
-            .where(
-                ScrapOccurrence.status == "ACTIVE",
-                ScrapTransaction.transaction_date >= start,
-                ScrapTransaction.transaction_date <= end,
-            )
-        )
-        for key, value in config.filters.items():
-            query = query.where(columns[key] == value)
-        rows = (await db.execute(query.group_by(dimension))).all()
-        recipient_ids = set(config.user_ids)
-        recipient_ids.update(
-            await db.scalars(select(User.id).where(User.tier_id.in_(config.tier_ids), User.is_deleted.is_(False)))
-        )
+
+        amount = _get_amount_column(config)
+        dimension = _get_dimension_column(config)
+        query = _build_query(amount, dimension, config, start, end)
+        rows = (await db.execute(query)).all()
+        recipient_ids = await _get_recipient_ids(db, config)
+
         for subject, observed in rows:
             observed = Decimal(observed or 0)
-            # Stable occurrence dedupe survives re-ingestion and rolling windows.
-            window = (
-                "occurrence"
-                if config.dimension == "occurrence"
-                else f"{start}:{end}"
-                if config.date_from
-                else f"rolling:{config.window_days}"
+            window = _compute_window_key(config, start, end)
+            evaluation = await _get_or_create_evaluation(db, rule, window, subject)
+            if not _should_emit(rule, evaluation, observed, config):
+                continue
+
+            evaluation.sequence += 1
+            evaluation.last_fired_at = now()
+            evaluation.observed = observed
+            entity_id = _get_entity_id(config, subject, rule)
+            emit(
+                db,
+                rule.event_type,
+                entity_id,
+                {
+                    "title": rule.name,
+                    "rule_id": str(rule.id),
+                    "observed": str(observed),
+                    "threshold": str(config.threshold),
+                    "currency": config.currency,
+                    "period": f"{start} / {end}",
+                    "provisional": not closed,
+                    "sequence": evaluation.sequence,
+                    "severity": _get_severity(rule, config),
+                    "component": str(subject),
+                    "recipient_ids": sorted(recipient_ids),
+                    "channels": config.channels,
+                    "link": _get_link(config, subject),
+                },
             )
-            evaluation = await db.scalar(
-                select(RuleEvaluation).where(
-                    RuleEvaluation.rule_id == rule.id,
-                    RuleEvaluation.window_key == window,
-                    RuleEvaluation.subject == str(subject),
-                )
-            )
-            if evaluation is None:
-                evaluation = RuleEvaluation(rule_id=rule.id, window_key=window, subject=str(subject), observed=Decimal(0))
-                db.add(evaluation)
-            breached = observed <= config.threshold if rule.event_type == "GOAL_ACHIEVED" else observed > config.threshold
-            last = evaluation.last_fired_at
-            if last and last.tzinfo is None:
-                last = last.replace(tzinfo=UTC)
-            cooled = last is None or now() - last >= timedelta(minutes=config.cooldown_minutes)
-            worsened = evaluation.sequence == 0 or (observed > evaluation.observed and rule.event_type != "GOAL_ACHIEVED")
-            if breached and cooled and worsened:
-                evaluation.sequence += 1
-                evaluation.last_fired_at = now()
-                evaluation.observed = observed
-                entity_id = uuid.UUID(str(subject)) if config.dimension == "occurrence" else rule.id
-                emit(
-                    db,
-                    rule.event_type,
-                    entity_id,
-                    {
-                        "title": rule.name,
-                        "rule_id": str(rule.id),
-                        "observed": str(observed),
-                        "threshold": str(config.threshold),
-                        "currency": config.currency,
-                        "period": f"{start} / {end}",
-                        "provisional": not closed,
-                        "sequence": evaluation.sequence,
-                        "severity": "POSITIVE" if rule.event_type == "GOAL_ACHIEVED" else config.severity,
-                        "component": str(subject),
-                        "recipient_ids": sorted(recipient_ids),
-                        "channels": config.channels,
-                        "link": f"/base-de-scrap/revisao/{subject}" if config.dimension == "occurrence" else "/alertas",
-                    },
-                )
     await db.commit()

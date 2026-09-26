@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
-import { ObjectUrlRegistry } from '../../../../core/browser/object-url-registry';
+import { ObjectUrlRegistry } from '../object-url-registry';
 import { ScrapAttachmentPreviewService } from './scrap-attachment-preview.service';
 
 describe('ScrapAttachmentPreviewService', () => {

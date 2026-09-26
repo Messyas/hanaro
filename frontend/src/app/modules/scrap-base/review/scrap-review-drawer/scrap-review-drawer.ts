@@ -17,7 +17,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subscription } from 'rxjs';
 import { LanguageService } from '../../../../core/i18n/language.service';
 import { AuthService } from '../../../../core/auth/auth.service';
-import { ObjectUrlRegistry } from '../../../../core/browser/object-url-registry';
+import { ObjectUrlRegistry } from '../object-url-registry';
 import { InlineAlert } from '../../../../shared/components/list-view/inline-alert/inline-alert';
 import { StatusBadge } from '../../../../shared/components/list-view/status-badge/status-badge';
 import { UiIcon } from '../../../../shared/components/ui-icon/ui-icon';

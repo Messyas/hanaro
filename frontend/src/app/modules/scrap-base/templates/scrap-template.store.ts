@@ -7,7 +7,7 @@ import {
 } from './scrap-template.models';
 import { ScrapTemplateService } from './scrap-template.service';
 
-@Injectable({ providedIn: 'root' })
+@Injectable()
 export class ScrapTemplateStore {
   private readonly templateService = inject(ScrapTemplateService);
 

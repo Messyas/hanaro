@@ -11,6 +11,7 @@ import os
 import uuid
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from typing import TypeVar
 
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -49,44 +50,22 @@ from src.app.models.user.models import User
 from src.infrastructure.database.session import local_session
 
 NAMESPACE = uuid.UUID("8c4c562c-ce68-4368-bdc7-2e9eb8f7c8cd")
+T = TypeVar("T", bound=GovernanceEntity)
 
 
 def seed_id(key: str) -> uuid.UUID:
     return uuid.uuid5(NAMESPACE, key)
 
 
-async def seed_governance(db: AsyncSession) -> dict[str, int]:
-    """Caller owns the transaction. Stable IDs and a PG lock allow safe replay."""
+async def _lock_governance(db: AsyncSession) -> None:
     if db.get_bind().dialect.name == "postgresql":
         await db.execute(text("SELECT pg_advisory_xact_lock(728361904)"))
-    counts: dict[str, int] = {}
 
-    async def add(model: type[GovernanceEntity], key: str, **values):
-        identifier = seed_id(key)
-        existing = await db.get(model, identifier)
-        if existing is not None:
-            return existing
-        row = model(id=identifier, **values)
-        db.add(row)
-        await db.flush()
-        counts[model.__tablename__] = counts.get(model.__tablename__, 0) + 1
-        return row
 
-    rows = list(
-        (
-            await db.execute(
-                select(ScrapOccurrence, ScrapTransaction)
-                .join(ScrapTransaction, ScrapOccurrence.current_transaction_id == ScrapTransaction.id)
-                .where(ScrapOccurrence.status == "ACTIVE")
-                .order_by(ScrapOccurrence.transaction_date.desc(), ScrapOccurrence.id)
-                .limit(3)
-            )
-        ).all()
-    )
-    if not rows:
-        raise RuntimeError("Seed Material Scrap first: governance demo requires active occurrences")
-    day = max(occ.transaction_date for occ, _ in rows)
-    instant = datetime.combine(day, datetime.min.time(), tzinfo=UTC)
+async def _seed_foundation(
+    db: AsyncSession,
+    add,
+) -> tuple[Factory, User | None, ActionPlan, ReviewPolicy]:
     factory = await add(Factory, "factory", code="DEMO-HANARO", name="Hanaro demonstracao")
     admin_username = os.getenv("ADMIN_USERNAME", "").strip()
     recipient = await db.scalar(select(User).where(User.username == admin_username, User.is_deleted.is_(False)))
@@ -108,6 +87,19 @@ async def seed_governance(db: AsyncSession) -> dict[str, int]:
         is_active=False,
         rules={"demo": True, "required_cost_brl": "5000.00", "default": "OPTIONAL"},
     )
+    return factory, recipient, plan, policy
+
+
+async def _seed_scenarios(
+    db: AsyncSession,
+    add,
+    rows: list[tuple[ScrapOccurrence, ScrapTransaction]],
+    day: datetime,
+    factory: Factory,
+    policy: ReviewPolicy,
+    plan: ActionPlan,
+) -> list[ImprovementAction]:
+    instant = datetime.combine(day, datetime.min.time(), tzinfo=UTC)
     actions: list[ImprovementAction] = []
     for index, (occurrence, transaction) in enumerate(rows):
         key = f"scenario-{index}"
@@ -142,7 +134,6 @@ async def seed_governance(db: AsyncSession) -> dict[str, int]:
             status="ANALYZED",
             due_at=instant + timedelta(days=7),
         )
-        # A real primary investigation must never be displaced by demo data.
         primary = await db.scalar(
             select(CaseOccurrence.id).where(
                 CaseOccurrence.occurrence_id == occurrence.id,
@@ -232,7 +223,11 @@ async def seed_governance(db: AsyncSession) -> dict[str, int]:
             snapshot.sealed_at = instant
             await db.flush()
         report = await add(
-            Report, f"{key}-report", factory_id=factory.id, code=f"DEMO-REL-{index + 1:03}", title="Relatorio demonstrativo"
+            Report,
+            f"{key}-report",
+            factory_id=factory.id,
+            code=f"DEMO-REL-{index + 1:03}",
+            title="Relatorio demonstrativo",
         )
         version = await add(
             ReportVersion,
@@ -271,6 +266,130 @@ async def seed_governance(db: AsyncSession) -> dict[str, int]:
             payload={"demo": True},
             correlation_id="demo-governance-v1",
         )
+    return actions
+
+
+def _alert_definitions(
+    rows: list[tuple[ScrapOccurrence, ScrapTransaction]],
+    actions: list[ImprovementAction],
+    factory: Factory,
+) -> list[tuple[str, str, str, str, str | uuid.UUID, str]]:
+    return [
+        (
+            "TASK_OVERDUE",
+            "CRITICAL",
+            "Prazo de acao corretiva proximo",
+            "Uma acao demonstrativa precisa de acompanhamento imediato.",
+            actions[0].id,
+            "/planos-de-acao",
+        ),
+        (
+            "COST_EXCEEDED",
+            "WARNING",
+            "Custo de Scrap acima do limiar",
+            "O custo acumulado do periodo demonstrativo ultrapassou o limite definido.",
+            rows[0][0].id,
+            "/base-de-scrap",
+        ),
+        (
+            "TASK_ASSIGNED",
+            "INFO",
+            "Nova tarefa atribuida para validacao",
+            "Uma tarefa de melhoria foi atribuida ao fluxo de demonstracao.",
+            actions[1].id,
+            "/planos-de-acao",
+        ),
+        (
+            "REPORT_EXPORT_COMPLETED",
+            "POSITIVE",
+            "Relatorio demonstrativo disponivel",
+            "O relatorio de acompanhamento foi preparado para consulta.",
+            factory.id,
+            "/relatorios",
+        ),
+        (
+            "SCRAP_RELEVANT",
+            "WARNING",
+            "Ocorrencia relevante identificada",
+            "Uma ocorrencia de Scrap requer analise de causa e plano de acao.",
+            rows[2][0].id,
+            "/base-de-scrap",
+        ),
+    ]
+
+
+async def _seed_alerts(add, recipient: User | None, rows, actions, factory: Factory) -> None:
+    if recipient is None:
+        return
+    for index, (event_type, severity, title, description, entity_id, link) in enumerate(
+        _alert_definitions(rows, actions, factory), start=1
+    ):
+        event = await add(
+            OutboxEvent,
+            f"demo-alert-{index}-event",
+            event_type=event_type,
+            aggregate_id=entity_id,
+            payload={
+                "demo": True,
+                "title": title,
+                "description": description,
+                "severity": severity,
+                "link": link,
+                "recipient_ids": [recipient.id],
+                "channels": ["FRONT"],
+            },
+        )
+        alert = await add(
+            Alert,
+            f"demo-alert-{index}",
+            event_id=event.id,
+            event_type=event_type,
+            severity=severity,
+            title=title,
+            body=event.payload,
+            entity_id=entity_id,
+        )
+        await add(
+            AlertRecipient,
+            f"demo-alert-{index}-recipient-{recipient.id}",
+            alert_id=alert.id,
+            user_id=recipient.id,
+        )
+
+
+async def seed_governance(db: AsyncSession) -> dict[str, int]:
+    """Caller owns the transaction. Stable IDs and a PG lock allow safe replay."""
+    await _lock_governance(db)
+    counts: dict[str, int] = {}
+
+    async def add(model: type[T], key: str, **values) -> T:
+        identifier = seed_id(key)
+        existing = await db.get(model, identifier)
+        if existing is not None:
+            return existing
+        row = model(id=identifier, **values)
+        db.add(row)
+        await db.flush()
+        counts[model.__tablename__] = counts.get(model.__tablename__, 0) + 1
+        return row
+
+    rows = [
+        (occurrence, transaction)
+        for occurrence, transaction in (
+            await db.execute(
+                select(ScrapOccurrence, ScrapTransaction)
+                .join(ScrapTransaction, ScrapOccurrence.current_transaction_id == ScrapTransaction.id)
+                .where(ScrapOccurrence.status == "ACTIVE")
+                .order_by(ScrapOccurrence.transaction_date.desc(), ScrapOccurrence.id)
+                .limit(3)
+            )
+        ).all()
+    ]
+    if not rows:
+        raise RuntimeError("Seed Material Scrap first: governance demo requires active occurrences")
+    day = max(occ.transaction_date for occ, _ in rows)
+    factory, recipient, plan, policy = await _seed_foundation(db, add)
+    actions = await _seed_scenarios(db, add, rows, day, factory, policy, plan)
     cycle = await add(
         AuditCycle,
         "audit-cycle",
@@ -283,85 +402,7 @@ async def seed_governance(db: AsyncSession) -> dict[str, int]:
     )
     await add(AuditFinding, "audit-finding", cycle_id=cycle.id, description="Demonstracao: validar completude da producao")
     await add(OutboxEvent, "outbox", event_type="demo.governance_seeded.v1", aggregate_id=factory.id, payload={"demo": True})
-
-    # Five front-end alerts make the local Alerts page useful immediately. They
-    # are addressed to the configured administrator and use deterministic IDs,
-    # so rerunning the seed never creates duplicates.
-    if recipient is not None:
-        alert_definitions = [
-            (
-                "TASK_OVERDUE",
-                "CRITICAL",
-                "Prazo de acao corretiva proximo",
-                "Uma acao demonstrativa precisa de acompanhamento imediato.",
-                actions[0].id,
-                "/planos-de-acao",
-            ),
-            (
-                "COST_EXCEEDED",
-                "WARNING",
-                "Custo de Scrap acima do limiar",
-                "O custo acumulado do periodo demonstrativo ultrapassou o limite definido.",
-                rows[0][0].id,
-                "/base-de-scrap",
-            ),
-            (
-                "TASK_ASSIGNED",
-                "INFO",
-                "Nova tarefa atribuida para validacao",
-                "Uma tarefa de melhoria foi atribuida ao fluxo de demonstracao.",
-                actions[1].id,
-                "/planos-de-acao",
-            ),
-            (
-                "REPORT_EXPORT_COMPLETED",
-                "POSITIVE",
-                "Relatorio demonstrativo disponivel",
-                "O relatorio de acompanhamento foi preparado para consulta.",
-                factory.id,
-                "/relatorios",
-            ),
-            (
-                "SCRAP_RELEVANT",
-                "WARNING",
-                "Ocorrencia relevante identificada",
-                "Uma ocorrencia de Scrap requer analise de causa e plano de acao.",
-                rows[2][0].id,
-                "/base-de-scrap",
-            ),
-        ]
-        for index, (event_type, severity, title, description, entity_id, link) in enumerate(alert_definitions, start=1):
-            event = await add(
-                OutboxEvent,
-                f"demo-alert-{index}-event",
-                event_type=event_type,
-                aggregate_id=entity_id,
-                payload={
-                    "demo": True,
-                    "title": title,
-                    "description": description,
-                    "severity": severity,
-                    "link": link,
-                    "recipient_ids": [recipient.id],
-                    "channels": ["FRONT"],
-                },
-            )
-            alert = await add(
-                Alert,
-                f"demo-alert-{index}",
-                event_id=event.id,
-                event_type=event_type,
-                severity=severity,
-                title=title,
-                body=event.payload,
-                entity_id=entity_id,
-            )
-            await add(
-                AlertRecipient,
-                f"demo-alert-{index}-recipient-{recipient.id}",
-                alert_id=alert.id,
-                user_id=recipient.id,
-            )
+    await _seed_alerts(add, recipient, rows, actions, factory)
     return counts
 
 

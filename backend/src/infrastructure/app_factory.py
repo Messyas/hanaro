@@ -1,3 +1,4 @@
+import inspect
 import json
 import logging
 from asyncio import Event
@@ -53,10 +54,21 @@ def _validate_cors_configuration(
         )
 
 
-async def set_threadpool_tokens(number_of_tokens: int = 100) -> None:
+def set_threadpool_tokens(number_of_tokens: int = 100) -> None:
     """Configure the number of threadpool tokens for anyio."""
-    limiter = anyio.to_thread.current_default_thread_limiter()
+    current_default_thread_limiter = getattr(anyio.to_thread, "current_default_thread_limiter", None)
+    if current_default_thread_limiter is None:
+        return
+
+    limiter = current_default_thread_limiter()
     limiter.total_tokens = number_of_tokens
+
+
+async def _maybe_await(result: Any) -> Any:
+    """Await a value only when it is awaitable."""
+    if inspect.isawaitable(result):
+        return await result
+    return result
 
 
 def lifespan_factory(
@@ -70,17 +82,17 @@ def lifespan_factory(
         initialization_complete = Event()
         app.state.initialization_complete = initialization_complete
 
-        await set_threadpool_tokens()
+        set_threadpool_tokens()
 
         try:
             if isinstance(settings, DatabaseSettings) and create_tables_on_startup:
                 await create_tables()
 
             if isinstance(settings, CacheSettings) and settings.CACHE_ENABLED:
-                await initialize_cache()
+                await _maybe_await(initialize_cache())
 
             if isinstance(settings, RateLimiterSettings) and settings.RATE_LIMITER_ENABLED:
-                await initialize_rate_limiter()
+                await _maybe_await(initialize_rate_limiter())
 
             await auth.initialize()
 
@@ -92,10 +104,10 @@ def lifespan_factory(
             await auth.shutdown()
 
             if isinstance(settings, CacheSettings) and settings.CACHE_ENABLED:
-                await close_cache()
+                await _maybe_await(close_cache())
 
             if isinstance(settings, RateLimiterSettings) and settings.RATE_LIMITER_ENABLED:
-                await close_rate_limiter()
+                await _maybe_await(close_rate_limiter())
 
     return lifespan
 
@@ -316,20 +328,21 @@ def create_application(
     docs_production_dependency: Callable[..., Any] | None = None,
     enable_gzip: bool | None = None,
     openapi_prefix: str | None = None,
-    title: str | None = None,
-    summary: str | None = None,
-    description: str | None = None,
-    version: str | None = None,
-    terms_of_service: str | None = None,
-    contact: dict[str, str] | None = None,
-    license_info: dict[str, str] | None = None,
-    openapi_tags: list[dict[str, Any]] | None = None,
-    docs_url: str | None = None,
-    redoc_url: str | None = None,
-    openapi_url: str | None = None,
     **kwargs: Any,
 ) -> FastAPI:
     """Create and configure a FastAPI application."""
+    title = kwargs.pop("title", None)
+    summary = kwargs.pop("summary", None)
+    description = kwargs.pop("description", None)
+    version = kwargs.pop("version", None)
+    terms_of_service = kwargs.pop("terms_of_service", None)
+    contact = kwargs.pop("contact", None)
+    license_info = kwargs.pop("license_info", None)
+    openapi_tags = kwargs.pop("openapi_tags", None)
+    docs_url = kwargs.pop("docs_url", None)
+    redoc_url = kwargs.pop("redoc_url", None)
+    openapi_url = kwargs.pop("openapi_url", None)
+
     settings = settings or get_settings()
     create_tables = _setting_option(create_tables_on_startup, settings, "CREATE_TABLES_ON_STARTUP", True)
     cors_enabled = _setting_option(enable_cors, settings, "CORS_ENABLED", False)

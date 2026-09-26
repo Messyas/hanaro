@@ -217,6 +217,14 @@ export class DashboardStore {
     if (metric === 'qty') this.monetaryValuesHidden.set(false);
   }
 
+  prefetchMetric(metric: DashboardMetric): void {
+    if (!this.canUseApi || metric === this.metric()) return;
+    // O interceptor HTTP compartilha requests em andamento e guarda a resposta.
+    void this.data.getSnapshot(this.filters(), metric, this.rankingLimit()).catch(() => {
+      // Uma falha especulativa não altera o estado da visão ativa.
+    });
+  }
+
   setAnalysis(analysis: DashboardAnalysis): void {
     this.analysis.set(analysis);
     if (analysis === 'relative') {
@@ -259,12 +267,7 @@ export class DashboardStore {
   constructor() {
     void this.loadFilterOptions();
     effect(() => {
-      void this.loadApiSnapshot(
-        this.filters(),
-        this.metric(),
-        this.analysis(),
-        this.rankingLimit(),
-      );
+      void this.loadApiSnapshot(this.filters(), this.metric(), this.rankingLimit());
     });
   }
 
@@ -349,7 +352,6 @@ export class DashboardStore {
   private async loadApiSnapshot(
     filters: DashboardFilters,
     metric: DashboardMetric,
-    analysis: DashboardAnalysis,
     rankingLimit: DashboardRankingLimit,
   ): Promise<void> {
     const requestId = ++this.apiRequestSequence;
