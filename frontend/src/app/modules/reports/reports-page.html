@@ -632,8 +632,8 @@
                   <div class="preview-conflicts" role="status">
                     <strong>{{
                       closePreview.readiness.ready
-                        ? 'Pronto para emissÃ£o'
-                        : 'PendÃªncias para emissÃ£o'
+                        ? 'Pronto para emissão'
+                        : 'Pendências para emissão'
                     }}</strong>
                     @for (
                       issue of closePreview.readiness.issues;
@@ -662,12 +662,12 @@
                     ><strong>{{
                       periodAnalytics.target
                         ? formatCurrency(periodAnalytics.target, periodAnalytics.metric.currency)
-                        : 'IndisponÃ­vel'
+                        : 'Indisponível'
                     }}</strong>
                   </div>
                 </div>
                 <p class="muted">
-                  Cobertura: {{ periodAnalytics.coverage.status }} Â·
+                  Cobertura: {{ periodAnalytics.coverage.status }} ·
                   {{ periodAnalytics.coverage.complete_days }}/{{
                     periodAnalytics.coverage.expected_days
                   }}
@@ -727,7 +727,7 @@
                       track conflict.occurrence_id + conflict.source_version_id
                     ) {
                       <details>
-                        <summary>{{ workflows().details }} Â· {{ conflict.occurrence_id }}</summary>
+                        <summary>{{ workflows().details }} · {{ conflict.occurrence_id }}</summary>
                         <p>{{ conflict.alternative.review_description }}</p>
                       </details>
                     }
@@ -737,7 +737,7 @@
                   @for (item of preview()!.items; track item.occurrence_id) {
                     <article>
                       <div>
-                        <strong>{{ item.item_code || 'â€”' }}</strong
+                        <strong>{{ item.item_code || '—' }}</strong
                         ><span>{{ item.item_description || item.review_title }}</span>
                       </div>
                       <div class="preview-meta">

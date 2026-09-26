@@ -349,8 +349,8 @@ export class SettingsPage {
     return {
       PRODUCT_ALIAS: 'Apelido de produto',
       ORGANIZATION: 'Organização → produto/divisão',
-      DEPARTMENT: 'Setor de recebimento â†’ departamento',
-      COUNTING: 'Conta â†’ entra no IF Cost',
+      DEPARTMENT: 'Setor de recebimento → departamento',
+      COUNTING: 'Conta → entra no IF Cost',
       ITEM_TYPE: 'Descrição → tipo de item',
     }[kind];
   }
@@ -429,7 +429,7 @@ export class SettingsPage {
         this.classificationRules.update((rules) => rules.filter((item) => item.id !== rule.id));
         this.classificationFeedback.set({
           type: 'success',
-          text: 'Regra removida. Reaplique para atualizar o histÃ³rico.',
+          text: 'Regra removida. Reaplique para atualizar o histórico.',
         });
       },
       error: () => {
