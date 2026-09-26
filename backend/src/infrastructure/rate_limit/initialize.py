@@ -7,15 +7,27 @@ from .provider import rate_limiter_provider
 
 MEMCACHED_INSTALLED = importlib.util.find_spec("aiomcache") is not None
 REDIS_INSTALLED = importlib.util.find_spec("redis") is not None
+MemcachedBackend: type | None
+MemcachedSettings: type | None
+RedisBackend: type | None
+RedisSettings: type | None
 
 if MEMCACHED_INSTALLED:
-    from .backends import MemcachedBackend, MemcachedSettings
+    from .backends import MemcachedBackend as _MemcachedBackend
+    from .backends import MemcachedSettings as _MemcachedSettings
+
+    MemcachedBackend = _MemcachedBackend
+    MemcachedSettings = _MemcachedSettings
 else:
     MemcachedBackend = None
     MemcachedSettings = None
 
 if REDIS_INSTALLED:
-    from .backends import RedisBackend, RedisSettings
+    from .backends import RedisBackend as _RedisBackend
+    from .backends import RedisSettings as _RedisSettings
+
+    RedisBackend = _RedisBackend
+    RedisSettings = _RedisSettings
 else:
     RedisBackend = None
     RedisSettings = None

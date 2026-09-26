@@ -128,7 +128,7 @@ async def create_tables() -> None:
     """
     # Scripts may call this before routes import models. Register the complete
     # schema explicitly instead of depending on incidental application imports.
-    from ... import modules as registered_models  # noqa: PLC0415, F401
+    from src.app import models as registered_models  # noqa: PLC0415, F401
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)

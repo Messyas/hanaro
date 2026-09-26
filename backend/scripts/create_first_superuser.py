@@ -65,10 +65,7 @@ async def create_first_superuser() -> None:
 
             user = await user_service.create(user_data, session)
 
-            if isinstance(user, dict):
-                user_id = user["id"]
-            else:
-                user_id = user.id
+            user_id = user["id"]
 
             stmt = update(User).where(User.id == user_id).values(is_superuser=True, role="admin")
             await session.execute(stmt)

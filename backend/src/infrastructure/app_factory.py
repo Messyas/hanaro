@@ -89,10 +89,10 @@ def lifespan_factory(
                 await create_tables()
 
             if isinstance(settings, CacheSettings) and settings.CACHE_ENABLED:
-                await _maybe_await(initialize_cache())
+                initialize_cache()
 
             if isinstance(settings, RateLimiterSettings) and settings.RATE_LIMITER_ENABLED:
-                await _maybe_await(initialize_rate_limiter())
+                initialize_rate_limiter()
 
             await auth.initialize()
 

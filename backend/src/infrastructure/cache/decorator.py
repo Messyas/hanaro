@@ -19,6 +19,7 @@ class PatternMatchingNotSupportedError(CacheException):
         super().__init__(self.message)
 
 
+MemcachedPatternMatchingNotSupportedError: type[Exception]
 try:
     from .backends.memcached import (
         PatternMatchingNotSupportedError as MemcachedPatternMatchingNotSupportedError,

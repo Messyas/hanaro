@@ -256,7 +256,7 @@ class TestTaskiqSettings:
         settings = Settings()
 
         broker_url = settings.TASKIQ_BROKER_URL
-        expected_url = "amqp://test-user:test-password@rabbitmq-host:5673/test"
+        expected_url = "amqps://test-user:test-password@rabbitmq-host:5673/test"
         assert broker_url == expected_url
 
     @patch.dict(os.environ, {"TASKIQ_BROKER_TYPE": "invalid"})

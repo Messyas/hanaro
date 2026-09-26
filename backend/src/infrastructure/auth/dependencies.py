@@ -111,7 +111,7 @@ async def get_optional_user(
     return user
 
 
-def get_current_superuser(
+async def get_current_superuser(
     current_user: Annotated[dict[str, Any], Depends(get_current_user)],
 ) -> dict[str, Any]:
     """Get the current user as a dict, requiring superuser privileges (403 otherwise)."""

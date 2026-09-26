@@ -152,6 +152,7 @@ backend/scripts/*
 !backend/scripts/__init__.py
 !backend/scripts/seed_demo_classifications.py
 !backend/scripts/seed_demo_governance.py
+!backend/scripts/check_architecture.py
 .agents/
 # Node / Angular
 node_modules/
